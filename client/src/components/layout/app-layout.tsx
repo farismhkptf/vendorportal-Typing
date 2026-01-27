@@ -26,7 +26,7 @@ const navigation = [
   { name: "Typing Jobs", href: "/typing-jobs", icon: Calendar },
   { name: "Staff", href: "/staff", icon: Users },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
-  { name: "Admin", href: "/admin", icon: Settings },
+  { name: "Admin Console", href: "/admin", icon: Settings },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
