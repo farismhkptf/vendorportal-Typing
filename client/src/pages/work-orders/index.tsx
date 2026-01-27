@@ -22,7 +22,8 @@ export default function WorkOrdersList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: workOrders, isLoading } = useQuery<WorkOrderWithCompany[]>({
-    queryKey: ["/api/work-orders", { search, status: statusFilter }],
+    queryKey: ["/api/work-orders"],
+    staleTime: 0,
   });
 
   const filteredWorkOrders = workOrders?.filter((wo) => {
