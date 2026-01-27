@@ -67,7 +67,7 @@ const serviceTypeSchema = z.object({
 const jobTypeSchema = z.object({
   name: z.string().min(1, "Name is required"),
   category: z.enum(["Medical", "EID"]),
-  cost: z.number().min(0, "Cost must be positive"),
+  cost: z.coerce.number().min(0, "Cost must be positive"),
 });
 
 const ccRecipientsSchema = z.object({
@@ -75,7 +75,7 @@ const ccRecipientsSchema = z.object({
 });
 
 const thresholdSchema = z.object({
-  lowBalanceThreshold: z.number().min(0, "Must be 0 or greater"),
+  lowBalanceThreshold: z.coerce.number().min(0, "Must be 0 or greater"),
 });
 
 export default function AdminPage() {

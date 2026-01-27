@@ -416,50 +416,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Seed data (only in development)
+  // Seed data (only in development) - minimal bootstrap only
   async seedData(): Promise<void> {
     // Only seed in development
     if (process.env.NODE_ENV === 'production') return;
     
-    // Check if already seeded
-    const existingStaff = await db.select().from(staff);
-    if (existingStaff.length > 0) return;
+    // Always ensure app settings exist (required for email configuration)
+    const existingSettings = await db.select().from(appSettings);
+    if (existingSettings.length === 0) {
+      await db.insert(appSettings).values({
+        fromEmail: "notifications@procompany.ae",
+        fromName: "The P.R.O. Company",
+        replyToEmail: "operations@procompany.ae",
+        alwaysCc: [],
+        lowBalanceThreshold: 1000,
+      });
+      console.log("App settings created!");
+    }
 
-    // Seed staff
-    await db.insert(staff).values([
-      { name: "Faris", roleTitle: "Admin", email: "faris@procompany.ae" },
-      { name: "Yasin", roleTitle: "Ops Manager", email: "yasin@procompany.ae" },
-      { name: "Amal", roleTitle: "PRO", email: "amal@procompany.ae" },
-      { name: "Shahul", roleTitle: "PRO", email: "shahul@procompany.ae" },
-    ]);
+    // Check if admin user already exists
+    const existingUsers = await db.select().from(users).where(eq(users.role, "Admin"));
+    if (existingUsers.length > 0) return;
 
-    // Seed job types with fixed costs
-    await db.insert(jobTypes).values([
-      { name: "Medical Typing – Normal", category: "Medical", cost: 290 },
-      { name: "Medical Typing – VIP", category: "Medical", cost: 720 },
-      { name: "Emirates ID Application – 1 Year", category: "EID", cost: 270 },
-      { name: "Emirates ID Application – 2 Year", category: "EID", cost: 370 },
-      { name: "Emirates ID Application – 10 Years", category: "EID", cost: 1200 },
-      { name: "Emirates ID Replacement", category: "EID", cost: 470 },
-    ]);
-
-    // Seed vendor
-    const [vendor] = await db.insert(vendors).values({
-      name: "Default Vendor",
-      contactPerson: "Vendor Contact",
-      email: "vendor@example.com",
-    }).returning();
-
-    // Seed vendor user
-    await db.insert(users).values({
-      name: "Vendor User",
-      email: "vendor@procompany.ae",
-      passwordHash: "vendor123", // In production, this should be hashed
-      role: "Vendor",
-      vendorId: vendor.id,
-    });
-
-    // Seed admin user
+    // Seed admin user (required for login)
     await db.insert(users).values({
       name: "Admin",
       email: "admin@procompany.ae",
@@ -467,42 +446,7 @@ export class DatabaseStorage implements IStorage {
       role: "Admin",
     });
 
-    // Seed app settings
-    await db.insert(appSettings).values({
-      fromEmail: "notifications@procompany.ae",
-      fromName: "The P.R.O. Company",
-      replyToEmail: "operations@procompany.ae",
-      alwaysCc: ["faris@procompany.ae", "yasin@procompany.ae"],
-      lowBalanceThreshold: 1000,
-    });
-
-    // Seed sample centers
-    await db.insert(centers).values([
-      { name: "AMER Center - Dubai Mall", type: "Both", area: "Downtown Dubai" },
-      { name: "DHA Medical Fitness Center", type: "Medical", area: "Al Barsha" },
-      { name: "ICA Emirates ID Center", type: "EID", area: "Al Twar" },
-    ]);
-
-    // Real companies will be seeded separately via the seedRealCompanies function
-    // (removed sample company)
-
-    // Seed sample service types
-    await db.insert(serviceTypes).values([
-      { name: "New Employment Visa" },
-      { name: "Visa Renewal" },
-      { name: "Visa Cancellation" },
-      { name: "Status Change" },
-    ]);
-
-    // Add initial wallet topup
-    await db.insert(vendorWalletLedger).values({
-      vendorId: vendor.id,
-      entryType: "Topup",
-      amount: 5000,
-      note: "Initial advance top-up",
-    });
-
-    console.log("Database seeded successfully!");
+    console.log("Minimal bootstrap complete - admin user created!");
   }
 
   // Seed real companies from the provided spreadsheet data
