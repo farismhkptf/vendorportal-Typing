@@ -5,12 +5,34 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 
+import Dashboard from "@/pages/dashboard";
+import Login from "@/pages/login";
+import WorkOrdersList from "@/pages/work-orders/index";
+import NewWorkOrder from "@/pages/work-orders/new";
+import WorkOrderDetail from "@/pages/work-orders/detail";
+import CompaniesList from "@/pages/companies/index";
+import TypingJobsList from "@/pages/typing-jobs/index";
+import VendorWallet from "@/pages/vendor-wallet";
+import AdminPage from "@/pages/admin/index";
+import VendorLogin from "@/pages/vendor/login";
+import VendorJobs from "@/pages/vendor/jobs";
+import ReschedulePage from "@/pages/reschedule";
+
 function Router() {
   return (
     <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
+      <Route path="/" component={Dashboard} />
+      <Route path="/login" component={Login} />
+      <Route path="/work-orders" component={WorkOrdersList} />
+      <Route path="/work-orders/new" component={NewWorkOrder} />
+      <Route path="/work-orders/:id" component={WorkOrderDetail} />
+      <Route path="/companies" component={CompaniesList} />
+      <Route path="/typing-jobs" component={TypingJobsList} />
+      <Route path="/vendor-wallet" component={VendorWallet} />
+      <Route path="/admin" component={AdminPage} />
+      <Route path="/vendor/login" component={VendorLogin} />
+      <Route path="/vendor/jobs" component={VendorJobs} />
+      <Route path="/reschedule/:token" component={ReschedulePage} />
       <Route component={NotFound} />
     </Switch>
   );

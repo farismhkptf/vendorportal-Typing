@@ -1,16 +1,596 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { randomUUID } from "crypto";
+import { z } from "zod";
+import { 
+  insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
+  insertCenterSchema, insertServiceTypeSchema, loginSchema 
+} from "@shared/schema";
+
+const topupSchema = z.object({
+  amount: z.number().positive(),
+  note: z.string().optional(),
+});
+
+const rescheduleSubmitSchema = z.object({
+  requestedDatetime: z.string(),
+  notes: z.string().optional(),
+});
+
+const vendorLoginSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+
+function validateBody<T>(schema: z.ZodSchema<T>, body: unknown): { data: T } | { error: string } {
+  const result = schema.safeParse(body);
+  if (!result.success) {
+    return { error: result.error.errors.map(e => e.message).join(", ") };
+  }
+  return { data: result.data };
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  
+  // Seed database on startup
+  await storage.seedData();
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  // ========== Dashboard ==========
+  app.get("/api/dashboard/stats", async (req, res) => {
+    try {
+      const workOrders = await storage.getWorkOrders();
+      const todayAppointments = await storage.getTodayAppointments();
+      const pendingJobs = await storage.getTypingJobs("SentToVendor");
+      const vendors = await storage.getVendors();
+      
+      let walletBalance = 0;
+      let lowBalanceWarning = false;
+      
+      if (vendors.length > 0) {
+        walletBalance = await storage.getWalletBalance(vendors[0].id);
+        const settings = await storage.getAppSettings();
+        lowBalanceWarning = walletBalance < (settings?.lowBalanceThreshold || 1000);
+      }
+
+      res.json({
+        totalWorkOrders: workOrders.length,
+        todayAppointments: todayAppointments.length,
+        pendingTypingJobs: pendingJobs.length,
+        walletBalance,
+        lowBalanceWarning,
+      });
+    } catch (error) {
+      console.error("Dashboard stats error:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  app.get("/api/dashboard/today-appointments", async (req, res) => {
+    try {
+      const appointments = await storage.getTodayAppointments();
+      const result = await Promise.all(
+        appointments.map(async (apt) => {
+          const wo = await storage.getWorkOrderById(apt.woId);
+          const center = apt.centerId ? await storage.getCenterById(apt.centerId) : null;
+          return {
+            id: apt.id,
+            woNumber: wo?.woNumber || "N/A",
+            applicantName: wo?.applicantName || "N/A",
+            type: apt.type,
+            time: new Date(apt.datetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+            center: center?.name || "TBD",
+          };
+        })
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Today appointments error:", error);
+      res.status(500).json({ message: "Failed to fetch appointments" });
+    }
+  });
+
+  app.get("/api/dashboard/recent-work-orders", async (req, res) => {
+    try {
+      const workOrders = await storage.getWorkOrders();
+      const recent = workOrders.slice(0, 5);
+      
+      const result = await Promise.all(
+        recent.map(async (wo) => {
+          const company = await storage.getCompanyById(wo.companyId);
+          return {
+            id: wo.id,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            companyName: company?.name || "N/A",
+            status: wo.status,
+            createdAt: wo.createdAt,
+          };
+        })
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Recent work orders error:", error);
+      res.status(500).json({ message: "Failed to fetch work orders" });
+    }
+  });
+
+  // ========== Work Orders ==========
+  app.get("/api/work-orders", async (req, res) => {
+    try {
+      const { search, status } = req.query;
+      const workOrders = await storage.getWorkOrders(
+        search as string | undefined,
+        status as string | undefined
+      );
+      
+      const result = await Promise.all(
+        workOrders.map(async (wo) => {
+          const company = await storage.getCompanyById(wo.companyId);
+          return { ...wo, company };
+        })
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Work orders error:", error);
+      res.status(500).json({ message: "Failed to fetch work orders" });
+    }
+  });
+
+  app.get("/api/work-orders/:id", async (req, res) => {
+    try {
+      const wo = await storage.getWorkOrderById(req.params.id);
+      if (!wo) {
+        return res.status(404).json({ message: "Work order not found" });
+      }
+
+      const company = await storage.getCompanyById(wo.companyId);
+      const appointments = await storage.getAppointmentsByWoId(wo.id);
+      const typingJobs = await storage.getTypingJobsByWoId(wo.id);
+
+      let companyWithDetails = null;
+      if (company) {
+        const emails = await storage.getCompanyEmails(company.id);
+        const rmStaff = company.rmStaffId ? await storage.getStaffById(company.rmStaffId) : null;
+        const assistStaff = company.assistStaffId ? await storage.getStaffById(company.assistStaffId) : null;
+        const preferredMedicalCenter = company.preferredMedicalCenterId 
+          ? await storage.getCenterById(company.preferredMedicalCenterId) 
+          : null;
+        const preferredEidCenter = company.preferredEidCenterId 
+          ? await storage.getCenterById(company.preferredEidCenterId) 
+          : null;
+        
+        companyWithDetails = {
+          ...company,
+          emails,
+          rmStaff,
+          assistStaff,
+          preferredMedicalCenter,
+          preferredEidCenter,
+        };
+      }
+
+      res.json({
+        ...wo,
+        company: companyWithDetails,
+        appointments,
+        typingJobs,
+      });
+    } catch (error) {
+      console.error("Work order detail error:", error);
+      res.status(500).json({ message: "Failed to fetch work order" });
+    }
+  });
+
+  app.post("/api/work-orders", async (req, res) => {
+    try {
+      const validation = validateBody(insertWorkOrderSchema.omit({ woNumber: true, status: true }), req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      const woNumber = await storage.getNextWoNumber();
+      const wo = await storage.createWorkOrder({
+        ...validation.data,
+        woNumber,
+        status: "Draft",
+      });
+      res.status(201).json(wo);
+    } catch (error) {
+      console.error("Create work order error:", error);
+      res.status(500).json({ message: "Failed to create work order" });
+    }
+  });
+
+  // ========== Companies ==========
+  app.get("/api/companies", async (req, res) => {
+    try {
+      const companies = await storage.getCompanies();
+      const result = await Promise.all(
+        companies.map(async (company) => {
+          const emails = await storage.getCompanyEmails(company.id);
+          const rmStaff = company.rmStaffId ? await storage.getStaffById(company.rmStaffId) : null;
+          const assistStaff = company.assistStaffId ? await storage.getStaffById(company.assistStaffId) : null;
+          const preferredMedicalCenter = company.preferredMedicalCenterId 
+            ? await storage.getCenterById(company.preferredMedicalCenterId) 
+            : null;
+          const preferredEidCenter = company.preferredEidCenterId 
+            ? await storage.getCenterById(company.preferredEidCenterId) 
+            : null;
+          
+          return {
+            ...company,
+            emails,
+            rmStaff,
+            assistStaff,
+            preferredMedicalCenter,
+            preferredEidCenter,
+          };
+        })
+      );
+      res.json(result);
+    } catch (error) {
+      console.error("Companies error:", error);
+      res.status(500).json({ message: "Failed to fetch companies" });
+    }
+  });
+
+  app.post("/api/companies", async (req, res) => {
+    try {
+      const validation = validateBody(insertCompanySchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const company = await storage.createCompany(validation.data);
+      res.status(201).json(company);
+    } catch (error) {
+      console.error("Create company error:", error);
+      res.status(500).json({ message: "Failed to create company" });
+    }
+  });
+
+  // ========== Staff ==========
+  app.get("/api/staff", async (req, res) => {
+    try {
+      const staffList = await storage.getStaff();
+      res.json(staffList);
+    } catch (error) {
+      console.error("Staff error:", error);
+      res.status(500).json({ message: "Failed to fetch staff" });
+    }
+  });
+
+  app.post("/api/staff", async (req, res) => {
+    try {
+      const validation = validateBody(insertStaffSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const member = await storage.createStaff(validation.data);
+      res.status(201).json(member);
+    } catch (error) {
+      console.error("Create staff error:", error);
+      res.status(500).json({ message: "Failed to create staff member" });
+    }
+  });
+
+  // ========== Centers ==========
+  app.get("/api/centers", async (req, res) => {
+    try {
+      const centers = await storage.getCenters();
+      res.json(centers);
+    } catch (error) {
+      console.error("Centers error:", error);
+      res.status(500).json({ message: "Failed to fetch centers" });
+    }
+  });
+
+  app.post("/api/centers", async (req, res) => {
+    try {
+      const validation = validateBody(insertCenterSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const center = await storage.createCenter(validation.data);
+      res.status(201).json(center);
+    } catch (error) {
+      console.error("Create center error:", error);
+      res.status(500).json({ message: "Failed to create center" });
+    }
+  });
+
+  // ========== Service Types ==========
+  app.get("/api/service-types", async (req, res) => {
+    try {
+      const types = await storage.getServiceTypes();
+      res.json(types);
+    } catch (error) {
+      console.error("Service types error:", error);
+      res.status(500).json({ message: "Failed to fetch service types" });
+    }
+  });
+
+  app.post("/api/service-types", async (req, res) => {
+    try {
+      const validation = validateBody(insertServiceTypeSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const type = await storage.createServiceType(validation.data);
+      res.status(201).json(type);
+    } catch (error) {
+      console.error("Create service type error:", error);
+      res.status(500).json({ message: "Failed to create service type" });
+    }
+  });
+
+  // ========== Job Types ==========
+  app.get("/api/job-types", async (req, res) => {
+    try {
+      const types = await storage.getJobTypes();
+      res.json(types);
+    } catch (error) {
+      console.error("Job types error:", error);
+      res.status(500).json({ message: "Failed to fetch job types" });
+    }
+  });
+
+  // ========== Typing Jobs ==========
+  app.get("/api/typing-jobs", async (req, res) => {
+    try {
+      const { status } = req.query;
+      const jobs = await storage.getTypingJobs(status as string | undefined);
+      
+      const result = await Promise.all(
+        jobs.map(async (job) => {
+          const wo = await storage.getWorkOrderById(job.woId);
+          const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+          return { ...job, workOrder: wo, jobType };
+        })
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Typing jobs error:", error);
+      res.status(500).json({ message: "Failed to fetch typing jobs" });
+    }
+  });
+
+  // ========== Vendor Wallet ==========
+  app.get("/api/vendor-wallet/summary", async (req, res) => {
+    try {
+      const vendors = await storage.getVendors();
+      if (vendors.length === 0) {
+        return res.json({
+          balance: 0,
+          monthTopups: 0,
+          monthSpend: 0,
+          lowBalanceWarning: false,
+        });
+      }
+
+      const vendorId = vendors[0].id;
+      const balance = await storage.getWalletBalance(vendorId);
+      const monthlyStats = await storage.getMonthlyStats(vendorId);
+      const settings = await storage.getAppSettings();
+
+      res.json({
+        balance,
+        monthTopups: monthlyStats.topups,
+        monthSpend: monthlyStats.spend,
+        lowBalanceWarning: balance < (settings?.lowBalanceThreshold || 1000),
+      });
+    } catch (error) {
+      console.error("Wallet summary error:", error);
+      res.status(500).json({ message: "Failed to fetch wallet summary" });
+    }
+  });
+
+  app.get("/api/vendor-wallet/ledger", async (req, res) => {
+    try {
+      const vendors = await storage.getVendors();
+      if (vendors.length === 0) {
+        return res.json([]);
+      }
+
+      const ledger = await storage.getWalletLedger(vendors[0].id);
+      res.json(ledger);
+    } catch (error) {
+      console.error("Wallet ledger error:", error);
+      res.status(500).json({ message: "Failed to fetch wallet ledger" });
+    }
+  });
+
+  app.post("/api/vendor-wallet/topup", async (req, res) => {
+    try {
+      const validation = validateBody(topupSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      const { amount, note } = validation.data;
+      const vendors = await storage.getVendors();
+      
+      if (vendors.length === 0) {
+        return res.status(400).json({ message: "No vendor found" });
+      }
+
+      const entry = await storage.createWalletEntry({
+        vendorId: vendors[0].id,
+        entryType: "Topup",
+        amount,
+        note: note || "Manual top-up",
+      });
+
+      res.status(201).json(entry);
+    } catch (error) {
+      console.error("Wallet topup error:", error);
+      res.status(500).json({ message: "Failed to process top-up" });
+    }
+  });
+
+  // ========== Settings ==========
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      res.json(settings || {
+        fromEmail: "notifications@procompany.ae",
+        fromName: "The P.R.O. Company",
+        replyToEmail: "operations@procompany.ae",
+        alwaysCc: ["faris@procompany.ae", "yasin@procompany.ae"],
+        lowBalanceThreshold: 1000,
+      });
+    } catch (error) {
+      console.error("Settings error:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  // ========== Authentication ==========
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const validation = validateBody(loginSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      const { email, password } = validation.data;
+      const user = await storage.getUserByEmail(email);
+      
+      if (!user || user.passwordHash !== password) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      if (user.role === "Vendor") {
+        return res.status(403).json({ message: "Please use the vendor portal" });
+      }
+
+      res.json({ 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role 
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // ========== Vendor Portal ==========
+  app.post("/api/vendor/auth/login", async (req, res) => {
+    try {
+      const validation = validateBody(vendorLoginSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      const { username, password } = validation.data;
+      const user = await storage.getUserByEmail(username);
+      
+      if (!user || user.passwordHash !== password || user.role !== "Vendor") {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      res.json({ 
+        id: user.id, 
+        name: user.name, 
+        vendorId: user.vendorId 
+      });
+    } catch (error) {
+      console.error("Vendor login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.get("/api/vendor/jobs", async (req, res) => {
+    try {
+      const vendors = await storage.getVendors();
+      if (vendors.length === 0) {
+        return res.json([]);
+      }
+
+      const jobs = await storage.getTypingJobsByVendorId(vendors[0].id);
+      
+      const result = await Promise.all(
+        jobs.map(async (job) => {
+          const wo = await storage.getWorkOrderById(job.woId);
+          const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+          return { 
+            ...job, 
+            workOrder: wo, 
+            jobType,
+            hasInputDocs: false,
+            commentCount: 0,
+          };
+        })
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Vendor jobs error:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+
+  // ========== Reschedule ==========
+  app.get("/api/reschedule/:token", async (req, res) => {
+    try {
+      const appointment = await storage.getAppointmentByToken(req.params.token);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Invalid or expired reschedule link" });
+      }
+
+      const wo = await storage.getWorkOrderById(appointment.woId);
+      const center = appointment.centerId ? await storage.getCenterById(appointment.centerId) : null;
+
+      res.json({
+        appointment: {
+          ...appointment,
+          center,
+          workOrder: wo ? { applicantName: wo.applicantName, woNumber: wo.woNumber } : null,
+        },
+        availableTimes: ["09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "14:00", "14:30", "15:00", "15:30", "16:00"],
+      });
+    } catch (error) {
+      console.error("Reschedule fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch reschedule data" });
+    }
+  });
+
+  app.post("/api/reschedule/:token", async (req, res) => {
+    try {
+      const validation = validateBody(rescheduleSubmitSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      const appointment = await storage.getAppointmentByToken(req.params.token);
+      
+      if (!appointment) {
+        return res.status(404).json({ message: "Invalid or expired reschedule link" });
+      }
+
+      const { requestedDatetime, notes } = validation.data;
+      
+      const request = await storage.createRescheduleRequest({
+        appointmentId: appointment.id,
+        requestedDatetime: new Date(requestedDatetime),
+        notes,
+        status: "New",
+      });
+
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Reschedule submit error:", error);
+      res.status(500).json({ message: "Failed to submit reschedule request" });
+    }
+  });
 
   return httpServer;
 }
