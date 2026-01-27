@@ -909,7 +909,8 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      if (user.role === "Vendor") {
+      const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
+      if (vendorRoles.includes(user.role)) {
         return res.status(403).json({ message: "Please use the vendor portal" });
       }
 
@@ -936,7 +937,8 @@ export async function registerRoutes(
       const { username, password } = validation.data;
       const user = await storage.getUserByEmail(username);
       
-      if (!user || user.passwordHash !== password || user.role !== "Vendor") {
+      const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
+      if (!user || user.passwordHash !== password || !vendorRoles.includes(user.role)) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 

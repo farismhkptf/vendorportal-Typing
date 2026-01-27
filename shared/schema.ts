@@ -4,7 +4,57 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Enums
-export const userRoleEnum = pgEnum("user_role", ["Admin", "Ops", "Viewer", "Vendor"]);
+// User roles organized by category:
+// Our Team: Admin, Client Relationship Manager, Medical Assistance Support, Medical Assistance Support - Temporary Staff
+// Vendors: Vendor, Vendor Accountant, Vendor Manager
+// Clients: Client Coordinator, Client Manager, Client Accountant
+export const userRoleEnum = pgEnum("user_role", [
+  "Admin",
+  "Client Relationship Manager",
+  "Medical Assistance Support",
+  "Medical Assistance Support - Temporary Staff",
+  "Vendor",
+  "Vendor Accountant",
+  "Vendor Manager",
+  "Client Coordinator",
+  "Client Manager",
+  "Client Accountant"
+]);
+
+// Role category helpers
+export const ROLE_CATEGORIES = {
+  "Our Team": [
+    "Admin",
+    "Client Relationship Manager",
+    "Medical Assistance Support",
+    "Medical Assistance Support - Temporary Staff"
+  ],
+  "Vendors": [
+    "Vendor",
+    "Vendor Accountant",
+    "Vendor Manager"
+  ],
+  "Clients": [
+    "Client Coordinator",
+    "Client Manager",
+    "Client Accountant"
+  ]
+} as const;
+
+export const ALL_ROLES = [
+  "Admin",
+  "Client Relationship Manager",
+  "Medical Assistance Support",
+  "Medical Assistance Support - Temporary Staff",
+  "Vendor",
+  "Vendor Accountant",
+  "Vendor Manager",
+  "Client Coordinator",
+  "Client Manager",
+  "Client Accountant"
+] as const;
+
+export type UserRole = typeof ALL_ROLES[number];
 export const centerTypeEnum = pgEnum("center_type", ["Medical", "EID", "Both"]);
 export const centerAuthorityEnum = pgEnum("center_authority", ["DHA", "EHS"]);
 export const centerTierEnum = pgEnum("center_tier", ["Normal", "VIP"]);
@@ -57,7 +107,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: userRoleEnum("role").notNull().default("Viewer"),
+  role: userRoleEnum("role").notNull().default("Medical Assistance Support"),
   vendorId: varchar("vendor_id"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
