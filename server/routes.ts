@@ -913,6 +913,25 @@ export async function registerRoutes(
     }
   });
 
+  // Seed vendor jobs (development only)
+  app.post("/api/seed/vendor-jobs", async (req, res) => {
+    try {
+      // Only allow in development environment
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "This endpoint is disabled in production" });
+      }
+      
+      const result = await storage.seedVendorJobs();
+      res.json({ 
+        message: `Vendor jobs seeded: ${result.added} added, ${result.skipped} already existed`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Seed vendor jobs error:", error);
+      res.status(500).json({ message: "Failed to seed vendor jobs" });
+    }
+  });
+
   // ========== Authentication ==========
   app.post("/api/auth/login", async (req, res) => {
     try {

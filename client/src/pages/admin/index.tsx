@@ -642,7 +642,7 @@ export default function AdminPage() {
                 data-testid="tab-jobtypes"
               >
                 <Briefcase className="h-4 w-4 mr-2" />
-                Job Types
+                Vendor Jobs
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
@@ -1800,11 +1800,11 @@ export default function AdminPage() {
               </div>
             </TabsContent>
 
-            {/* Job Types Tab */}
+            {/* Vendor Jobs Tab */}
             <TabsContent value="jobtypes" className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-medium text-foreground">Job Types & Pricing</h3>
+                  <h3 className="font-medium text-foreground">Vendor Jobs & Pricing</h3>
                   {selectedJobTypes.length > 0 && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -1815,9 +1815,9 @@ export default function AdminPage() {
                       </AlertDialogTrigger>
                       <AlertDialogContent className="rounded-2xl">
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Selected Job Types</AlertDialogTitle>
+                          <AlertDialogTitle>Delete Selected Vendor Jobs</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete {selectedJobTypes.length} job types? This action cannot be undone.
+                            Are you sure you want to delete {selectedJobTypes.length} vendor jobs? This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -1837,12 +1837,12 @@ export default function AdminPage() {
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-jobtype">
                       <Plus className="h-4 w-4" />
-                      Add Job Type
+                      Add Vendor Job
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="rounded-2xl">
                     <DialogHeader>
-                      <DialogTitle>Add Job Type</DialogTitle>
+                      <DialogTitle>Add Vendor Job</DialogTitle>
                     </DialogHeader>
                     <Form {...jobTypeForm}>
                       <form onSubmit={jobTypeForm.handleSubmit((data) => createJobTypeMutation.mutate(data))} className="space-y-4">
@@ -1851,9 +1851,9 @@ export default function AdminPage() {
                           name="name"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Job Type Name</FormLabel>
+                              <FormLabel>Vendor Job Name</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., New Visa Application" className="h-11 rounded-xl" />
+                                <Input {...field} placeholder="e.g., Medical Application Normal" className="h-11 rounded-xl" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1904,7 +1904,7 @@ export default function AdminPage() {
                             Cancel
                           </Button>
                           <Button type="submit" className="rounded-xl" disabled={createJobTypeMutation.isPending}>
-                            {createJobTypeMutation.isPending ? "Adding..." : "Add Job Type"}
+                            {createJobTypeMutation.isPending ? "Adding..." : "Add Vendor Job"}
                           </Button>
                         </div>
                       </form>
@@ -1913,11 +1913,11 @@ export default function AdminPage() {
                 </Dialog>
               </div>
 
-              {/* Edit Job Type Dialog */}
+              {/* Edit Vendor Job Dialog */}
               <Dialog open={editJobTypeDialogOpen} onOpenChange={setEditJobTypeDialogOpen}>
                 <DialogContent className="rounded-2xl">
                   <DialogHeader>
-                    <DialogTitle>Edit Job Type</DialogTitle>
+                    <DialogTitle>Edit Vendor Job</DialogTitle>
                   </DialogHeader>
                   <Form {...editJobTypeForm}>
                     <form onSubmit={editJobTypeForm.handleSubmit((data) => editingJobType && updateJobTypeMutation.mutate({ ...data, id: editingJobType.id }))} className="space-y-4">
@@ -1926,9 +1926,9 @@ export default function AdminPage() {
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Job Type Name</FormLabel>
+                            <FormLabel>Vendor Job Name</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="e.g., New Visa Application" className="h-11 rounded-xl" />
+                              <Input {...field} placeholder="e.g., Medical Application Normal" className="h-11 rounded-xl" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -2047,7 +2047,7 @@ export default function AdminPage() {
                             </AlertDialogTrigger>
                             <AlertDialogContent className="rounded-2xl">
                               <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Job Type</AlertDialogTitle>
+                                <AlertDialogTitle>Delete Vendor Job</AlertDialogTitle>
                                 <AlertDialogDescription>
                                   Are you sure you want to delete "{job.name}"? This action cannot be undone.
                                 </AlertDialogDescription>
@@ -2070,8 +2070,8 @@ export default function AdminPage() {
                 ) : (
                   <EmptyState
                     icon={<Briefcase className="h-6 w-6" />}
-                    title="No job types"
-                    description="Job types define pricing for typing work."
+                    title="No vendor jobs"
+                    description="Vendor jobs define pricing for typing work."
                   />
                 )}
               </div>

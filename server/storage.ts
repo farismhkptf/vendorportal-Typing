@@ -113,6 +113,7 @@ export interface IStorage {
   
   // Seed service types
   seedServiceTypes(): Promise<{ added: number; skipped: number }>;
+  seedVendorJobs(): Promise<{ added: number; skipped: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -911,6 +912,42 @@ export class DatabaseStorage implements IStorage {
     }
 
     console.log(`Service types seeded: ${added} added, ${skipped} skipped`);
+    return { added, skipped };
+  }
+
+  async seedVendorJobs(): Promise<{ added: number; skipped: number }> {
+    // Vendor jobs with their costs from the spreadsheet
+    const vendorJobsData: Array<{
+      name: string;
+      category: "Medical" | "EID";
+      cost: number;
+    }> = [
+      { name: "MEDICAL APPLICATION NORMAL", category: "Medical", cost: 290 },
+      { name: "MEDICAL APPLICATION VIP", category: "Medical", cost: 720 },
+      { name: "EMIRATES ID APPLICATION 2 YEAR", category: "EID", cost: 370 },
+      { name: "EMIRATES ID APPLICATION 1 YEAR", category: "EID", cost: 270 },
+      { name: "EMIRATES ID APPLICATION 10 YEAR", category: "EID", cost: 1200 },
+      { name: "LOST / REPLACE EMIRATES ID", category: "EID", cost: 470 },
+    ];
+
+    let added = 0;
+    let skipped = 0;
+
+    for (const jobData of vendorJobsData) {
+      // Check if vendor job already exists by name
+      const existing = await db.select().from(jobTypes).where(eq(jobTypes.name, jobData.name));
+      
+      if (existing.length > 0) {
+        skipped++;
+        continue;
+      }
+
+      // Insert the vendor job
+      await db.insert(jobTypes).values(jobData);
+      added++;
+    }
+
+    console.log(`Vendor jobs seeded: ${added} added, ${skipped} skipped`);
     return { added, skipped };
   }
 }
