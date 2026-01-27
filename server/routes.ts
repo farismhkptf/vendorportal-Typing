@@ -563,6 +563,25 @@ export async function registerRoutes(
     }
   });
 
+  // ========== Seed Medical Centers (Development Only) ==========
+  app.post("/api/admin/seed-medical-centers", async (req, res) => {
+    try {
+      // Only allow in development environment
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "This endpoint is disabled in production" });
+      }
+      
+      const result = await storage.seedMedicalCenters();
+      res.json({ 
+        message: `Medical centers seeded: ${result.added} added, ${result.skipped} already existed`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Seed medical centers error:", error);
+      res.status(500).json({ message: "Failed to seed medical centers" });
+    }
+  });
+
   // ========== Authentication ==========
   app.post("/api/auth/login", async (req, res) => {
     try {

@@ -89,6 +89,9 @@ export interface IStorage {
   
   // Seed real companies
   seedRealCompanies(): Promise<{ added: number; skipped: number }>;
+  
+  // Seed medical centers
+  seedMedicalCenters(): Promise<{ added: number; skipped: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -533,6 +536,225 @@ export class DatabaseStorage implements IStorage {
     }
 
     console.log(`Real companies seeded: ${added} added, ${skipped} skipped`);
+    return { added, skipped };
+  }
+
+  // Seed medical centers with complete data
+  async seedMedicalCenters(): Promise<{ added: number; skipped: number }> {
+    const medicalCentersData = [
+      // DHA Centers - Normal Tier
+      {
+        name: "Karama Medical Fitness Center",
+        type: "Medical" as const,
+        authority: "DHA" as const,
+        tier: "Normal" as const,
+        address: "Fajer Building, 25, 24 Street, Al Karama, Bur Dubai, Dubai",
+        area: "Al Karama",
+        googleMapsUrl: "https://maps.google.com/?q=Al+Karama+Medical+Fitness+Center+Dubai",
+        timingText: "Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM, Sat-Sun: Closed",
+        timings: {
+          monday: { open: "07:00", close: "22:00" },
+          tuesday: { open: "07:00", close: "22:00" },
+          wednesday: { open: "07:00", close: "22:00" },
+          thursday: { open: "07:00", close: "22:00" },
+          friday: { open: "07:30", close: "12:00" },
+          saturday: { closed: true },
+          sunday: { closed: true },
+        },
+      },
+      {
+        name: "Al Quoz Mall Medical Fitness Center",
+        type: "Medical" as const,
+        authority: "DHA" as const,
+        tier: "Normal" as const,
+        address: "Al Quoz Mall, Ground Floor, 17B St - Al Quoz Industrial Area 3, Dubai",
+        area: "Al Quoz",
+        googleMapsUrl: "https://goo.gl/maps/46yFpqctmD3A71QT7",
+        timingText: "Mon-Thu: 7AM-9:30PM, Fri: 7AM-11:30AM & 2PM-9:30PM, Sat: 7AM-9:30PM, Sun: 7AM-3:30PM",
+        timings: {
+          monday: { open: "07:00", close: "21:30" },
+          tuesday: { open: "07:00", close: "21:30" },
+          wednesday: { open: "07:00", close: "21:30" },
+          thursday: { open: "07:00", close: "21:30" },
+          friday: { open: "07:00", close: "21:30", breakStart: "11:30", breakEnd: "14:00" },
+          saturday: { open: "07:00", close: "21:30" },
+          sunday: { open: "07:00", close: "15:30" },
+        },
+      },
+      {
+        name: "Al Nahda Medical Fitness Center",
+        type: "Medical" as const,
+        authority: "DHA" as const,
+        tier: "Normal" as const,
+        address: "Al Nahda Center, 99, 10 Street, Ground Floor, Al Qusais, Deira, Dubai",
+        area: "Al Nahda",
+        googleMapsUrl: "https://maps.google.com/?q=Al+Nahda+Medical+Fitness+Center+Dubai",
+        timingText: "Mon-Thu: 7AM-9:30PM, Fri: 7:30-11:30AM & 2PM-9:30PM, Sat: 7AM-9:30PM, Sun: 7AM-2:30PM",
+        timings: {
+          monday: { open: "07:00", close: "21:30" },
+          tuesday: { open: "07:00", close: "21:30" },
+          wednesday: { open: "07:00", close: "21:30" },
+          thursday: { open: "07:00", close: "21:30" },
+          friday: { open: "07:30", close: "21:30", breakStart: "11:30", breakEnd: "14:00" },
+          saturday: { open: "07:00", close: "21:30" },
+          sunday: { open: "07:00", close: "14:30" },
+        },
+      },
+      {
+        name: "Rashidiya Medical Fitness Center",
+        type: "Medical" as const,
+        authority: "DHA" as const,
+        tier: "Normal" as const,
+        address: "Building 25/1, 33A Street, Al Rashidiya, Deira, Dubai",
+        area: "Al Rashidiya",
+        googleMapsUrl: "https://maps.google.com/?q=Al+Rashidiya+Medical+Fitness+Center+Dubai",
+        timingText: "Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM, Sat-Sun: Closed",
+        timings: {
+          monday: { open: "07:00", close: "22:00" },
+          tuesday: { open: "07:00", close: "22:00" },
+          wednesday: { open: "07:00", close: "22:00" },
+          thursday: { open: "07:00", close: "22:00" },
+          friday: { open: "07:30", close: "12:00" },
+          saturday: { closed: true },
+          sunday: { closed: true },
+        },
+      },
+      // DHA Centers - VIP Tier
+      {
+        name: "City Walk Medical Fitness Center (Smart Salem)",
+        type: "Medical" as const,
+        authority: "DHA" as const,
+        tier: "VIP" as const,
+        address: "Building 23B, City Walk, 23B, Al Nuzha Street, Dubai",
+        area: "City Walk",
+        googleMapsUrl: "https://g.co/kgs/GhBpkcD",
+        timingText: "Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM & 2PM-10PM, Sat: 7AM-10PM, Sun: Closed",
+        timings: {
+          monday: { open: "07:00", close: "22:00" },
+          tuesday: { open: "07:00", close: "22:00" },
+          wednesday: { open: "07:00", close: "22:00" },
+          thursday: { open: "07:00", close: "22:00" },
+          friday: { open: "07:30", close: "22:00", breakStart: "12:00", breakEnd: "14:00" },
+          saturday: { open: "07:00", close: "22:00" },
+          sunday: { closed: true },
+        },
+      },
+      {
+        name: "Index Medical Fitness Center (DIFC) - Smart Salem",
+        type: "Medical" as const,
+        authority: "DHA" as const,
+        tier: "VIP" as const,
+        address: "Index Tower, Happiness Street, Trade Centre - DIFC, Dubai",
+        area: "DIFC",
+        googleMapsUrl: "https://maps.google.com/?q=Smart+Salem+Index+Tower+DIFC+Dubai",
+        timingText: "Mon-Thu: 7AM-8PM, Fri: 7:30AM-12PM, Sat-Sun: Closed",
+        timings: {
+          monday: { open: "07:00", close: "20:00" },
+          tuesday: { open: "07:00", close: "20:00" },
+          wednesday: { open: "07:00", close: "20:00" },
+          thursday: { open: "07:00", close: "20:00" },
+          friday: { open: "07:30", close: "12:00" },
+          saturday: { closed: true },
+          sunday: { closed: true },
+        },
+      },
+      {
+        name: "Dubai Knowledge Park - Smart Salem",
+        type: "Medical" as const,
+        authority: "DHA" as const,
+        tier: "VIP" as const,
+        address: "G09A, Ground Floor, Block No. 12, Dubai Knowledge Park (Al Sufouh 2), Dubai",
+        area: "Dubai Knowledge Park",
+        googleMapsUrl: "https://goo.gl/maps/pV5Z2VH8kQZcNwpL6",
+        timingText: "Tue-Thu: 7AM-9:30PM, Fri: 7:30-11:30AM & 4PM-8PM, Sun: 7AM-2:30PM, Mon/Sat: Closed",
+        timings: {
+          monday: { closed: true },
+          tuesday: { open: "07:00", close: "21:30" },
+          wednesday: { open: "07:00", close: "21:30" },
+          thursday: { open: "07:00", close: "21:30" },
+          friday: { open: "07:30", close: "20:00", breakStart: "11:30", breakEnd: "16:00" },
+          saturday: { closed: true },
+          sunday: { open: "07:00", close: "14:30" },
+        },
+      },
+      // EHS Centers - Normal Tier
+      {
+        name: "Salah Al Din Medical Examination Center",
+        type: "Medical" as const,
+        authority: "EHS" as const,
+        tier: "Normal" as const,
+        address: "173, Salah Al Din Road, Deira (Muteena), Dubai",
+        area: "Deira",
+        googleMapsUrl: "https://maps.google.com/?q=Salah+Al+Din+Medical+Examination+Center+Dubai",
+        timingText: "Mon-Fri: 7:30AM-8:15PM, Sat: 8AM-5:15PM, Sun: Closed",
+        timings: {
+          monday: { open: "07:30", close: "20:15" },
+          tuesday: { open: "07:30", close: "20:15" },
+          wednesday: { open: "07:30", close: "20:15" },
+          thursday: { open: "07:30", close: "20:15" },
+          friday: { open: "07:30", close: "20:15" },
+          saturday: { open: "08:00", close: "17:15" },
+          sunday: { closed: true },
+        },
+      },
+      {
+        name: "Al Nuaimiya Medical Examination Center",
+        type: "Medical" as const,
+        authority: "EHS" as const,
+        tier: "Normal" as const,
+        address: "50, Kuwait Street, Al Nuaimeya 2, City Center Sector, Ajman",
+        area: "Ajman",
+        googleMapsUrl: "https://maps.google.com/?q=Al+Nuaimiya+Medical+Examination+Center+Ajman",
+        timingText: "Sat-Thu: 8AM-8PM, Fri: 8AM-12PM & 2:30PM-8PM, Sun: Closed",
+        timings: {
+          monday: { open: "08:00", close: "20:00" },
+          tuesday: { open: "08:00", close: "20:00" },
+          wednesday: { open: "08:00", close: "20:00" },
+          thursday: { open: "08:00", close: "20:00" },
+          friday: { open: "08:00", close: "20:00", breakStart: "12:00", breakEnd: "14:30" },
+          saturday: { open: "08:00", close: "20:00" },
+          sunday: { closed: true },
+        },
+      },
+      {
+        name: "RAKEZ Medical Fitness Centre",
+        type: "Medical" as const,
+        authority: "EHS" as const,
+        tier: "Normal" as const,
+        address: "RAKEZ Service Centre, Amenity Centre, Al Jazeera Al Hamra Industrial Area, Ras Al Khaimah",
+        area: "Ras Al Khaimah",
+        googleMapsUrl: "https://maps.google.com/?q=RAKEZ+Medical+Fitness+Centre+Ras+Al+Khaimah",
+        timingText: "Mon-Fri: 8AM-4PM, Sat: 9AM-2PM, Sun: Closed",
+        timings: {
+          monday: { open: "08:00", close: "16:00" },
+          tuesday: { open: "08:00", close: "16:00" },
+          wednesday: { open: "08:00", close: "16:00" },
+          thursday: { open: "08:00", close: "16:00" },
+          friday: { open: "08:00", close: "16:00" },
+          saturday: { open: "09:00", close: "14:00" },
+          sunday: { closed: true },
+        },
+      },
+    ];
+
+    let added = 0;
+    let skipped = 0;
+
+    for (const centerData of medicalCentersData) {
+      // Check if center already exists by name
+      const existing = await db.select().from(centers).where(eq(centers.name, centerData.name));
+      
+      if (existing.length > 0) {
+        skipped++;
+        continue;
+      }
+
+      // Insert the center
+      await db.insert(centers).values(centerData);
+      added++;
+    }
+
+    console.log(`Medical centers seeded: ${added} added, ${skipped} skipped`);
     return { added, skipped };
   }
 }

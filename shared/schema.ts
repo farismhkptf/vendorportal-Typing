@@ -6,6 +6,8 @@ import { z } from "zod";
 // Enums
 export const userRoleEnum = pgEnum("user_role", ["Admin", "Ops", "Viewer", "Vendor"]);
 export const centerTypeEnum = pgEnum("center_type", ["Medical", "EID", "Both"]);
+export const centerAuthorityEnum = pgEnum("center_authority", ["DHA", "EHS"]);
+export const centerTierEnum = pgEnum("center_tier", ["Normal", "VIP"]);
 export const woStatusEnum = pgEnum("wo_status", ["Draft", "Scheduled", "Sent", "Completed", "Cancelled"]);
 export const appointmentTypeEnum = pgEnum("appointment_type", ["Medical", "EID"]);
 export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled"]);
@@ -28,6 +30,25 @@ export type ClientContact = {
   name: string;
   email: string;
   mobile: string;
+};
+
+// Center timing type for operating hours
+export type DayTiming = {
+  open?: string;      // Opening time in 24h format (e.g., "07:00")
+  close?: string;     // Closing time in 24h format (e.g., "21:30")
+  breakStart?: string; // Optional break start (e.g., Friday prayer)
+  breakEnd?: string;   // Optional break end
+  closed?: boolean;    // If center is closed this day
+};
+
+export type CenterTimings = {
+  monday?: DayTiming;
+  tuesday?: DayTiming;
+  wednesday?: DayTiming;
+  thursday?: DayTiming;
+  friday?: DayTiming;
+  saturday?: DayTiming;
+  sunday?: DayTiming;
 };
 
 // Users table
@@ -58,8 +79,13 @@ export const centers = pgTable("centers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   type: centerTypeEnum("type").notNull(),
+  authority: centerAuthorityEnum("authority"), // DHA or EHS
+  tier: centerTierEnum("tier").default("Normal"), // Normal or VIP
+  address: text("address"),
   googleMapsUrl: text("google_maps_url"),
   area: text("area"),
+  timingText: text("timing_text"), // Human-readable hours
+  timings: json("timings").$type<CenterTimings>(), // Structured timing data
   notes: text("notes"),
   active: boolean("active").notNull().default(true),
 });
