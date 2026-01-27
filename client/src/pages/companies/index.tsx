@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { Company, Staff, Center, CompanyEmail } from "@shared/schema";
 
 type ViewMode = "compact" | "cards" | "table";
-type SortByOption = "name_asc" | "name_desc";
+type SortByOption = "name_asc" | "name_desc" | "most_used";
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -22,6 +22,7 @@ interface CompanyWithRelations extends Company {
   preferredMedicalCenterVip?: Center;
   preferredBiometricsCenter?: Center;
   emails?: CompanyEmail[];
+  workOrderCount?: number;
 }
 
 export default function CompaniesList() {
@@ -46,6 +47,8 @@ export default function CompaniesList() {
             return a.name.localeCompare(b.name);
           case "name_desc":
             return b.name.localeCompare(a.name);
+          case "most_used":
+            return (b.workOrderCount || 0) - (a.workOrderCount || 0);
           default:
             return 0;
         }
@@ -238,6 +241,7 @@ export default function CompaniesList() {
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
+              <SelectItem value="most_used">Most Used</SelectItem>
               <SelectItem value="name_asc">Name A-Z</SelectItem>
               <SelectItem value="name_desc">Name Z-A</SelectItem>
             </SelectContent>

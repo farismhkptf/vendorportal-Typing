@@ -105,7 +105,7 @@ export default function Dashboard() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search by WO number or applicant..."
+            placeholder="Search by work order number or applicant..."
             className="pl-9 h-9"
             data-testid="input-search"
           />

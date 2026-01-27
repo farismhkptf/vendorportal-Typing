@@ -482,7 +482,7 @@ export default function NewWorkOrder() {
                 name="woNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm text-muted-foreground">WO Number</FormLabel>
+                    <FormLabel className="text-sm text-muted-foreground">Work Order Number</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

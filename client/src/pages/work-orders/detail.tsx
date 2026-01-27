@@ -10,7 +10,6 @@ import {
   Calendar, 
   FileText, 
   MessageSquare,
-  Inbox,
   Clock,
   User,
   MapPin,
@@ -249,20 +248,20 @@ export default function WorkOrderDetail() {
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <User className="h-5 w-5 text-primary" />
+                  <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Applicant</p>
-                  <p className="font-medium text-foreground">{workOrder.applicantName}</p>
+                  <p className="text-sm text-muted-foreground">Work Order Number</p>
+                  <p className="font-medium text-foreground">{workOrder.woNumber}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <FileText className="h-5 w-5 text-primary" />
+                  <User className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">WO Number</p>
-                  <p className="font-medium text-foreground">{workOrder.woNumber}</p>
+                  <p className="text-sm text-muted-foreground">Applicant Name</p>
+                  <p className="font-medium text-foreground">{workOrder.applicantName}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -371,23 +370,23 @@ export default function WorkOrderDetail() {
 
         {/* Tabs */}
         <Card className="border border-border/50 shadow-sm">
-          <Tabs defaultValue="appointments" className="w-full">
+          <Tabs defaultValue="typing" className="w-full">
             <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 h-auto">
-              <TabsTrigger 
-                value="appointments" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
-                data-testid="tab-appointments"
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                Appointments
-              </TabsTrigger>
               <TabsTrigger 
                 value="typing" 
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
                 data-testid="tab-typing"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                Vendor Typing
+                Type Medical Application
+              </TabsTrigger>
+              <TabsTrigger 
+                value="appointments" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+                data-testid="tab-appointments"
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                Schedule Medical
               </TabsTrigger>
               <TabsTrigger 
                 value="messages" 
@@ -396,14 +395,6 @@ export default function WorkOrderDetail() {
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Messages
-              </TabsTrigger>
-              <TabsTrigger 
-                value="reschedule" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
-                data-testid="tab-reschedule"
-              >
-                <Inbox className="h-4 w-4 mr-2" />
-                Reschedule Inbox
               </TabsTrigger>
             </TabsList>
 
@@ -511,13 +502,6 @@ export default function WorkOrderDetail() {
               />
             </TabsContent>
 
-            <TabsContent value="reschedule" className="p-6">
-              <EmptyState
-                icon={<Inbox className="h-6 w-6" />}
-                title="No reschedule requests"
-                description="Client reschedule requests will appear here."
-              />
-            </TabsContent>
           </Tabs>
         </Card>
       </div>
@@ -535,7 +519,7 @@ export default function WorkOrderDetail() {
                 name="woNumber"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>WO Number</FormLabel>
+                    <FormLabel>Work Order Number</FormLabel>
                     <FormControl>
                       <Input 
                         {...field} 

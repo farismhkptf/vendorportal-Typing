@@ -76,7 +76,7 @@ export default function VendorJobs() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by WO number or applicant..."
+              placeholder="Search by work order number or applicant..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10 h-11 rounded-xl"

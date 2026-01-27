@@ -44,6 +44,7 @@ export interface IStorage {
   updateCompany(id: string, data: Partial<InsertCompany>): Promise<Company | undefined>;
   getCompanyEmails(companyId: string): Promise<CompanyEmail[]>;
   createCompanyEmail(data: InsertCompanyEmail): Promise<CompanyEmail>;
+  getWorkOrderCountsByCompany(): Promise<Record<string, number>>;
   
   // Service Types
   getServiceTypes(): Promise<ServiceType[]>;
@@ -225,6 +226,22 @@ export class DatabaseStorage implements IStorage {
     }
     const [email] = await db.insert(companyEmails).values(data).returning();
     return email;
+  }
+
+  async getWorkOrderCountsByCompany(): Promise<Record<string, number>> {
+    const results = await db
+      .select({
+        companyId: workOrders.companyId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(workOrders)
+      .groupBy(workOrders.companyId);
+    
+    const counts: Record<string, number> = {};
+    results.forEach((r) => {
+      counts[r.companyId] = r.count;
+    });
+    return counts;
   }
 
   // Service Types

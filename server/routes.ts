@@ -261,6 +261,7 @@ export async function registerRoutes(
   app.get("/api/companies", async (req, res) => {
     try {
       const companies = await storage.getCompanies();
+      const workOrderCounts = await storage.getWorkOrderCountsByCompany();
       const result = await Promise.all(
         companies.map(async (company) => {
           const emails = await storage.getCompanyEmails(company.id);
@@ -284,6 +285,7 @@ export async function registerRoutes(
             preferredMedicalCenter,
             preferredMedicalCenterVip,
             preferredBiometricsCenter,
+            workOrderCount: workOrderCounts[company.id] || 0,
           };
         })
       );

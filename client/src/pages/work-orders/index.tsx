@@ -153,7 +153,7 @@ export default function WorkOrdersList() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-24">WO #</TableHead>
+            <TableHead className="w-28">Work Order #</TableHead>
             <TableHead>Applicant</TableHead>
             <TableHead className="hidden sm:table-cell">Company</TableHead>
             <TableHead className="w-28">Status</TableHead>
@@ -255,7 +255,7 @@ export default function WorkOrdersList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by WO number or applicant..."
+              placeholder="Search by work order number or applicant..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9"
@@ -284,8 +284,8 @@ export default function WorkOrdersList() {
             <SelectContent className="rounded-xl">
               <SelectItem value="newest">Newest First</SelectItem>
               <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="wo_asc">WO# A-Z</SelectItem>
-              <SelectItem value="wo_desc">WO# Z-A</SelectItem>
+              <SelectItem value="wo_asc">Work Order # A-Z</SelectItem>
+              <SelectItem value="wo_desc">Work Order # Z-A</SelectItem>
               <SelectItem value="applicant_asc">Applicant A-Z</SelectItem>
               <SelectItem value="applicant_desc">Applicant Z-A</SelectItem>
             </SelectContent>
