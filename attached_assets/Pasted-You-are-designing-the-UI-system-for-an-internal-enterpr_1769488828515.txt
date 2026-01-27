@@ -1,0 +1,212 @@
+You are designing the UI system for an internal enterprise web app called
+“The P.R.O. Company™ Portal”.
+
+PRIMARY GOAL
+Create an Apple-style, glass-effect, ultra-minimal interface that feels:
+- Calm
+- Premium
+- Fast
+- Effortless on iPhone
+This is a government-adjacent PRO system, not a startup toy.
+
+DESIGN LANGUAGE
+- Apple Human Interface inspired
+- Glassmorphism (blurred translucent panels)
+- Soft gradients (blue / slate / neutral)
+- Rounded corners everywhere (12–16px)
+- Very light borders (1px, low opacity)
+- Zero visual noise
+
+NO:
+- Heavy shadows
+- Loud colors
+- Boxy UI
+- Dense tables
+- Over-decorated icons
+
+YES:
+- White space
+- Clear hierarchy
+- Large touch targets
+- Calm confidence
+
+---
+
+## COLOR SYSTEM
+Base palette:
+- Background: #F7F9FC / #F4F6F8
+- Primary gradient: Blue → Indigo (subtle)
+- Accent: iOS-like blue (#0B5ED7 range)
+- Text primary: #0F172A
+- Text secondary: #64748B
+- Borders: rgba(15,23,42,0.08)
+
+Glass panels:
+- Background: rgba(255,255,255,0.65)
+- Backdrop blur: 12–20px
+- Border: 1px solid rgba(255,255,255,0.35)
+
+---
+
+## TYPOGRAPHY
+- Font: Inter (or SF-like system font)
+- Headings: semibold, not bold
+- Body: regular
+- Never use heavy bold unless for numbers/status
+
+Hierarchy:
+- Page title: 20–24px
+- Section title: 15–16px
+- Field label: 12–13px (muted)
+- Input text: 14–15px
+
+---
+
+## LAYOUT RULES
+- Mobile-first (iPhone primary)
+- Desktop is just wider, not different
+- Max width containers (no full-bleed text)
+- Use cards for EVERYTHING
+
+Page structure:
+1. Soft gradient header (small)
+2. Page title + helper subtitle
+3. Card sections
+4. Floating action buttons where useful
+
+---
+
+## CARDS
+All cards:
+- Rounded 14–16px
+- Padding: 16–20px
+- White / glass background
+- Slight elevation only if interactive
+
+Section cards:
+- Title on left
+- “Required” pill if applicable
+- Content below
+
+---
+
+## FORMS
+Inputs:
+- Rounded (12px)
+- Light background
+- No harsh borders
+- Focus = subtle blue glow
+
+Labels:
+- Always above input
+- Short helper text under if needed
+
+Required indicator:
+- “Required” pill (like your screenshot)
+- Never red asterisks alone
+
+Checkboxes:
+- iOS-style rounded
+- Used sparingly
+
+Dropdowns:
+- Searchable
+- Clean chevron
+- No heavy outlines
+
+---
+
+## BUTTONS
+Primary button:
+- Blue gradient
+- Rounded (14px)
+- Medium height
+- Clear label
+
+Secondary button:
+- Ghost / outline
+- Subtle border
+- Same rounded radius
+
+Danger button:
+- Soft red background
+- Never aggressive
+
+---
+
+## STATUS INDICATORS
+Use pills:
+- Draft → gray
+- In Progress → blue
+- Returned → indigo
+- Sent → green
+- Vendor Mistake → amber
+- Cancelled → muted
+
+Rounded full pills only.
+
+---
+
+## GLASS ELEMENTS (IMPORTANT)
+Use glass effect for:
+- Floating help widget (“Ask Ainoo”)
+- Draft preview panel
+- Bottom sheets on mobile
+- Reschedule panels
+
+Glass recipe:
+- backdrop-filter: blur(16px)
+- background: rgba(255,255,255,0.7)
+- border: 1px solid rgba(255,255,255,0.4)
+
+---
+
+## FLOATING HELP WIDGET
+Bottom-right (mobile & desktop):
+- Rounded pill
+- Glass background
+- Subtle shadow
+- Text: “Ask Ainoo”
+- Non-intrusive
+
+---
+
+## TABLES (when unavoidable)
+- Card-based rows
+- No gridlines
+- Each row = soft card
+- Important data bolded lightly
+
+---
+
+## ICONS
+- Use simple line icons
+- No filled icons
+- Consistent stroke
+- Never oversized
+
+---
+
+## MICRO-INTERACTIONS
+- Hover: slight lift or opacity change
+- Tap: subtle scale (0.98)
+- Transitions: 150–200ms ease-out
+- No bouncy animations
+
+---
+
+## DO NOT
+- Do not redesign per page
+- Do not introduce new colors
+- Do not mix UI styles
+- Do not clutter
+
+Everything must feel like **one calm system**.
+
+---
+
+## FINAL CHECK
+Ask yourself before rendering any screen:
+“Would this feel at home on an Apple internal enterprise tool?”
+
+If not, simplify.
