@@ -413,6 +413,20 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/centers/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteCenter(id);
+      if (!success) {
+        return res.status(404).json({ message: "Center not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete center error:", error);
+      res.status(500).json({ message: "Failed to delete center" });
+    }
+  });
+
   // ========== Scheduling Validation ==========
   app.post("/api/centers/:centerId/validate-appointment", async (req, res) => {
     try {
@@ -537,6 +551,20 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/service-types/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteServiceType(id);
+      if (!success) {
+        return res.status(404).json({ message: "Service type not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete service type error:", error);
+      res.status(500).json({ message: "Failed to delete service type" });
+    }
+  });
+
   // ========== Job Types ==========
   app.get("/api/job-types", async (req, res) => {
     try {
@@ -573,6 +601,20 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update job type error:", error);
       res.status(500).json({ message: "Failed to update job type" });
+    }
+  });
+
+  app.delete("/api/job-types/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteJobType(id);
+      if (!success) {
+        return res.status(404).json({ message: "Job type not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete job type error:", error);
+      res.status(500).json({ message: "Failed to delete job type" });
     }
   });
 

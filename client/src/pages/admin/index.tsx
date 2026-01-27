@@ -12,11 +12,13 @@ import {
   User,
   Plus,
   Pencil,
-  Search
+  Search,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -358,6 +360,58 @@ export default function AdminPage() {
       toast({ title: "Settings updated successfully" });
       setEditCcDialogOpen(false);
       setEditThresholdDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteCenterMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/centers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/centers"] });
+      toast({ title: "Center deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteStaffMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/staff/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
+      toast({ title: "Staff member deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteServiceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/service-types/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-types"] });
+      toast({ title: "Service type deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteJobTypeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/job-types/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/job-types"] });
+      toast({ title: "Job type deleted successfully" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -868,15 +922,46 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-lg h-8 w-8"
-                        onClick={() => handleEditCenter(center)}
-                        data-testid={`button-edit-center-${center.id}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-lg"
+                          onClick={() => handleEditCenter(center)}
+                          data-testid={`button-edit-center-${center.id}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="rounded-lg text-destructive"
+                              data-testid={`button-delete-center-${center.id}`}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-2xl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Center</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{center.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="rounded-xl"
+                                onClick={() => deleteCenterMutation.mutate(center.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -1074,15 +1159,46 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-xl"
-                        onClick={() => handleEditStaff(member)}
-                        data-testid={`button-edit-staff-${member.id}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-xl"
+                          onClick={() => handleEditStaff(member)}
+                          data-testid={`button-edit-staff-${member.id}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="rounded-xl text-destructive"
+                              data-testid={`button-delete-staff-${member.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-2xl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{member.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="rounded-xl"
+                                onClick={() => deleteStaffMutation.mutate(member.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -1189,15 +1305,46 @@ export default function AdminPage() {
                         </div>
                         <p className="font-medium text-foreground">{service.name}</p>
                       </div>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-xl"
-                        onClick={() => handleEditService(service)}
-                        data-testid={`button-edit-service-${service.id}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-xl"
+                          onClick={() => handleEditService(service)}
+                          data-testid={`button-edit-service-${service.id}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="rounded-xl text-destructive"
+                              data-testid={`button-delete-service-${service.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-2xl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Service Type</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{service.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="rounded-xl"
+                                onClick={() => deleteServiceMutation.mutate(service.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -1394,15 +1541,46 @@ export default function AdminPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-foreground">AED {job.cost}</p>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="rounded-xl h-8 w-8"
-                          onClick={() => handleEditJobType(job)}
-                          data-testid={`button-edit-jobtype-${job.id}`}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="rounded-xl"
+                            onClick={() => handleEditJobType(job)}
+                            data-testid={`button-edit-jobtype-${job.id}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="rounded-xl text-destructive"
+                                data-testid={`button-delete-jobtype-${job.id}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="rounded-2xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Job Type</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{job.name}"? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="rounded-xl"
+                                  onClick={() => deleteJobTypeMutation.mutate(job.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </div>
                     </div>
                   ))

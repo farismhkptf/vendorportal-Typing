@@ -33,6 +33,7 @@ export interface IStorage {
   getCenterById(id: string): Promise<Center | undefined>;
   createCenter(data: InsertCenter): Promise<Center>;
   updateCenter(id: string, data: Partial<InsertCenter>): Promise<Center | undefined>;
+  deleteCenter(id: string): Promise<boolean>;
   
   // Companies
   getCompanies(): Promise<Company[]>;
@@ -47,6 +48,7 @@ export interface IStorage {
   getServiceTypeById(id: string): Promise<ServiceType | undefined>;
   createServiceType(data: InsertServiceType): Promise<ServiceType>;
   updateServiceType(id: string, data: Partial<InsertServiceType>): Promise<ServiceType | undefined>;
+  deleteServiceType(id: string): Promise<boolean>;
   
   // Work Orders
   getWorkOrders(search?: string, status?: string): Promise<WorkOrder[]>;
@@ -68,6 +70,7 @@ export interface IStorage {
   getJobTypeById(id: string): Promise<JobType | undefined>;
   createJobType(data: InsertJobType): Promise<JobType>;
   updateJobType(id: string, data: Partial<InsertJobType>): Promise<JobType | undefined>;
+  deleteJobType(id: string): Promise<boolean>;
   
   // Vendors
   getVendors(): Promise<Vendor[]>;
@@ -164,6 +167,13 @@ export class DatabaseStorage implements IStorage {
     return center || undefined;
   }
 
+  async deleteCenter(id: string): Promise<boolean> {
+    const existing = await this.getCenterById(id);
+    if (!existing) return false;
+    await db.delete(centers).where(eq(centers.id, id));
+    return true;
+  }
+
   // Companies
   async getCompanies(): Promise<Company[]> {
     return db.select().from(companies).where(eq(companies.active, true));
@@ -215,6 +225,13 @@ export class DatabaseStorage implements IStorage {
   async updateServiceType(id: string, data: Partial<InsertServiceType>): Promise<ServiceType | undefined> {
     const [st] = await db.update(serviceTypes).set(data).where(eq(serviceTypes.id, id)).returning();
     return st || undefined;
+  }
+
+  async deleteServiceType(id: string): Promise<boolean> {
+    const existing = await this.getServiceTypeById(id);
+    if (!existing) return false;
+    await db.delete(serviceTypes).where(eq(serviceTypes.id, id));
+    return true;
   }
 
   // Work Orders
@@ -313,6 +330,13 @@ export class DatabaseStorage implements IStorage {
   async updateJobType(id: string, data: Partial<InsertJobType>): Promise<JobType | undefined> {
     const [jt] = await db.update(jobTypes).set(data).where(eq(jobTypes.id, id)).returning();
     return jt || undefined;
+  }
+
+  async deleteJobType(id: string): Promise<boolean> {
+    const existing = await this.getJobTypeById(id);
+    if (!existing) return false;
+    await db.delete(jobTypes).where(eq(jobTypes.id, id));
+    return true;
   }
 
   // Vendors
