@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
   FileText, 
-  Building2, 
   Calendar, 
   Settings, 
   Wallet,
@@ -21,7 +20,6 @@ interface AppLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Work Orders", href: "/work-orders", icon: FileText },
-  { name: "Companies", href: "/companies", icon: Building2 },
   { name: "Typing Jobs", href: "/typing-jobs", icon: Calendar },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
   { name: "Admin", href: "/admin", icon: Settings },

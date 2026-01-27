@@ -62,18 +62,13 @@ export default function Dashboard() {
   return (
     <AppLayout>
       {/* Header Section */}
-      <div className="px-6 lg:px-10 pt-8 pb-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
-              Dashboard
-            </h1>
-            <p className="text-muted-foreground">
-              Welcome back. Here's what's happening today.
-            </p>
-          </div>
+      <div className="px-4 lg:px-6 pt-4 pb-3">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            Dashboard
+          </h1>
           <Link href="/work-orders/new">
-            <Button className="gap-2 rounded-xl h-11 px-5" data-testid="button-new-work-order">
+            <Button size="sm" className="gap-1.5 rounded-lg" data-testid="button-new-work-order">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">New Work Order</span>
             </Button>
@@ -81,27 +76,24 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="px-6 lg:px-10 pb-10 space-y-8">
+      <div className="px-4 lg:px-6 pb-6 space-y-4">
         {/* Low Balance Alert */}
         {stats?.lowBalanceWarning && (
           <div 
-            className="premium-card p-5 border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-r from-amber-50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 opacity-0 animate-fade-in"
+            className="premium-card p-3 border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-r from-amber-50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 opacity-0 animate-fade-in"
             data-testid="alert-low-balance"
           >
-            <div className="flex items-center gap-4">
-              <div className="icon-container icon-container-md !bg-amber-100 dark:!bg-amber-900/40 !text-amber-600 dark:!text-amber-400">
-                <AlertTriangle className="h-5 w-5" />
+            <div className="flex items-center gap-3">
+              <div className="icon-container icon-container-sm !bg-amber-100 dark:!bg-amber-900/40 !text-amber-600 dark:!text-amber-400">
+                <AlertTriangle className="h-4 w-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-amber-800 dark:text-amber-200">Low Wallet Balance</p>
-                <p className="text-sm text-amber-700/80 dark:text-amber-300/70 mt-0.5">
-                  Balance is below threshold. Top up to avoid service interruption.
-                </p>
+                <p className="font-medium text-sm text-amber-800 dark:text-amber-200">Low Wallet Balance</p>
               </div>
               <Link href="/vendor-wallet">
-                <Button variant="outline" size="sm" className="gap-2 rounded-xl" data-testid="button-top-up">
+                <Button variant="outline" size="sm" className="gap-1.5 rounded-lg h-8" data-testid="button-top-up">
                   Top Up
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>
             </div>
@@ -109,51 +101,49 @@ export default function Dashboard() {
         )}
 
         {/* Search Bar */}
-        <div className="premium-card p-1.5 opacity-0 animate-fade-in">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by WO number or applicant name..."
-              className="border-0 shadow-none pl-11 focus-visible:ring-0"
-              data-testid="input-search"
-            />
-          </div>
+        <div className="relative opacity-0 animate-fade-in">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search by WO number or applicant..."
+            className="pl-9 h-9"
+            data-testid="input-search"
+          />
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {statsLoading ? (
             <>
-              <Skeleton className="h-32 rounded-2xl" />
-              <Skeleton className="h-32 rounded-2xl" />
-              <Skeleton className="h-32 rounded-2xl" />
-              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-xl" />
             </>
           ) : (
             <>
               <StatCard
                 title="Work Orders"
                 value={stats?.totalWorkOrders || 0}
-                icon={<FileText className="h-5 w-5" />}
+                icon={<FileText className="h-4 w-4" />}
                 animationDelay={1}
               />
               <StatCard
-                title="Today's Appointments"
+                title="Today's Appts"
                 value={stats?.todayAppointments || 0}
-                icon={<Calendar className="h-5 w-5" />}
+                icon={<Calendar className="h-4 w-4" />}
                 animationDelay={2}
               />
               <StatCard
                 title="Pending Jobs"
                 value={stats?.pendingTypingJobs || 0}
-                icon={<Clock className="h-5 w-5" />}
+                icon={<Clock className="h-4 w-4" />}
                 animationDelay={3}
               />
               <StatCard
-                title="Wallet Balance"
+                title="Wallet"
                 value={`AED ${(stats?.walletBalance || 0).toLocaleString()}`}
-                icon={<Wallet className="h-5 w-5" />}
+                icon={<Wallet className="h-4 w-4" />}
                 animationDelay={4}
               />
             </>
@@ -161,20 +151,20 @@ export default function Dashboard() {
         </div>
 
         {/* Two Column Layout */}
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-4">
           {/* Today's Appointments */}
-          <div className="space-y-5 opacity-0 animate-fade-in animate-delay-2">
+          <div className="space-y-3 opacity-0 animate-fade-in animate-delay-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Today's Appointments</h2>
+              <h2 className="text-sm font-semibold text-foreground">Today's Appointments</h2>
               <Link href="/typing-jobs">
-                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground rounded-lg">
+                <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground hover:text-foreground rounded-lg h-7 px-2">
                   View All
-                  <ArrowRight className="h-3.5 w-3.5" />
+                  <ArrowRight className="h-3 w-3" />
                 </Button>
               </Link>
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               {appointmentsLoading ? (
                 <>
                   <Skeleton className="h-20 rounded-2xl" />

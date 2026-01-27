@@ -34,36 +34,29 @@ export default function TypingJobsList() {
   return (
     <AppLayout>
       {/* Header Section */}
-      <div className="px-6 lg:px-10 pt-8 pb-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
-            Typing Jobs
-          </h1>
-          <p className="text-muted-foreground">
-            Manage vendor typing jobs and track their status
-          </p>
-        </div>
+      <div className="px-4 lg:px-6 pt-4 pb-3">
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+          Typing Jobs
+        </h1>
       </div>
 
-      <div className="px-6 lg:px-10 pb-10 space-y-6">
+      <div className="px-4 lg:px-6 pb-6 space-y-4">
         {/* Search and Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="premium-card p-1.5 flex-1">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by WO number or applicant..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border-0 shadow-none pl-11 focus-visible:ring-0"
-                data-testid="input-search-typing-jobs"
-              />
-            </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by WO number or applicant..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+              data-testid="input-search-typing-jobs"
+            />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48 h-[52px] rounded-2xl border-border/50" data-testid="select-status-filter">
-              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+            <SelectTrigger className="w-40 h-9 rounded-lg" data-testid="select-status-filter">
+              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
