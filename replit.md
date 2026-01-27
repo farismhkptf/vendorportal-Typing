@@ -113,15 +113,25 @@ Four user roles with different permissions:
 - Implemented DatabaseStorage class with full CRUD operations for all entities
 - Added comprehensive API routes with Zod request validation
 - Fixed work order number generation to use MAX instead of COUNT for proper sequencing
-- Added seed data (staff, job types, vendors, centers, companies, settings, initial wallet topup)
+- Minimal seed data: Only admin user and app settings (no sample data)
 - Gated seed data to development environment only (won't run in production)
+- Real data: 42 companies and 10 medical centers from spreadsheet
+
+### Admin Module - Full CRUD
+- Tab-based admin page with management for all entities
+- **Medical Centers**: Add/edit dialogs with name, type, authority, tier, area, address, timings
+- **Staff**: Add/edit dialogs with name, role title, phone, email
+- **Service Types**: Add/edit dialogs with name
+- **Job Types**: Add/edit dialogs with name, category (Medical/EID), cost
+- **Settings**: Edit dialogs for CC recipients and low balance threshold
+- All forms use z.coerce.number() for numeric fields
+- All mutations properly invalidate cache on success
 
 ### Security Improvements
-- Added Zod validation to all POST API endpoints
+- Added Zod validation to all POST/PUT API endpoints
 - Request body validation prevents invalid data from being saved
 - Note: Passwords are still plain text (production deployment should use bcrypt/argon2 hashing)
 - Note: Authentication/session handling should be added before production use
 
 ### Test Credentials (Development Only)
 - Admin Portal: admin@procompany.ae / admin123
-- Vendor Portal: vendor@procompany.ae / vendor123
