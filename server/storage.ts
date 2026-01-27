@@ -315,6 +315,12 @@ export class DatabaseStorage implements IStorage {
   async deleteWorkOrder(id: string): Promise<boolean> {
     const existing = await this.getWorkOrderById(id);
     if (!existing) return false;
+    
+    // Cascade delete related records first
+    await db.delete(appointments).where(eq(appointments.woId, id));
+    await db.delete(typingJobs).where(eq(typingJobs.woId, id));
+    
+    // Delete the work order itself
     await db.delete(workOrders).where(eq(workOrders.id, id));
     return true;
   }
