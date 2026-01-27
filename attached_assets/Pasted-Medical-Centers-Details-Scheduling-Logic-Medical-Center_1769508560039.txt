@@ -1,0 +1,574 @@
+Medical Centers - Details & Scheduling Logic
+Medical Center Data Structure
+Each medical center has:
+	•	Type: DHA (Dubai Health Authority) or EHS (Emirates Health Services)
+	•	Tier: normal or vip (VIP centers for premium clients)
+	•	Address: Physical location
+	•	Location Map URL: Google Maps link
+	•	Timing Text: Human-readable hours
+	•	Timings: Structured JSON for each day of the week
+
+Current Medical Centers
+DHA Centers (Dubai Health Authority)
+ID
+Name
+Tier
+Address
+Hours
+1
+Karama Medical Fitness Center
+Normal
+Al Karama, Dubai
+Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM, Sat-Sun: Closed
+2
+Al Quoz Mall Medical Fitness Center
+Normal
+Al Quoz Industrial Area 3, Dubai
+Mon-Thu: 7AM-9:30PM, Fri: 7AM-11:30AM & 2PM-9:30PM, Sat: 7AM-9:30PM, Sun: 7AM-3:30PM
+3
+Al Nahda Medical Fitness Center
+Normal
+Al Nahda, Dubai
+Mon-Thu: 7AM-9:30PM, Fri: 7:30-11:30AM & 2PM-9:30PM, Sat: 7AM-9:30PM, Sun: 7AM-2:30PM
+4
+Rashidiya Medical Fitness Center
+Normal
+Al Rashidiya, Dubai
+Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM, Sat-Sun: Closed
+5
+City Walk Medical Fitness Center
+VIP
+City Walk, Dubai
+Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM & 2PM-10PM, Sat: 7AM-10PM, Sun: Closed
+6
+Index Medical Fitness Center (DIFC)
+VIP
+Index Tower, DIFC, Dubai
+Mon-Thu: 7AM-8PM, Fri: 7:30AM-12PM, Sat-Sun: Closed
+7
+Dubai Knowledge Park - Smart Salem
+VIP
+Dubai Knowledge Park
+Tue-Thu: 7AM-9:30PM, Fri: 7:30-11:30AM & 4PM-8PM, Sun: 7AM-2:30PM, Mon/Sat: Closed
+EHS Centers (Emirates Health Services)
+ID
+Name
+Tier
+Address
+Hours
+8
+Salah Al Din Medical Examination Center
+Normal
+Salah Al Din Street, Dubai
+Mon-Fri: 7:30AM-8:15PM, Sat: 8AM-5:15PM, Sun: Closed
+9
+Al Nuaimiya Medical Examination Center
+Normal
+Al Nuaimiya, Ajman
+Sat-Thu: 8AM-8PM, Fri: 8AM-12PM & 2:30PM-8PM, Sun: Closed
+10
+RAKEZ Medical Examination Center
+Normal
+RAKEZ, Ras Al Khaimah
+Mon-Fri: 8AM-4PM, Sat: 9AM-2PM, Sun: Closed
+
+Timing Data Structure
+Each day has:
+{
+open: "07:00", // Opening time (24h format)
+close: "21:30", // Closing time
+breakStart: "11:30", // Optional: Friday prayer break start
+breakEnd: "14:00", // Optional: Friday prayer break end
+closed: true // Optional: If center is closed this day
+}
+
+
+Current Scheduling Logic
+What's Implemented:
+	1	VIP Auto-Selection: When scheduling for a VIP work order, system auto-selects the company's VIP favorite medical center
+	2	Normal Auto-Selection: Non-VIP work orders get the company's normal favorite center
+	3	Company Favorites: Each company can set preferred normal and VIP centers
+	4	Date/Time Selection: User picks appointment date and time manually
+	5	Center Snapshot: When scheduled, the center's details are saved as a snapshot (preserves data if center info changes later)
+What's NOT Implemented Yet:
+	1	Time Validation: No check if selected time falls within center's operating hours
+	2	Break Time Validation: No check for Friday prayer breaks (11:30AM-2PM typically)
+	3	Closed Day Validation: No check if center is closed on selected day
+	4	Conflict Detection: No check for double-booking same staff at same time
+
+Suggested Enhancements
+Would you like me to add any of these scheduling validations?
+	1	Validate operating hours - Warn if appointment time is outside center hours
+	2	Check closed days - Prevent scheduling on days when center is closed
+	3	Friday break validation - Warn about prayer break times
+	4	Time slot suggestions - Show available times based on center hours
+Send message again but add all the info you have like the location map and so on.
+
+Medical Centers - Complete Details
+
+DHA Centers (Dubai Health Authority)
+VIP Tier
+
+1. City Walk Medical Fitness Center
+Field
+Value
+ID
+5
+Type
+DHA
+Tier
+VIP
+Address
+City Walk, Dubai
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+7:00 AM - 10:00 PM
+-
+Tuesday
+7:00 AM - 10:00 PM
+-
+Wednesday
+7:00 AM - 10:00 PM
+-
+Thursday
+7:00 AM - 10:00 PM
+-
+Friday
+7:30 AM - 10:00 PM
+12:00 PM - 2:00 PM
+Saturday
+7:00 AM - 10:00 PM
+-
+Sunday
+CLOSED
+-
+
+2. Dubai Knowledge Park - Smart Salem Medical Fitness Center
+Field
+Value
+ID
+7
+Type
+DHA
+Tier
+VIP
+Address
+G09A, Ground Floor, Block 12, Dubai Knowledge Park, Dubai
+Phone
+04 260 4900
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+CLOSED
+-
+Tuesday
+7:00 AM - 9:30 PM
+-
+Wednesday
+7:00 AM - 9:30 PM
+-
+Thursday
+7:00 AM - 9:30 PM
+-
+Friday
+7:30 AM - 8:00 PM
+11:30 AM - 4:00 PM
+Saturday
+CLOSED
+-
+Sunday
+7:00 AM - 2:30 PM
+-
+
+3. Index Medical Fitness Center (DIFC)
+Field
+Value
+ID
+6
+Type
+DHA
+Tier
+VIP
+Address
+Index Tower, DIFC, Dubai
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+7:00 AM - 8:00 PM
+-
+Tuesday
+7:00 AM - 8:00 PM
+-
+Wednesday
+7:00 AM - 8:00 PM
+-
+Thursday
+7:00 AM - 8:00 PM
+-
+Friday
+7:30 AM - 12:00 PM
+-
+Saturday
+CLOSED
+-
+Sunday
+CLOSED
+-
+
+Normal Tier
+
+4. Al Nahda Medical Fitness Center
+Field
+Value
+ID
+3
+Type
+DHA
+Tier
+Normal
+Address
+Al Nahda, Dubai
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+7:00 AM - 9:30 PM
+-
+Tuesday
+7:00 AM - 9:30 PM
+-
+Wednesday
+7:00 AM - 9:30 PM
+-
+Thursday
+7:00 AM - 9:30 PM
+-
+Friday
+7:30 AM - 9:30 PM
+11:30 AM - 2:00 PM
+Saturday
+7:00 AM - 9:30 PM
+-
+Sunday
+7:00 AM - 2:30 PM
+-
+
+5. Al Quoz Mall Medical Fitness Center
+Field
+Value
+ID
+2
+Type
+DHA
+Tier
+Normal
+Address
+Al Quoz Mall, Ground Floor, 17B St - Al Quoz Industrial Area 3, Dubai
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+7:00 AM - 9:30 PM
+-
+Tuesday
+7:00 AM - 9:30 PM
+-
+Wednesday
+7:00 AM - 9:30 PM
+-
+Thursday
+7:00 AM - 9:30 PM
+-
+Friday
+7:00 AM - 9:30 PM
+11:30 AM - 2:00 PM
+Saturday
+7:00 AM - 9:30 PM
+-
+Sunday
+7:00 AM - 3:30 PM
+-
+
+6. Karama Medical Fitness Center
+Field
+Value
+ID
+1
+Type
+DHA
+Tier
+Normal
+Address
+Al Karama, Dubai
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+7:00 AM - 10:00 PM
+-
+Tuesday
+7:00 AM - 10:00 PM
+-
+Wednesday
+7:00 AM - 10:00 PM
+-
+Thursday
+7:00 AM - 10:00 PM
+-
+Friday
+7:30 AM - 12:00 PM
+-
+Saturday
+CLOSED
+-
+Sunday
+CLOSED
+-
+
+7. Rashidiya Medical Fitness Center
+Field
+Value
+ID
+4
+Type
+DHA
+Tier
+Normal
+Address
+33a Street 25/1, Al Rashidiya, Dubai
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+7:00 AM - 10:00 PM
+-
+Tuesday
+7:00 AM - 10:00 PM
+-
+Wednesday
+7:00 AM - 10:00 PM
+-
+Thursday
+7:00 AM - 10:00 PM
+-
+Friday
+7:30 AM - 12:00 PM
+-
+Saturday
+CLOSED
+-
+Sunday
+CLOSED
+-
+
+EHS Centers (Emirates Health Services)
+Normal Tier
+
+8. Salah Al Din Medical Examination Center
+Field
+Value
+ID
+8
+Type
+EHS
+Tier
+Normal
+Address
+Salah Al Din Street, Dubai
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+7:30 AM - 8:15 PM
+-
+Tuesday
+7:30 AM - 8:15 PM
+-
+Wednesday
+7:30 AM - 8:15 PM
+-
+Thursday
+7:30 AM - 8:15 PM
+-
+Friday
+7:30 AM - 8:15 PM
+-
+Saturday
+8:00 AM - 5:15 PM
+-
+Sunday
+CLOSED
+-
+
+9. Al Nuaimiya Medical Examination Center
+Field
+Value
+ID
+9
+Type
+EHS
+Tier
+Normal
+Address
+Al Nuaimiya, Ajman
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+8:00 AM - 8:00 PM
+-
+Tuesday
+8:00 AM - 8:00 PM
+-
+Wednesday
+8:00 AM - 8:00 PM
+-
+Thursday
+8:00 AM - 8:00 PM
+-
+Friday
+8:00 AM - 8:00 PM
+12:00 PM - 2:30 PM
+Saturday
+8:00 AM - 8:00 PM
+-
+Sunday
+CLOSED
+-
+
+10. RAKEZ Medical Examination Center
+Field
+Value
+ID
+10
+Type
+EHS
+Tier
+Normal
+Address
+RAKEZ, Ras Al Khaimah
+Phone
+-
+Map
+Open in Google Maps
+Operating Hours:
+Day
+Hours
+Break
+Monday
+8:00 AM - 4:00 PM
+-
+Tuesday
+8:00 AM - 4:00 PM
+-
+Wednesday
+8:00 AM - 4:00 PM
+-
+Thursday
+8:00 AM - 4:00 PM
+-
+Friday
+8:00 AM - 4:00 PM
+-
+Saturday
+9:00 AM - 2:00 PM
+-
+Sunday
+CLOSED
+-
+
+Scheduling Logic - Current Implementation
+1. Center Selection Flow
+User enters WO Number
+↓
+System looks up Work Order
+↓
+Gets Company → Favorite Medical Centers
+↓
+If WO is VIP → Auto-select VIP Favorite Center
+If WO is Normal → Auto-select Normal Favorite Center
+↓
+User can override selection
+
+2. Data Captured When Scheduling
+	•	Work Order ID - Links appointment to WO
+	•	Medical Center ID - Selected center
+	•	Medical Center Snapshot - Saves center name, address, map URL, timing at time of booking
+	•	Appointment Date - YYYY-MM-DD format
+	•	Appointment Time - HH:MM format (24h)
+	•	Is VIP - Boolean flag for VIP treatment
+	•	Relationship Manager - Name, phone, email (optional)
+	•	Escort - Name, phone, email for person accompanying applicant (optional)
+3. Auto-Email Generation
+When appointment is scheduled:
+	1	System finds/creates "Medical Scheduling" email milestone
+	2	Creates draft email with pre-filled content:
+	•	Staff name
+	•	Appointment date/time
+	•	Medical center name & address
+	•	Google Maps link
+	3	Email appears in dashboard under "To Draft" or "Ready to Send"
+
+What's NOT Validated Yet
+Validation
+Status
+Impact
+Time within operating hours
+Not checked
+Could book at 11PM when center closes at 9PM
+Center closed on selected day
+Not checked
+Could book on Sunday when center is closed
+Friday prayer break times
+Not checked
+Could book at 1PM during break
+Double-booking same person
+Not checked
+Same staff could have 2 appointments at same time
