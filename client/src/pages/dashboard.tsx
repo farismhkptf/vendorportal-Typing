@@ -12,6 +12,7 @@ import {
   Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -98,7 +99,7 @@ export default function Dashboard() {
                 </p>
               </div>
               <Link href="/vendor-wallet">
-                <Button variant="outline" size="sm" className="gap-2 rounded-xl border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30" data-testid="button-top-up">
+                <Button variant="outline" size="sm" className="gap-2 rounded-xl" data-testid="button-top-up">
                   Top Up
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -111,10 +112,10 @@ export default function Dashboard() {
         <div className="premium-card p-1.5 opacity-0 animate-fade-in">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
+            <Input
               type="search"
               placeholder="Search by WO number or applicant name..."
-              className="w-full h-12 pl-11 pr-4 text-base bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60"
+              className="border-0 shadow-none pl-11 focus-visible:ring-0"
               data-testid="input-search"
             />
           </div>

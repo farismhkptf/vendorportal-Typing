@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, Search, Building2, Mail, MapPin, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { AppLayout } from "@/components/layout/app-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,12 +56,12 @@ export default function CompaniesList() {
         <div className="premium-card p-1.5 max-w-md">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
+            <Input
               type="search"
               placeholder="Search companies..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-11 pl-11 pr-4 text-base bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60"
+              className="border-0 shadow-none pl-11 focus-visible:ring-0"
               data-testid="input-search-companies"
             />
           </div>

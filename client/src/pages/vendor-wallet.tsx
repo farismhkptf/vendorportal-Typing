@@ -238,7 +238,7 @@ export default function VendorWallet() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-2 rounded-xl border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                className="gap-2 rounded-xl"
                 onClick={() => setTopupOpen(true)}
               >
                 Top Up

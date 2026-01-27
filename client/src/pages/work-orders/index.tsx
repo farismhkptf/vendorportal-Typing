@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, Search, FileText, Building2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -60,12 +61,12 @@ export default function WorkOrdersList() {
           <div className="premium-card p-1.5 flex-1">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
+              <Input
                 type="search"
                 placeholder="Search by WO number or applicant name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full h-11 pl-11 pr-4 text-base bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60"
+                className="border-0 shadow-none pl-11 focus-visible:ring-0"
                 data-testid="input-search-work-orders"
               />
             </div>
