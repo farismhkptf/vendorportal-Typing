@@ -544,6 +544,25 @@ export async function registerRoutes(
     }
   });
 
+  // ========== Seed Real Companies (Development Only) ==========
+  app.post("/api/admin/seed-companies", async (req, res) => {
+    try {
+      // Only allow in development environment
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "This endpoint is disabled in production" });
+      }
+      
+      const result = await storage.seedRealCompanies();
+      res.json({ 
+        message: `Companies seeded: ${result.added} added, ${result.skipped} already existed`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Seed companies error:", error);
+      res.status(500).json({ message: "Failed to seed companies" });
+    }
+  });
+
   // ========== Authentication ==========
   app.post("/api/auth/login", async (req, res) => {
     try {

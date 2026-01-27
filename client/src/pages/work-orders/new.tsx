@@ -1,14 +1,17 @@
+import { useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, Building2, User, FileText } from "lucide-react";
+import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
@@ -26,9 +29,27 @@ const workOrderSchema = z.object({
 
 type WorkOrderForm = z.infer<typeof workOrderSchema>;
 
+interface ParsedWorkOrder {
+  woNumber: string | null;
+  companyName: string | null;
+  matchedCompanyId: string | null;
+  applicantName: string | null;
+  serviceTypeName: string | null;
+  matchedServiceTypeId: string | null;
+}
+
+interface ParseResult {
+  success: boolean;
+  parsed: ParsedWorkOrder;
+  warnings: string[];
+}
+
 export default function NewWorkOrder() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [showPasteArea, setShowPasteArea] = useState(false);
+  const [pasteValue, setPasteValue] = useState("");
+  const [parseResult, setParseResult] = useState<ParseResult | null>(null);
 
   const { data: companies } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
@@ -77,22 +98,378 @@ export default function NewWorkOrder() {
   const selectedCompanyId = form.watch("companyId");
   const selectedCompany = companies?.find((c) => c.id === selectedCompanyId);
 
+  // Normalize text for fuzzy matching
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
+
+  // Find best company match using fuzzy matching
+  const findBestCompanyMatch = useCallback((searchText: string): { id: string; name: string; score: number } | null => {
+    if (!companies || companies.length === 0) return null;
+
+    const normalizedSearch = normalizeText(searchText);
+    let bestMatch: { id: string; name: string; score: number } | null = null;
+
+    for (const company of companies) {
+      const normalizedCompany = normalizeText(company.name);
+
+      // Exact match = 100 points
+      if (normalizedCompany === normalizedSearch) {
+        return { id: company.id, name: company.name, score: 100 };
+      }
+
+      // Substring match = up to 80 points
+      let score = 0;
+      if (normalizedCompany.includes(normalizedSearch) || normalizedSearch.includes(normalizedCompany)) {
+        score = Math.max(
+          (normalizedSearch.length / normalizedCompany.length) * 80,
+          (normalizedCompany.length / normalizedSearch.length) * 80
+        );
+      } else {
+        // Word overlap match = up to 70 points
+        const searchWords = normalizedSearch.split(" ");
+        const companyWords = normalizedCompany.split(" ");
+        const matchingWords = searchWords.filter(w =>
+          companyWords.some(cw => cw.includes(w) || w.includes(cw))
+        );
+        score = (matchingWords.length / Math.max(searchWords.length, companyWords.length)) * 70;
+      }
+
+      if (score > (bestMatch?.score || 0)) {
+        bestMatch = { id: company.id, name: company.name, score };
+      }
+    }
+
+    // Minimum threshold: 40 points required
+    return bestMatch && bestMatch.score >= 40 ? bestMatch : null;
+  }, [companies]);
+
+  // Find best service type match
+  const findBestServiceTypeMatch = useCallback((searchText: string): { id: string; name: string; score: number } | null => {
+    if (!serviceTypes || serviceTypes.length === 0) return null;
+
+    const normalizedSearch = normalizeText(searchText);
+    let bestMatch: { id: string; name: string; score: number } | null = null;
+
+    for (const serviceType of serviceTypes) {
+      const normalizedType = normalizeText(serviceType.name);
+
+      if (normalizedType === normalizedSearch) {
+        return { id: serviceType.id, name: serviceType.name, score: 100 };
+      }
+
+      let score = 0;
+      if (normalizedType.includes(normalizedSearch) || normalizedSearch.includes(normalizedType)) {
+        score = Math.max(
+          (normalizedSearch.length / normalizedType.length) * 80,
+          (normalizedType.length / normalizedSearch.length) * 80
+        );
+      } else {
+        const searchWords = normalizedSearch.split(" ");
+        const typeWords = normalizedType.split(" ");
+        const matchingWords = searchWords.filter(w =>
+          typeWords.some(tw => tw.includes(w) || w.includes(tw))
+        );
+        score = (matchingWords.length / Math.max(searchWords.length, typeWords.length)) * 70;
+      }
+
+      if (score > (bestMatch?.score || 0)) {
+        bestMatch = { id: serviceType.id, name: serviceType.name, score };
+      }
+    }
+
+    return bestMatch && bestMatch.score >= 40 ? bestMatch : null;
+  }, [serviceTypes]);
+
+  // Parse pasted data
+  const parsePastedData = useCallback((text: string): ParseResult => {
+    const parsed: ParsedWorkOrder = {
+      woNumber: null,
+      companyName: null,
+      matchedCompanyId: null,
+      applicantName: null,
+      serviceTypeName: null,
+      matchedServiceTypeId: null,
+    };
+    const warnings: string[] = [];
+
+    // Split by tabs (Google Sheets/Excel format)
+    const parts = text.split("\t").map(p => p.trim()).filter(p => p.length > 0);
+
+    if (parts.length < 2) {
+      return { success: false, parsed, warnings: ["Please paste a full row from your spreadsheet (tab-separated)"] };
+    }
+
+    // Step 1: Find WO Number (pattern: J016308, M250001, etc.)
+    const woPattern = /^[JFMASOND]\d{2}\d{3,5}$/i;
+    for (const part of parts) {
+      if (woPattern.test(part)) {
+        parsed.woNumber = part.toUpperCase();
+        break;
+      }
+    }
+
+    // Step 2: Find Company Name (look for business entity suffixes)
+    for (const part of parts) {
+      const upperPart = part.toUpperCase();
+      if (
+        upperPart.includes("L.L.C") ||
+        upperPart.includes("LLC") ||
+        upperPart.includes("EST") ||
+        upperPart.includes("FZE") ||
+        upperPart.includes("FZCO") ||
+        upperPart.includes("CO.") ||
+        upperPart.includes("COMPANY") ||
+        (upperPart === part && part.length > 10)
+      ) {
+        parsed.companyName = part;
+        const match = findBestCompanyMatch(part);
+        if (match) {
+          parsed.matchedCompanyId = match.id;
+        } else {
+          warnings.push(`Company "${part.substring(0, 30)}${part.length > 30 ? '...' : ''}" not found in system`);
+        }
+        break;
+      }
+    }
+
+    // Step 3: Find Service Type (multiple keywords)
+    const serviceKeywords = [
+      "VISA", "PERMIT", "EMPLOYMENT", "DEPENDENT",
+      "CANCEL", "RENEW", "AMEND", "GOLDEN",
+      "NEW", "INSIDE", "OUTSIDE"
+    ];
+    for (const part of parts) {
+      const upperPart = part.toUpperCase();
+      const matchCount = serviceKeywords.filter(k => upperPart.includes(k)).length;
+
+      if (matchCount >= 2) {
+        parsed.serviceTypeName = part;
+        const match = findBestServiceTypeMatch(part);
+        if (match) {
+          parsed.matchedServiceTypeId = match.id;
+        }
+        break;
+      }
+    }
+
+    // Step 4: Find Person Name (exclusion-based detection)
+    for (const part of parts) {
+      // Skip already-identified fields
+      if (part === parsed.woNumber || part === parsed.companyName || part === parsed.serviceTypeName) continue;
+
+      // Skip dates (like "5-Jan-26")
+      if (/^\d{1,2}[-/]\w+[-/]\d{2,4}$/.test(part)) continue;
+
+      const words = part.split(/\s+/);
+
+      // Check: 2-5 words, at least 2 starting with uppercase
+      const hasUpperWords = words.filter(w =>
+        w[0] === w[0]?.toUpperCase() && w.length > 1
+      ).length;
+
+      if (words.length >= 2 && words.length <= 5 && hasUpperWords >= 2) {
+        // Exclude job titles and status words
+        const notName = [
+          "SALES", "OFFICER", "MANAGER", "ACCOUNTANT",
+          "DRIVER", "CLEANER", "CEO", "ADMIN",
+          "INSIDE", "OUTSIDE", "COMPLETED", "INVOICED"
+        ];
+
+        if (!notName.some(n => part.toUpperCase().includes(n))) {
+          parsed.applicantName = part;
+          break;
+        }
+      }
+    }
+
+    const success = parsed.matchedCompanyId !== null || parsed.applicantName !== null;
+
+    return { success, parsed, warnings };
+  }, [findBestCompanyMatch, findBestServiceTypeMatch]);
+
+  // Handle parse button click
+  const handleParse = useCallback(() => {
+    const result = parsePastedData(pasteValue);
+    setParseResult(result);
+  }, [pasteValue, parsePastedData]);
+
+  // Handle Enter key in textarea
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleParse();
+    }
+  }, [handleParse]);
+
+  // Apply parsed data to form
+  const applyParsedData = useCallback(() => {
+    if (!parseResult?.parsed) return;
+
+    const { parsed } = parseResult;
+
+    if (parsed.applicantName) form.setValue("applicantName", parsed.applicantName);
+    if (parsed.matchedCompanyId) form.setValue("companyId", parsed.matchedCompanyId);
+    if (parsed.matchedServiceTypeId) form.setValue("serviceTypeId", parsed.matchedServiceTypeId);
+
+    // Close paste area and reset
+    setShowPasteArea(false);
+    setPasteValue("");
+    setParseResult(null);
+
+    toast({ title: "Form auto-filled from pasted data" });
+  }, [parseResult, form, toast]);
+
   return (
     <AppLayout>
       <PageHeader
         title="New Work Order"
         subtitle="Create a new work order for an applicant"
         actions={
-          <Link href="/work-orders">
-            <Button variant="outline" className="gap-2" data-testid="button-back">
-              <ArrowLeft className="h-4 w-4" />
-              Back
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showPasteArea ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => {
+                setShowPasteArea(!showPasteArea);
+                if (!showPasteArea) {
+                  setPasteValue("");
+                  setParseResult(null);
+                }
+              }}
+              className="gap-1.5"
+              data-testid="button-toggle-paste"
+            >
+              <ClipboardPaste className="h-4 w-4" />
+              {showPasteArea ? "Hide Quick Paste" : "Quick Paste"}
             </Button>
-          </Link>
+            <Link href="/work-orders">
+              <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-back">
+                <ArrowLeft className="h-4 w-4" />
+                Back
+              </Button>
+            </Link>
+          </div>
         }
       />
 
-      <div className="p-4 lg:p-8 max-w-3xl">
+      <div className="p-4 lg:p-8 max-w-3xl space-y-6">
+        {/* Quick Paste Area */}
+        {showPasteArea && (
+          <Card className="border-primary/30 bg-primary/5" data-testid="card-quick-paste">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-medium">Quick Paste from Google Sheet</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setShowPasteArea(false);
+                    setPasteValue("");
+                    setParseResult(null);
+                  }}
+                  data-testid="button-close-paste"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Textarea
+                  placeholder="Paste a row from your spreadsheet here and press Enter..."
+                  value={pasteValue}
+                  onChange={(e) => {
+                    setPasteValue(e.target.value);
+                    setParseResult(null);
+                  }}
+                  onKeyDown={handleKeyDown}
+                  className="min-h-20 resize-none text-sm"
+                  data-testid="textarea-quick-paste"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Copy a row from your Google Sheet and paste it here. The system will detect the company, applicant name, and service type.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleParse}
+                  disabled={!pasteValue.trim()}
+                  data-testid="button-parse-data"
+                >
+                  Parse Data
+                </Button>
+
+                {parseResult?.success && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={applyParsedData}
+                    className="gap-1.5"
+                    data-testid="button-apply-parsed"
+                  >
+                    <Check className="h-4 w-4" />
+                    Apply to Form
+                  </Button>
+                )}
+              </div>
+
+              {/* Parse Results */}
+              {parseResult && (
+                <div className="space-y-3" data-testid="parse-results">
+                  {parseResult.success ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-foreground">Detected Fields:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {parseResult.parsed.matchedCompanyId && (
+                          <Badge variant="secondary" className="gap-1.5">
+                            <Building2 className="h-3 w-3" />
+                            {companies?.find(c => c.id === parseResult.parsed.matchedCompanyId)?.name.substring(0, 30)}
+                          </Badge>
+                        )}
+                        {parseResult.parsed.applicantName && (
+                          <Badge variant="secondary" className="gap-1.5">
+                            <User className="h-3 w-3" />
+                            {parseResult.parsed.applicantName}
+                          </Badge>
+                        )}
+                        {parseResult.parsed.matchedServiceTypeId && (
+                          <Badge variant="secondary" className="gap-1.5">
+                            <FileText className="h-3 w-3" />
+                            {serviceTypes?.find(s => s.id === parseResult.parsed.matchedServiceTypeId)?.name}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <AlertCircle className="h-4 w-4" />
+                      No usable data detected
+                    </div>
+                  )}
+
+                  {parseResult.warnings.length > 0 && (
+                    <div className="space-y-1">
+                      {parseResult.warnings.map((warning, i) => (
+                        <p key={i} className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                          <AlertCircle className="h-3 w-3" />
+                          {warning}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Applicant Details */}
