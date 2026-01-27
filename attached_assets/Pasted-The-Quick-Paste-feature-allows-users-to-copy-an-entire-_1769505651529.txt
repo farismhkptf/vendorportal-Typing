@@ -1,0 +1,238 @@
+The Quick Paste feature allows users to copy an entire row from a Google Sheet (or Excel) and paste it into a single textarea. The system then automatically parses the tab-separated data and extracts relevant fields, matching them against your database records using fuzzy matching algorithms.
+
+1. Core Components
+State Variables
+const [showPasteArea, setShowPasteArea] = useState(false);  // Toggle visibility
+const [pasteValue, setPasteValue] = useState("");           // Raw pasted text
+const [parseResult, setParseResult] = useState<ParseResult | null>(null);  // Parsing results
+Type Definitions
+interface ParsedWorkOrder {
+  woNumber: string | null;           // Extracted WO number
+  companyName: string | null;        // Raw company name from paste
+  matchedCompanyId: number | null;   // Matched company ID from database
+  staffName: string | null;          // Extracted person name
+  serviceTypeName: string | null;    // Raw service type text
+  matchedServiceTypeId: number | null; // Matched service type ID
+}
+interface ParseResult {
+  success: boolean;        // Whether parsing found any usable data
+  parsed: ParsedWorkOrder; // The extracted data
+  warnings: string[];      // Any issues or unmatched fields
+}
+2. The Parsing Algorithm (parsePastedData)
+Step 1: Split by Tabs
+When you copy a row from Google Sheets, cells are separated by tab characters (\t):
+
+const parts = text.split("\t").map(p => p.trim()).filter(p => p.length > 0);
+// Validation: Need at least 3 parts
+if (parts.length < 3) {
+  return { success: false, parsed, warnings: ["Please paste a full row from your spreadsheet (tab-separated)"] };
+}
+Step 2: Find WO Number (Pattern Matching)
+Uses a regex pattern to identify work order numbers:
+
+const woPattern = /^[JFMASOND]\d{2}\d{3,5}$/i;
+// Matches: J016308, M250001, F23456, etc.
+// Format: First letter of month + 2-digit year + 3-5 digit sequence
+for (const part of parts) {
+  if (woPattern.test(part)) {
+    parsed.woNumber = part.toUpperCase();
+    break;
+  }
+}
+Identifiers for WO Number:
+
+Starts with J, F, M, A, S, O, N, D (month abbreviations)
+Followed by 2 digits (year)
+Followed by 3-5 more digits (sequence number)
+Step 3: Find Company Name (Keyword Detection)
+Identifies company names by looking for business entity suffixes:
+
+for (const part of parts) {
+  if (part.includes("L.L.C") || 
+      part.includes("LLC") || 
+      part.includes("L.L.C.") || 
+      part.includes("EST") || 
+      part.includes("FZE") || 
+      part.includes("FZCO") ||
+      part.includes("CO.") || 
+      part.includes("COMPANY") || 
+      // Also: if it's ALL UPPERCASE and longer than 10 chars
+      (part.toUpperCase() === part && part.length > 10)) {
+    
+    parsed.companyName = part;
+    const match = findBestCompanyMatch(part);  // Fuzzy match against database
+    if (match) {
+      parsed.matchedCompanyId = match.id;
+    } else {
+      warnings.push(`Company "${part.substring(0, 30)}..." not found in system`);
+    }
+    break;
+  }
+}
+Identifiers for Company:
+
+Contains: L.L.C, LLC, EST, FZE, FZCO, CO., COMPANY
+OR: All uppercase text longer than 10 characters
+Step 4: Find Service Type (Multiple Keyword Matching)
+Looks for fields containing 2 or more service-related keywords:
+
+const serviceKeywords = [
+  "VISA", "PERMIT", "EMPLOYMENT", "DEPENDENT", 
+  "CANCEL", "RENEW", "AMEND", "GOLDEN", 
+  "NEW", "INSIDE", "OUTSIDE"
+];
+for (const part of parts) {
+  const upperPart = part.toUpperCase();
+  const matchCount = serviceKeywords.filter(k => upperPart.includes(k)).length;
+  
+  if (matchCount >= 2) {  // Must match at least 2 keywords
+    parsed.serviceTypeName = part;
+    const match = findBestServiceTypeMatch(part);  // Fuzzy match
+    if (match) {
+      parsed.matchedServiceTypeId = match.id;
+    }
+    break;
+  }
+}
+Identifiers for Service Type:
+
+Must contain at least 2 of: VISA, PERMIT, EMPLOYMENT, DEPENDENT, CANCEL, RENEW, AMEND, GOLDEN, NEW, INSIDE, OUTSIDE
+Step 5: Find Person Name (Exclusion-Based Detection)
+The trickiest part - finds names by eliminating other patterns:
+
+for (const part of parts) {
+  // Skip already-identified fields
+  if (part === parsed.woNumber || 
+      part === parsed.companyName || 
+      part === parsed.serviceTypeName) continue;
+  
+  // Skip dates (like "5-Jan-26")
+  if (/^\d{1,2}[-\/]\w+[-\/]\d{2,4}$/.test(part)) continue;
+  
+  const words = part.split(/\s+/);
+  
+  // Check: 2-5 words, at least 2 starting with uppercase
+  const hasUpperWords = words.filter(w => 
+    w[0] === w[0]?.toUpperCase() && w.length > 1
+  ).length;
+  
+  if (words.length >= 2 && words.length <= 5 && hasUpperWords >= 2) {
+    // Exclude job titles and status words
+    const notName = [
+      "SALES", "OFFICER", "MANAGER", "ACCOUNTANT", 
+      "DRIVER", "CLEANER", "CEO", "ADMIN", 
+      "INSIDE", "OUTSIDE", "COMPLETED", "INVOICED"
+    ];
+    
+    if (!notName.some(n => part.toUpperCase().includes(n))) {
+      parsed.staffName = part;
+      break;
+    }
+  }
+}
+Identifiers for Person Name:
+
+Not already matched as WO number, company, or service type
+Not a date format (like 5-Jan-26)
+Has 2-5 words
+At least 2 words start with uppercase letter
+Doesn't contain job titles: SALES, OFFICER, MANAGER, ACCOUNTANT, DRIVER, CLEANER, CEO, ADMIN
+Doesn't contain status words: INSIDE, OUTSIDE, COMPLETED, INVOICED
+3. Fuzzy Matching Algorithm (findBestCompanyMatch)
+This matches pasted text against database records even with slight variations:
+
+Normalization Function
+const normalizeText = (text: string): string => {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, "")  // Remove special chars
+    .replace(/\s+/g, " ")          // Collapse whitespace
+    .trim();
+};
+Scoring System
+// 1. Exact match = 100 points
+if (normalizedCompany === normalizedSearch) {
+  return { id: company.id, name: company.name, score: 100 };
+}
+// 2. Substring match = up to 80 points
+if (normalizedCompany.includes(normalizedSearch) || 
+    normalizedSearch.includes(normalizedCompany)) {
+  const score = Math.max(
+    (normalizedSearch.length / normalizedCompany.length) * 80,
+    (normalizedCompany.length / normalizedSearch.length) * 80
+  );
+}
+// 3. Word overlap match = up to 70 points
+const searchWords = normalizedSearch.split(" ");
+const companyWords = normalizedCompany.split(" ");
+const matchingWords = searchWords.filter(w => 
+  companyWords.some(cw => cw.includes(w) || w.includes(cw))
+);
+const score = (matchingWords.length / Math.max(searchWords.length, companyWords.length)) * 70;
+// Minimum threshold: 40 points required to accept match
+return bestMatch && bestMatch.score >= 40 ? bestMatch : null;
+4. UI Components
+Toggle Button
+<Button
+  variant={showPasteArea ? "secondary" : "outline"}
+  onClick={() => setShowPasteArea(!showPasteArea)}
+  data-testid="button-toggle-paste"
+>
+  <ClipboardPaste className="h-4 w-4" />
+  {showPasteArea ? "Hide Quick Paste" : "Quick Paste"}
+</Button>
+Paste Area Card
+{showPasteArea && (
+  <Card className="glass-panel border-primary/30">
+    <CardHeader>
+      <CardTitle>Quick Paste from Google Sheet</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <Textarea
+        placeholder="Paste a tab-separated row here..."
+        value={pasteValue}
+        onChange={(e) => {
+          setPasteValue(e.target.value);
+          setParseResult(null);  // Reset on new paste
+        }}
+        data-testid="textarea-quick-paste"
+      />
+      
+      <Button onClick={handleParse} disabled={!pasteValue.trim()}>
+        Parse Data
+      </Button>
+      
+      {/* Show parsed results and warnings */}
+      {parseResult?.success && (
+        <Button onClick={applyParsedData}>
+          Apply to Form
+        </Button>
+      )}
+    </CardContent>
+  </Card>
+)}
+5. Apply Parsed Data to Form
+const applyParsedData = useCallback(() => {
+  if (!parseResult?.parsed) return;
+  
+  const { parsed } = parseResult;
+  
+  if (parsed.woNumber) form.setValue("woNumber", parsed.woNumber);
+  if (parsed.matchedCompanyId) form.setValue("companyId", parsed.matchedCompanyId);
+  if (parsed.staffName) form.setValue("applicantName", parsed.staffName);
+  if (parsed.matchedServiceTypeId) form.setValue("serviceTypeId", parsed.matchedServiceTypeId);
+  
+  // Close paste area and reset
+  setShowPasteArea(false);
+  setPasteValue("");
+  setParseResult(null);
+  
+  toast({ title: "Form auto-filled" });
+}, [parseResult, form, toast]);
+Summary: Key Patterns to Customize
+Field	Detection Method	Regex/Keywords
+WO Number	Regex pattern	/^[JFMASOND]\d{2}\d{3,5}$/i
+Company	Business suffixes	L.L.C, LLC, EST, FZE, CO.
+Service Type	Multiple keywords	2+ of: VISA, PERMIT, etc.
+Person Name	Exclusion-based	2-5 words, uppercase start, not job titles
