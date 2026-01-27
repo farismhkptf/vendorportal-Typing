@@ -10,7 +10,6 @@ import {
   Calendar, 
   FileText, 
   MessageSquare,
-  Clock,
   User,
   MapPin,
   Mail,
@@ -266,16 +265,14 @@ export default function WorkOrderDetail() {
               </div>
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <Clock className="h-5 w-5 text-primary" />
+                  <FileText className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Created</p>
+                  <p className="text-sm text-muted-foreground">Service Type</p>
                   <p className="font-medium text-foreground">
-                    {new Date(workOrder.createdAt).toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    {workOrder.serviceTypeId 
+                      ? serviceTypes?.find(st => st.id === workOrder.serviceTypeId)?.name || "Unknown"
+                      : "Not specified"}
                   </p>
                 </div>
               </div>
