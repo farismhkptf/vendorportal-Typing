@@ -14,7 +14,8 @@ interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
   assistStaff?: Staff;
   preferredMedicalCenter?: Center;
-  preferredEidCenter?: Center;
+  preferredMedicalCenterVip?: Center;
+  preferredBiometricsCenter?: Center;
   emails?: CompanyEmail[];
 }
 
@@ -99,17 +100,23 @@ export default function CompaniesList() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {company.preferredMedicalCenter && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5" />
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
                           <span className="truncate">Medical: {company.preferredMedicalCenter.name}</span>
                         </div>
                       )}
-                      {company.preferredEidCenter && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span className="truncate">EID: {company.preferredEidCenter.name}</span>
+                      {company.preferredMedicalCenterVip && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate">VIP Medical: {company.preferredMedicalCenterVip.name}</span>
+                        </div>
+                      )}
+                      {company.preferredBiometricsCenter && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate">Biometrics: {company.preferredBiometricsCenter.name}</span>
                         </div>
                       )}
                     </div>

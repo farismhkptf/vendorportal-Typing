@@ -25,6 +25,8 @@ export interface IStorage {
   getStaff(): Promise<Staff[]>;
   getStaffById(id: string): Promise<Staff | undefined>;
   createStaff(data: InsertStaff): Promise<Staff>;
+  updateStaff(id: string, data: Partial<InsertStaff>): Promise<Staff | undefined>;
+  deleteStaff(id: string): Promise<boolean>;
   
   // Centers
   getCenters(): Promise<Center[]>;
@@ -35,6 +37,7 @@ export interface IStorage {
   getCompanies(): Promise<Company[]>;
   getCompanyById(id: string): Promise<Company | undefined>;
   createCompany(data: InsertCompany): Promise<Company>;
+  updateCompany(id: string, data: Partial<InsertCompany>): Promise<Company | undefined>;
   getCompanyEmails(companyId: string): Promise<CompanyEmail[]>;
   createCompanyEmail(data: InsertCompanyEmail): Promise<CompanyEmail>;
   
@@ -117,6 +120,18 @@ export class DatabaseStorage implements IStorage {
     return member;
   }
 
+  async updateStaff(id: string, data: Partial<InsertStaff>): Promise<Staff | undefined> {
+    const [member] = await db.update(staff).set(data).where(eq(staff.id, id)).returning();
+    return member || undefined;
+  }
+
+  async deleteStaff(id: string): Promise<boolean> {
+    const existing = await this.getStaffById(id);
+    if (!existing) return false;
+    await db.delete(staff).where(eq(staff.id, id));
+    return true;
+  }
+
   // Centers
   async getCenters(): Promise<Center[]> {
     return db.select().from(centers).where(eq(centers.active, true));
@@ -145,6 +160,11 @@ export class DatabaseStorage implements IStorage {
   async createCompany(data: InsertCompany): Promise<Company> {
     const [company] = await db.insert(companies).values(data).returning();
     return company;
+  }
+
+  async updateCompany(id: string, data: Partial<InsertCompany>): Promise<Company | undefined> {
+    const [company] = await db.update(companies).set(data).where(eq(companies.id, id)).returning();
+    return company || undefined;
   }
 
   async getCompanyEmails(companyId: string): Promise<CompanyEmail[]> {

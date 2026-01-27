@@ -8,7 +8,9 @@ import {
   Wallet,
   LogOut,
   Menu,
-  X
+  X,
+  Building2,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,7 +22,9 @@ interface AppLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Work Orders", href: "/work-orders", icon: FileText },
+  { name: "Companies", href: "/companies", icon: Building2 },
   { name: "Typing Jobs", href: "/typing-jobs", icon: Calendar },
+  { name: "Staff", href: "/staff", icon: Users },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
   { name: "Admin", href: "/admin", icon: Settings },
 ];

@@ -160,8 +160,11 @@ export async function registerRoutes(
         const preferredMedicalCenter = company.preferredMedicalCenterId 
           ? await storage.getCenterById(company.preferredMedicalCenterId) 
           : null;
-        const preferredEidCenter = company.preferredEidCenterId 
-          ? await storage.getCenterById(company.preferredEidCenterId) 
+        const preferredMedicalCenterVip = company.preferredMedicalCenterVipId 
+          ? await storage.getCenterById(company.preferredMedicalCenterVipId) 
+          : null;
+        const preferredBiometricsCenter = company.preferredBiometricsCenterId 
+          ? await storage.getCenterById(company.preferredBiometricsCenterId) 
           : null;
         
         companyWithDetails = {
@@ -170,7 +173,8 @@ export async function registerRoutes(
           rmStaff,
           assistStaff,
           preferredMedicalCenter,
-          preferredEidCenter,
+          preferredMedicalCenterVip,
+          preferredBiometricsCenter,
         };
       }
 
@@ -218,8 +222,11 @@ export async function registerRoutes(
           const preferredMedicalCenter = company.preferredMedicalCenterId 
             ? await storage.getCenterById(company.preferredMedicalCenterId) 
             : null;
-          const preferredEidCenter = company.preferredEidCenterId 
-            ? await storage.getCenterById(company.preferredEidCenterId) 
+          const preferredMedicalCenterVip = company.preferredMedicalCenterVipId 
+            ? await storage.getCenterById(company.preferredMedicalCenterVipId) 
+            : null;
+          const preferredBiometricsCenter = company.preferredBiometricsCenterId 
+            ? await storage.getCenterById(company.preferredBiometricsCenterId) 
             : null;
           
           return {
@@ -228,7 +235,8 @@ export async function registerRoutes(
             rmStaff,
             assistStaff,
             preferredMedicalCenter,
-            preferredEidCenter,
+            preferredMedicalCenterVip,
+            preferredBiometricsCenter,
           };
         })
       );
@@ -250,6 +258,60 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create company error:", error);
       res.status(500).json({ message: "Failed to create company" });
+    }
+  });
+
+  app.get("/api/companies/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const company = await storage.getCompanyById(id);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      
+      const emails = await storage.getCompanyEmails(company.id);
+      const rmStaff = company.rmStaffId ? await storage.getStaffById(company.rmStaffId) : null;
+      const assistStaff = company.assistStaffId ? await storage.getStaffById(company.assistStaffId) : null;
+      const preferredMedicalCenter = company.preferredMedicalCenterId 
+        ? await storage.getCenterById(company.preferredMedicalCenterId) 
+        : null;
+      const preferredMedicalCenterVip = company.preferredMedicalCenterVipId 
+        ? await storage.getCenterById(company.preferredMedicalCenterVipId) 
+        : null;
+      const preferredBiometricsCenter = company.preferredBiometricsCenterId 
+        ? await storage.getCenterById(company.preferredBiometricsCenterId) 
+        : null;
+
+      res.json({
+        ...company,
+        emails,
+        rmStaff,
+        assistStaff,
+        preferredMedicalCenter,
+        preferredMedicalCenterVip,
+        preferredBiometricsCenter,
+      });
+    } catch (error) {
+      console.error("Get company error:", error);
+      res.status(500).json({ message: "Failed to fetch company" });
+    }
+  });
+
+  app.put("/api/companies/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validation = validateBody(insertCompanySchema.partial(), req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const company = await storage.updateCompany(id, validation.data);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+      res.json(company);
+    } catch (error) {
+      console.error("Update company error:", error);
+      res.status(500).json({ message: "Failed to update company" });
     }
   });
 
@@ -275,6 +337,38 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create staff error:", error);
       res.status(500).json({ message: "Failed to create staff member" });
+    }
+  });
+
+  app.put("/api/staff/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validation = validateBody(insertStaffSchema.partial(), req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const member = await storage.updateStaff(id, validation.data);
+      if (!member) {
+        return res.status(404).json({ message: "Staff member not found" });
+      }
+      res.json(member);
+    } catch (error) {
+      console.error("Update staff error:", error);
+      res.status(500).json({ message: "Failed to update staff member" });
+    }
+  });
+
+  app.delete("/api/staff/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteStaff(id);
+      if (!success) {
+        return res.status(404).json({ message: "Staff member not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete staff error:", error);
+      res.status(500).json({ message: "Failed to delete staff member" });
     }
   });
 
