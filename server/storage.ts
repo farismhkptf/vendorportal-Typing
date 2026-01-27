@@ -110,6 +110,9 @@ export interface IStorage {
   
   // Seed medical centers
   seedMedicalCenters(): Promise<{ added: number; skipped: number }>;
+  
+  // Seed service types
+  seedServiceTypes(): Promise<{ added: number; skipped: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -845,6 +848,69 @@ export class DatabaseStorage implements IStorage {
     }
 
     console.log(`Medical centers seeded: ${added} added, ${skipped} skipped`);
+    return { added, skipped };
+  }
+
+  async seedServiceTypes(): Promise<{ added: number; skipped: number }> {
+    // Service types with their requirement flags from the spreadsheet
+    // Format: [name, requiresMedicalTyping, requiresMedicalScheduling, requiresIdTyping2Years, requiresIdTyping1Year, requiresIdTyping10Years, requiresIdBiometrics]
+    const serviceTypesData: Array<{
+      name: string;
+      requiresMedicalTyping: boolean;
+      requiresMedicalScheduling: boolean;
+      requiresIdTyping2Years: boolean;
+      requiresIdTyping1Year: boolean;
+      requiresIdTyping10Years: boolean;
+      requiresIdBiometrics: boolean;
+    }> = [
+      { name: "NEW EMPLOYMENT VISA - INSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "NEW EMPLOYMENT VISA - OUTSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "RENEW EMPLOYMENT VISA", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: false },
+      { name: "GOLDEN VISA - DLD CUBE", requiresMedicalTyping: false, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "GOLDEN VISA FOR DEPENDENT - DLD CUBE (NOT PARENT)", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "GOLDEN VISA FOR DEPENDENT - DLD CUBE (PARENT)", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "THIRD PARTY VISA", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "NEW PARENT VISA - INSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: true, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "NEW PARENT VISA - OUTSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "NEW DEPENDENT VISA - INSIDE (NOT PARENT)", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "NEW DEPENDENT VISA - OUTSIDE (NOT PARENT)", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "RENEW DEPENDENT VISA", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: false },
+      { name: "NEW PARTNER VISA - INSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: false },
+      { name: "NEW PARTNER VISA - OUTSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: false },
+      { name: "RENEW PARTNER VISA", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: false },
+      { name: "GOLDEN VISA - MANAGER", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "GOLDEN VISA - CULTURE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "GOLDEN VISA - STUDENT", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "GOLDEN VISA FOR DEPENDENT - MANAGER", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "GOLDEN VISA FOR DEPENDENT - CULTURE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "GOLDEN VISA FOR DEPENDENT - STUDENT", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "LOST/REPLACE EMIRATES ID APPLICATION", requiresMedicalTyping: false, requiresMedicalScheduling: false, requiresIdTyping2Years: true, requiresIdTyping1Year: true, requiresIdTyping10Years: true, requiresIdBiometrics: true },
+      { name: "NEW IFZ FREEZONE EMPLOYMENT VISA - INSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "NEW IFZ FREEZONE EMPLOYMENT VISA - OUTSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "VIP MEDICAL", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: false, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: false },
+      { name: "NEW BORN DEPENDENT VISA", requiresMedicalTyping: false, requiresMedicalScheduling: false, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "SPC FREEZONE EMPLOYMENT VISA - INSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+      { name: "SPC FREEZONE EMPLOYMENT VISA - OUTSIDE", requiresMedicalTyping: true, requiresMedicalScheduling: true, requiresIdTyping2Years: true, requiresIdTyping1Year: false, requiresIdTyping10Years: false, requiresIdBiometrics: true },
+    ];
+
+    let added = 0;
+    let skipped = 0;
+
+    for (const stData of serviceTypesData) {
+      // Check if service type already exists by name
+      const existing = await db.select().from(serviceTypes).where(eq(serviceTypes.name, stData.name));
+      
+      if (existing.length > 0) {
+        skipped++;
+        continue;
+      }
+
+      // Insert the service type
+      await db.insert(serviceTypes).values(stData);
+      added++;
+    }
+
+    console.log(`Service types seeded: ${added} added, ${skipped} skipped`);
     return { added, skipped };
   }
 }

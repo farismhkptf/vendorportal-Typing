@@ -170,9 +170,16 @@ export const companyEmails = pgTable("company_emails", {
 });
 
 // Service Types table
+// Each service type defines what processing steps are required
 export const serviceTypes = pgTable("service_types", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  requiresMedicalTyping: boolean("requires_medical_typing").notNull().default(false),
+  requiresMedicalScheduling: boolean("requires_medical_scheduling").notNull().default(false),
+  requiresIdTyping2Years: boolean("requires_id_typing_2_years").notNull().default(false),
+  requiresIdTyping1Year: boolean("requires_id_typing_1_year").notNull().default(false),
+  requiresIdTyping10Years: boolean("requires_id_typing_10_years").notNull().default(false),
+  requiresIdBiometrics: boolean("requires_id_biometrics").notNull().default(false),
   active: boolean("active").notNull().default(true),
 });
 

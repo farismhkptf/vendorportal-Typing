@@ -65,6 +65,12 @@ const staffSchema = z.object({
 
 const serviceTypeSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  requiresMedicalTyping: z.boolean().default(false),
+  requiresMedicalScheduling: z.boolean().default(false),
+  requiresIdTyping2Years: z.boolean().default(false),
+  requiresIdTyping1Year: z.boolean().default(false),
+  requiresIdTyping10Years: z.boolean().default(false),
+  requiresIdBiometrics: z.boolean().default(false),
 });
 
 const jobTypeSchema = z.object({
@@ -188,6 +194,12 @@ export default function AdminPage() {
     resolver: zodResolver(serviceTypeSchema),
     defaultValues: {
       name: "",
+      requiresMedicalTyping: false,
+      requiresMedicalScheduling: false,
+      requiresIdTyping2Years: false,
+      requiresIdTyping1Year: false,
+      requiresIdTyping10Years: false,
+      requiresIdBiometrics: false,
     },
   });
 
@@ -195,6 +207,12 @@ export default function AdminPage() {
     resolver: zodResolver(serviceTypeSchema),
     defaultValues: {
       name: "",
+      requiresMedicalTyping: false,
+      requiresMedicalScheduling: false,
+      requiresIdTyping2Years: false,
+      requiresIdTyping1Year: false,
+      requiresIdTyping10Years: false,
+      requiresIdBiometrics: false,
     },
   });
 
@@ -527,6 +545,12 @@ export default function AdminPage() {
     setEditingService(service);
     editServiceForm.reset({
       name: service.name,
+      requiresMedicalTyping: service.requiresMedicalTyping,
+      requiresMedicalScheduling: service.requiresMedicalScheduling,
+      requiresIdTyping2Years: service.requiresIdTyping2Years,
+      requiresIdTyping1Year: service.requiresIdTyping1Year,
+      requiresIdTyping10Years: service.requiresIdTyping10Years,
+      requiresIdBiometrics: service.requiresIdBiometrics,
     });
     setEditServiceDialogOpen(true);
   };
@@ -1453,7 +1477,7 @@ export default function AdminPage() {
                         Add Service
                       </Button>
                     </DialogTrigger>
-                  <DialogContent className="rounded-2xl">
+                  <DialogContent className="rounded-2xl max-w-lg">
                     <DialogHeader>
                       <DialogTitle>Add Service Type</DialogTitle>
                     </DialogHeader>
@@ -1466,12 +1490,89 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel>Service Name</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., New Visa, Visa Renewal" className="h-11 rounded-xl" />
+                                <Input {...field} placeholder="e.g., New Employment Visa - Inside" className="h-11 rounded-xl" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                        <div className="space-y-3">
+                          <FormLabel className="text-sm font-medium">Requirements</FormLabel>
+                          <div className="grid grid-cols-2 gap-3">
+                            <FormField
+                              control={serviceForm.control}
+                              name="requiresMedicalTyping"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal cursor-pointer">Medical Typing</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={serviceForm.control}
+                              name="requiresMedicalScheduling"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal cursor-pointer">Medical Scheduling</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={serviceForm.control}
+                              name="requiresIdTyping2Years"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal cursor-pointer">ID Typing (2 Years)</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={serviceForm.control}
+                              name="requiresIdTyping1Year"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal cursor-pointer">ID Typing (1 Year)</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={serviceForm.control}
+                              name="requiresIdTyping10Years"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal cursor-pointer">ID Typing (10 Years)</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={serviceForm.control}
+                              name="requiresIdBiometrics"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal cursor-pointer">ID Biometrics</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
                         <div className="flex justify-end gap-3 pt-4">
                           <Button type="button" variant="outline" className="rounded-xl" onClick={() => setServiceDialogOpen(false)}>
                             Cancel
@@ -1489,7 +1590,7 @@ export default function AdminPage() {
 
               {/* Edit Service Dialog */}
               <Dialog open={editServiceDialogOpen} onOpenChange={setEditServiceDialogOpen}>
-                <DialogContent className="rounded-2xl">
+                <DialogContent className="rounded-2xl max-w-lg">
                   <DialogHeader>
                     <DialogTitle>Edit Service Type</DialogTitle>
                   </DialogHeader>
@@ -1502,12 +1603,89 @@ export default function AdminPage() {
                           <FormItem>
                             <FormLabel>Service Name</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="e.g., New Visa, Visa Renewal" className="h-11 rounded-xl" />
+                              <Input {...field} placeholder="e.g., New Employment Visa - Inside" className="h-11 rounded-xl" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      <div className="space-y-3">
+                        <FormLabel className="text-sm font-medium">Requirements</FormLabel>
+                        <div className="grid grid-cols-2 gap-3">
+                          <FormField
+                            control={editServiceForm.control}
+                            name="requiresMedicalTyping"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal cursor-pointer">Medical Typing</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editServiceForm.control}
+                            name="requiresMedicalScheduling"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal cursor-pointer">Medical Scheduling</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editServiceForm.control}
+                            name="requiresIdTyping2Years"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal cursor-pointer">ID Typing (2 Years)</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editServiceForm.control}
+                            name="requiresIdTyping1Year"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal cursor-pointer">ID Typing (1 Year)</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editServiceForm.control}
+                            name="requiresIdTyping10Years"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal cursor-pointer">ID Typing (10 Years)</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editServiceForm.control}
+                            name="requiresIdBiometrics"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal cursor-pointer">ID Biometrics</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
                       <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditServiceDialogOpen(false)}>
                           Cancel
@@ -1546,9 +1724,31 @@ export default function AdminPage() {
                         <div className="icon-container">
                           <FileText className="h-4 w-4" />
                         </div>
-                        <p className="font-medium text-foreground">{service.name}</p>
+                        <div className="flex flex-col gap-1">
+                          <p className="font-medium text-foreground">{service.name}</p>
+                          <div className="flex flex-wrap gap-1">
+                            {service.requiresMedicalTyping && (
+                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">Med Typing</Badge>
+                            )}
+                            {service.requiresMedicalScheduling && (
+                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">Med Sched</Badge>
+                            )}
+                            {service.requiresIdTyping2Years && (
+                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">ID 2Y</Badge>
+                            )}
+                            {service.requiresIdTyping1Year && (
+                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">ID 1Y</Badge>
+                            )}
+                            {service.requiresIdTyping10Years && (
+                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">ID 10Y</Badge>
+                            )}
+                            {service.requiresIdBiometrics && (
+                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">Biometrics</Badge>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <Button 
                           variant="ghost" 
                           size="icon" 
