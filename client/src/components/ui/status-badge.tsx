@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type StatusType = 
-  | "Draft" | "Scheduled" | "Sent" | "Completed" | "Cancelled"
+  | "Draft" | "Scheduled" | "Sent" | "Completed" | "Cancelled" | "Rescheduled"
   | "SentToVendor" | "InProgress" | "WaitingForDocs" | "Returned"
   | "SentToClient" | "VendorMistake"
   | "New" | "Accepted" | "Closed"
@@ -19,6 +19,7 @@ const statusStyles: Record<StatusType, string> = {
   Sent: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
   Completed: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
   Cancelled: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
+  Rescheduled: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300",
   SentToVendor: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300",
   InProgress: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
   WaitingForDocs: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300",
@@ -38,6 +39,7 @@ const statusLabels: Record<StatusType, string> = {
   Sent: "Sent",
   Completed: "Completed",
   Cancelled: "Cancelled",
+  Rescheduled: "Rescheduled",
   SentToVendor: "Sent to Vendor",
   InProgress: "In Progress",
   WaitingForDocs: "Waiting for Docs",

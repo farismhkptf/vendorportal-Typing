@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Calendar, Clock, MapPin, CheckCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Appointment, Center } from "@shared/schema";
@@ -25,6 +26,25 @@ interface RescheduleData {
     };
   };
   availableTimes: string[];
+}
+
+interface AvailableTimesResponse {
+  date: string;
+  isOpen: boolean;
+  slots: string[];
+  message?: string;
+  center?: {
+    id: string;
+    name: string;
+    timingText: string | null;
+  };
+}
+
+function formatTime(time: string): string {
+  const [hours, minutes] = time.split(":").map(Number);
+  const period = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
 }
 
 const rescheduleSchema = z.object({
@@ -52,6 +72,32 @@ export default function ReschedulePage() {
       notes: "",
     },
   });
+
+  const selectedDate = useWatch({ control: form.control, name: "date" });
+  const centerId = data?.appointment?.centerId;
+
+  const formatDateLocal = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const dateStr = selectedDate ? formatDateLocal(selectedDate) : null;
+
+  const { data: availableTimesData, isLoading: isLoadingTimes } = useQuery<AvailableTimesResponse>({
+    queryKey: [`/api/centers/${centerId}/available-times?date=${dateStr}`],
+    enabled: !!centerId && !!selectedDate && !!dateStr,
+  });
+
+  useEffect(() => {
+    if (selectedDate && availableTimesData?.slots) {
+      const currentTime = form.getValues("time");
+      if (currentTime && !availableTimesData.slots.includes(currentTime)) {
+        form.setValue("time", "");
+      }
+    }
+  }, [selectedDate, availableTimesData?.slots, form]);
 
   const submitMutation = useMutation({
     mutationFn: async (formData: RescheduleForm) => {
@@ -211,34 +257,60 @@ export default function ReschedulePage() {
                   )}
                 />
 
+                {selectedDate && availableTimesData && !availableTimesData.isOpen && (
+                  <Alert variant="destructive" className="rounded-xl">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      The center is closed on {selectedDate.toLocaleDateString("en-US", { weekday: "long" })}. Please select a different date.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {selectedDate && availableTimesData?.center?.timingText && (
+                  <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-xl">
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-4 w-4 mt-0.5 shrink-0" />
+                      <span>{availableTimesData.center.timingText}</span>
+                    </div>
+                  </div>
+                )}
+
                 <FormField
                   control={form.control}
                   name="time"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm text-muted-foreground">Preferred Time</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        disabled={!selectedDate || !availableTimesData?.isOpen}
+                      >
                         <FormControl>
                           <SelectTrigger className="h-12 rounded-xl">
                             <div className="flex items-center gap-2">
                               <Clock className="h-4 w-4 text-muted-foreground" />
-                              <SelectValue placeholder="Select a time" />
+                              <SelectValue placeholder={
+                                isLoadingTimes 
+                                  ? "Loading times..." 
+                                  : !selectedDate 
+                                    ? "Select a date first" 
+                                    : !availableTimesData?.isOpen 
+                                      ? "Center closed" 
+                                      : "Select a time"
+                              } />
                             </div>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="09:00">9:00 AM</SelectItem>
-                          <SelectItem value="09:30">9:30 AM</SelectItem>
-                          <SelectItem value="10:00">10:00 AM</SelectItem>
-                          <SelectItem value="10:30">10:30 AM</SelectItem>
-                          <SelectItem value="11:00">11:00 AM</SelectItem>
-                          <SelectItem value="11:30">11:30 AM</SelectItem>
-                          <SelectItem value="12:00">12:00 PM</SelectItem>
-                          <SelectItem value="14:00">2:00 PM</SelectItem>
-                          <SelectItem value="14:30">2:30 PM</SelectItem>
-                          <SelectItem value="15:00">3:00 PM</SelectItem>
-                          <SelectItem value="15:30">3:30 PM</SelectItem>
-                          <SelectItem value="16:00">4:00 PM</SelectItem>
+                          {availableTimesData?.slots.map((slot) => (
+                            <SelectItem key={slot} value={slot}>
+                              {formatTime(slot)}
+                            </SelectItem>
+                          ))}
+                          {availableTimesData?.slots.length === 0 && availableTimesData?.isOpen && (
+                            <SelectItem value="__no_times__" disabled>No available times</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -267,7 +339,7 @@ export default function ReschedulePage() {
                 <Button
                   type="submit"
                   className="w-full h-12 rounded-xl text-base"
-                  disabled={submitMutation.isPending}
+                  disabled={submitMutation.isPending || (selectedDate && !availableTimesData?.isOpen)}
                   data-testid="button-submit-reschedule"
                 >
                   {submitMutation.isPending ? "Submitting..." : "Submit Reschedule Request"}
