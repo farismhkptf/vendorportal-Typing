@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface StatCardProps {
@@ -11,32 +10,41 @@ interface StatCardProps {
     positive: boolean;
   };
   className?: string;
+  animationDelay?: number;
 }
 
-export function StatCard({ title, value, icon, trend, className }: StatCardProps) {
+export function StatCard({ title, value, icon, trend, className, animationDelay = 0 }: StatCardProps) {
   return (
-    <Card className={cn("border border-border/50 shadow-sm", className)} data-testid={`stat-${title.toLowerCase().replace(/\s+/g, "-")}`}>
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="text-2xl font-semibold text-foreground">{value}</p>
-            {trend && (
-              <p className={cn(
-                "text-xs font-medium",
-                trend.positive ? "text-green-600" : "text-red-600"
-              )}>
-                {trend.positive ? "+" : ""}{trend.value}
-              </p>
-            )}
-          </div>
-          {icon && (
-            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-              {icon}
-            </div>
+    <div 
+      className={cn(
+        "stat-card p-6 opacity-0 animate-fade-in",
+        animationDelay === 1 && "animate-delay-1",
+        animationDelay === 2 && "animate-delay-2",
+        animationDelay === 3 && "animate-delay-3",
+        animationDelay === 4 && "animate-delay-4",
+        className
+      )} 
+      data-testid={`stat-${title.toLowerCase().replace(/\s+/g, "-")}`}
+    >
+      <div className="relative z-10 flex items-start justify-between">
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-muted-foreground tracking-wide">{title}</p>
+          <p className="text-3xl font-semibold text-foreground tracking-tight animate-count">{value}</p>
+          {trend && (
+            <p className={cn(
+              "text-xs font-medium",
+              trend.positive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+            )}>
+              {trend.positive ? "+" : ""}{trend.value}
+            </p>
           )}
         </div>
-      </CardContent>
-    </Card>
+        {icon && (
+          <div className="icon-container icon-container-md">
+            {icon}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

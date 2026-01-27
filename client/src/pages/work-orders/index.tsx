@@ -3,10 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, Search, FileText, Building2, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTableRow } from "@/components/ui/data-table-row";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -36,71 +34,82 @@ export default function WorkOrdersList() {
 
   return (
     <AppLayout>
-      <PageHeader
-        title="Work Orders"
-        subtitle="Manage all work orders and track their progress"
-        actions={
+      {/* Header Section */}
+      <div className="px-6 lg:px-10 pt-8 pb-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
+              Work Orders
+            </h1>
+            <p className="text-muted-foreground">
+              Manage all work orders and track their progress
+            </p>
+          </div>
           <Link href="/work-orders/new">
-            <Button className="gap-2" data-testid="button-new-work-order">
+            <Button className="gap-2 rounded-xl h-11 px-5" data-testid="button-new-work-order">
               <Plus className="h-4 w-4" />
-              New Work Order
+              <span className="hidden sm:inline">New Work Order</span>
             </Button>
           </Link>
-        }
-      />
+        </div>
+      </div>
 
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="px-6 lg:px-10 pb-10 space-y-6">
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by WO number or applicant name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 h-11 rounded-xl"
-              data-testid="input-search-work-orders"
-            />
+          <div className="premium-card p-1.5 flex-1">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="search"
+                placeholder="Search by WO number or applicant name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-11 pl-11 pr-4 text-base bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60"
+                data-testid="input-search-work-orders"
+              />
+            </div>
           </div>
-          <div className="flex gap-3">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-40 h-11 rounded-xl" data-testid="select-status-filter">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="All Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Draft">Draft</SelectItem>
-                <SelectItem value="Scheduled">Scheduled</SelectItem>
-                <SelectItem value="Sent">Sent</SelectItem>
-                <SelectItem value="Completed">Completed</SelectItem>
-                <SelectItem value="Cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-44 h-[52px] rounded-2xl border-border/50" data-testid="select-status-filter">
+              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="Draft">Draft</SelectItem>
+              <SelectItem value="Scheduled">Scheduled</SelectItem>
+              <SelectItem value="Sent">Sent</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Work Orders List */}
         <div className="space-y-3">
           {isLoading ? (
             <>
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
+              <Skeleton className="h-24 rounded-2xl" />
+              <Skeleton className="h-24 rounded-2xl" />
+              <Skeleton className="h-24 rounded-2xl" />
+              <Skeleton className="h-24 rounded-2xl" />
             </>
           ) : filteredWorkOrders && filteredWorkOrders.length > 0 ? (
-            filteredWorkOrders.map((wo) => (
+            filteredWorkOrders.map((wo, index) => (
               <Link key={wo.id} href={`/work-orders/${wo.id}`}>
-                <DataTableRow className="mb-0" data-testid={`work-order-row-${wo.woNumber}`}>
+                <div 
+                  className="premium-card p-5 opacity-0 animate-fade-in"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                  data-testid={`work-order-row-${wo.woNumber}`}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-primary" />
+                      <div className="icon-container icon-container-md">
+                        <FileText className="h-5 w-5" />
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2.5">
                           <span className="font-semibold text-foreground">{wo.woNumber}</span>
                           <StatusBadge status={wo.status} />
                         </div>
@@ -123,7 +132,7 @@ export default function WorkOrdersList() {
                       </p>
                     </div>
                   </div>
-                </DataTableRow>
+                </div>
               </Link>
             ))
           ) : (
@@ -134,7 +143,7 @@ export default function WorkOrdersList() {
               action={
                 !search && (
                   <Link href="/work-orders/new">
-                    <Button size="sm" className="gap-2">
+                    <Button size="sm" className="gap-2 rounded-xl">
                       <Plus className="h-4 w-4" />
                       New Work Order
                     </Button>

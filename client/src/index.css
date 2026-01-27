@@ -213,6 +213,21 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Premium smooth transitions for all interactive elements */
+  button, a, input, select, textarea, [role="button"] {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Refined focus states */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--background)), 0 0 0 4px hsl(var(--ring) / 0.4);
+    border-radius: var(--radius);
   }
 }
 
@@ -231,50 +246,182 @@
     pointer-events: none;
   }
 
-  /* Glassmorphism utilities */
+  /* Premium glassmorphism - Apple-style subtle frosted glass */
   .glass {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
   }
 
   .glass-strong {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: saturate(180%) blur(24px);
+    -webkit-backdrop-filter: saturate(180%) blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.25);
   }
 
   .glass-subtle {
-    background: rgba(255, 255, 255, 0.65);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: saturate(150%) blur(16px);
+    -webkit-backdrop-filter: saturate(150%) blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
 
   .dark .glass {
-    background: rgba(30, 41, 59, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(22, 27, 34, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .dark .glass-strong {
-    background: rgba(30, 41, 59, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-  }
-
-  .dark .glass-subtle {
-    background: rgba(30, 41, 59, 0.65);
+    background: rgba(22, 27, 34, 0.88);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  /* Gradient header utility */
-  .gradient-header {
-    background: linear-gradient(135deg, hsl(217 91% 60% / 0.1) 0%, hsl(240 60% 65% / 0.08) 100%);
+  .dark .glass-subtle {
+    background: rgba(22, 27, 34, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
-  .dark .gradient-header {
-    background: linear-gradient(135deg, hsl(217 91% 60% / 0.15) 0%, hsl(240 60% 65% / 0.1) 100%);
+  /* Premium card styles */
+  .premium-card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.5);
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .premium-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.04);
+    transform: translateY(-1px);
+  }
+
+  .dark .premium-card {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .dark .premium-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Stat card with subtle gradient */
+  .stat-card {
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--card) / 0.95) 100%);
+    border: 1px solid hsl(var(--border) / 0.4);
+    border-radius: 20px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02), 0 4px 16px rgba(0, 0, 0, 0.02);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0%, hsl(var(--primary) / 0.02) 100%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+
+  .stat-card:hover::before {
+    opacity: 1;
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.03);
+  }
+
+  /* Smooth fade-in animation */
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  /* Staggered animation delays */
+  .animate-delay-1 { animation-delay: 0.05s; }
+  .animate-delay-2 { animation-delay: 0.1s; }
+  .animate-delay-3 { animation-delay: 0.15s; }
+  .animate-delay-4 { animation-delay: 0.2s; }
+
+  /* Premium icon container */
+  .icon-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: linear-gradient(135deg, hsl(var(--primary) / 0.1) 0%, hsl(var(--primary) / 0.05) 100%);
+    color: hsl(var(--primary));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .icon-container-sm {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .icon-container-md {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .icon-container-lg {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+  }
+
+  /* Subtle divider */
+  .divider-subtle {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--border) / 0.5) 50%, transparent 100%);
+  }
+
+  /* Premium input styling */
+  .input-premium {
+    border: 1.5px solid hsl(var(--border) / 0.6);
+    border-radius: 14px;
+    background: hsl(var(--card));
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .input-premium:hover {
+    border-color: hsl(var(--border));
+  }
+
+  .input-premium:focus {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.1);
+  }
+
+  /* Smooth number counter animation */
+  @keyframes countUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-count {
+    animation: countUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
 
   /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of

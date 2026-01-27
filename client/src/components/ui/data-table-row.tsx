@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface DataTableRowProps {
@@ -10,17 +9,15 @@ interface DataTableRowProps {
 
 export function DataTableRow({ children, onClick, className }: DataTableRowProps) {
   return (
-    <Card 
+    <div 
       className={cn(
-        "border border-border/50 shadow-sm transition-all duration-200",
-        onClick && "cursor-pointer hover-elevate",
+        "premium-card p-4",
+        onClick && "cursor-pointer",
         className
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        {children}
-      </CardContent>
-    </Card>
+      {children}
+    </div>
   );
 }
