@@ -151,14 +151,14 @@ export default function NewCompany() {
             <div className="space-y-1.5">
               <Label className="text-xs">Favorite Medical Center (Normal)</Label>
               <Select
-                value={form.watch("preferredMedicalCenterId") || ""}
-                onValueChange={(v) => form.setValue("preferredMedicalCenterId", v)}
+                value={form.watch("preferredMedicalCenterId") || "__none__"}
+                onValueChange={(v) => form.setValue("preferredMedicalCenterId", v === "__none__" ? "" : v)}
               >
                 <SelectTrigger className="h-9" data-testid="select-medical-normal">
                   <SelectValue placeholder="Select center" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {medicalCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
@@ -168,14 +168,14 @@ export default function NewCompany() {
             <div className="space-y-1.5">
               <Label className="text-xs">Favorite Medical Center (VIP)</Label>
               <Select
-                value={form.watch("preferredMedicalCenterVipId") || ""}
-                onValueChange={(v) => form.setValue("preferredMedicalCenterVipId", v)}
+                value={form.watch("preferredMedicalCenterVipId") || "__none__"}
+                onValueChange={(v) => form.setValue("preferredMedicalCenterVipId", v === "__none__" ? "" : v)}
               >
                 <SelectTrigger className="h-9" data-testid="select-medical-vip">
                   <SelectValue placeholder="Select center" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {medicalCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
@@ -185,14 +185,14 @@ export default function NewCompany() {
             <div className="space-y-1.5">
               <Label className="text-xs">Favorite ID Biometrics Center</Label>
               <Select
-                value={form.watch("preferredBiometricsCenterId") || ""}
-                onValueChange={(v) => form.setValue("preferredBiometricsCenterId", v)}
+                value={form.watch("preferredBiometricsCenterId") || "__none__"}
+                onValueChange={(v) => form.setValue("preferredBiometricsCenterId", v === "__none__" ? "" : v)}
               >
                 <SelectTrigger className="h-9" data-testid="select-biometrics">
                   <SelectValue placeholder="Select center" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {eidCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
@@ -298,14 +298,14 @@ export default function NewCompany() {
             <div className="space-y-1.5">
               <Label className="text-xs">Client Relationship Manager (Ops Manager)</Label>
               <Select
-                value={form.watch("rmStaffId") || ""}
-                onValueChange={(v) => form.setValue("rmStaffId", v)}
+                value={form.watch("rmStaffId") || "__none__"}
+                onValueChange={(v) => form.setValue("rmStaffId", v === "__none__" ? "" : v)}
               >
                 <SelectTrigger className="h-9" data-testid="select-rm-staff">
                   <SelectValue placeholder="Select staff member" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {staffList?.map((member) => (
                     <SelectItem key={member.id} value={member.id}>{member.name} - {member.roleTitle}</SelectItem>
                   ))}
@@ -315,14 +315,14 @@ export default function NewCompany() {
             <div className="space-y-1.5">
               <Label className="text-xs">Medical Assistance Support</Label>
               <Select
-                value={form.watch("assistStaffId") || ""}
-                onValueChange={(v) => form.setValue("assistStaffId", v)}
+                value={form.watch("assistStaffId") || "__none__"}
+                onValueChange={(v) => form.setValue("assistStaffId", v === "__none__" ? "" : v)}
               >
                 <SelectTrigger className="h-9" data-testid="select-assist-staff">
                   <SelectValue placeholder="Select staff member" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="__none__">None</SelectItem>
                   {staffList?.map((member) => (
                     <SelectItem key={member.id} value={member.id}>{member.name} - {member.roleTitle}</SelectItem>
                   ))}
