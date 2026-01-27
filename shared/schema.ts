@@ -21,6 +21,14 @@ export const authorTypeEnum = pgEnum("author_type", ["Internal", "Vendor"]);
 export const messageChannelEnum = pgEnum("message_channel", ["Email", "WhatsApp"]);
 export const messageStatusEnum = pgEnum("message_status", ["Draft", "MarkedSent", "Failed"]);
 export const walletEntryTypeEnum = pgEnum("wallet_entry_type", ["Topup", "Debit", "Reversal", "Adjustment"]);
+export const staffStatusEnum = pgEnum("staff_status", ["Active", "OnLeave", "TempActive", "TempInactive"]);
+
+// Client contact type for companies
+export type ClientContact = {
+  name: string;
+  email: string;
+  mobile: string;
+};
 
 // Users table
 export const users = pgTable("users", {
@@ -41,6 +49,7 @@ export const staff = pgTable("staff", {
   roleTitle: text("role_title").notNull(),
   phone: text("phone"),
   email: text("email"),
+  status: staffStatusEnum("status").notNull().default("Active"),
   active: boolean("active").notNull().default(true),
 });
 
@@ -59,8 +68,16 @@ export const centers = pgTable("centers", {
 export const companies = pgTable("companies", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  tradeLicenseNumber: text("trade_license_number"),
+  // Center preferences
   preferredMedicalCenterId: varchar("preferred_medical_center_id"),
-  preferredEidCenterId: varchar("preferred_eid_center_id"),
+  preferredMedicalCenterVipId: varchar("preferred_medical_center_vip_id"),
+  preferredBiometricsCenterId: varchar("preferred_biometrics_center_id"),
+  // Client contacts
+  clientCoordinator: json("client_coordinator").$type<ClientContact>(),
+  clientManager: json("client_manager").$type<ClientContact>(),
+  clientAccountant: json("client_accountant").$type<ClientContact>(),
+  // Our team assignments
   rmStaffId: varchar("rm_staff_id"),
   assistStaffId: varchar("assist_staff_id"),
   active: boolean("active").notNull().default(true),
