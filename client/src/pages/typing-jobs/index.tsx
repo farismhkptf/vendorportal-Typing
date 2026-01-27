@@ -1,14 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, FileText, Filter, Building2, Calendar } from "lucide-react";
+import { Search, FileText, Filter, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { DataTableRow } from "@/components/ui/data-table-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { TypingJob, WorkOrder, JobType } from "@shared/schema";
@@ -36,31 +33,40 @@ export default function TypingJobsList() {
 
   return (
     <AppLayout>
-      <PageHeader
-        title="Typing Jobs"
-        subtitle="Manage vendor typing jobs and track their status"
-      />
+      {/* Header Section */}
+      <div className="px-6 lg:px-10 pt-8 pb-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
+            Typing Jobs
+          </h1>
+          <p className="text-muted-foreground">
+            Manage vendor typing jobs and track their status
+          </p>
+        </div>
+      </div>
 
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="px-6 lg:px-10 pb-10 space-y-6">
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by WO number or applicant..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 h-11 rounded-xl"
-              data-testid="input-search-typing-jobs"
-            />
+          <div className="premium-card p-1.5 flex-1">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="search"
+                placeholder="Search by WO number or applicant..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full h-11 pl-11 pr-4 text-base bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60"
+                data-testid="input-search-typing-jobs"
+              />
+            </div>
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48 h-11 rounded-xl" data-testid="select-status-filter">
-              <Filter className="h-4 w-4 mr-2" />
+            <SelectTrigger className="w-48 h-[52px] rounded-2xl border-border/50" data-testid="select-status-filter">
+              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl">
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="Draft">Draft</SelectItem>
               <SelectItem value="SentToVendor">Sent to Vendor</SelectItem>
@@ -78,21 +84,25 @@ export default function TypingJobsList() {
         <div className="space-y-3">
           {isLoading ? (
             <>
-              <Skeleton className="h-28 rounded-xl" />
-              <Skeleton className="h-28 rounded-xl" />
-              <Skeleton className="h-28 rounded-xl" />
+              <Skeleton className="h-28 rounded-2xl" />
+              <Skeleton className="h-28 rounded-2xl" />
+              <Skeleton className="h-28 rounded-2xl" />
             </>
           ) : filteredJobs && filteredJobs.length > 0 ? (
-            filteredJobs.map((job) => (
+            filteredJobs.map((job, index) => (
               <Link key={job.id} href={`/typing-jobs/${job.id}`}>
-                <DataTableRow className="mb-0" data-testid={`typing-job-row-${job.id}`}>
+                <div 
+                  className="premium-card p-5 opacity-0 animate-fade-in"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                  data-testid={`typing-job-row-${job.id}`}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                      <div className="h-12 w-12 rounded-xl bg-violet-100/80 dark:bg-violet-900/30 flex items-center justify-center">
                         <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2.5">
                           <span className="font-semibold text-foreground">
                             {job.workOrder?.woNumber || "N/A"}
                           </span>
@@ -107,7 +117,7 @@ export default function TypingJobsList() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right space-y-1">
+                    <div className="text-right space-y-1.5">
                       {job.costSnapshot && (
                         <p className="font-medium text-foreground">AED {job.costSnapshot}</p>
                       )}
@@ -120,7 +130,7 @@ export default function TypingJobsList() {
                       </p>
                     </div>
                   </div>
-                </DataTableRow>
+                </div>
               </Link>
             ))
           ) : (

@@ -10,17 +10,15 @@ import {
   Calendar,
   ArrowUpRight,
   ArrowDownRight,
-  RefreshCw
+  RefreshCw,
+  ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
-import { SectionCard } from "@/components/ui/section-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -30,7 +28,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import type { VendorWalletLedger, Vendor } from "@shared/schema";
+import type { VendorWalletLedger } from "@shared/schema";
 
 interface WalletSummary {
   balance: number;
@@ -102,11 +100,11 @@ export default function VendorWallet() {
   const getEntryIcon = (type: string) => {
     switch (type) {
       case "Topup":
-        return <ArrowUpRight className="h-4 w-4 text-green-600" />;
+        return <ArrowUpRight className="h-4 w-4 text-emerald-600" />;
       case "Debit":
-        return <ArrowDownRight className="h-4 w-4 text-red-600" />;
+        return <ArrowDownRight className="h-4 w-4 text-red-500" />;
       case "Reversal":
-        return <RefreshCw className="h-4 w-4 text-amber-600" />;
+        return <RefreshCw className="h-4 w-4 text-amber-500" />;
       default:
         return <Wallet className="h-4 w-4 text-muted-foreground" />;
     }
@@ -115,11 +113,11 @@ export default function VendorWallet() {
   const getEntryColor = (type: string) => {
     switch (type) {
       case "Topup":
-        return "text-green-600";
+        return "text-emerald-600";
       case "Debit":
-        return "text-red-600";
+        return "text-red-500";
       case "Reversal":
-        return "text-amber-600";
+        return "text-amber-500";
       default:
         return "text-foreground";
     }
@@ -127,28 +125,35 @@ export default function VendorWallet() {
 
   return (
     <AppLayout>
-      <PageHeader
-        title="Vendor Wallet"
-        subtitle="Manage vendor advance payments and track spending"
-        actions={
+      {/* Header Section */}
+      <div className="px-6 lg:px-10 pt-8 pb-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
+              Vendor Wallet
+            </h1>
+            <p className="text-muted-foreground">
+              Manage vendor advance payments and track spending
+            </p>
+          </div>
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2" data-testid="button-export">
+            <Button variant="outline" className="gap-2 rounded-xl h-11" data-testid="button-export">
               <Download className="h-4 w-4" />
-              Export
+              <span className="hidden sm:inline">Export</span>
             </Button>
             <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
               <DialogTrigger asChild>
-                <Button className="gap-2" data-testid="button-topup">
+                <Button className="gap-2 rounded-xl h-11 px-5" data-testid="button-topup">
                   <Plus className="h-4 w-4" />
-                  Top Up
+                  <span className="hidden sm:inline">Top Up</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md rounded-2xl">
                 <DialogHeader>
                   <DialogTitle>Add Top-Up</DialogTitle>
                 </DialogHeader>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmitTopup)} className="space-y-4">
+                  <form onSubmit={form.handleSubmit(onSubmitTopup)} className="space-y-5">
                     <FormField
                       control={form.control}
                       name="amount"
@@ -187,16 +192,18 @@ export default function VendorWallet() {
                         </FormItem>
                       )}
                     />
-                    <div className="flex justify-end gap-3 pt-4">
+                    <div className="flex justify-end gap-3 pt-2">
                       <Button
                         type="button"
                         variant="outline"
+                        className="rounded-xl"
                         onClick={() => setTopupOpen(false)}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
+                        className="rounded-xl"
                         disabled={topupMutation.isPending}
                         data-testid="button-confirm-topup"
                       >
@@ -208,34 +215,46 @@ export default function VendorWallet() {
               </DialogContent>
             </Dialog>
           </div>
-        }
-      />
+        </div>
+      </div>
 
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="px-6 lg:px-10 pb-10 space-y-8">
         {/* Low Balance Alert */}
         {summary?.lowBalanceWarning && (
-          <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950/50" data-testid="alert-low-balance">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          <div 
+            className="premium-card p-5 border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-r from-amber-50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 opacity-0 animate-fade-in"
+            data-testid="alert-low-balance"
+          >
+            <div className="flex items-center gap-4">
+              <div className="icon-container icon-container-md !bg-amber-100 dark:!bg-amber-900/40 !text-amber-600 dark:!text-amber-400">
+                <AlertTriangle className="h-5 w-5" />
               </div>
-              <div className="flex-1">
-                <p className="font-medium text-orange-800 dark:text-orange-200">Low Balance Warning</p>
-                <p className="text-sm text-orange-600 dark:text-orange-300">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-amber-800 dark:text-amber-200">Low Balance Warning</p>
+                <p className="text-sm text-amber-700/80 dark:text-amber-300/70 mt-0.5">
                   Wallet balance is below AED 1,000. Top up to continue vendor services.
                 </p>
               </div>
-            </CardContent>
-          </Card>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2 rounded-xl border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                onClick={() => setTopupOpen(true)}
+              >
+                Top Up
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         )}
 
         {/* Stats */}
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-3 gap-4 lg:gap-5">
           {summaryLoading ? (
             <>
-              <Skeleton className="h-32 rounded-xl" />
-              <Skeleton className="h-32 rounded-xl" />
-              <Skeleton className="h-32 rounded-xl" />
+              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-32 rounded-2xl" />
             </>
           ) : (
             <>
@@ -243,70 +262,77 @@ export default function VendorWallet() {
                 title="Current Balance"
                 value={`AED ${(summary?.balance || 0).toLocaleString()}`}
                 icon={<Wallet className="h-5 w-5" />}
+                animationDelay={1}
               />
               <StatCard
                 title="This Month Top-ups"
                 value={`AED ${(summary?.monthTopups || 0).toLocaleString()}`}
                 icon={<TrendingUp className="h-5 w-5" />}
+                animationDelay={2}
               />
               <StatCard
                 title="This Month Spend"
                 value={`AED ${(summary?.monthSpend || 0).toLocaleString()}`}
                 icon={<TrendingDown className="h-5 w-5" />}
+                animationDelay={3}
               />
             </>
           )}
         </div>
 
         {/* Ledger */}
-        <SectionCard title="Transaction Ledger">
+        <div className="space-y-5">
+          <h2 className="text-lg font-semibold text-foreground">Transaction Ledger</h2>
           <div className="space-y-3">
             {ledgerLoading ? (
               <>
-                <Skeleton className="h-16 rounded-xl" />
-                <Skeleton className="h-16 rounded-xl" />
-                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-20 rounded-2xl" />
+                <Skeleton className="h-20 rounded-2xl" />
+                <Skeleton className="h-20 rounded-2xl" />
               </>
             ) : ledger && ledger.length > 0 ? (
-              ledger.map((entry) => (
+              ledger.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50"
+                  className="premium-card p-4 opacity-0 animate-fade-in"
+                  style={{ animationDelay: `${0.3 + index * 0.05}s` }}
                   data-testid={`ledger-entry-${entry.id}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-background flex items-center justify-center border border-border/50">
-                      {getEntryIcon(entry.entryType)}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-foreground capitalize">
-                          {entry.entryType}
-                        </p>
-                        {entry.typingJob && (
-                          <Badge variant="secondary" className="text-xs">
-                            {entry.typingJob.woNumber}
-                          </Badge>
-                        )}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center">
+                        {getEntryIcon(entry.entryType)}
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {entry.note || (entry.typingJob ? entry.typingJob.applicantName : "—")}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground capitalize">
+                            {entry.entryType}
+                          </p>
+                          {entry.typingJob && (
+                            <Badge variant="secondary" className="text-xs rounded-full">
+                              {entry.typingJob.woNumber}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {entry.note || (entry.typingJob ? entry.typingJob.applicantName : "—")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={cn("font-semibold", getEntryColor(entry.entryType))}>
+                        {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(entry.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={cn("font-semibold", getEntryColor(entry.entryType))}>
-                      {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
-                    </p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(entry.createdAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
-                    </p>
                   </div>
                 </div>
               ))
@@ -318,7 +344,7 @@ export default function VendorWallet() {
               />
             )}
           </div>
-        </SectionCard>
+        </div>
       </div>
     </AppLayout>
   );

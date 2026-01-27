@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
 import { 
   Settings, 
   MapPin, 
@@ -8,21 +7,15 @@ import {
   FileText, 
   Briefcase,
   Plus,
-  Pencil,
-  Trash2,
-  Building2,
-  Mail
+  Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/ui/page-header";
-import { SectionCard } from "@/components/ui/section-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -155,18 +148,25 @@ export default function AdminPage() {
 
   return (
     <AppLayout>
-      <PageHeader
-        title="Admin Settings"
-        subtitle="Manage centers, staff, service types, and system settings"
-      />
+      {/* Header Section */}
+      <div className="px-6 lg:px-10 pt-8 pb-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
+            Admin Settings
+          </h1>
+          <p className="text-muted-foreground">
+            Manage centers, staff, service types, and system settings
+          </p>
+        </div>
+      </div>
 
-      <div className="p-4 lg:p-8">
-        <Card className="border border-border/50 shadow-sm">
+      <div className="px-6 lg:px-10 pb-10">
+        <div className="premium-card overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 h-auto overflow-x-auto">
+            <TabsList className="w-full justify-start border-b border-border/50 rounded-none bg-transparent p-0 h-auto overflow-x-auto">
               <TabsTrigger 
                 value="centers" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 whitespace-nowrap"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4 whitespace-nowrap text-sm"
                 data-testid="tab-centers"
               >
                 <MapPin className="h-4 w-4 mr-2" />
@@ -174,7 +174,7 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="staff" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 whitespace-nowrap"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4 whitespace-nowrap text-sm"
                 data-testid="tab-staff"
               >
                 <Users className="h-4 w-4 mr-2" />
@@ -182,7 +182,7 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="services" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 whitespace-nowrap"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4 whitespace-nowrap text-sm"
                 data-testid="tab-services"
               >
                 <FileText className="h-4 w-4 mr-2" />
@@ -190,7 +190,7 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="jobtypes" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 whitespace-nowrap"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4 whitespace-nowrap text-sm"
                 data-testid="tab-jobtypes"
               >
                 <Briefcase className="h-4 w-4 mr-2" />
@@ -198,7 +198,7 @@ export default function AdminPage() {
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3 whitespace-nowrap"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-4 whitespace-nowrap text-sm"
                 data-testid="tab-settings"
               >
                 <Settings className="h-4 w-4 mr-2" />
@@ -212,12 +212,12 @@ export default function AdminPage() {
                 <h3 className="font-medium text-foreground">Medical & EID Centers</h3>
                 <Dialog open={centerDialogOpen} onOpenChange={setCenterDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2" data-testid="button-add-center">
+                    <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-center">
                       <Plus className="h-4 w-4" />
                       Add Center
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="rounded-2xl">
                     <DialogHeader>
                       <DialogTitle>Add New Center</DialogTitle>
                     </DialogHeader>
@@ -248,7 +248,7 @@ export default function AdminPage() {
                                     <SelectValue />
                                   </SelectTrigger>
                                 </FormControl>
-                                <SelectContent>
+                                <SelectContent className="rounded-xl">
                                   <SelectItem value="Medical">Medical</SelectItem>
                                   <SelectItem value="EID">Emirates ID</SelectItem>
                                   <SelectItem value="Both">Both</SelectItem>
@@ -285,10 +285,10 @@ export default function AdminPage() {
                           )}
                         />
                         <div className="flex justify-end gap-3 pt-4">
-                          <Button type="button" variant="outline" onClick={() => setCenterDialogOpen(false)}>
+                          <Button type="button" variant="outline" className="rounded-xl" onClick={() => setCenterDialogOpen(false)}>
                             Cancel
                           </Button>
-                          <Button type="submit" disabled={createCenterMutation.isPending}>
+                          <Button type="submit" className="rounded-xl" disabled={createCenterMutation.isPending}>
                             {createCenterMutation.isPending ? "Adding..." : "Add Center"}
                           </Button>
                         </div>
@@ -305,14 +305,15 @@ export default function AdminPage() {
                     <Skeleton className="h-20 rounded-xl" />
                   </>
                 ) : centers && centers.length > 0 ? (
-                  centers.map((center) => (
+                  centers.map((center, index) => (
                     <div
                       key={center.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50"
+                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                      style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <MapPin className="h-5 w-5 text-primary" />
+                        <div className="icon-container">
+                          <MapPin className="h-4 w-4" />
                         </div>
                         <div>
                           <p className="font-medium text-foreground">{center.name}</p>
@@ -324,7 +325,7 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" className="rounded-xl">
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -345,12 +346,12 @@ export default function AdminPage() {
                 <h3 className="font-medium text-foreground">Staff Members</h3>
                 <Dialog open={staffDialogOpen} onOpenChange={setStaffDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2" data-testid="button-add-staff">
+                    <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-staff">
                       <Plus className="h-4 w-4" />
                       Add Staff
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="rounded-2xl">
                     <DialogHeader>
                       <DialogTitle>Add Staff Member</DialogTitle>
                     </DialogHeader>
@@ -409,10 +410,10 @@ export default function AdminPage() {
                           )}
                         />
                         <div className="flex justify-end gap-3 pt-4">
-                          <Button type="button" variant="outline" onClick={() => setStaffDialogOpen(false)}>
+                          <Button type="button" variant="outline" className="rounded-xl" onClick={() => setStaffDialogOpen(false)}>
                             Cancel
                           </Button>
-                          <Button type="submit" disabled={createStaffMutation.isPending}>
+                          <Button type="submit" className="rounded-xl" disabled={createStaffMutation.isPending}>
                             {createStaffMutation.isPending ? "Adding..." : "Add Staff"}
                           </Button>
                         </div>
@@ -429,13 +430,14 @@ export default function AdminPage() {
                     <Skeleton className="h-20 rounded-xl" />
                   </>
                 ) : staffList && staffList.length > 0 ? (
-                  staffList.map((member) => (
+                  staffList.map((member, index) => (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50"
+                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                      style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/10">
                           <span className="text-sm font-medium text-primary">
                             {member.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                           </span>
@@ -443,14 +445,14 @@ export default function AdminPage() {
                         <div>
                           <p className="font-medium text-foreground">{member.name}</p>
                           <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary" className="text-xs">{member.roleTitle}</Badge>
+                            <Badge variant="secondary" className="text-xs rounded-full">{member.roleTitle}</Badge>
                             {member.email && (
                               <span className="text-sm text-muted-foreground">{member.email}</span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" className="rounded-xl">
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -471,12 +473,12 @@ export default function AdminPage() {
                 <h3 className="font-medium text-foreground">Service Types</h3>
                 <Dialog open={serviceDialogOpen} onOpenChange={setServiceDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2" data-testid="button-add-service">
+                    <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-service">
                       <Plus className="h-4 w-4" />
                       Add Service
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="rounded-2xl">
                     <DialogHeader>
                       <DialogTitle>Add Service Type</DialogTitle>
                     </DialogHeader>
@@ -496,10 +498,10 @@ export default function AdminPage() {
                           )}
                         />
                         <div className="flex justify-end gap-3 pt-4">
-                          <Button type="button" variant="outline" onClick={() => setServiceDialogOpen(false)}>
+                          <Button type="button" variant="outline" className="rounded-xl" onClick={() => setServiceDialogOpen(false)}>
                             Cancel
                           </Button>
-                          <Button type="submit" disabled={createServiceMutation.isPending}>
+                          <Button type="submit" className="rounded-xl" disabled={createServiceMutation.isPending}>
                             {createServiceMutation.isPending ? "Adding..." : "Add Service"}
                           </Button>
                         </div>
@@ -513,18 +515,19 @@ export default function AdminPage() {
                 {servicesLoading ? (
                   <Skeleton className="h-16 rounded-xl" />
                 ) : serviceTypes && serviceTypes.length > 0 ? (
-                  serviceTypes.map((service) => (
+                  serviceTypes.map((service, index) => (
                     <div
                       key={service.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50"
+                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                      style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-primary" />
+                        <div className="icon-container">
+                          <FileText className="h-4 w-4" />
                         </div>
                         <p className="font-medium text-foreground">{service.name}</p>
                       </div>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" className="rounded-xl">
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -533,7 +536,7 @@ export default function AdminPage() {
                   <EmptyState
                     icon={<FileText className="h-6 w-6" />}
                     title="No service types"
-                    description="Add service types to categorize work orders."
+                    description="Add service types for work orders."
                   />
                 )}
               </div>
@@ -542,7 +545,7 @@ export default function AdminPage() {
             {/* Job Types Tab */}
             <TabsContent value="jobtypes" className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-medium text-foreground">Typing Job Types & Costs</h3>
+                <h3 className="font-medium text-foreground">Job Types & Pricing</h3>
               </div>
 
               <div className="space-y-3">
@@ -552,28 +555,36 @@ export default function AdminPage() {
                     <Skeleton className="h-20 rounded-xl" />
                   </>
                 ) : jobTypes && jobTypes.length > 0 ? (
-                  jobTypes.map((jobType) => (
+                  jobTypes.map((job, index) => (
                     <div
-                      key={jobType.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50"
+                      key={job.id}
+                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                      style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                          <Briefcase className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                        <div className="icon-container">
+                          <Briefcase className="h-4 w-4" />
                         </div>
                         <div>
-                          <p className="font-medium text-foreground">{jobType.name}</p>
-                          <StatusBadge status={jobType.category} />
+                          <p className="font-medium text-foreground">{job.name}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <StatusBadge status={job.category as any} />
+                          </div>
                         </div>
                       </div>
-                      <p className="font-semibold text-foreground">AED {jobType.cost}</p>
+                      <div className="text-right">
+                        <p className="font-semibold text-foreground">AED {job.defaultCost}</p>
+                        <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8">
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   ))
                 ) : (
                   <EmptyState
                     icon={<Briefcase className="h-6 w-6" />}
                     title="No job types"
-                    description="Job types will be seeded automatically."
+                    description="Job types define pricing for typing work."
                   />
                 )}
               </div>
@@ -583,35 +594,32 @@ export default function AdminPage() {
             <TabsContent value="settings" className="p-6">
               <div className="space-y-6">
                 <div>
-                  <h3 className="font-medium text-foreground mb-4">Email Identity Settings</h3>
+                  <h3 className="font-medium text-foreground mb-4">Email Configuration</h3>
                   <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Mail className="h-5 w-5 text-primary" />
-                        <p className="font-medium text-foreground">From Address</p>
+                    <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-foreground">BCC Recipients</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {settings?.defaultBccEmail || "No default BCC configured"}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="rounded-xl">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {settings?.fromName || "The P.R.O. Company"} &lt;{settings?.fromEmail || "notifications@procompany.ae"}&gt;
-                      </p>
                     </div>
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Mail className="h-5 w-5 text-primary" />
-                        <p className="font-medium text-foreground">Reply-To</p>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {settings?.replyToEmail || "operations@procompany.ae"}
-                      </p>
-                    </div>
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Users className="h-5 w-5 text-primary" />
-                        <p className="font-medium text-foreground">Always CC</p>
-                      </div>
-                      <div className="flex gap-2 flex-wrap">
-                        {(settings?.alwaysCc || ["faris@procompany.ae", "yasin@procompany.ae"]).map((email, i) => (
-                          <Badge key={i} variant="secondary">{email}</Badge>
-                        ))}
+                    <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-foreground">Low Balance Threshold</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            AED {settings?.lowBalanceThreshold?.toLocaleString() || "1,000"}
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="rounded-xl">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -619,7 +627,7 @@ export default function AdminPage() {
               </div>
             </TabsContent>
           </Tabs>
-        </Card>
+        </div>
       </div>
     </AppLayout>
   );

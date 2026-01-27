@@ -3,10 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, Search, Building2, Mail, MapPin, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { AppLayout } from "@/components/layout/app-layout";
-import { PageHeader } from "@/components/ui/page-header";
-import { DataTableRow } from "@/components/ui/data-table-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -33,54 +30,67 @@ export default function CompaniesList() {
 
   return (
     <AppLayout>
-      <PageHeader
-        title="Companies"
-        subtitle="Manage client companies and their preferences"
-        actions={
+      {/* Header Section */}
+      <div className="px-6 lg:px-10 pt-8 pb-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground">
+              Companies
+            </h1>
+            <p className="text-muted-foreground">
+              Manage client companies and their preferences
+            </p>
+          </div>
           <Link href="/companies/new">
-            <Button className="gap-2" data-testid="button-new-company">
+            <Button className="gap-2 rounded-xl h-11 px-5" data-testid="button-new-company">
               <Plus className="h-4 w-4" />
-              Add Company
+              <span className="hidden sm:inline">Add Company</span>
             </Button>
           </Link>
-        }
-      />
+        </div>
+      </div>
 
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="px-6 lg:px-10 pb-10 space-y-6">
         {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search companies..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-11 rounded-xl"
-            data-testid="input-search-companies"
-          />
+        <div className="premium-card p-1.5 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <input
+              type="search"
+              placeholder="Search companies..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-11 pl-11 pr-4 text-base bg-transparent border-0 focus:outline-none focus:ring-0 placeholder:text-muted-foreground/60"
+              data-testid="input-search-companies"
+            />
+          </div>
         </div>
 
         {/* Companies Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {isLoading ? (
             <>
-              <Skeleton className="h-48 rounded-xl" />
-              <Skeleton className="h-48 rounded-xl" />
-              <Skeleton className="h-48 rounded-xl" />
+              <Skeleton className="h-48 rounded-2xl" />
+              <Skeleton className="h-48 rounded-2xl" />
+              <Skeleton className="h-48 rounded-2xl" />
             </>
           ) : filteredCompanies && filteredCompanies.length > 0 ? (
-            filteredCompanies.map((company) => (
+            filteredCompanies.map((company, index) => (
               <Link key={company.id} href={`/companies/${company.id}`}>
-                <DataTableRow className="h-full" data-testid={`company-card-${company.id}`}>
+                <div 
+                  className="premium-card p-5 h-full opacity-0 animate-fade-in"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                  data-testid={`company-card-${company.id}`}
+                >
                   <div className="space-y-4">
                     <div className="flex items-start gap-3">
-                      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <Building2 className="h-6 w-6 text-primary" />
+                      <div className="icon-container icon-container-md shrink-0">
+                        <Building2 className="h-5 w-5" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-foreground truncate">{company.name}</h3>
                         {company.emails && company.emails.filter(e => e.active).length > 0 && (
-                          <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1.5 mt-1.5 text-sm text-muted-foreground">
                             <Mail className="h-3.5 w-3.5" />
                             {company.emails.filter(e => e.active).length} email(s)
                           </div>
@@ -104,16 +114,16 @@ export default function CompaniesList() {
                     </div>
 
                     {(company.rmStaff || company.assistStaff) && (
-                      <div className="flex items-center gap-2 pt-3 border-t border-border">
+                      <div className="flex items-center gap-2 pt-3 border-t border-border/50">
                         <User className="h-3.5 w-3.5 text-muted-foreground" />
-                        <div className="flex gap-1.5">
+                        <div className="flex gap-1.5 flex-wrap">
                           {company.rmStaff && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="text-xs rounded-full">
                               {company.rmStaff.name}
                             </Badge>
                           )}
                           {company.assistStaff && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="text-xs rounded-full">
                               {company.assistStaff.name}
                             </Badge>
                           )}
@@ -121,7 +131,7 @@ export default function CompaniesList() {
                       </div>
                     )}
                   </div>
-                </DataTableRow>
+                </div>
               </Link>
             ))
           ) : (
@@ -133,7 +143,7 @@ export default function CompaniesList() {
                 action={
                   !search && (
                     <Link href="/companies/new">
-                      <Button size="sm" className="gap-2">
+                      <Button size="sm" className="gap-2 rounded-xl">
                         <Plus className="h-4 w-4" />
                         Add Company
                       </Button>
