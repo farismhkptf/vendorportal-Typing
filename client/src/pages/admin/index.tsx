@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -43,8 +44,12 @@ interface CompanyWithRelations extends Company {
 const centerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z.enum(["Medical", "EID", "Both"]),
-  googleMapsUrl: z.string().url().optional().or(z.literal("")),
+  authority: z.enum(["DHA", "EHS"]).optional().nullable(),
+  tier: z.enum(["Normal", "VIP"]).optional().nullable(),
+  address: z.string().optional(),
   area: z.string().optional(),
+  googleMapsUrl: z.string().url().optional().or(z.literal("")),
+  timingText: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -59,11 +64,36 @@ const serviceTypeSchema = z.object({
   name: z.string().min(1, "Name is required"),
 });
 
+const jobTypeSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  category: z.enum(["Medical", "EID"]),
+  cost: z.number().min(0, "Cost must be positive"),
+});
+
+const ccRecipientsSchema = z.object({
+  alwaysCc: z.string(),
+});
+
+const thresholdSchema = z.object({
+  lowBalanceThreshold: z.number().min(0, "Must be 0 or greater"),
+});
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("companies");
   const [centerDialogOpen, setCenterDialogOpen] = useState(false);
+  const [editCenterDialogOpen, setEditCenterDialogOpen] = useState(false);
+  const [editingCenter, setEditingCenter] = useState<Center | null>(null);
   const [staffDialogOpen, setStaffDialogOpen] = useState(false);
+  const [editStaffDialogOpen, setEditStaffDialogOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [serviceDialogOpen, setServiceDialogOpen] = useState(false);
+  const [editServiceDialogOpen, setEditServiceDialogOpen] = useState(false);
+  const [editingService, setEditingService] = useState<ServiceType | null>(null);
+  const [jobTypeDialogOpen, setJobTypeDialogOpen] = useState(false);
+  const [editJobTypeDialogOpen, setEditJobTypeDialogOpen] = useState(false);
+  const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
+  const [editCcDialogOpen, setEditCcDialogOpen] = useState(false);
+  const [editThresholdDialogOpen, setEditThresholdDialogOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
   const { toast } = useToast();
 
@@ -100,13 +130,42 @@ export default function AdminPage() {
     defaultValues: {
       name: "",
       type: "Both" as const,
-      googleMapsUrl: "",
+      authority: null as "DHA" | "EHS" | null,
+      tier: null as "Normal" | "VIP" | null,
+      address: "",
       area: "",
+      googleMapsUrl: "",
+      timingText: "",
+      notes: "",
+    },
+  });
+
+  const editCenterForm = useForm<z.infer<typeof centerSchema>>({
+    resolver: zodResolver(centerSchema),
+    defaultValues: {
+      name: "",
+      type: "Both",
+      authority: null,
+      tier: null,
+      address: "",
+      area: "",
+      googleMapsUrl: "",
+      timingText: "",
       notes: "",
     },
   });
 
   const staffForm = useForm({
+    resolver: zodResolver(staffSchema),
+    defaultValues: {
+      name: "",
+      roleTitle: "",
+      phone: "",
+      email: "",
+    },
+  });
+
+  const editStaffForm = useForm({
     resolver: zodResolver(staffSchema),
     defaultValues: {
       name: "",
@@ -123,6 +182,45 @@ export default function AdminPage() {
     },
   });
 
+  const editServiceForm = useForm({
+    resolver: zodResolver(serviceTypeSchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  const jobTypeForm = useForm({
+    resolver: zodResolver(jobTypeSchema),
+    defaultValues: {
+      name: "",
+      category: "Medical" as const,
+      cost: 0,
+    },
+  });
+
+  const editJobTypeForm = useForm<z.infer<typeof jobTypeSchema>>({
+    resolver: zodResolver(jobTypeSchema),
+    defaultValues: {
+      name: "",
+      category: "Medical",
+      cost: 0,
+    },
+  });
+
+  const ccForm = useForm({
+    resolver: zodResolver(ccRecipientsSchema),
+    defaultValues: {
+      alwaysCc: "",
+    },
+  });
+
+  const thresholdForm = useForm({
+    resolver: zodResolver(thresholdSchema),
+    defaultValues: {
+      lowBalanceThreshold: 1000,
+    },
+  });
+
   const createCenterMutation = useMutation({
     mutationFn: async (data: z.infer<typeof centerSchema>) => {
       return apiRequest("POST", "/api/centers", data);
@@ -132,6 +230,23 @@ export default function AdminPage() {
       toast({ title: "Center added successfully" });
       setCenterDialogOpen(false);
       centerForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateCenterMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof centerSchema> & { id: string }) => {
+      const { id, ...rest } = data;
+      return apiRequest("PUT", `/api/centers/${id}`, rest);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/centers"] });
+      toast({ title: "Center updated successfully" });
+      setEditCenterDialogOpen(false);
+      setEditingCenter(null);
+      editCenterForm.reset();
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -153,6 +268,23 @@ export default function AdminPage() {
     },
   });
 
+  const updateStaffMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof staffSchema> & { id: string }) => {
+      const { id, ...rest } = data;
+      return apiRequest("PUT", `/api/staff/${id}`, rest);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
+      toast({ title: "Staff updated successfully" });
+      setEditStaffDialogOpen(false);
+      setEditingStaff(null);
+      editStaffForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const createServiceMutation = useMutation({
     mutationFn: async (data: z.infer<typeof serviceTypeSchema>) => {
       return apiRequest("POST", "/api/service-types", data);
@@ -167,6 +299,141 @@ export default function AdminPage() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const updateServiceMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof serviceTypeSchema> & { id: string }) => {
+      const { id, ...rest } = data;
+      return apiRequest("PUT", `/api/service-types/${id}`, rest);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-types"] });
+      toast({ title: "Service type updated successfully" });
+      setEditServiceDialogOpen(false);
+      setEditingService(null);
+      editServiceForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const createJobTypeMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof jobTypeSchema>) => {
+      return apiRequest("POST", "/api/job-types", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/job-types"] });
+      toast({ title: "Job type added successfully" });
+      setJobTypeDialogOpen(false);
+      jobTypeForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateJobTypeMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof jobTypeSchema> & { id: string }) => {
+      const { id, ...rest } = data;
+      return apiRequest("PUT", `/api/job-types/${id}`, rest);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/job-types"] });
+      toast({ title: "Job type updated successfully" });
+      setEditJobTypeDialogOpen(false);
+      setEditingJobType(null);
+      editJobTypeForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async (data: Partial<AppSettings>) => {
+      return apiRequest("PUT", "/api/settings", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Settings updated successfully" });
+      setEditCcDialogOpen(false);
+      setEditThresholdDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleEditCenter = (center: Center) => {
+    setEditingCenter(center);
+    editCenterForm.reset({
+      name: center.name,
+      type: center.type as "Medical" | "EID" | "Both",
+      authority: center.authority as "DHA" | "EHS" | null,
+      tier: center.tier as "Normal" | "VIP" | null,
+      address: center.address || "",
+      area: center.area || "",
+      googleMapsUrl: center.googleMapsUrl || "",
+      timingText: center.timingText || "",
+      notes: center.notes || "",
+    });
+    setEditCenterDialogOpen(true);
+  };
+
+  const handleEditStaff = (member: Staff) => {
+    setEditingStaff(member);
+    editStaffForm.reset({
+      name: member.name,
+      roleTitle: member.roleTitle,
+      phone: member.phone || "",
+      email: member.email || "",
+    });
+    setEditStaffDialogOpen(true);
+  };
+
+  const handleEditService = (service: ServiceType) => {
+    setEditingService(service);
+    editServiceForm.reset({
+      name: service.name,
+    });
+    setEditServiceDialogOpen(true);
+  };
+
+  const handleEditJobType = (jobType: JobType) => {
+    setEditingJobType(jobType);
+    editJobTypeForm.reset({
+      name: jobType.name,
+      category: jobType.category as "Medical" | "EID",
+      cost: jobType.cost,
+    });
+    setEditJobTypeDialogOpen(true);
+  };
+
+  const handleEditCc = () => {
+    ccForm.reset({
+      alwaysCc: settings?.alwaysCc?.join(", ") || "",
+    });
+    setEditCcDialogOpen(true);
+  };
+
+  const handleEditThreshold = () => {
+    thresholdForm.reset({
+      lowBalanceThreshold: settings?.lowBalanceThreshold || 1000,
+    });
+    setEditThresholdDialogOpen(true);
+  };
+
+  const handleSubmitCc = (data: z.infer<typeof ccRecipientsSchema>) => {
+    const emails = data.alwaysCc
+      .split(",")
+      .map((email) => email.trim())
+      .filter((email) => email.length > 0);
+    updateSettingsMutation.mutate({ alwaysCc: emails });
+  };
+
+  const handleSubmitThreshold = (data: z.infer<typeof thresholdSchema>) => {
+    updateSettingsMutation.mutate({ lowBalanceThreshold: data.lowBalanceThreshold });
+  };
 
   return (
     <AppLayout>
@@ -330,7 +597,7 @@ export default function AdminPage() {
                       Add Center
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="rounded-2xl">
+                  <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>Add New Center</DialogTitle>
                     </DialogHeader>
@@ -411,6 +678,169 @@ export default function AdminPage() {
                 </Dialog>
               </div>
 
+              {/* Edit Center Dialog */}
+              <Dialog open={editCenterDialogOpen} onOpenChange={setEditCenterDialogOpen}>
+                <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Edit Center</DialogTitle>
+                  </DialogHeader>
+                  <Form {...editCenterForm}>
+                    <form onSubmit={editCenterForm.handleSubmit((data) => editingCenter && updateCenterMutation.mutate({ ...data, id: editingCenter.id }))} className="space-y-4">
+                      <FormField
+                        control={editCenterForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Center Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., AMER Center Dubai" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editCenterForm.control}
+                        name="type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 rounded-xl">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="Medical">Medical</SelectItem>
+                                <SelectItem value="EID">Emirates ID</SelectItem>
+                                <SelectItem value="Both">Both</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editCenterForm.control}
+                        name="authority"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Authority</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 rounded-xl">
+                                  <SelectValue placeholder="Select authority" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="DHA">DHA</SelectItem>
+                                <SelectItem value="EHS">EHS</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editCenterForm.control}
+                        name="tier"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Tier</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 rounded-xl">
+                                  <SelectValue placeholder="Select tier" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="Normal">Normal</SelectItem>
+                                <SelectItem value="VIP">VIP</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editCenterForm.control}
+                        name="address"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Address</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Full address" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editCenterForm.control}
+                        name="area"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Area</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., Downtown Dubai" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editCenterForm.control}
+                        name="googleMapsUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Google Maps URL</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="https://maps.google.com/..." className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editCenterForm.control}
+                        name="timingText"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Timing Text</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., Sun-Thu 8AM-4PM" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editCenterForm.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Notes</FormLabel>
+                            <FormControl>
+                              <Textarea {...field} placeholder="Additional notes..." className="rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditCenterDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="rounded-xl" disabled={updateCenterMutation.isPending}>
+                          {updateCenterMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
               <div className="space-y-3">
                 {centersLoading ? (
                   <>
@@ -438,7 +868,13 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="rounded-lg h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-lg h-8 w-8"
+                        onClick={() => handleEditCenter(center)}
+                        data-testid={`button-edit-center-${center.id}`}
+                      >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -536,6 +972,79 @@ export default function AdminPage() {
                 </Dialog>
               </div>
 
+              {/* Edit Staff Dialog */}
+              <Dialog open={editStaffDialogOpen} onOpenChange={setEditStaffDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Edit Staff Member</DialogTitle>
+                  </DialogHeader>
+                  <Form {...editStaffForm}>
+                    <form onSubmit={editStaffForm.handleSubmit((data) => editingStaff && updateStaffMutation.mutate({ ...data, id: editingStaff.id }))} className="space-y-4">
+                      <FormField
+                        control={editStaffForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Full Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., John Smith" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editStaffForm.control}
+                        name="roleTitle"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Role Title</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., PRO, Ops Manager" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editStaffForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="+971 50 000 0000" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editStaffForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="name@company.com" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditStaffDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="rounded-xl" disabled={updateStaffMutation.isPending}>
+                          {updateStaffMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
               <div className="space-y-3">
                 {staffLoading ? (
                   <>
@@ -565,7 +1074,13 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="rounded-xl">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl"
+                        onClick={() => handleEditStaff(member)}
+                        data-testid={`button-edit-staff-${member.id}`}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -624,6 +1139,40 @@ export default function AdminPage() {
                 </Dialog>
               </div>
 
+              {/* Edit Service Dialog */}
+              <Dialog open={editServiceDialogOpen} onOpenChange={setEditServiceDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Edit Service Type</DialogTitle>
+                  </DialogHeader>
+                  <Form {...editServiceForm}>
+                    <form onSubmit={editServiceForm.handleSubmit((data) => editingService && updateServiceMutation.mutate({ ...data, id: editingService.id }))} className="space-y-4">
+                      <FormField
+                        control={editServiceForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Service Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., New Visa, Visa Renewal" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditServiceDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="rounded-xl" disabled={updateServiceMutation.isPending}>
+                          {updateServiceMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
               <div className="space-y-3">
                 {servicesLoading ? (
                   <Skeleton className="h-16 rounded-xl" />
@@ -640,7 +1189,13 @@ export default function AdminPage() {
                         </div>
                         <p className="font-medium text-foreground">{service.name}</p>
                       </div>
-                      <Button variant="ghost" size="icon" className="rounded-xl">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl"
+                        onClick={() => handleEditService(service)}
+                        data-testid={`button-edit-service-${service.id}`}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                     </div>
@@ -659,7 +1214,159 @@ export default function AdminPage() {
             <TabsContent value="jobtypes" className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-medium text-foreground">Job Types & Pricing</h3>
+                <Dialog open={jobTypeDialogOpen} onOpenChange={setJobTypeDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-jobtype">
+                      <Plus className="h-4 w-4" />
+                      Add Job Type
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="rounded-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Add Job Type</DialogTitle>
+                    </DialogHeader>
+                    <Form {...jobTypeForm}>
+                      <form onSubmit={jobTypeForm.handleSubmit((data) => createJobTypeMutation.mutate(data))} className="space-y-4">
+                        <FormField
+                          control={jobTypeForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Job Type Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g., New Visa Application" className="h-11 rounded-xl" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={jobTypeForm.control}
+                          name="category"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Category</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="h-11 rounded-xl">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="rounded-xl">
+                                  <SelectItem value="Medical">Medical</SelectItem>
+                                  <SelectItem value="EID">EID</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={jobTypeForm.control}
+                          name="cost"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Cost (AED)</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  type="number" 
+                                  placeholder="0" 
+                                  className="h-11 rounded-xl"
+                                  onChange={(e) => field.onChange(Number(e.target.value))}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex justify-end gap-3 pt-4">
+                          <Button type="button" variant="outline" className="rounded-xl" onClick={() => setJobTypeDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit" className="rounded-xl" disabled={createJobTypeMutation.isPending}>
+                            {createJobTypeMutation.isPending ? "Adding..." : "Add Job Type"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
               </div>
+
+              {/* Edit Job Type Dialog */}
+              <Dialog open={editJobTypeDialogOpen} onOpenChange={setEditJobTypeDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Edit Job Type</DialogTitle>
+                  </DialogHeader>
+                  <Form {...editJobTypeForm}>
+                    <form onSubmit={editJobTypeForm.handleSubmit((data) => editingJobType && updateJobTypeMutation.mutate({ ...data, id: editingJobType.id }))} className="space-y-4">
+                      <FormField
+                        control={editJobTypeForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Job Type Name</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="e.g., New Visa Application" className="h-11 rounded-xl" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editJobTypeForm.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 rounded-xl">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="Medical">Medical</SelectItem>
+                                <SelectItem value="EID">EID</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editJobTypeForm.control}
+                        name="cost"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Cost (AED)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                type="number" 
+                                placeholder="0" 
+                                className="h-11 rounded-xl"
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditJobTypeDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="rounded-xl" disabled={updateJobTypeMutation.isPending}>
+                          {updateJobTypeMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
 
               <div className="space-y-3">
                 {jobTypesLoading ? (
@@ -685,9 +1392,15 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-foreground">AED {job.defaultCost}</p>
-                        <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-foreground">AED {job.cost}</p>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-xl h-8 w-8"
+                          onClick={() => handleEditJobType(job)}
+                          data-testid={`button-edit-jobtype-${job.id}`}
+                        >
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -712,12 +1425,18 @@ export default function AdminPage() {
                     <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium text-foreground">BCC Recipients</p>
+                          <p className="font-medium text-foreground">Always CC Recipients</p>
                           <p className="text-sm text-muted-foreground mt-1">
-                            {settings?.defaultBccEmail || "No default BCC configured"}
+                            {settings?.alwaysCc?.join(", ") || "No CC recipients configured"}
                           </p>
                         </div>
-                        <Button variant="ghost" size="icon" className="rounded-xl">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-xl"
+                          onClick={handleEditCc}
+                          data-testid="button-edit-cc"
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </div>
@@ -730,7 +1449,13 @@ export default function AdminPage() {
                             AED {settings?.lowBalanceThreshold?.toLocaleString() || "1,000"}
                           </p>
                         </div>
-                        <Button variant="ghost" size="icon" className="rounded-xl">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-xl"
+                          onClick={handleEditThreshold}
+                          data-testid="button-edit-threshold"
+                        >
                           <Pencil className="h-4 w-4" />
                         </Button>
                       </div>
@@ -738,6 +1463,87 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Edit CC Recipients Dialog */}
+              <Dialog open={editCcDialogOpen} onOpenChange={setEditCcDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Edit CC Recipients</DialogTitle>
+                  </DialogHeader>
+                  <Form {...ccForm}>
+                    <form onSubmit={ccForm.handleSubmit(handleSubmitCc)} className="space-y-4">
+                      <FormField
+                        control={ccForm.control}
+                        name="alwaysCc"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email Addresses</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                {...field} 
+                                placeholder="email1@example.com, email2@example.com" 
+                                className="rounded-xl"
+                                rows={3}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">Separate multiple emails with commas</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditCcDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>
+                          {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
+              {/* Edit Threshold Dialog */}
+              <Dialog open={editThresholdDialogOpen} onOpenChange={setEditThresholdDialogOpen}>
+                <DialogContent className="rounded-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Edit Low Balance Threshold</DialogTitle>
+                  </DialogHeader>
+                  <Form {...thresholdForm}>
+                    <form onSubmit={thresholdForm.handleSubmit(handleSubmitThreshold)} className="space-y-4">
+                      <FormField
+                        control={thresholdForm.control}
+                        name="lowBalanceThreshold"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Threshold Amount (AED)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                type="number" 
+                                placeholder="1000" 
+                                className="h-11 rounded-xl"
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">You'll be warned when balance falls below this amount</p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end gap-3 pt-4">
+                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditThresholdDialogOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>
+                          {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
           </Tabs>
         </div>

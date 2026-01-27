@@ -5,7 +5,7 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import { 
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
-  insertCenterSchema, insertServiceTypeSchema, loginSchema,
+  insertCenterSchema, insertServiceTypeSchema, insertJobTypeSchema, loginSchema,
   type CenterTimings
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
@@ -399,6 +399,20 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/centers/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const center = await storage.updateCenter(id, req.body);
+      if (!center) {
+        return res.status(404).json({ message: "Center not found" });
+      }
+      res.json(center);
+    } catch (error) {
+      console.error("Update center error:", error);
+      res.status(500).json({ message: "Failed to update center" });
+    }
+  });
+
   // ========== Scheduling Validation ==========
   app.post("/api/centers/:centerId/validate-appointment", async (req, res) => {
     try {
@@ -509,6 +523,20 @@ export async function registerRoutes(
     }
   });
 
+  app.put("/api/service-types/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const type = await storage.updateServiceType(id, req.body);
+      if (!type) {
+        return res.status(404).json({ message: "Service type not found" });
+      }
+      res.json(type);
+    } catch (error) {
+      console.error("Update service type error:", error);
+      res.status(500).json({ message: "Failed to update service type" });
+    }
+  });
+
   // ========== Job Types ==========
   app.get("/api/job-types", async (req, res) => {
     try {
@@ -517,6 +545,34 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Job types error:", error);
       res.status(500).json({ message: "Failed to fetch job types" });
+    }
+  });
+
+  app.post("/api/job-types", async (req, res) => {
+    try {
+      const validation = validateBody(insertJobTypeSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const type = await storage.createJobType(validation.data);
+      res.status(201).json(type);
+    } catch (error) {
+      console.error("Create job type error:", error);
+      res.status(500).json({ message: "Failed to create job type" });
+    }
+  });
+
+  app.put("/api/job-types/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const type = await storage.updateJobType(id, req.body);
+      if (!type) {
+        return res.status(404).json({ message: "Job type not found" });
+      }
+      res.json(type);
+    } catch (error) {
+      console.error("Update job type error:", error);
+      res.status(500).json({ message: "Failed to update job type" });
     }
   });
 
@@ -628,6 +684,16 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Settings error:", error);
       res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.put("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.updateAppSettings(req.body);
+      res.json(settings);
+    } catch (error) {
+      console.error("Update settings error:", error);
+      res.status(500).json({ message: "Failed to update settings" });
     }
   });
 

@@ -32,6 +32,7 @@ export interface IStorage {
   getCenters(): Promise<Center[]>;
   getCenterById(id: string): Promise<Center | undefined>;
   createCenter(data: InsertCenter): Promise<Center>;
+  updateCenter(id: string, data: Partial<InsertCenter>): Promise<Center | undefined>;
   
   // Companies
   getCompanies(): Promise<Company[]>;
@@ -43,7 +44,9 @@ export interface IStorage {
   
   // Service Types
   getServiceTypes(): Promise<ServiceType[]>;
+  getServiceTypeById(id: string): Promise<ServiceType | undefined>;
   createServiceType(data: InsertServiceType): Promise<ServiceType>;
+  updateServiceType(id: string, data: Partial<InsertServiceType>): Promise<ServiceType | undefined>;
   
   // Work Orders
   getWorkOrders(search?: string, status?: string): Promise<WorkOrder[]>;
@@ -63,6 +66,8 @@ export interface IStorage {
   // Job Types
   getJobTypes(): Promise<JobType[]>;
   getJobTypeById(id: string): Promise<JobType | undefined>;
+  createJobType(data: InsertJobType): Promise<JobType>;
+  updateJobType(id: string, data: Partial<InsertJobType>): Promise<JobType | undefined>;
   
   // Vendors
   getVendors(): Promise<Vendor[]>;
@@ -83,6 +88,7 @@ export interface IStorage {
   
   // App Settings
   getAppSettings(): Promise<AppSettings | undefined>;
+  updateAppSettings(data: Partial<AppSettings>): Promise<AppSettings | undefined>;
   
   // Seed data
   seedData(): Promise<void>;
@@ -149,8 +155,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCenter(data: InsertCenter): Promise<Center> {
-    const [center] = await db.insert(centers).values(data).returning();
+    const [center] = await db.insert(centers).values(data as any).returning();
     return center;
+  }
+
+  async updateCenter(id: string, data: Partial<InsertCenter>): Promise<Center | undefined> {
+    const [center] = await db.update(centers).set(data as any).where(eq(centers.id, id)).returning();
+    return center || undefined;
   }
 
   // Companies
@@ -194,6 +205,16 @@ export class DatabaseStorage implements IStorage {
   async createServiceType(data: InsertServiceType): Promise<ServiceType> {
     const [type] = await db.insert(serviceTypes).values(data).returning();
     return type;
+  }
+
+  async getServiceTypeById(id: string): Promise<ServiceType | undefined> {
+    const [st] = await db.select().from(serviceTypes).where(eq(serviceTypes.id, id));
+    return st || undefined;
+  }
+
+  async updateServiceType(id: string, data: Partial<InsertServiceType>): Promise<ServiceType | undefined> {
+    const [st] = await db.update(serviceTypes).set(data).where(eq(serviceTypes.id, id)).returning();
+    return st || undefined;
   }
 
   // Work Orders
@@ -281,6 +302,16 @@ export class DatabaseStorage implements IStorage {
 
   async getJobTypeById(id: string): Promise<JobType | undefined> {
     const [jt] = await db.select().from(jobTypes).where(eq(jobTypes.id, id));
+    return jt || undefined;
+  }
+
+  async createJobType(data: InsertJobType): Promise<JobType> {
+    const [jt] = await db.insert(jobTypes).values(data).returning();
+    return jt;
+  }
+
+  async updateJobType(id: string, data: Partial<InsertJobType>): Promise<JobType | undefined> {
+    const [jt] = await db.update(jobTypes).set(data).where(eq(jobTypes.id, id)).returning();
     return jt || undefined;
   }
 
@@ -372,6 +403,17 @@ export class DatabaseStorage implements IStorage {
   async getAppSettings(): Promise<AppSettings | undefined> {
     const [settings] = await db.select().from(appSettings);
     return settings || undefined;
+  }
+
+  async updateAppSettings(data: Partial<AppSettings>): Promise<AppSettings | undefined> {
+    const existing = await this.getAppSettings();
+    if (existing) {
+      const [updated] = await db.update(appSettings).set(data).where(eq(appSettings.id, existing.id)).returning();
+      return updated || undefined;
+    } else {
+      const [created] = await db.insert(appSettings).values(data as any).returning();
+      return created || undefined;
+    }
   }
 
   // Seed data (only in development)
