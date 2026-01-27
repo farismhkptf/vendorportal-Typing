@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   Wallet, 
@@ -11,12 +11,14 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   RefreshCw,
-  ArrowRight
+  ArrowRight,
+  LayoutGrid
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,8 +53,11 @@ const topupSchema = z.object({
 
 type TopupForm = z.infer<typeof topupSchema>;
 
+type ViewByOption = "none" | "type" | "date";
+
 export default function VendorWallet() {
   const [topupOpen, setTopupOpen] = useState(false);
+  const [viewBy, setViewBy] = useState<ViewByOption>("none");
   const { toast } = useToast();
 
   const { data: summary, isLoading: summaryLoading } = useQuery<WalletSummary>({
@@ -122,6 +127,28 @@ export default function VendorWallet() {
         return "text-foreground";
     }
   };
+
+  const groupedLedger = useMemo(() => {
+    if (!ledger || ledger.length === 0 || viewBy === "none") return null;
+    
+    const groups: Record<string, LedgerEntryWithDetails[]> = {};
+    
+    ledger.forEach((entry) => {
+      let key: string;
+      if (viewBy === "type") {
+        key = entry.entryType;
+      } else if (viewBy === "date") {
+        key = new Date(entry.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      } else {
+        key = "All";
+      }
+      
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(entry);
+    });
+    
+    return Object.keys(groups).length > 0 ? groups : null;
+  }, [ledger, viewBy]);
 
   return (
     <AppLayout>
@@ -274,60 +301,111 @@ export default function VendorWallet() {
 
         {/* Ledger */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-foreground">Transaction Ledger</h2>
-          <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-foreground">Transaction Ledger</h2>
+            <Select value={viewBy} onValueChange={(v) => setViewBy(v as ViewByOption)}>
+              <SelectTrigger className="w-32 h-8 rounded-lg text-xs" data-testid="select-view-by">
+                <LayoutGrid className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="View by" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                <SelectItem value="none">No Grouping</SelectItem>
+                <SelectItem value="type">By Type</SelectItem>
+                <SelectItem value="date">By Month</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-4">
             {ledgerLoading ? (
               <>
-                <Skeleton className="h-20 rounded-2xl" />
-                <Skeleton className="h-20 rounded-2xl" />
-                <Skeleton className="h-20 rounded-2xl" />
+                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-16 rounded-xl" />
               </>
-            ) : ledger && ledger.length > 0 ? (
-              ledger.map((entry, index) => (
-                <div
-                  key={entry.id}
-                  className="premium-card p-4 opacity-0 animate-fade-in"
-                  style={{ animationDelay: `${0.3 + index * 0.05}s` }}
-                  data-testid={`ledger-entry-${entry.id}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-xl bg-muted/50 flex items-center justify-center">
-                        {getEntryIcon(entry.entryType)}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground capitalize">
-                            {entry.entryType}
-                          </p>
-                          {entry.typingJob && (
-                            <Badge variant="secondary" className="text-xs rounded-full">
-                              {entry.typingJob.woNumber}
-                            </Badge>
-                          )}
+            ) : groupedLedger ? (
+              Object.entries(groupedLedger).map(([groupKey, items]) => (
+                <div key={groupKey} className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{groupKey}</h3>
+                    <span className="text-xs text-muted-foreground">({items.length})</span>
+                  </div>
+                  <div className="space-y-2">
+                    {items.map((entry, index) => (
+                      <div
+                        key={entry.id}
+                        className="premium-card p-3 opacity-0 animate-fade-in"
+                        style={{ animationDelay: `${index * 0.03}s` }}
+                        data-testid={`ledger-entry-${entry.id}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                              {getEntryIcon(entry.entryType)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium text-sm text-foreground capitalize">{entry.entryType}</p>
+                                {entry.typingJob && (
+                                  <Badge variant="secondary" className="text-xs rounded-full">{entry.typingJob.woNumber}</Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {entry.note || (entry.typingJob ? entry.typingJob.applicantName : "—")}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
+                              {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {entry.note || (entry.typingJob ? entry.typingJob.applicantName : "—")}
-                        </p>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={cn("font-semibold", getEntryColor(entry.entryType))}>
-                        {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
-                      </p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(entry.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
+                    ))}
                   </div>
                 </div>
               ))
+            ) : ledger && ledger.length > 0 ? (
+              <div className="space-y-2">
+                {ledger.map((entry, index) => (
+                  <div
+                    key={entry.id}
+                    className="premium-card p-3 opacity-0 animate-fade-in"
+                    style={{ animationDelay: `${index * 0.03}s` }}
+                    data-testid={`ledger-entry-${entry.id}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+                          {getEntryIcon(entry.entryType)}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-sm text-foreground capitalize">{entry.entryType}</p>
+                            {entry.typingJob && (
+                              <Badge variant="secondary" className="text-xs rounded-full">{entry.typingJob.woNumber}</Badge>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {entry.note || (entry.typingJob ? entry.typingJob.applicantName : "—")}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
+                          {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <EmptyState
                 icon={<Wallet className="h-6 w-6" />}

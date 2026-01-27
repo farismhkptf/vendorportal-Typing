@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, FileText, Filter, Calendar } from "lucide-react";
+import { Search, FileText, Filter, Calendar, LayoutGrid } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -15,9 +15,12 @@ interface TypingJobWithRelations extends TypingJob {
   jobType?: JobType;
 }
 
+type ViewByOption = "none" | "status" | "jobType";
+
 export default function TypingJobsList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewBy, setViewBy] = useState<ViewByOption>("none");
 
   const { data: typingJobs, isLoading } = useQuery<TypingJobWithRelations[]>({
     queryKey: ["/api/typing-jobs", { status: statusFilter }],
@@ -30,6 +33,28 @@ export default function TypingJobsList() {
     const matchesStatus = statusFilter === "all" || job.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const groupedJobs = useMemo(() => {
+    if (!filteredJobs || filteredJobs.length === 0 || viewBy === "none") return null;
+    
+    const groups: Record<string, TypingJobWithRelations[]> = {};
+    
+    filteredJobs.forEach((job) => {
+      let key: string;
+      if (viewBy === "status") {
+        key = job.status;
+      } else if (viewBy === "jobType") {
+        key = job.jobType?.name || "Unknown Type";
+      } else {
+        key = "All";
+      }
+      
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(job);
+    });
+    
+    return Object.keys(groups).length > 0 ? groups : null;
+  }, [filteredJobs, viewBy]);
 
   return (
     <AppLayout>
@@ -55,7 +80,7 @@ export default function TypingJobsList() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40 h-9 rounded-lg" data-testid="select-status-filter">
+            <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-status-filter">
               <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
@@ -71,61 +96,108 @@ export default function TypingJobsList() {
               <SelectItem value="Cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={viewBy} onValueChange={(v) => setViewBy(v as ViewByOption)}>
+            <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-view-by">
+              <LayoutGrid className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="View by" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="none">No Grouping</SelectItem>
+              <SelectItem value="status">By Status</SelectItem>
+              <SelectItem value="jobType">By Job Type</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Jobs List */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {isLoading ? (
             <>
-              <Skeleton className="h-28 rounded-2xl" />
-              <Skeleton className="h-28 rounded-2xl" />
-              <Skeleton className="h-28 rounded-2xl" />
+              <Skeleton className="h-20 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
             </>
-          ) : filteredJobs && filteredJobs.length > 0 ? (
-            filteredJobs.map((job, index) => (
-              <Link key={job.id} href={`/typing-jobs/${job.id}`}>
-                <div 
-                  className="premium-card p-5 opacity-0 animate-fade-in"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                  data-testid={`typing-job-row-${job.id}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-xl bg-violet-100/80 dark:bg-violet-900/30 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-semibold text-foreground">
-                            {job.workOrder?.woNumber || "N/A"}
-                          </span>
-                          <StatusBadge status={job.status} />
-                        </div>
-                        <p className="text-sm text-foreground">{job.workOrder?.applicantName}</p>
-                        {job.jobType && (
-                          <div className="flex items-center gap-2">
-                            <StatusBadge status={job.jobType.category} />
-                            <span className="text-xs text-muted-foreground">{job.jobType.name}</span>
+          ) : groupedJobs ? (
+            Object.entries(groupedJobs).map(([groupKey, items]) => (
+              <div key={groupKey} className="space-y-2">
+                <div className="flex items-center gap-2 px-1">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{groupKey}</h3>
+                  <span className="text-xs text-muted-foreground">({items.length})</span>
+                </div>
+                <div className="space-y-2">
+                  {items.map((job, index) => (
+                    <Link key={job.id} href={`/typing-jobs/${job.id}`}>
+                      <div 
+                        className="premium-card p-4 opacity-0 animate-fade-in"
+                        style={{ animationDelay: `${index * 0.03}s` }}
+                        data-testid={`typing-job-row-${job.id}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="icon-container icon-container-sm shrink-0 !bg-violet-100 dark:!bg-violet-900/30 !text-violet-600 dark:!text-violet-400">
+                              <FileText className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
+                                <StatusBadge status={job.status} />
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                            </div>
                           </div>
-                        )}
+                          <div className="text-right shrink-0">
+                            {job.costSnapshot && (
+                              <p className="font-medium text-sm text-foreground">AED {job.costSnapshot}</p>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(job.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right space-y-1.5">
-                      {job.costSnapshot && (
-                        <p className="font-medium text-foreground">AED {job.costSnapshot}</p>
-                      )}
-                      <p className="text-sm text-muted-foreground flex items-center gap-1.5 justify-end">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {new Date(job.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : filteredJobs && filteredJobs.length > 0 ? (
+            <div className="space-y-2">
+              {filteredJobs.map((job, index) => (
+                <Link key={job.id} href={`/typing-jobs/${job.id}`}>
+                  <div 
+                    className="premium-card p-4 opacity-0 animate-fade-in"
+                    style={{ animationDelay: `${index * 0.03}s` }}
+                    data-testid={`typing-job-row-${job.id}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="icon-container icon-container-sm shrink-0 !bg-violet-100 dark:!bg-violet-900/30 !text-violet-600 dark:!text-violet-400">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
+                            <StatusBadge status={job.status} />
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                          {job.jobType && (
+                            <span className="text-xs text-muted-foreground">{job.jobType.name}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {job.costSnapshot && (
+                          <p className="font-medium text-sm text-foreground">AED {job.costSnapshot}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(job.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              ))}
+            </div>
           ) : (
             <EmptyState
               icon={<FileText className="h-6 w-6" />}

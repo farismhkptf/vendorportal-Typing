@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Search, FileText, Building2, Filter } from "lucide-react";
+import { Plus, Search, FileText, Building2, Filter, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,9 +16,12 @@ interface WorkOrderWithCompany extends WorkOrder {
   company?: Company;
 }
 
+type ViewByOption = "none" | "status" | "company";
+
 export default function WorkOrdersList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewBy, setViewBy] = useState<ViewByOption>("none");
 
   const { data: workOrders, isLoading } = useQuery<WorkOrderWithCompany[]>({
     queryKey: ["/api/work-orders"],
@@ -32,6 +35,28 @@ export default function WorkOrdersList() {
     const matchesStatus = statusFilter === "all" || wo.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const groupedWorkOrders = useMemo(() => {
+    if (!filteredWorkOrders || filteredWorkOrders.length === 0 || viewBy === "none") return null;
+    
+    const groups: Record<string, WorkOrderWithCompany[]> = {};
+    
+    filteredWorkOrders.forEach((wo) => {
+      let key: string;
+      if (viewBy === "status") {
+        key = wo.status;
+      } else if (viewBy === "company") {
+        key = wo.company?.name || "No Company";
+      } else {
+        key = "All";
+      }
+      
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(wo);
+    });
+    
+    return Object.keys(groups).length > 0 ? groups : null;
+  }, [filteredWorkOrders, viewBy]);
 
   return (
     <AppLayout>
@@ -65,7 +90,7 @@ export default function WorkOrdersList() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-status-filter">
+            <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-status-filter">
               <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
@@ -78,57 +103,105 @@ export default function WorkOrdersList() {
               <SelectItem value="Cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={viewBy} onValueChange={(v) => setViewBy(v as ViewByOption)}>
+            <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-view-by">
+              <LayoutGrid className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="View by" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="none">No Grouping</SelectItem>
+              <SelectItem value="status">By Status</SelectItem>
+              <SelectItem value="company">By Company</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Work Orders List */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           {isLoading ? (
             <>
-              <Skeleton className="h-24 rounded-2xl" />
-              <Skeleton className="h-24 rounded-2xl" />
-              <Skeleton className="h-24 rounded-2xl" />
-              <Skeleton className="h-24 rounded-2xl" />
+              <Skeleton className="h-20 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
             </>
-          ) : filteredWorkOrders && filteredWorkOrders.length > 0 ? (
-            filteredWorkOrders.map((wo, index) => (
-              <Link key={wo.id} href={`/work-orders/${wo.id}`}>
-                <div 
-                  className="premium-card p-5 opacity-0 animate-fade-in"
-                  style={{ animationDelay: `${index * 0.05}s` }}
-                  data-testid={`work-order-row-${wo.woNumber}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="icon-container icon-container-md">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-semibold text-foreground">{wo.woNumber}</span>
-                          <StatusBadge status={wo.status} />
-                        </div>
-                        <p className="text-sm text-foreground">{wo.applicantName}</p>
-                        {wo.company && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Building2 className="h-3 w-3" />
-                            {wo.company.name}
+          ) : groupedWorkOrders ? (
+            Object.entries(groupedWorkOrders).map(([groupKey, items]) => (
+              <div key={groupKey} className="space-y-2">
+                <div className="flex items-center gap-2 px-1">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{groupKey}</h3>
+                  <span className="text-xs text-muted-foreground">({items.length})</span>
+                </div>
+                <div className="space-y-2">
+                  {items.map((wo, index) => (
+                    <Link key={wo.id} href={`/work-orders/${wo.id}`}>
+                      <div 
+                        className="premium-card p-4 opacity-0 animate-fade-in"
+                        style={{ animationDelay: `${index * 0.03}s` }}
+                        data-testid={`work-order-row-${wo.woNumber}`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="icon-container icon-container-sm shrink-0">
+                              <FileText className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-sm text-foreground">{wo.woNumber}</span>
+                                <StatusBadge status={wo.status} />
+                              </div>
+                              <p className="text-sm text-muted-foreground truncate">{wo.applicantName}</p>
+                            </div>
                           </div>
-                        )}
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(wo.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(wo.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : filteredWorkOrders && filteredWorkOrders.length > 0 ? (
+            <div className="space-y-2">
+              {filteredWorkOrders.map((wo, index) => (
+                <Link key={wo.id} href={`/work-orders/${wo.id}`}>
+                  <div 
+                    className="premium-card p-4 opacity-0 animate-fade-in"
+                    style={{ animationDelay: `${index * 0.03}s` }}
+                    data-testid={`work-order-row-${wo.woNumber}`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="icon-container icon-container-sm shrink-0">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-sm text-foreground">{wo.woNumber}</span>
+                            <StatusBadge status={wo.status} />
+                          </div>
+                          <p className="text-sm text-muted-foreground truncate">{wo.applicantName}</p>
+                          {wo.company && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                              <Building2 className="h-3 w-3" />
+                              {wo.company.name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(wo.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              ))}
+            </div>
           ) : (
             <EmptyState
               icon={<FileText className="h-6 w-6" />}
@@ -137,7 +210,7 @@ export default function WorkOrdersList() {
               action={
                 !search && (
                   <Link href="/work-orders/new">
-                    <Button size="sm" className="gap-2 rounded-xl">
+                    <Button size="sm" className="gap-2 rounded-lg">
                       <Plus className="h-4 w-4" />
                       New Work Order
                     </Button>
