@@ -440,7 +440,7 @@ export default function AdminPage() {
       {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Admin
+          Admin Console
         </h1>
       </div>
 
