@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Search, Building2, Mail, MapPin, User } from "lucide-react";
+import { Plus, Search, Building2, Mail, MapPin, User, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import type { Company, Staff, Center, CompanyEmail } from "@shared/schema";
+
+type SortByOption = "name_asc" | "name_desc";
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -21,14 +24,32 @@ interface CompanyWithRelations extends Company {
 
 export default function CompaniesList() {
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortByOption>("name_asc");
 
   const { data: companies, isLoading } = useQuery<CompanyWithRelations[]>({
     queryKey: ["/api/companies"],
   });
 
-  const filteredCompanies = companies?.filter((company) =>
-    !search || company.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredAndSortedCompanies = useMemo(() => {
+    let result = companies?.filter((company) =>
+      !search || company.name.toLowerCase().includes(search.toLowerCase())
+    );
+    
+    if (result) {
+      result = [...result].sort((a, b) => {
+        switch (sortBy) {
+          case "name_asc":
+            return a.name.localeCompare(b.name);
+          case "name_desc":
+            return b.name.localeCompare(a.name);
+          default:
+            return 0;
+        }
+      });
+    }
+    
+    return result;
+  }, [companies, search, sortBy]);
 
   return (
     <AppLayout>
@@ -53,19 +74,31 @@ export default function CompaniesList() {
       </div>
 
       <div className="px-6 lg:px-10 pb-10 space-y-6">
-        {/* Search */}
-        <div className="premium-card p-1.5 max-w-md">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search companies..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="border-0 shadow-none pl-11 focus-visible:ring-0"
-              data-testid="input-search-companies"
-            />
+        {/* Search and Sort */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="premium-card p-1.5 flex-1 max-w-md">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search companies..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="border-0 shadow-none pl-11 focus-visible:ring-0"
+                data-testid="input-search-companies"
+              />
+            </div>
           </div>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+            <SelectTrigger className="w-36 h-10 rounded-xl" data-testid="select-sort-by">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="name_asc">Name A-Z</SelectItem>
+              <SelectItem value="name_desc">Name Z-A</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Companies Grid */}
@@ -76,8 +109,8 @@ export default function CompaniesList() {
               <Skeleton className="h-48 rounded-2xl" />
               <Skeleton className="h-48 rounded-2xl" />
             </>
-          ) : filteredCompanies && filteredCompanies.length > 0 ? (
-            filteredCompanies.map((company, index) => (
+          ) : filteredAndSortedCompanies && filteredAndSortedCompanies.length > 0 ? (
+            filteredAndSortedCompanies.map((company, index) => (
               <Link key={company.id} href={`/companies/${company.id}`}>
                 <div 
                   className="premium-card p-5 h-full opacity-0 animate-fade-in"

@@ -194,21 +194,66 @@ export async function registerRoutes(
 
   app.post("/api/work-orders", async (req, res) => {
     try {
-      const validation = validateBody(insertWorkOrderSchema.omit({ woNumber: true, status: true }), req.body);
+      const validation = validateBody(insertWorkOrderSchema.omit({ status: true }), req.body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
       
-      const woNumber = await storage.getNextWoNumber();
+      // Check if WO number already exists
+      const existing = await storage.getWorkOrderByWoNumber(validation.data.woNumber);
+      if (existing) {
+        return res.status(400).json({ message: `Work order ${validation.data.woNumber} already exists` });
+      }
+      
       const wo = await storage.createWorkOrder({
         ...validation.data,
-        woNumber,
         status: "Draft",
       });
       res.status(201).json(wo);
     } catch (error) {
       console.error("Create work order error:", error);
       res.status(500).json({ message: "Failed to create work order" });
+    }
+  });
+
+  app.put("/api/work-orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const validation = validateBody(insertWorkOrderSchema.partial(), req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      // If changing WO number, check it doesn't exist for another work order
+      if (validation.data.woNumber) {
+        const existing = await storage.getWorkOrderByWoNumber(validation.data.woNumber);
+        if (existing && existing.id !== id) {
+          return res.status(400).json({ message: `Work order ${validation.data.woNumber} already exists` });
+        }
+      }
+      
+      const wo = await storage.updateWorkOrder(id, validation.data);
+      if (!wo) {
+        return res.status(404).json({ message: "Work order not found" });
+      }
+      res.json(wo);
+    } catch (error) {
+      console.error("Update work order error:", error);
+      res.status(500).json({ message: "Failed to update work order" });
+    }
+  });
+
+  app.delete("/api/work-orders/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const deleted = await storage.deleteWorkOrder(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Work order not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete work order error:", error);
+      res.status(500).json({ message: "Failed to delete work order" });
     }
   });
 

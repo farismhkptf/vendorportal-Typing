@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Search, FileText, Building2, Filter, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, FileText, Building2, Filter, LayoutGrid, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,31 +17,58 @@ interface WorkOrderWithCompany extends WorkOrder {
 }
 
 type ViewByOption = "none" | "status" | "company";
+type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc" | "applicant_asc" | "applicant_desc";
 
 export default function WorkOrdersList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewBy, setViewBy] = useState<ViewByOption>("none");
+  const [sortBy, setSortBy] = useState<SortByOption>("newest");
 
   const { data: workOrders, isLoading } = useQuery<WorkOrderWithCompany[]>({
     queryKey: ["/api/work-orders"],
     staleTime: 0,
   });
 
-  const filteredWorkOrders = workOrders?.filter((wo) => {
-    const matchesSearch = !search || 
-      wo.woNumber.toLowerCase().includes(search.toLowerCase()) ||
-      wo.applicantName.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || wo.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredAndSortedWorkOrders = useMemo(() => {
+    let result = workOrders?.filter((wo) => {
+      const matchesSearch = !search || 
+        wo.woNumber.toLowerCase().includes(search.toLowerCase()) ||
+        wo.applicantName.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || wo.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+    
+    if (result) {
+      result = [...result].sort((a, b) => {
+        switch (sortBy) {
+          case "newest":
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          case "oldest":
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          case "wo_asc":
+            return a.woNumber.localeCompare(b.woNumber);
+          case "wo_desc":
+            return b.woNumber.localeCompare(a.woNumber);
+          case "applicant_asc":
+            return a.applicantName.localeCompare(b.applicantName);
+          case "applicant_desc":
+            return b.applicantName.localeCompare(a.applicantName);
+          default:
+            return 0;
+        }
+      });
+    }
+    
+    return result;
+  }, [workOrders, search, statusFilter, sortBy]);
 
   const groupedWorkOrders = useMemo(() => {
-    if (!filteredWorkOrders || filteredWorkOrders.length === 0 || viewBy === "none") return null;
+    if (!filteredAndSortedWorkOrders || filteredAndSortedWorkOrders.length === 0 || viewBy === "none") return null;
     
     const groups: Record<string, WorkOrderWithCompany[]> = {};
     
-    filteredWorkOrders.forEach((wo) => {
+    filteredAndSortedWorkOrders.forEach((wo) => {
       let key: string;
       if (viewBy === "status") {
         key = wo.status;
@@ -56,7 +83,7 @@ export default function WorkOrdersList() {
     });
     
     return Object.keys(groups).length > 0 ? groups : null;
-  }, [filteredWorkOrders, viewBy]);
+  }, [filteredAndSortedWorkOrders, viewBy]);
 
   return (
     <AppLayout>
@@ -114,6 +141,20 @@ export default function WorkOrdersList() {
               <SelectItem value="company">By Company</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+            <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="wo_asc">WO# A-Z</SelectItem>
+              <SelectItem value="wo_desc">WO# Z-A</SelectItem>
+              <SelectItem value="applicant_asc">Applicant A-Z</SelectItem>
+              <SelectItem value="applicant_desc">Applicant Z-A</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Work Orders List */}
@@ -164,9 +205,9 @@ export default function WorkOrdersList() {
                 </div>
               </div>
             ))
-          ) : filteredWorkOrders && filteredWorkOrders.length > 0 ? (
+          ) : filteredAndSortedWorkOrders && filteredAndSortedWorkOrders.length > 0 ? (
             <div className="space-y-2">
-              {filteredWorkOrders.map((wo, index) => (
+              {filteredAndSortedWorkOrders.map((wo, index) => (
                 <Link key={wo.id} href={`/work-orders/${wo.id}`}>
                   <div 
                     className="premium-card p-4 opacity-0 animate-fade-in"

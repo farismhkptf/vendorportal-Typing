@@ -1,5 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { useRoute, Link } from "wouter";
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useRoute, Link, useLocation } from "wouter";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { 
   ArrowLeft, 
   Building2, 
@@ -11,18 +15,39 @@ import {
   User,
   MapPin,
   Mail,
-  Plus
+  Plus,
+  Pencil,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { SectionCard } from "@/components/ui/section-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType } from "@shared/schema";
+
+const editWorkOrderSchema = z.object({
+  woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits"),
+  applicantName: z.string().min(1, "Applicant name is required"),
+  companyId: z.string().min(1, "Company is required"),
+  serviceTypeId: z.string().optional(),
+  status: z.string(),
+  notes: z.string().optional(),
+});
+
+type EditWorkOrderForm = z.infer<typeof editWorkOrderSchema>;
 
 interface WorkOrderDetail extends WorkOrder {
   company?: Company & {
@@ -38,12 +63,78 @@ interface WorkOrderDetail extends WorkOrder {
 
 export default function WorkOrderDetail() {
   const [, params] = useRoute("/work-orders/:id");
+  const [, setLocation] = useLocation();
   const id = params?.id;
+  const { toast } = useToast();
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: workOrder, isLoading } = useQuery<WorkOrderDetail>({
     queryKey: ["/api/work-orders", id],
     enabled: !!id,
   });
+
+  const { data: companies } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
+  });
+
+  const { data: serviceTypes } = useQuery<ServiceType[]>({
+    queryKey: ["/api/service-types"],
+  });
+
+  const form = useForm<EditWorkOrderForm>({
+    resolver: zodResolver(editWorkOrderSchema),
+    defaultValues: {
+      woNumber: "",
+      applicantName: "",
+      companyId: "",
+      serviceTypeId: "",
+      status: "Draft",
+      notes: "",
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: EditWorkOrderForm) => {
+      return apiRequest("PUT", `/api/work-orders/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      setEditDialogOpen(false);
+      toast({ title: "Work order updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("DELETE", `/api/work-orders/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      toast({ title: "Work order deleted" });
+      setLocation("/work-orders");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleOpenEdit = () => {
+    if (workOrder) {
+      form.reset({
+        woNumber: workOrder.woNumber,
+        applicantName: workOrder.applicantName,
+        companyId: workOrder.companyId,
+        serviceTypeId: workOrder.serviceTypeId || "",
+        status: workOrder.status,
+        notes: workOrder.notes || "",
+      });
+      setEditDialogOpen(true);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -103,11 +194,46 @@ export default function WorkOrderDetail() {
         title={workOrder.woNumber}
         subtitle={workOrder.applicantName}
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <StatusBadge status={workOrder.status} />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-1.5" 
+              onClick={handleOpenEdit}
+              data-testid="button-edit-wo"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1.5 text-destructive" data-testid="button-delete-wo">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="rounded-2xl">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete work order {workOrder.woNumber}? This will also delete all associated appointments and typing jobs. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    className="rounded-xl bg-destructive text-destructive-foreground"
+                    onClick={() => deleteMutation.mutate()}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Link href="/work-orders">
-              <Button variant="outline" className="gap-2" data-testid="button-back">
-                <ArrowLeft className="h-4 w-4" />
+              <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-back">
+                <ArrowLeft className="h-3.5 w-3.5" />
                 Back
               </Button>
             </Link>
@@ -395,6 +521,148 @@ export default function WorkOrderDetail() {
           </Tabs>
         </Card>
       </div>
+
+      {/* Edit Work Order Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Work Order</DialogTitle>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="woNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>WO Number</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        placeholder="e.g., J016308" 
+                        className="uppercase"
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                        data-testid="input-edit-wo-number"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="applicantName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Applicant Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="Full name" data-testid="input-edit-applicant" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="companyId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-company">
+                          <SelectValue placeholder="Select company" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {companies?.map((company) => (
+                          <SelectItem key={company.id} value={company.id}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="serviceTypeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-service">
+                          <SelectValue placeholder="Select service type (optional)" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {serviceTypes?.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-edit-status">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Draft">Draft</SelectItem>
+                        <SelectItem value="Active">Active</SelectItem>
+                        <SelectItem value="Completed">Completed</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        {...field} 
+                        placeholder="Additional notes..." 
+                        className="resize-none"
+                        data-testid="input-edit-notes"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-wo">
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, FileText, Filter, Calendar, LayoutGrid } from "lucide-react";
+import { Search, FileText, Filter, Calendar, LayoutGrid, ArrowUpDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -16,30 +16,53 @@ interface TypingJobWithRelations extends TypingJob {
 }
 
 type ViewByOption = "none" | "status" | "jobType";
+type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc";
 
 export default function TypingJobsList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewBy, setViewBy] = useState<ViewByOption>("none");
+  const [sortBy, setSortBy] = useState<SortByOption>("newest");
 
   const { data: typingJobs, isLoading } = useQuery<TypingJobWithRelations[]>({
     queryKey: ["/api/typing-jobs", { status: statusFilter }],
   });
 
-  const filteredJobs = typingJobs?.filter((job) => {
-    const matchesSearch = !search || 
-      job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
-      job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredAndSortedJobs = useMemo(() => {
+    let result = typingJobs?.filter((job) => {
+      const matchesSearch = !search || 
+        job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
+        job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = statusFilter === "all" || job.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+    
+    if (result) {
+      result = [...result].sort((a, b) => {
+        switch (sortBy) {
+          case "newest":
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          case "oldest":
+            return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          case "wo_asc":
+            return (a.workOrder?.woNumber || "").localeCompare(b.workOrder?.woNumber || "");
+          case "wo_desc":
+            return (b.workOrder?.woNumber || "").localeCompare(a.workOrder?.woNumber || "");
+          default:
+            return 0;
+        }
+      });
+    }
+    
+    return result;
+  }, [typingJobs, search, statusFilter, sortBy]);
 
   const groupedJobs = useMemo(() => {
-    if (!filteredJobs || filteredJobs.length === 0 || viewBy === "none") return null;
+    if (!filteredAndSortedJobs || filteredAndSortedJobs.length === 0 || viewBy === "none") return null;
     
     const groups: Record<string, TypingJobWithRelations[]> = {};
     
-    filteredJobs.forEach((job) => {
+    filteredAndSortedJobs.forEach((job) => {
       let key: string;
       if (viewBy === "status") {
         key = job.status;
@@ -54,7 +77,7 @@ export default function TypingJobsList() {
     });
     
     return Object.keys(groups).length > 0 ? groups : null;
-  }, [filteredJobs, viewBy]);
+  }, [filteredAndSortedJobs, viewBy]);
 
   return (
     <AppLayout>
@@ -105,6 +128,18 @@ export default function TypingJobsList() {
               <SelectItem value="none">No Grouping</SelectItem>
               <SelectItem value="status">By Status</SelectItem>
               <SelectItem value="jobType">By Job Type</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+            <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="newest">Newest First</SelectItem>
+              <SelectItem value="oldest">Oldest First</SelectItem>
+              <SelectItem value="wo_asc">WO# A-Z</SelectItem>
+              <SelectItem value="wo_desc">WO# Z-A</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -160,9 +195,9 @@ export default function TypingJobsList() {
                 </div>
               </div>
             ))
-          ) : filteredJobs && filteredJobs.length > 0 ? (
+          ) : filteredAndSortedJobs && filteredAndSortedJobs.length > 0 ? (
             <div className="space-y-2">
-              {filteredJobs.map((job, index) => (
+              {filteredAndSortedJobs.map((job, index) => (
                 <Link key={job.id} href={`/typing-jobs/${job.id}`}>
                   <div 
                     className="premium-card p-4 opacity-0 animate-fade-in"

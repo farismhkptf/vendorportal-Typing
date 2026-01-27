@@ -21,6 +21,7 @@ import type { Company, ServiceType } from "@shared/schema";
 import { Link } from "wouter";
 
 const workOrderSchema = z.object({
+  woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits (e.g., J016308)"),
   applicantName: z.string().min(1, "Applicant name is required"),
   companyId: z.string().min(1, "Company is required"),
   serviceTypeId: z.string().optional(),
@@ -62,6 +63,7 @@ export default function NewWorkOrder() {
   const form = useForm<WorkOrderForm>({
     resolver: zodResolver(workOrderSchema),
     defaultValues: {
+      woNumber: "",
       applicantName: "",
       companyId: "",
       serviceTypeId: "",
@@ -312,6 +314,7 @@ export default function NewWorkOrder() {
 
     const { parsed } = parseResult;
 
+    if (parsed.woNumber) form.setValue("woNumber", parsed.woNumber);
     if (parsed.applicantName) form.setValue("applicantName", parsed.applicantName);
     if (parsed.matchedCompanyId) form.setValue("companyId", parsed.matchedCompanyId);
     if (parsed.matchedServiceTypeId) form.setValue("serviceTypeId", parsed.matchedServiceTypeId);
@@ -472,6 +475,32 @@ export default function NewWorkOrder() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Work Order Number */}
+            <SectionCard title="Work Order Number" required>
+              <FormField
+                control={form.control}
+                name="woNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm text-muted-foreground">WO Number</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          {...field}
+                          placeholder="e.g., J016308"
+                          className="pl-10 h-12 rounded-xl uppercase"
+                          onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                          data-testid="input-wo-number"
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </SectionCard>
+
             {/* Applicant Details */}
             <SectionCard title="Applicant Details" required>
               <div className="space-y-4">

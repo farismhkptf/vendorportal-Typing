@@ -57,7 +57,10 @@ export interface IStorage {
   // Work Orders
   getWorkOrders(search?: string, status?: string): Promise<WorkOrder[]>;
   getWorkOrderById(id: string): Promise<WorkOrder | undefined>;
+  getWorkOrderByWoNumber(woNumber: string): Promise<WorkOrder | undefined>;
   createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder>;
+  updateWorkOrder(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder | undefined>;
+  deleteWorkOrder(id: string): Promise<boolean>;
   getNextWoNumber(): Promise<string>;
   
   // Appointments
@@ -294,9 +297,26 @@ export class DatabaseStorage implements IStorage {
     return wo || undefined;
   }
 
+  async getWorkOrderByWoNumber(woNumber: string): Promise<WorkOrder | undefined> {
+    const [wo] = await db.select().from(workOrders).where(eq(workOrders.woNumber, woNumber));
+    return wo || undefined;
+  }
+
   async createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder> {
     const [wo] = await db.insert(workOrders).values(data).returning();
     return wo;
+  }
+
+  async updateWorkOrder(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder | undefined> {
+    const [wo] = await db.update(workOrders).set(data).where(eq(workOrders.id, id)).returning();
+    return wo || undefined;
+  }
+
+  async deleteWorkOrder(id: string): Promise<boolean> {
+    const existing = await this.getWorkOrderById(id);
+    if (!existing) return false;
+    await db.delete(workOrders).where(eq(workOrders.id, id));
+    return true;
   }
 
   async getNextWoNumber(): Promise<string> {
