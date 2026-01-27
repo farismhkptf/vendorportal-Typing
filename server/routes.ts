@@ -5,8 +5,10 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import { 
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
-  insertCenterSchema, insertServiceTypeSchema, loginSchema 
+  insertCenterSchema, insertServiceTypeSchema, loginSchema,
+  type CenterTimings
 } from "@shared/schema";
+import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 
 const topupSchema = z.object({
   amount: z.number().positive(),
@@ -394,6 +396,91 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create center error:", error);
       res.status(500).json({ message: "Failed to create center" });
+    }
+  });
+
+  // ========== Scheduling Validation ==========
+  app.post("/api/centers/:centerId/validate-appointment", async (req, res) => {
+    try {
+      const { centerId } = req.params;
+      const { date, time } = req.body;
+
+      if (!date || !time) {
+        return res.status(400).json({ message: "Date and time are required" });
+      }
+
+      const center = await storage.getCenterById(centerId);
+      if (!center) {
+        return res.status(404).json({ message: "Center not found" });
+      }
+
+      const appointmentDate = new Date(date);
+      const validation = validateAppointmentTime(
+        appointmentDate,
+        time,
+        center.timings as CenterTimings | null
+      );
+
+      res.json({
+        ...validation,
+        center: {
+          id: center.id,
+          name: center.name,
+          timingText: center.timingText,
+        },
+      });
+    } catch (error) {
+      console.error("Validate appointment error:", error);
+      res.status(500).json({ message: "Failed to validate appointment time" });
+    }
+  });
+
+  app.get("/api/centers/:centerId/available-times", async (req, res) => {
+    try {
+      const { centerId } = req.params;
+      const { date, interval } = req.query;
+
+      if (!date) {
+        return res.status(400).json({ message: "Date is required" });
+      }
+
+      const center = await storage.getCenterById(centerId);
+      if (!center) {
+        return res.status(404).json({ message: "Center not found" });
+      }
+
+      const appointmentDate = new Date(date as string);
+      const isOpen = isCenterOpenOnDate(appointmentDate, center.timings as CenterTimings | null);
+      
+      if (!isOpen) {
+        return res.json({
+          date,
+          isOpen: false,
+          slots: [],
+          message: "Center is closed on this day",
+        });
+      }
+
+      const intervalMinutes = interval ? parseInt(interval as string) : 30;
+      const slots = getAvailableTimeSlots(
+        appointmentDate,
+        center.timings as CenterTimings | null,
+        intervalMinutes
+      );
+
+      res.json({
+        date,
+        isOpen: true,
+        slots,
+        center: {
+          id: center.id,
+          name: center.name,
+          timingText: center.timingText,
+        },
+      });
+    } catch (error) {
+      console.error("Get available times error:", error);
+      res.status(500).json({ message: "Failed to get available times" });
     }
   });
 
