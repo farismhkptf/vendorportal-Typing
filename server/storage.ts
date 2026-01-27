@@ -13,7 +13,7 @@ import {
   type VendorWalletLedger, type InsertVendorWalletLedger, type AppSettings
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql, or, ilike } from "drizzle-orm";
+import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -27,6 +27,7 @@ export interface IStorage {
   createStaff(data: InsertStaff): Promise<Staff>;
   updateStaff(id: string, data: Partial<InsertStaff>): Promise<Staff | undefined>;
   deleteStaff(id: string): Promise<boolean>;
+  bulkDeleteStaff(ids: string[]): Promise<number>;
   
   // Centers
   getCenters(): Promise<Center[]>;
@@ -34,6 +35,7 @@ export interface IStorage {
   createCenter(data: InsertCenter): Promise<Center>;
   updateCenter(id: string, data: Partial<InsertCenter>): Promise<Center | undefined>;
   deleteCenter(id: string): Promise<boolean>;
+  bulkDeleteCenters(ids: string[]): Promise<number>;
   
   // Companies
   getCompanies(): Promise<Company[]>;
@@ -49,6 +51,8 @@ export interface IStorage {
   createServiceType(data: InsertServiceType): Promise<ServiceType>;
   updateServiceType(id: string, data: Partial<InsertServiceType>): Promise<ServiceType | undefined>;
   deleteServiceType(id: string): Promise<boolean>;
+  bulkCreateServiceTypes(names: string[]): Promise<ServiceType[]>;
+  bulkDeleteServiceTypes(ids: string[]): Promise<number>;
   
   // Work Orders
   getWorkOrders(search?: string, status?: string): Promise<WorkOrder[]>;
@@ -71,6 +75,7 @@ export interface IStorage {
   createJobType(data: InsertJobType): Promise<JobType>;
   updateJobType(id: string, data: Partial<InsertJobType>): Promise<JobType | undefined>;
   deleteJobType(id: string): Promise<boolean>;
+  bulkDeleteJobTypes(ids: string[]): Promise<number>;
   
   // Vendors
   getVendors(): Promise<Vendor[]>;
@@ -147,6 +152,12 @@ export class DatabaseStorage implements IStorage {
     return true;
   }
 
+  async bulkDeleteStaff(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.delete(staff).where(inArray(staff.id, ids)).returning();
+    return result.length;
+  }
+
   // Centers
   async getCenters(): Promise<Center[]> {
     return db.select().from(centers).where(eq(centers.active, true));
@@ -172,6 +183,12 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return false;
     await db.delete(centers).where(eq(centers.id, id));
     return true;
+  }
+
+  async bulkDeleteCenters(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.delete(centers).where(inArray(centers.id, ids)).returning();
+    return result.length;
   }
 
   // Companies
@@ -232,6 +249,20 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return false;
     await db.delete(serviceTypes).where(eq(serviceTypes.id, id));
     return true;
+  }
+
+  async bulkCreateServiceTypes(names: string[]): Promise<ServiceType[]> {
+    if (names.length === 0) return [];
+    const values = names.map(name => ({ name: name.trim() })).filter(v => v.name.length > 0);
+    if (values.length === 0) return [];
+    const result = await db.insert(serviceTypes).values(values).returning();
+    return result;
+  }
+
+  async bulkDeleteServiceTypes(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.delete(serviceTypes).where(inArray(serviceTypes.id, ids)).returning();
+    return result.length;
   }
 
   // Work Orders
@@ -337,6 +368,12 @@ export class DatabaseStorage implements IStorage {
     if (!existing) return false;
     await db.delete(jobTypes).where(eq(jobTypes.id, id));
     return true;
+  }
+
+  async bulkDeleteJobTypes(ids: string[]): Promise<number> {
+    if (ids.length === 0) return 0;
+    const result = await db.delete(jobTypes).where(inArray(jobTypes.id, ids)).returning();
+    return result.length;
   }
 
   // Vendors

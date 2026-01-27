@@ -28,6 +28,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
@@ -97,6 +98,12 @@ export default function AdminPage() {
   const [editCcDialogOpen, setEditCcDialogOpen] = useState(false);
   const [editThresholdDialogOpen, setEditThresholdDialogOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
+  const [bulkServiceDialogOpen, setBulkServiceDialogOpen] = useState(false);
+  const [bulkServiceNames, setBulkServiceNames] = useState("");
+  const [selectedCenters, setSelectedCenters] = useState<string[]>([]);
+  const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([]);
   const { toast } = useToast();
 
   const { data: companies, isLoading: companiesLoading } = useQuery<CompanyWithRelations[]>({
@@ -418,6 +425,77 @@ export default function AdminPage() {
     },
   });
 
+  const bulkCreateServicesMutation = useMutation({
+    mutationFn: async (names: string[]) => {
+      return apiRequest("POST", "/api/service-types/bulk", { names });
+    },
+    onSuccess: (_, names) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-types"] });
+      toast({ title: `${names.length} service types added successfully` });
+      setBulkServiceDialogOpen(false);
+      setBulkServiceNames("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const bulkDeleteCentersMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      return apiRequest("DELETE", "/api/centers/bulk", { ids });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/centers"] });
+      toast({ title: `${selectedCenters.length} centers deleted successfully` });
+      setSelectedCenters([]);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const bulkDeleteStaffMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      return apiRequest("DELETE", "/api/staff/bulk", { ids });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
+      toast({ title: `${selectedStaff.length} staff members deleted successfully` });
+      setSelectedStaff([]);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const bulkDeleteServicesMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      return apiRequest("DELETE", "/api/service-types/bulk", { ids });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/service-types"] });
+      toast({ title: `${selectedServices.length} service types deleted successfully` });
+      setSelectedServices([]);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const bulkDeleteJobTypesMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      return apiRequest("DELETE", "/api/job-types/bulk", { ids });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/job-types"] });
+      toast({ title: `${selectedJobTypes.length} job types deleted successfully` });
+      setSelectedJobTypes([]);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleEditCenter = (center: Center) => {
     setEditingCenter(center);
     editCenterForm.reset({
@@ -643,7 +721,36 @@ export default function AdminPage() {
             {/* Centers Tab */}
             <TabsContent value="centers" className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium text-foreground text-sm">Medical & EID Centers</h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-medium text-foreground text-sm">Medical & EID Centers</h3>
+                  {selectedCenters.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" data-testid="button-bulk-delete-centers">
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete ({selectedCenters.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Selected Centers</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete {selectedCenters.length} centers? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            className="rounded-xl"
+                            onClick={() => bulkDeleteCentersMutation.mutate(selectedCenters)}
+                          >
+                            Delete All
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
                 <Dialog open={centerDialogOpen} onOpenChange={setCenterDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-center">
@@ -909,6 +1016,17 @@ export default function AdminPage() {
                       style={{ animationDelay: `${index * 0.03}s` }}
                     >
                       <div className="flex items-center gap-2.5">
+                        <Checkbox
+                          checked={selectedCenters.includes(center.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedCenters([...selectedCenters, center.id]);
+                            } else {
+                              setSelectedCenters(selectedCenters.filter(id => id !== center.id));
+                            }
+                          }}
+                          data-testid={`checkbox-center-${center.id}`}
+                        />
                         <div className="icon-container icon-container-sm">
                           <MapPin className="h-3.5 w-3.5" />
                         </div>
@@ -977,7 +1095,36 @@ export default function AdminPage() {
             {/* Staff Tab */}
             <TabsContent value="staff" className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-medium text-foreground">Staff Members</h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-medium text-foreground">Staff Members</h3>
+                  {selectedStaff.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" data-testid="button-bulk-delete-staff">
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete ({selectedStaff.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Selected Staff</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete {selectedStaff.length} staff members? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            className="rounded-xl"
+                            onClick={() => bulkDeleteStaffMutation.mutate(selectedStaff)}
+                          >
+                            Delete All
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
                 <Dialog open={staffDialogOpen} onOpenChange={setStaffDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-staff">
@@ -1144,6 +1291,17 @@ export default function AdminPage() {
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedStaff.includes(member.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedStaff([...selectedStaff, member.id]);
+                            } else {
+                              setSelectedStaff(selectedStaff.filter(id => id !== member.id));
+                            }
+                          }}
+                          data-testid={`checkbox-staff-${member.id}`}
+                        />
                         <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center ring-1 ring-primary/10">
                           <span className="text-sm font-medium text-primary">
                             {member.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
@@ -1214,14 +1372,87 @@ export default function AdminPage() {
             {/* Service Types Tab */}
             <TabsContent value="services" className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-medium text-foreground">Service Types</h3>
-                <Dialog open={serviceDialogOpen} onOpenChange={setServiceDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-service">
-                      <Plus className="h-4 w-4" />
-                      Add Service
-                    </Button>
-                  </DialogTrigger>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-medium text-foreground">Service Types</h3>
+                  {selectedServices.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" data-testid="button-bulk-delete-services">
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete ({selectedServices.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Selected Services</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete {selectedServices.length} service types? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            className="rounded-xl"
+                            onClick={() => bulkDeleteServicesMutation.mutate(selectedServices)}
+                          >
+                            Delete All
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Dialog open={bulkServiceDialogOpen} onOpenChange={setBulkServiceDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="gap-2 rounded-xl" data-testid="button-bulk-add-service">
+                        <Plus className="h-4 w-4" />
+                        Bulk Import
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="rounded-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Bulk Import Services</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                          Enter one service name per line
+                        </p>
+                        <Textarea
+                          value={bulkServiceNames}
+                          onChange={(e) => setBulkServiceNames(e.target.value)}
+                          placeholder={"New Visa\nVisa Renewal\nLabour Card\n..."}
+                          className="min-h-[200px] rounded-xl"
+                          data-testid="textarea-bulk-services"
+                        />
+                        <div className="flex justify-end gap-3 pt-4">
+                          <Button type="button" variant="outline" className="rounded-xl" onClick={() => setBulkServiceDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button 
+                            className="rounded-xl" 
+                            disabled={bulkCreateServicesMutation.isPending || !bulkServiceNames.trim()}
+                            onClick={() => {
+                              const names = bulkServiceNames.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+                              if (names.length > 0) {
+                                bulkCreateServicesMutation.mutate(names);
+                              }
+                            }}
+                            data-testid="button-submit-bulk-services"
+                          >
+                            {bulkCreateServicesMutation.isPending ? "Importing..." : `Import ${bulkServiceNames.split('\n').filter(n => n.trim()).length} Services`}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog open={serviceDialogOpen} onOpenChange={setServiceDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-service">
+                        <Plus className="h-4 w-4" />
+                        Add Service
+                      </Button>
+                    </DialogTrigger>
                   <DialogContent className="rounded-2xl">
                     <DialogHeader>
                       <DialogTitle>Add Service Type</DialogTitle>
@@ -1253,6 +1484,7 @@ export default function AdminPage() {
                     </Form>
                   </DialogContent>
                 </Dialog>
+                </div>
               </div>
 
               {/* Edit Service Dialog */}
@@ -1300,6 +1532,17 @@ export default function AdminPage() {
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedServices.includes(service.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedServices([...selectedServices, service.id]);
+                            } else {
+                              setSelectedServices(selectedServices.filter(id => id !== service.id));
+                            }
+                          }}
+                          data-testid={`checkbox-service-${service.id}`}
+                        />
                         <div className="icon-container">
                           <FileText className="h-4 w-4" />
                         </div>
@@ -1360,7 +1603,36 @@ export default function AdminPage() {
             {/* Job Types Tab */}
             <TabsContent value="jobtypes" className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-medium text-foreground">Job Types & Pricing</h3>
+                <div className="flex items-center gap-3">
+                  <h3 className="font-medium text-foreground">Job Types & Pricing</h3>
+                  {selectedJobTypes.length > 0 && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive" className="gap-1.5 rounded-xl" data-testid="button-bulk-delete-jobtypes">
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete ({selectedJobTypes.length})
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="rounded-2xl">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Selected Job Types</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete {selectedJobTypes.length} job types? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                          <AlertDialogAction 
+                            className="rounded-xl"
+                            onClick={() => bulkDeleteJobTypesMutation.mutate(selectedJobTypes)}
+                          >
+                            Delete All
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
                 <Dialog open={jobTypeDialogOpen} onOpenChange={setJobTypeDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-2 rounded-xl" data-testid="button-add-jobtype">
@@ -1529,6 +1801,17 @@ export default function AdminPage() {
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedJobTypes.includes(job.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedJobTypes([...selectedJobTypes, job.id]);
+                            } else {
+                              setSelectedJobTypes(selectedJobTypes.filter(id => id !== job.id));
+                            }
+                          }}
+                          data-testid={`checkbox-jobtype-${job.id}`}
+                        />
                         <div className="icon-container">
                           <Briefcase className="h-4 w-4" />
                         </div>

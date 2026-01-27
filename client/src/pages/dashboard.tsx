@@ -155,11 +155,11 @@ export default function Dashboard() {
           {/* Today's Appointments */}
           <div className="space-y-3 opacity-0 animate-fade-in animate-delay-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Today's Appointments</h2>
+              <h2 className="text-base font-semibold text-foreground">Today's Appointments</h2>
               <Link href="/typing-jobs">
-                <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground hover:text-foreground rounded-lg h-7 px-2">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground rounded-lg">
                   View All
-                  <ArrowRight className="h-3 w-3" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </Link>
             </div>
@@ -202,11 +202,11 @@ export default function Dashboard() {
           </div>
 
           {/* Recent Work Orders */}
-          <div className="space-y-5 opacity-0 animate-fade-in animate-delay-3">
+          <div className="space-y-3 opacity-0 animate-fade-in animate-delay-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Recent Work Orders</h2>
+              <h2 className="text-base font-semibold text-foreground">Recent Work Orders</h2>
               <Link href="/work-orders">
-                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground rounded-lg">
+                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground rounded-lg">
                   View All
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>

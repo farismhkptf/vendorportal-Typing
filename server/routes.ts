@@ -374,6 +374,20 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/staff/bulk", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "IDs array is required" });
+      }
+      const deleted = await storage.bulkDeleteStaff(ids);
+      res.json({ deleted });
+    } catch (error) {
+      console.error("Bulk delete staff error:", error);
+      res.status(500).json({ message: "Failed to bulk delete staff" });
+    }
+  });
+
   // ========== Centers ==========
   app.get("/api/centers", async (req, res) => {
     try {
@@ -424,6 +438,20 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete center error:", error);
       res.status(500).json({ message: "Failed to delete center" });
+    }
+  });
+
+  app.delete("/api/centers/bulk", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "IDs array is required" });
+      }
+      const deleted = await storage.bulkDeleteCenters(ids);
+      res.json({ deleted });
+    } catch (error) {
+      console.error("Bulk delete centers error:", error);
+      res.status(500).json({ message: "Failed to bulk delete centers" });
     }
   });
 
@@ -565,6 +593,34 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/service-types/bulk", async (req, res) => {
+    try {
+      const { names } = req.body;
+      if (!Array.isArray(names) || names.length === 0) {
+        return res.status(400).json({ message: "Names array is required" });
+      }
+      const types = await storage.bulkCreateServiceTypes(names);
+      res.status(201).json(types);
+    } catch (error) {
+      console.error("Bulk create service types error:", error);
+      res.status(500).json({ message: "Failed to bulk create service types" });
+    }
+  });
+
+  app.delete("/api/service-types/bulk", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "IDs array is required" });
+      }
+      const deleted = await storage.bulkDeleteServiceTypes(ids);
+      res.json({ deleted });
+    } catch (error) {
+      console.error("Bulk delete service types error:", error);
+      res.status(500).json({ message: "Failed to bulk delete service types" });
+    }
+  });
+
   // ========== Job Types ==========
   app.get("/api/job-types", async (req, res) => {
     try {
@@ -615,6 +671,20 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete job type error:", error);
       res.status(500).json({ message: "Failed to delete job type" });
+    }
+  });
+
+  app.delete("/api/job-types/bulk", async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ message: "IDs array is required" });
+      }
+      const deleted = await storage.bulkDeleteJobTypes(ids);
+      res.json({ deleted });
+    } catch (error) {
+      console.error("Bulk delete job types error:", error);
+      res.status(500).json({ message: "Failed to bulk delete job types" });
     }
   });
 
