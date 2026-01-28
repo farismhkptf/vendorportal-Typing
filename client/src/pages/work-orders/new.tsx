@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X } from "lucide-react";
+import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X, Phone, Mail, Star } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,15 +14,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
-import { SectionCard } from "@/components/ui/section-card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Company, ServiceType } from "@shared/schema";
 import { Link } from "wouter";
+import { cn } from "@/lib/utils";
 
 const workOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits (e.g., J016308)"),
   applicantName: z.string().min(1, "Applicant name is required"),
+  applicantPhone: z.string().optional(),
+  applicantEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
+  isVip: z.boolean().default(false),
   companyId: z.string().min(1, "Company is required"),
   serviceTypeId: z.string().optional(),
   notes: z.string().optional(),
@@ -65,6 +68,9 @@ export default function NewWorkOrder() {
     defaultValues: {
       woNumber: "",
       applicantName: "",
+      applicantPhone: "",
+      applicantEmail: "",
+      isVip: false,
       companyId: "",
       serviceTypeId: "",
       notes: "",
@@ -476,74 +482,170 @@ export default function NewWorkOrder() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Work Order Number */}
-            <SectionCard title="Work Order Number" required>
-              <FormField
-                control={form.control}
-                name="woNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-muted-foreground">Work Order Number</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <FileText className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Card className="border border-border/50 shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">Work Order Number</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Unique identifier for this order</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <FormField
+                  control={form.control}
+                  name="woNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">WO Number <span className="text-destructive">*</span></FormLabel>
+                      <FormControl>
                         <Input
                           {...field}
                           placeholder="e.g., J016308"
-                          className="pl-10 h-12 rounded-xl uppercase"
+                          className="h-11 uppercase font-mono text-lg tracking-wider"
                           onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                           data-testid="input-wo-number"
                         />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </SectionCard>
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground mt-1">Format: Letter + 5-6 digits (e.g., J016308)</p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
 
             {/* Applicant Details */}
-            <SectionCard title="Applicant Details" required>
-              <div className="space-y-4">
+            <Card className="border border-border/50 shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-base font-semibold">Applicant Details</CardTitle>
+                      <p className="text-xs text-muted-foreground mt-0.5">Personal information and contact</p>
+                    </div>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="isVip"
+                    render={({ field }) => (
+                      <Button
+                        type="button"
+                        variant={field.value ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => field.onChange(!field.value)}
+                        className={cn(
+                          "gap-2 rounded-full transition-all",
+                          field.value && "bg-amber-500 text-white border-amber-500"
+                        )}
+                        data-testid="button-vip-toggle"
+                      >
+                        <Star className={cn("h-4 w-4", field.value && "fill-current")} />
+                        {field.value ? "VIP" : "Mark VIP"}
+                      </Button>
+                    )}
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
                   name="applicantName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm text-muted-foreground">Full Name</FormLabel>
+                      <FormLabel className="text-sm font-medium">Full Name <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            {...field}
-                            placeholder="Enter applicant's full name"
-                            className="pl-10 h-12 rounded-xl"
-                            data-testid="input-applicant-name"
-                          />
-                        </div>
+                        <Input
+                          {...field}
+                          placeholder="Enter applicant's full name"
+                          className="h-11"
+                          data-testid="input-applicant-name"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-            </SectionCard>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="applicantPhone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">Contact Number</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              {...field}
+                              placeholder="+971 50 123 4567"
+                              className="pl-10 h-11"
+                              data-testid="input-applicant-phone"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="applicantEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-sm font-medium">Email Address</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="applicant@email.com"
+                              className="pl-10 h-11"
+                              data-testid="input-applicant-email"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Company Selection */}
-            <SectionCard title="Company" required>
-              <div className="space-y-4">
+            <Card className="border border-border/50 shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-emerald-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">Company</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Client organization for this work order</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
                   name="companyId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-sm text-muted-foreground">Select Company</FormLabel>
+                      <FormLabel className="text-sm font-medium">Select Company <span className="text-destructive">*</span></FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger className="h-12 rounded-xl" data-testid="select-company">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-muted-foreground" />
-                              <SelectValue placeholder="Choose a company" />
-                            </div>
+                          <SelectTrigger className="h-11" data-testid="select-company">
+                            <SelectValue placeholder="Choose a company" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -559,70 +661,76 @@ export default function NewWorkOrder() {
                   )}
                 />
 
-                {/* Company Snapshot */}
                 {selectedCompany && (
-                  <div className="p-4 rounded-xl bg-muted/50 space-y-2" data-testid="company-snapshot">
+                  <div className="p-4 rounded-lg bg-muted/30 border border-border/30" data-testid="company-snapshot">
                     <p className="text-sm font-medium text-foreground">{selectedCompany.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Company details will be displayed here
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Company preferences and staff will apply to this work order
                     </p>
                   </div>
                 )}
-              </div>
-            </SectionCard>
+              </CardContent>
+            </Card>
 
-            {/* Service Type */}
-            <SectionCard title="Service Type">
-              <FormField
-                control={form.control}
-                name="serviceTypeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-muted-foreground">Type of Service</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger className="h-12 rounded-xl" data-testid="select-service-type">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4 text-muted-foreground" />
+            {/* Service Type & Notes - Combined Card */}
+            <Card className="border border-border/50 shadow-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                    <FileText className="h-5 w-5 text-violet-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base font-semibold">Service Details</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Type of service and additional notes</p>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="serviceTypeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Service Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-11" data-testid="select-service-type">
                             <SelectValue placeholder="Select service type (optional)" />
-                          </div>
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {serviceTypes?.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </SectionCard>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {serviceTypes?.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            {/* Notes */}
-            <SectionCard title="Additional Notes">
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm text-muted-foreground">Notes</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        placeholder="Add any additional notes or instructions..."
-                        className="min-h-24 rounded-xl resize-none"
-                        data-testid="input-notes"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </SectionCard>
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Additional Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Add any additional notes or instructions..."
+                          className="min-h-20 resize-none"
+                          data-testid="input-notes"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
 
             {/* Submit */}
             <div className="flex justify-end gap-3">

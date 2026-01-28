@@ -15,7 +15,9 @@ import {
   Mail,
   Plus,
   Pencil,
-  Trash2
+  Trash2,
+  Phone,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +41,9 @@ import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, Service
 const editWorkOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits"),
   applicantName: z.string().min(1, "Applicant name is required"),
+  applicantPhone: z.string().optional(),
+  applicantEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
+  isVip: z.boolean().default(false),
   companyId: z.string().min(1, "Company is required"),
   serviceTypeId: z.string().optional(),
   status: z.string(),
@@ -84,6 +89,9 @@ export default function WorkOrderDetail() {
     defaultValues: {
       woNumber: "",
       applicantName: "",
+      applicantPhone: "",
+      applicantEmail: "",
+      isVip: false,
       companyId: "",
       serviceTypeId: "",
       status: "Draft",
@@ -125,6 +133,9 @@ export default function WorkOrderDetail() {
       form.reset({
         woNumber: workOrder.woNumber,
         applicantName: workOrder.applicantName,
+        applicantPhone: workOrder.applicantPhone || "",
+        applicantEmail: workOrder.applicantEmail || "",
+        isVip: workOrder.isVip || false,
         companyId: workOrder.companyId,
         serviceTypeId: workOrder.serviceTypeId || "",
         status: workOrder.status,
@@ -249,9 +260,17 @@ export default function WorkOrderDetail() {
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                   <FileText className="h-5 w-5 text-primary" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Work Order Number</p>
-                  <p className="font-medium text-foreground">{workOrder.woNumber}</p>
+                <div className="flex items-center gap-2">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Work Order Number</p>
+                    <p className="font-medium text-foreground">{workOrder.woNumber}</p>
+                  </div>
+                  {workOrder.isVip && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
+                      <Star className="h-3 w-3 fill-current" />
+                      VIP
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -263,6 +282,22 @@ export default function WorkOrderDetail() {
                   <p className="font-medium text-foreground">{workOrder.applicantName}</p>
                 </div>
               </div>
+              {(workOrder.applicantPhone || workOrder.applicantEmail) && (
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Phone className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Applicant Contact</p>
+                    {workOrder.applicantPhone && (
+                      <p className="text-sm text-foreground">{workOrder.applicantPhone}</p>
+                    )}
+                    {workOrder.applicantEmail && (
+                      <p className="text-sm text-foreground">{workOrder.applicantEmail}</p>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="flex items-start gap-3">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
                   <FileText className="h-5 w-5 text-primary" />
@@ -540,6 +575,55 @@ export default function WorkOrderDetail() {
                       <Input {...field} placeholder="Full name" data-testid="input-edit-applicant" />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="applicantPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contact Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="+971 50 123 4567" data-testid="input-edit-phone" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="applicantEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="email" placeholder="applicant@email.com" data-testid="input-edit-email" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="isVip"
+                render={({ field }) => (
+                  <FormItem className="flex items-center gap-3 space-y-0">
+                    <FormControl>
+                      <Button
+                        type="button"
+                        variant={field.value ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => field.onChange(!field.value)}
+                        className={field.value ? "bg-amber-500 text-white border-amber-500 gap-2" : "gap-2"}
+                        data-testid="button-edit-vip"
+                      >
+                        <Star className={`h-4 w-4 ${field.value ? "fill-current" : ""}`} />
+                        {field.value ? "VIP" : "Mark as VIP"}
+                      </Button>
+                    </FormControl>
                   </FormItem>
                 )}
               />
