@@ -1350,141 +1350,97 @@ export default function AdminPage() {
                 </Dialog>
               </div>
 
-              {/* Edit Staff Dialog */}
+              {/* Edit Staff Dialog - Modern Compact Design */}
               <Dialog open={editStaffDialogOpen} onOpenChange={setEditStaffDialogOpen}>
-                <DialogContent className="rounded-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Edit Staff Member</DialogTitle>
-                  </DialogHeader>
+                <DialogContent className="rounded-2xl max-w-md p-0 gap-0 overflow-hidden">
+                  <div className="bg-gradient-to-r from-primary/5 to-primary/10 px-5 py-4 border-b">
+                    <DialogHeader>
+                      <DialogTitle className="text-base font-semibold">Edit Staff Member</DialogTitle>
+                    </DialogHeader>
+                  </div>
                   <Form {...editStaffForm}>
-                    <form onSubmit={editStaffForm.handleSubmit((data) => editingStaff && updateStaffMutation.mutate({ ...data, id: editingStaff.id }))} className="space-y-4">
-                      <FormField
-                        control={editStaffForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Name</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="e.g., John Smith" className="h-11 rounded-xl" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={editStaffForm.control}
-                        name="roleTitle"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Role Title</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="e.g., PRO, Ops Manager" className="h-11 rounded-xl" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={editStaffForm.control}
-                        name="staffType"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Staff Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="h-11 rounded-xl">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Permanent">Permanent Staff</SelectItem>
-                                <SelectItem value="Temporary">Temporary Staff</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={editStaffForm.control}
-                        name="phone"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Phone</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="+971 50 000 0000" className="h-11 rounded-xl" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={editStaffForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                              <Input {...field} placeholder="name@company.com" className="h-11 rounded-xl" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={editStaffForm.control}
-                        name="status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="h-11 rounded-xl">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Active">Active</SelectItem>
-                                <SelectItem value="OnLeave">On Leave</SelectItem>
-                                <SelectItem value="Cancelled">Cancelled</SelectItem>
-                                <SelectItem value="TempActive">Temporarily Active</SelectItem>
-                                <SelectItem value="TempInactive">Temporarily Inactive</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {editStaffForm.watch("status") === "OnLeave" && (
+                    <form onSubmit={editStaffForm.handleSubmit((data) => editingStaff && updateStaffMutation.mutate({ ...data, id: editingStaff.id }))} className="p-5 space-y-4">
+                      <div className="grid grid-cols-2 gap-3">
                         <FormField
                           control={editStaffForm.control}
-                          name="replacementId"
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem className="col-span-2">
+                              <FormLabel className="text-xs text-muted-foreground">Full Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g., John Smith" className="h-9 rounded-lg" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editStaffForm.control}
+                          name="roleTitle"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Replacement Staff</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value || ""}>
+                              <FormLabel className="text-xs text-muted-foreground">Role Title</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g., P.R.O." className="h-9 rounded-lg" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editStaffForm.control}
+                          name="staffType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-muted-foreground">Staff Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
-                                  <SelectTrigger className="h-11 rounded-xl">
-                                    <SelectValue placeholder="Select replacement..." />
+                                  <SelectTrigger className="h-9 rounded-lg">
+                                    <SelectValue />
                                   </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="rounded-xl">
-                                  {staffList?.filter((s: Staff) => s.id !== editingStaff?.id && s.status === "Active").map((s: Staff) => (
-                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                                  ))}
+                                <SelectContent className="rounded-lg">
+                                  <SelectItem value="Permanent">Permanent</SelectItem>
+                                  <SelectItem value="Temporary">Temporary</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                      )}
-                      <div className="flex justify-end gap-3 pt-4">
-                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditStaffDialogOpen(false)}>
+                        <FormField
+                          control={editStaffForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-muted-foreground">Phone</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="050 000 0000" className="h-9 rounded-lg" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={editStaffForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs text-muted-foreground">Email</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="name@company.com" className="h-9 rounded-lg" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 pt-2 border-t mt-4">
+                        <Button type="button" variant="ghost" size="sm" className="rounded-lg" onClick={() => setEditStaffDialogOpen(false)}>
                           Cancel
                         </Button>
-                        <Button type="submit" className="rounded-xl" disabled={updateStaffMutation.isPending}>
-                          {updateStaffMutation.isPending ? "Saving..." : "Save Changes"}
+                        <Button type="submit" size="sm" className="rounded-lg" disabled={updateStaffMutation.isPending}>
+                          {updateStaffMutation.isPending ? "Saving..." : "Save"}
                         </Button>
                       </div>
                     </form>
@@ -1549,9 +1505,10 @@ export default function AdminPage() {
                               }}
                             >
                               <PopoverTrigger asChild>
-                                <Badge 
+                                <Button 
                                   variant="outline"
-                                  className={`cursor-pointer gap-1 ${
+                                  size="sm"
+                                  className={`h-auto py-0.5 px-2 text-xs rounded-full gap-1 ${
                                     member.status === "Active" ? "bg-green-500/10 text-green-700 border-green-200" :
                                     member.status === "OnLeave" ? "bg-amber-500/10 text-amber-700 border-amber-200" :
                                     member.status === "Cancelled" ? "bg-red-500/10 text-red-700 border-red-200" :
@@ -1565,7 +1522,7 @@ export default function AdminPage() {
                                    member.status === "TempInactive" ? "Inactive" :
                                    member.status}
                                   <ChevronDown className="h-3 w-3" />
-                                </Badge>
+                                </Button>
                               </PopoverTrigger>
                               <PopoverContent className="w-72 rounded-xl p-4" align="start">
                                 <div className="space-y-4">
