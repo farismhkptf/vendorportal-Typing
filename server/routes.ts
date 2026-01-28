@@ -6,6 +6,7 @@ import { z } from "zod";
 import { 
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
   insertCenterSchema, insertServiceTypeSchema, insertJobTypeSchema, loginSchema,
+  insertAppointmentSchema,
   type CenterTimings
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
@@ -254,6 +255,47 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete work order error:", error);
       res.status(500).json({ message: "Failed to delete work order" });
+    }
+  });
+
+  // ========== Appointments ==========
+  app.get("/api/appointments", async (req, res) => {
+    try {
+      const { woId } = req.query;
+      if (woId && typeof woId === "string") {
+        const appointments = await storage.getAppointmentsByWoId(woId);
+        res.json(appointments);
+      } else {
+        const appointments = await storage.getTodayAppointments();
+        res.json(appointments);
+      }
+    } catch (error) {
+      console.error("Appointments error:", error);
+      res.status(500).json({ message: "Failed to fetch appointments" });
+    }
+  });
+
+  app.post("/api/appointments", async (req, res) => {
+    try {
+      const validation = validateBody(insertAppointmentSchema.omit({ messageSentAt: true, messageSentBy: true }), req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      const rescheduleToken = randomUUID();
+      const appointment = await storage.createAppointment({
+        ...validation.data,
+        rescheduleToken,
+      });
+      
+      if (appointment.woId) {
+        await storage.updateWorkOrder(appointment.woId, { status: "Scheduled" });
+      }
+      
+      res.status(201).json(appointment);
+    } catch (error) {
+      console.error("Create appointment error:", error);
+      res.status(500).json({ message: "Failed to create appointment" });
     }
   });
 

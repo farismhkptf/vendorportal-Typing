@@ -20,6 +20,7 @@ import AdminPage from "@/pages/admin/index";
 import VendorLogin from "@/pages/vendor/login";
 import VendorJobs from "@/pages/vendor/jobs";
 import ReschedulePage from "@/pages/reschedule";
+import ScheduleMedical from "@/pages/appointments/schedule-medical";
 
 function Router() {
   return (
@@ -39,6 +40,7 @@ function Router() {
       <Route path="/vendor/login" component={VendorLogin} />
       <Route path="/vendor/jobs" component={VendorJobs} />
       <Route path="/reschedule/:token" component={ReschedulePage} />
+      <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
       <Route component={NotFound} />
     </Switch>
   );

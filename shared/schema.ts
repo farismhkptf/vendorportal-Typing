@@ -208,11 +208,16 @@ export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   woId: varchar("wo_id").notNull(),
   type: appointmentTypeEnum("type").notNull(),
+  isVip: boolean("is_vip").notNull().default(false),
   datetime: timestamp("datetime").notNull(),
   centerId: varchar("center_id"),
   assignedStaffId: varchar("assigned_staff_id"),
+  applicationNumber: text("application_number"),
+  notes: text("notes"),
   rescheduleToken: varchar("reschedule_token").unique(),
   status: appointmentStatusEnum("status").notNull().default("Scheduled"),
+  messageSentAt: timestamp("message_sent_at"),
+  messageSentBy: varchar("message_sent_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
