@@ -127,6 +127,15 @@ Four user roles with different permissions:
 - All forms use z.coerce.number() for numeric fields
 - All mutations properly invalidate cache on success
 
+### Schedule Medical Feature (January 28, 2026)
+- Two modes: Wizard (3-step guided flow) and Quick (compact single-screen)
+- Step 1: WO search with autocomplete, Create WO modal for missing entries
+- Step 2: Appointment details - center selection filtered by VIP/Normal, date/time pickers, staff assignment
+- Step 3: Email/WhatsApp preview with copy-to-clipboard functionality
+- Medical centers filter based on VIP selection (uses company's preferred center as default)
+- Appointments schema extended with isVip, applicationNumber, notes, messageSentAt/By fields
+- Guardrails: Hard block if staff not assigned, soft warning if center differs from company preference
+
 ### Security Improvements
 - Added Zod validation to all POST/PUT API endpoints
 - Request body validation prevents invalid data from being saved

@@ -8,7 +8,8 @@ import {
   Wallet,
   LogOut,
   Menu,
-  X
+  X,
+  Stethoscope
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ interface AppLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Work Orders", href: "/work-orders", icon: FileText },
+  { name: "Schedule Medical", href: "/appointments/schedule-medical", icon: Stethoscope },
   { name: "Typing Jobs", href: "/typing-jobs", icon: Calendar },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
   { name: "Admin Console", href: "/admin", icon: Settings },

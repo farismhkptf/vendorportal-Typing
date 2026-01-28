@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -107,13 +107,6 @@ export default function ScheduleMedical() {
     return centers.filter(c => c.type === "Medical" || c.type === "Both");
   }, [centers]);
 
-  const filteredCenters = useMemo(() => {
-    const isVip = form.getValues("isVip");
-    return medicalCenters.filter(c => 
-      isVip ? c.tier === "VIP" : c.tier === "Normal"
-    );
-  }, [medicalCenters, selectedWo?.isVip]);
-
   const activeStaff = useMemo(() => {
     if (!staffList) return [];
     return staffList.filter(s => s.status === "Active" || s.status === "TempActive");
@@ -152,6 +145,14 @@ export default function ScheduleMedical() {
       companyId: "",
     },
   });
+
+  const watchedIsVip = useWatch({ control: form.control, name: "isVip" });
+
+  const filteredCenters = useMemo(() => {
+    return medicalCenters.filter(c => 
+      watchedIsVip ? c.tier === "VIP" : c.tier === "Normal"
+    );
+  }, [medicalCenters, watchedIsVip]);
 
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: AppointmentForm) => {
