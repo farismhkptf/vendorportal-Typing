@@ -8,9 +8,7 @@ import {
   Wallet,
   LogOut,
   Menu,
-  X,
-  Building2,
-  Users
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,10 +25,6 @@ const navigation = [
   { name: "Admin Console", href: "/admin", icon: Settings },
 ];
 
-const adminModules = [
-  { name: "Companies", href: "/companies", icon: Building2 },
-  { name: "Staff", href: "/staff", icon: Users },
-];
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
@@ -137,27 +131,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Menu className="h-5 w-5" />
             </Button>
             <div className="flex-1" />
-            {/* Admin modules */}
-            <div className="flex items-center gap-2">
-              {adminModules.map((item) => {
-                const isActive = location === item.href || location.startsWith(item.href);
-                return (
-                  <Link key={item.name} href={item.href}>
-                    <Button
-                      variant={isActive ? "default" : "ghost"}
-                      className={cn(
-                        "gap-2 rounded-full",
-                        isActive && "shadow-sm"
-                      )}
-                      data-testid={`button-admin-${item.name.toLowerCase()}`}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      {item.name}
-                    </Button>
-                  </Link>
-                );
-              })}
-            </div>
             {/* Help widget */}
             <Button 
               variant="outline" 
