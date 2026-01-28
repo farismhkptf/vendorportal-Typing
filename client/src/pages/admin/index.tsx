@@ -15,7 +15,8 @@ import {
   Search,
   Trash2,
   Calendar,
-  ChevronDown
+  ChevronDown,
+  Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -1101,13 +1102,16 @@ export default function AdminPage() {
                         open={centerSectionsOpen.vip} 
                         onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, vip: open }))}
                       >
-                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg bg-amber-500/5 border border-amber-400/30">
+                        <CollapsibleTrigger 
+                          className="flex items-center justify-between gap-2 w-full p-3 rounded-lg bg-amber-500/5 border border-amber-400/30"
+                          data-testid="button-toggle-section-vip"
+                        >
                           <div className="flex items-center gap-2">
                             <div className="h-6 w-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
-                              <span className="text-white text-xs font-bold">★</span>
+                              <Star className="h-3 w-3 text-white fill-white" />
                             </div>
                             <span className="font-medium text-sm">Medical Centers (VIP)</span>
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-xs">
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-xs" data-testid="text-center-count-vip">
                               {vipCenters.length}
                             </Badge>
                           </div>
@@ -1138,7 +1142,7 @@ export default function AdminPage() {
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <p className="font-medium text-foreground text-sm">{center.name}</p>
-                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-[10px] px-1.5 py-0">
+                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-[10px] px-1.5 py-0" data-testid={`badge-medical-vip-${center.id}`}>
                                       Medical VIP
                                     </Badge>
                                   </div>
@@ -1203,13 +1207,16 @@ export default function AdminPage() {
                         open={centerSectionsOpen.normal} 
                         onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, normal: open }))}
                       >
-                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg bg-muted/30 border border-border/30">
+                        <CollapsibleTrigger 
+                          className="flex items-center justify-between gap-2 w-full p-3 rounded-lg bg-muted/30 border border-border/30"
+                          data-testid="button-toggle-section-normal"
+                        >
                           <div className="flex items-center gap-2">
                             <div className="icon-container icon-container-sm">
                               <MapPin className="h-3.5 w-3.5" />
                             </div>
                             <span className="font-medium text-sm">Medical Centers (Normal)</span>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-xs" data-testid="text-center-count-normal">
                               {normalCenters.length}
                             </Badge>
                           </div>
@@ -1300,13 +1307,16 @@ export default function AdminPage() {
                         open={centerSectionsOpen.eid} 
                         onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, eid: open }))}
                       >
-                        <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg bg-blue-500/5 border border-blue-400/30">
+                        <CollapsibleTrigger 
+                          className="flex items-center justify-between gap-2 w-full p-3 rounded-lg bg-blue-500/5 border border-blue-400/30"
+                          data-testid="button-toggle-section-eid"
+                        >
                           <div className="flex items-center gap-2">
                             <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
                               <User className="h-3 w-3 text-white" />
                             </div>
                             <span className="font-medium text-sm">Emirates ID Biometric Centers</span>
-                            <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-300 text-xs">
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-300 text-xs" data-testid="text-center-count-eid">
                               {eidCenters.length}
                             </Badge>
                           </div>
