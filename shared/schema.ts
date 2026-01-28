@@ -73,7 +73,8 @@ export const authorTypeEnum = pgEnum("author_type", ["Internal", "Vendor"]);
 export const messageChannelEnum = pgEnum("message_channel", ["Email", "WhatsApp"]);
 export const messageStatusEnum = pgEnum("message_status", ["Draft", "MarkedSent", "Failed"]);
 export const walletEntryTypeEnum = pgEnum("wallet_entry_type", ["Topup", "Debit", "Reversal", "Adjustment"]);
-export const staffStatusEnum = pgEnum("staff_status", ["Active", "OnLeave", "TempActive", "TempInactive"]);
+export const staffStatusEnum = pgEnum("staff_status", ["Active", "OnLeave", "Cancelled", "TempActive", "TempInactive"]);
+export const staffTypeEnum = pgEnum("staff_type", ["Permanent", "Temporary"]);
 
 // Client contact type for companies
 export type ClientContact = {
@@ -118,9 +119,11 @@ export const staff = pgTable("staff", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   roleTitle: text("role_title").notNull(),
+  staffType: staffTypeEnum("staff_type").notNull().default("Permanent"),
   phone: text("phone"),
   email: text("email"),
   status: staffStatusEnum("status").notNull().default("Active"),
+  replacementId: varchar("replacement_id"), // Staff member covering when on leave
   active: boolean("active").notNull().default(true),
 });
 

@@ -114,6 +114,7 @@ export interface IStorage {
   // Seed service types
   seedServiceTypes(): Promise<{ added: number; skipped: number }>;
   seedVendorJobs(): Promise<{ added: number; skipped: number }>;
+  seedStaff(): Promise<{ added: number; skipped: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -948,6 +949,46 @@ export class DatabaseStorage implements IStorage {
     }
 
     console.log(`Vendor jobs seeded: ${added} added, ${skipped} skipped`);
+    return { added, skipped };
+  }
+
+  async seedStaff(): Promise<{ added: number; skipped: number }> {
+    // Staff members from the spreadsheet
+    const staffData: Array<{
+      name: string;
+      roleTitle: string;
+      staffType: "Permanent" | "Temporary";
+      phone: string;
+      email: string;
+    }> = [
+      // Permanent Staff (4)
+      { name: "Faris", roleTitle: "CEO", staffType: "Permanent", phone: "0509161815", email: "faris@procompany.ae" },
+      { name: "Yaseen", roleTitle: "Client Relationship Manager", staffType: "Permanent", phone: "0551558435", email: "yasin@procompany.ae" },
+      { name: "Shahul", roleTitle: "PRO", staffType: "Permanent", phone: "0568115077", email: "operations@procompany.ae" },
+      { name: "Amal", roleTitle: "PRO", staffType: "Permanent", phone: "0562125789", email: "amal@procompany.ae" },
+      // Temporary Staff (2)
+      { name: "Varghese", roleTitle: "PRO", staffType: "Temporary", phone: "0585177911", email: "operations@procompany.ae" },
+      { name: "Shahzad", roleTitle: "PRO", staffType: "Temporary", phone: "0509423896", email: "operations@procompany.ae" },
+    ];
+
+    let added = 0;
+    let skipped = 0;
+
+    for (const staffMember of staffData) {
+      // Check if staff member already exists by name
+      const existing = await db.select().from(staff).where(eq(staff.name, staffMember.name));
+      
+      if (existing.length > 0) {
+        skipped++;
+        continue;
+      }
+
+      // Insert the staff member
+      await db.insert(staff).values(staffMember);
+      added++;
+    }
+
+    console.log(`Staff seeded: ${added} added, ${skipped} skipped`);
     return { added, skipped };
   }
 }

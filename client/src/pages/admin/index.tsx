@@ -59,8 +59,11 @@ const centerSchema = z.object({
 const staffSchema = z.object({
   name: z.string().min(1, "Name is required"),
   roleTitle: z.string().min(1, "Role is required"),
+  staffType: z.enum(["Permanent", "Temporary"]).default("Permanent"),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
+  status: z.enum(["Active", "OnLeave", "Cancelled", "TempActive", "TempInactive"]).default("Active"),
+  replacementId: z.string().optional().nullable(),
 });
 
 const serviceTypeSchema = z.object({
@@ -170,23 +173,29 @@ export default function AdminPage() {
     },
   });
 
-  const staffForm = useForm({
+  const staffForm = useForm<z.infer<typeof staffSchema>>({
     resolver: zodResolver(staffSchema),
     defaultValues: {
       name: "",
       roleTitle: "",
+      staffType: "Permanent",
       phone: "",
       email: "",
+      status: "Active",
+      replacementId: null,
     },
   });
 
-  const editStaffForm = useForm({
+  const editStaffForm = useForm<z.infer<typeof staffSchema>>({
     resolver: zodResolver(staffSchema),
     defaultValues: {
       name: "",
       roleTitle: "",
+      staffType: "Permanent",
       phone: "",
       email: "",
+      status: "Active",
+      replacementId: null,
     },
   });
 
@@ -535,8 +544,11 @@ export default function AdminPage() {
     editStaffForm.reset({
       name: member.name,
       roleTitle: member.roleTitle,
+      staffType: member.staffType || "Permanent",
       phone: member.phone || "",
       email: member.email || "",
+      status: member.status || "Active",
+      replacementId: member.replacementId ?? null,
     });
     setEditStaffDialogOpen(true);
   };
@@ -1190,6 +1202,27 @@ export default function AdminPage() {
                         />
                         <FormField
                           control={staffForm.control}
+                          name="staffType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Staff Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="h-11 rounded-xl">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="rounded-xl">
+                                  <SelectItem value="Permanent">Permanent Staff</SelectItem>
+                                  <SelectItem value="Temporary">Temporary Staff</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={staffForm.control}
                           name="phone"
                           render={({ field }) => (
                             <FormItem>
@@ -1214,6 +1247,54 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
+                        <FormField
+                          control={staffForm.control}
+                          name="status"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Status</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger className="h-11 rounded-xl">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="rounded-xl">
+                                  <SelectItem value="Active">Active</SelectItem>
+                                  <SelectItem value="OnLeave">On Leave</SelectItem>
+                                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                  <SelectItem value="TempActive">Temporarily Active</SelectItem>
+                                  <SelectItem value="TempInactive">Temporarily Inactive</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        {staffForm.watch("status") === "OnLeave" && (
+                          <FormField
+                            control={staffForm.control}
+                            name="replacementId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Replacement Staff</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                  <FormControl>
+                                    <SelectTrigger className="h-11 rounded-xl">
+                                      <SelectValue placeholder="Select replacement..." />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="rounded-xl">
+                                    {staffList?.filter((s: Staff) => s.status === "Active").map((s: Staff) => (
+                                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                         <div className="flex justify-end gap-3 pt-4">
                           <Button type="button" variant="outline" className="rounded-xl" onClick={() => setStaffDialogOpen(false)}>
                             Cancel
@@ -1264,6 +1345,27 @@ export default function AdminPage() {
                       />
                       <FormField
                         control={editStaffForm.control}
+                        name="staffType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Staff Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 rounded-xl">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="Permanent">Permanent Staff</SelectItem>
+                                <SelectItem value="Temporary">Temporary Staff</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editStaffForm.control}
                         name="phone"
                         render={({ field }) => (
                           <FormItem>
@@ -1288,6 +1390,54 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={editStaffForm.control}
+                        name="status"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Status</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 rounded-xl">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="rounded-xl">
+                                <SelectItem value="Active">Active</SelectItem>
+                                <SelectItem value="OnLeave">On Leave</SelectItem>
+                                <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                <SelectItem value="TempActive">Temporarily Active</SelectItem>
+                                <SelectItem value="TempInactive">Temporarily Inactive</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      {editStaffForm.watch("status") === "OnLeave" && (
+                        <FormField
+                          control={editStaffForm.control}
+                          name="replacementId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Replacement Staff</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || ""}>
+                                <FormControl>
+                                  <SelectTrigger className="h-11 rounded-xl">
+                                    <SelectValue placeholder="Select replacement..." />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="rounded-xl">
+                                  {staffList?.filter((s: Staff) => s.id !== editingStaff?.id && s.status === "Active").map((s: Staff) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditStaffDialogOpen(false)}>
                           Cancel
@@ -1331,14 +1481,41 @@ export default function AdminPage() {
                             {member.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
                           </span>
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground">{member.name}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary" className="text-xs rounded-full">{member.roleTitle}</Badge>
-                            {member.email && (
-                              <span className="text-sm text-muted-foreground">{member.email}</span>
-                            )}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground">{member.name}</p>
+                            <Badge 
+                              variant={member.staffType === "Permanent" ? "default" : "outline"} 
+                              className="text-xs rounded-full"
+                            >
+                              {member.staffType || "Permanent"}
+                            </Badge>
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs rounded-full ${
+                                member.status === "Active" ? "bg-green-500/10 text-green-700 border-green-200" :
+                                member.status === "OnLeave" ? "bg-amber-500/10 text-amber-700 border-amber-200" :
+                                member.status === "Cancelled" ? "bg-red-500/10 text-red-700 border-red-200" :
+                                member.status === "TempActive" ? "bg-blue-500/10 text-blue-700 border-blue-200" :
+                                "bg-gray-500/10 text-gray-700 border-gray-200"
+                              }`}
+                            >
+                              {member.status === "OnLeave" ? "On Leave" :
+                               member.status === "TempActive" ? "Temporarily Active" :
+                               member.status === "TempInactive" ? "Temporarily Inactive" :
+                               member.status}
+                            </Badge>
                           </div>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            <span>{member.roleTitle}</span>
+                            {member.phone && <span>{member.phone}</span>}
+                            {member.email && <span>{member.email}</span>}
+                          </div>
+                          {member.status === "OnLeave" && member.replacementId && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Covered by: {staffList?.find((s: Staff) => s.id === member.replacementId)?.name || "Unknown"}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1">

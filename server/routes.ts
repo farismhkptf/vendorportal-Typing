@@ -932,6 +932,25 @@ export async function registerRoutes(
     }
   });
 
+  // Seed staff (development only)
+  app.post("/api/seed/staff", async (req, res) => {
+    try {
+      // Only allow in development environment
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "This endpoint is disabled in production" });
+      }
+      
+      const result = await storage.seedStaff();
+      res.json({ 
+        message: `Staff seeded: ${result.added} added, ${result.skipped} already existed`,
+        ...result
+      });
+    } catch (error) {
+      console.error("Seed staff error:", error);
+      res.status(500).json({ message: "Failed to seed staff" });
+    }
+  });
+
   // ========== Authentication ==========
   app.post("/api/auth/login", async (req, res) => {
     try {
