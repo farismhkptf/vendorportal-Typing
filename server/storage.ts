@@ -962,13 +962,13 @@ export class DatabaseStorage implements IStorage {
       email: string;
     }> = [
       // Permanent Staff (4)
-      { name: "Faris", roleTitle: "CEO", staffType: "Permanent", phone: "0509161815", email: "faris@procompany.ae" },
-      { name: "Yaseen", roleTitle: "Client Relationship Manager", staffType: "Permanent", phone: "0551558435", email: "yasin@procompany.ae" },
-      { name: "Shahul", roleTitle: "PRO", staffType: "Permanent", phone: "0568115077", email: "operations@procompany.ae" },
-      { name: "Amal", roleTitle: "PRO", staffType: "Permanent", phone: "0562125789", email: "amal@procompany.ae" },
+      { name: "Faris MHKP", roleTitle: "CEO", staffType: "Permanent", phone: "0509161815", email: "faris@procompany.ae" },
+      { name: "Yasin Aboo", roleTitle: "Client Relation Manager", staffType: "Permanent", phone: "0551558435", email: "yasin@procompany.ae" },
+      { name: "Shahul Hameed", roleTitle: "Medical Assistant Support", staffType: "Permanent", phone: "0568115077", email: "operations@procompany.ae" },
+      { name: "Amal Hussain", roleTitle: "P.R.O.", staffType: "Permanent", phone: "0562125789", email: "amal@procompany.ae" },
       // Temporary Staff (2)
-      { name: "Varghese", roleTitle: "PRO", staffType: "Temporary", phone: "0585177911", email: "operations@procompany.ae" },
-      { name: "Shahzad", roleTitle: "PRO", staffType: "Temporary", phone: "0509423896", email: "operations@procompany.ae" },
+      { name: "Varghese Cherian", roleTitle: "Medical Assistant Support", staffType: "Temporary", phone: "0585177911", email: "operations@procompany.ae" },
+      { name: "Shahzad Roshan", roleTitle: "Medical Assistant Support", staffType: "Temporary", phone: "0509423896", email: "operations@procompany.ae" },
     ];
 
     let added = 0;
