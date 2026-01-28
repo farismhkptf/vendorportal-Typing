@@ -124,6 +124,7 @@ export const staff = pgTable("staff", {
   email: text("email"),
   status: staffStatusEnum("status").notNull().default("Active"),
   replacementId: varchar("replacement_id"), // Staff member covering when on leave
+  leaveEndDate: text("leave_end_date"), // Date when leave ends (ISO format)
   active: boolean("active").notNull().default(true),
 });
 

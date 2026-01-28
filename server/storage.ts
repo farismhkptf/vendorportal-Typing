@@ -958,17 +958,18 @@ export class DatabaseStorage implements IStorage {
       name: string;
       roleTitle: string;
       staffType: "Permanent" | "Temporary";
+      status: "Active" | "OnLeave" | "Cancelled" | "TempActive" | "TempInactive";
       phone: string;
       email: string;
     }> = [
-      // Permanent Staff (4)
-      { name: "Faris MHKP", roleTitle: "CEO", staffType: "Permanent", phone: "0509161815", email: "faris@procompany.ae" },
-      { name: "Yasin Aboo", roleTitle: "Client Relation Manager", staffType: "Permanent", phone: "0551558435", email: "yasin@procompany.ae" },
-      { name: "Shahul Hameed", roleTitle: "Medical Assistant Support", staffType: "Permanent", phone: "0568115077", email: "operations@procompany.ae" },
-      { name: "Amal Hussain", roleTitle: "P.R.O.", staffType: "Permanent", phone: "0562125789", email: "amal@procompany.ae" },
-      // Temporary Staff (2)
-      { name: "Varghese Cherian", roleTitle: "Medical Assistant Support", staffType: "Temporary", phone: "0585177911", email: "operations@procompany.ae" },
-      { name: "Shahzad Roshan", roleTitle: "Medical Assistant Support", staffType: "Temporary", phone: "0509423896", email: "operations@procompany.ae" },
+      // Permanent Staff (4) - default to Active
+      { name: "Faris MHKP", roleTitle: "CEO", staffType: "Permanent", status: "Active", phone: "0509161815", email: "faris@procompany.ae" },
+      { name: "Yasin Aboo", roleTitle: "Client Relation Manager", staffType: "Permanent", status: "Active", phone: "0551558435", email: "yasin@procompany.ae" },
+      { name: "Shahul Hameed", roleTitle: "Medical Assistant Support", staffType: "Permanent", status: "Active", phone: "0568115077", email: "operations@procompany.ae" },
+      { name: "Amal Hussain", roleTitle: "P.R.O.", staffType: "Permanent", status: "Active", phone: "0562125789", email: "amal@procompany.ae" },
+      // Temporary Staff (2) - default to TempInactive (Inactive)
+      { name: "Varghese Cherian", roleTitle: "Medical Assistant Support", staffType: "Temporary", status: "TempInactive", phone: "0585177911", email: "operations@procompany.ae" },
+      { name: "Shahzad Roshan", roleTitle: "Medical Assistant Support", staffType: "Temporary", status: "TempInactive", phone: "0509423896", email: "operations@procompany.ae" },
     ];
 
     let added = 0;

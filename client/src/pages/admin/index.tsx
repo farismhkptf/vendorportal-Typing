@@ -13,12 +13,15 @@ import {
   Plus,
   Pencil,
   Search,
-  Trash2
+  Trash2,
+  Calendar,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -29,6 +32,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
@@ -64,6 +68,7 @@ const staffSchema = z.object({
   email: z.string().email().optional().or(z.literal("")),
   status: z.enum(["Active", "OnLeave", "Cancelled", "TempActive", "TempInactive"]).default("Active"),
   replacementId: z.string().optional().nullable(),
+  leaveEndDate: z.string().optional().nullable(),
 });
 
 const serviceTypeSchema = z.object({
@@ -113,6 +118,12 @@ export default function AdminPage() {
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([]);
+  const [statusPopoverId, setStatusPopoverId] = useState<string | null>(null);
+  const [statusChangeData, setStatusChangeData] = useState<{
+    status: string;
+    leaveEndDate: string;
+    replacementId: string;
+  }>({ status: "", leaveEndDate: "", replacementId: "" });
   const { toast } = useToast();
 
   const { data: companies, isLoading: companiesLoading } = useQuery<CompanyWithRelations[]>({
@@ -315,6 +326,36 @@ export default function AdminPage() {
       setEditStaffDialogOpen(false);
       setEditingStaff(null);
       editStaffForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateStaffStatusMutation = useMutation({
+    mutationFn: async (data: { 
+      id: string; 
+      status: string; 
+      leaveEndDate?: string; 
+      replacementId?: string;
+    }) => {
+      const { id, ...rest } = data;
+      // Update the staff member's status
+      await apiRequest("PUT", `/api/staff/${id}`, rest);
+      
+      // If a replacement is selected and they are temporary, activate them
+      if (rest.status === "OnLeave" && rest.replacementId) {
+        const replacement = staffList?.find((s: Staff) => s.id === rest.replacementId);
+        if (replacement && replacement.staffType === "Temporary") {
+          await apiRequest("PUT", `/api/staff/${rest.replacementId}`, { status: "TempActive" });
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/staff"] });
+      toast({ title: "Staff status updated successfully" });
+      setStatusPopoverId(null);
+      setStatusChangeData({ status: "", leaveEndDate: "", replacementId: "" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1484,27 +1525,138 @@ export default function AdminPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-foreground">{member.name}</p>
-                            <Badge 
-                              variant={member.staffType === "Permanent" ? "default" : "outline"} 
-                              className="text-xs rounded-full"
+                            {member.staffType === "Temporary" && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-xs rounded-full bg-red-500/10 text-red-600 border-red-200"
+                              >
+                                Temp
+                              </Badge>
+                            )}
+                            <Popover 
+                              open={statusPopoverId === member.id} 
+                              onOpenChange={(open) => {
+                                if (open) {
+                                  setStatusPopoverId(member.id);
+                                  setStatusChangeData({ 
+                                    status: member.status, 
+                                    leaveEndDate: (member as any).leaveEndDate || "", 
+                                    replacementId: member.replacementId || "" 
+                                  });
+                                } else {
+                                  setStatusPopoverId(null);
+                                }
+                              }}
                             >
-                              {member.staffType || "Permanent"}
-                            </Badge>
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs rounded-full ${
-                                member.status === "Active" ? "bg-green-500/10 text-green-700 border-green-200" :
-                                member.status === "OnLeave" ? "bg-amber-500/10 text-amber-700 border-amber-200" :
-                                member.status === "Cancelled" ? "bg-red-500/10 text-red-700 border-red-200" :
-                                member.status === "TempActive" ? "bg-blue-500/10 text-blue-700 border-blue-200" :
-                                "bg-gray-500/10 text-gray-700 border-gray-200"
-                              }`}
-                            >
-                              {member.status === "OnLeave" ? "On Leave" :
-                               member.status === "TempActive" ? "Temporarily Active" :
-                               member.status === "TempInactive" ? "Temporarily Inactive" :
-                               member.status}
-                            </Badge>
+                              <PopoverTrigger asChild>
+                                <Badge 
+                                  variant="outline"
+                                  className={`cursor-pointer gap-1 ${
+                                    member.status === "Active" ? "bg-green-500/10 text-green-700 border-green-200" :
+                                    member.status === "OnLeave" ? "bg-amber-500/10 text-amber-700 border-amber-200" :
+                                    member.status === "Cancelled" ? "bg-red-500/10 text-red-700 border-red-200" :
+                                    member.status === "TempActive" ? "bg-cyan-500/10 text-cyan-700 border-cyan-200" :
+                                    "bg-gray-500/10 text-gray-700 border-gray-200"
+                                  }`}
+                                  data-testid={`button-status-${member.id}`}
+                                >
+                                  {member.status === "OnLeave" ? "On Leave" :
+                                   member.status === "TempActive" ? "Temp Active" :
+                                   member.status === "TempInactive" ? "Inactive" :
+                                   member.status}
+                                  <ChevronDown className="h-3 w-3" />
+                                </Badge>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-72 rounded-xl p-4" align="start">
+                                <div className="space-y-4">
+                                  <div className="font-medium text-sm">Change Status</div>
+                                  <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">Status</Label>
+                                    <Select
+                                      value={statusChangeData.status}
+                                      onValueChange={(value) => setStatusChangeData(prev => ({ ...prev, status: value }))}
+                                    >
+                                      <SelectTrigger className="h-9 rounded-lg">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="rounded-lg">
+                                        {member.staffType === "Permanent" ? (
+                                          <>
+                                            <SelectItem value="Active">Active</SelectItem>
+                                            <SelectItem value="OnLeave">On Leave</SelectItem>
+                                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <SelectItem value="TempActive">Temp Active</SelectItem>
+                                            <SelectItem value="TempInactive">Inactive</SelectItem>
+                                            <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                          </>
+                                        )}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  
+                                  {statusChangeData.status === "OnLeave" && (
+                                    <>
+                                      <div className="space-y-2">
+                                        <Label className="text-xs text-muted-foreground">Leave Ends On</Label>
+                                        <Input
+                                          type="date"
+                                          value={statusChangeData.leaveEndDate}
+                                          onChange={(e) => setStatusChangeData(prev => ({ ...prev, leaveEndDate: e.target.value }))}
+                                          className="h-9 rounded-lg"
+                                        />
+                                      </div>
+                                      <div className="space-y-2">
+                                        <Label className="text-xs text-muted-foreground">Replacement</Label>
+                                        <Select
+                                          value={statusChangeData.replacementId}
+                                          onValueChange={(value) => setStatusChangeData(prev => ({ ...prev, replacementId: value }))}
+                                        >
+                                          <SelectTrigger className="h-9 rounded-lg">
+                                            <SelectValue placeholder="Select replacement" />
+                                          </SelectTrigger>
+                                          <SelectContent className="rounded-lg">
+                                            {staffList?.filter((s: Staff) => s.id !== member.id).map((s: Staff) => (
+                                              <SelectItem key={s.id} value={s.id}>
+                                                {s.name} {s.staffType === "Temporary" ? "(Temp)" : ""}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </div>
+                                    </>
+                                  )}
+                                  
+                                  <div className="flex gap-2 pt-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex-1 rounded-lg"
+                                      onClick={() => setStatusPopoverId(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 rounded-lg"
+                                      disabled={updateStaffStatusMutation.isPending}
+                                      onClick={() => {
+                                        updateStaffStatusMutation.mutate({
+                                          id: member.id,
+                                          status: statusChangeData.status,
+                                          leaveEndDate: statusChangeData.leaveEndDate || undefined,
+                                          replacementId: statusChangeData.replacementId || undefined,
+                                        });
+                                      }}
+                                    >
+                                      {updateStaffStatusMutation.isPending ? "Saving..." : "Save"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                             <span>{member.roleTitle}</span>
@@ -1514,6 +1666,7 @@ export default function AdminPage() {
                           {member.status === "OnLeave" && member.replacementId && (
                             <div className="text-xs text-muted-foreground mt-1">
                               Covered by: {staffList?.find((s: Staff) => s.id === member.replacementId)?.name || "Unknown"}
+                              {(member as any).leaveEndDate && ` (until ${new Date((member as any).leaveEndDate).toLocaleDateString()})`}
                             </div>
                           )}
                         </div>
