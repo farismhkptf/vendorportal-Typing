@@ -6,14 +6,14 @@ import { useLocation } from "wouter";
 import { 
   ArrowLeft, ArrowRight, Check, Building2, User, Calendar, Clock, MapPin, 
   Phone, Mail, Star, Copy, Send, AlertTriangle, Zap, ListOrdered,
-  Stethoscope, FileText, UserCheck, MessageSquare, CheckCircle2
+  Stethoscope, FileText, UserCheck, MessageSquare, CheckCircle2, Pencil
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -817,52 +817,89 @@ Please arrive 15 mins early with documents.`;
 
       <Card className="mb-4">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            Appointment Summary
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              Appointment Summary
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentStep(2)}
+              className="gap-1.5 text-xs"
+              data-testid="button-edit-details"
+            >
+              <Pencil className="h-3 w-3" />
+              Edit Details
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <span className="text-muted-foreground">Work Order:</span>
-            <span className="ml-2 font-medium">{selectedWo?.woNumber}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Applicant:</span>
-            <span className="ml-2 font-medium">{selectedWo?.applicantName}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Company:</span>
-            <span className="ml-2 font-medium">{selectedCompany?.name}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Center:</span>
-            <span className="ml-2 font-medium">{selectedCenter?.name}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Date:</span>
-            <span className="ml-2 font-medium">
-              {new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB")}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Time:</span>
-            <span className="ml-2 font-medium">{formatTime12h(form.getValues("appointmentTime"))}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Medical Assist:</span>
-            <span className="ml-2 font-medium">{companyMedicalAssist?.name || "Not assigned"}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">CRM:</span>
-            <span className="ml-2 font-medium">{companyCRM?.name || "Not assigned"}</span>
-          </div>
-          {form.getValues("applicationNumber") && (
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-muted-foreground">App No:</span>
-              <span className="ml-2 font-medium">{form.getValues("applicationNumber")}</span>
+              <span className="text-muted-foreground">Work Order:</span>
+              <span className="ml-2 font-medium">{selectedWo?.woNumber}</span>
             </div>
-          )}
+            <div>
+              <span className="text-muted-foreground">Applicant:</span>
+              <span className="ml-2 font-medium">{selectedWo?.applicantName}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Company:</span>
+              <span className="ml-2 font-medium">{selectedCompany?.name}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Center:</span>
+              <span className="ml-2 font-medium">{selectedCenter?.name}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Date:</span>
+              <span className="ml-2 font-medium">
+                {new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB")}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Time:</span>
+              <span className="ml-2 font-medium">{formatTime12h(form.getValues("appointmentTime"))}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Medical Assist:</span>
+              <span className="ml-2 font-medium">{companyMedicalAssist?.name || "Not assigned"}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">CRM:</span>
+              <span className="ml-2 font-medium">{companyCRM?.name || "Not assigned"}</span>
+            </div>
+            {form.getValues("applicationNumber") && (
+              <div>
+                <span className="text-muted-foreground">App No:</span>
+                <span className="ml-2 font-medium">{form.getValues("applicationNumber")}</span>
+              </div>
+            )}
+          </div>
+          <div className="pt-2 border-t">
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs text-muted-foreground">Notes (editable)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Add any notes for this appointment..."
+                      className="text-sm h-16 resize-none"
+                      onChange={(e) => {
+                        field.onChange(e);
+                        generatePreviews();
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -1212,7 +1249,7 @@ Please arrive 15 mins early with documents.`;
                 {currentStep === 2 && renderStep2()}
                 {currentStep === 3 && renderStep3()}
 
-                <div className="flex justify-between mt-6 pt-4 border-t">
+                <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t mt-6 -mx-6 px-6 py-4 flex justify-between z-10">
                   {currentStep > 1 ? (
                     <Button
                       variant="outline"

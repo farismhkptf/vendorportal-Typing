@@ -10,7 +10,8 @@ import {
   type RescheduleRequest, type InsertRescheduleRequest, type JobType, type InsertJobType,
   type Vendor, type InsertVendor, type TypingJob, type InsertTypingJob,
   type TypingJobResult, type InsertTypingJobResult, type TypingJobComment, type InsertTypingJobComment,
-  type VendorWalletLedger, type InsertVendorWalletLedger, type AppSettings
+  type VendorWalletLedger, type InsertVendorWalletLedger, type AppSettings,
+  type AuditLog, type InsertAuditLog
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
@@ -101,6 +102,13 @@ export interface IStorage {
   // App Settings
   getAppSettings(): Promise<AppSettings | undefined>;
   updateAppSettings(data: Partial<AppSettings>): Promise<AppSettings | undefined>;
+  
+  // Audit Log
+  getAuditLogsByEntity(entityType: string, entityId: string): Promise<AuditLog[]>;
+  createAuditLog(data: InsertAuditLog): Promise<AuditLog>;
+  
+  // Auto-fill helpers
+  getLastWorkOrderByCompany(companyId: string): Promise<WorkOrder | undefined>;
   
   // Seed data
   seedData(): Promise<void>;
@@ -991,6 +999,32 @@ export class DatabaseStorage implements IStorage {
 
     console.log(`Staff seeded: ${added} added, ${skipped} skipped`);
     return { added, skipped };
+  }
+
+  // Audit Log
+  async getAuditLogsByEntity(entityType: string, entityId: string): Promise<AuditLog[]> {
+    return db.select()
+      .from(auditLog)
+      .where(and(
+        eq(auditLog.entityType, entityType),
+        eq(auditLog.entityId, entityId)
+      ))
+      .orderBy(desc(auditLog.createdAt));
+  }
+
+  async createAuditLog(data: InsertAuditLog): Promise<AuditLog> {
+    const [log] = await db.insert(auditLog).values(data).returning();
+    return log;
+  }
+
+  // Auto-fill helpers
+  async getLastWorkOrderByCompany(companyId: string): Promise<WorkOrder | undefined> {
+    const [wo] = await db.select()
+      .from(workOrders)
+      .where(eq(workOrders.companyId, companyId))
+      .orderBy(desc(workOrders.createdAt))
+      .limit(1);
+    return wo || undefined;
   }
 }
 

@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MaskedInput } from "@/components/ui/masked-input";
+import { useScrollToError } from "@/hooks/use-scroll-to-error";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +38,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType } from "@shared/schema";
+import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
+import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog } from "@shared/schema";
 
 const editWorkOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits"),
@@ -62,6 +65,35 @@ interface WorkOrderDetail extends WorkOrder {
   };
   appointments?: Appointment[];
   typingJobs?: TypingJob[];
+}
+
+function ActivityTimelineSection({ workOrderId }: { workOrderId: string }) {
+  const { data: auditLogs, isLoading } = useQuery<AuditLog[]>({
+    queryKey: ["/api/audit-logs", "work_order", workOrderId],
+    enabled: !!workOrderId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+    );
+  }
+
+  const activities: ActivityItem[] = (auditLogs || []).map(log => ({
+    id: log.id,
+    action: log.action,
+    entityType: log.entityType,
+    entityId: log.entityId,
+    userId: log.userId,
+    details: log.details as Record<string, unknown> | null,
+    createdAt: log.createdAt,
+  }));
+
+  return <ActivityTimeline activities={activities} />;
 }
 
 export default function WorkOrderDetail() {
@@ -428,6 +460,14 @@ export default function WorkOrderDetail() {
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Messages
               </TabsTrigger>
+              <TabsTrigger 
+                value="activity" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+                data-testid="tab-activity"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Activity
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="appointments" className="p-6">
@@ -534,6 +574,10 @@ export default function WorkOrderDetail() {
               />
             </TabsContent>
 
+            <TabsContent value="activity" className="p-6">
+              <ActivityTimelineSection workOrderId={id || ""} />
+            </TabsContent>
+
           </Tabs>
         </Card>
       </div>
@@ -586,7 +630,14 @@ export default function WorkOrderDetail() {
                     <FormItem>
                       <FormLabel>Contact Number</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="+971 50 123 4567" data-testid="input-edit-phone" />
+                        <MaskedInput
+                          mask="phone"
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="+971 50 123 4567"
+                          aria-label="Applicant phone number"
+                          data-testid="input-edit-phone"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -599,7 +650,15 @@ export default function WorkOrderDetail() {
                     <FormItem>
                       <FormLabel>Email Address</FormLabel>
                       <FormControl>
-                        <Input {...field} type="email" placeholder="applicant@email.com" data-testid="input-edit-email" />
+                        <Input
+                          {...field}
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          placeholder="applicant@email.com"
+                          aria-label="Applicant email address"
+                          data-testid="input-edit-email"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

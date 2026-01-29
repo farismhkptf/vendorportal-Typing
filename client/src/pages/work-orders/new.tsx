@@ -3,10 +3,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X, Phone, Mail, Star } from "lucide-react";
+import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X, Phone, Mail, Star, RefreshCw } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MaskedInput } from "@/components/ui/masked-input";
+import { useScrollToError } from "@/hooks/use-scroll-to-error";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -16,7 +18,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Company, ServiceType } from "@shared/schema";
+import type { Company, ServiceType, WorkOrder } from "@shared/schema";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +79,8 @@ export default function NewWorkOrder() {
     },
   });
 
+  useScrollToError(form.formState.errors, form.formState.isSubmitted);
+
   const createMutation = useMutation({
     mutationFn: async (data: WorkOrderForm) => {
       return apiRequest("POST", "/api/work-orders", data);
@@ -105,6 +109,26 @@ export default function NewWorkOrder() {
 
   const selectedCompanyId = form.watch("companyId");
   const selectedCompany = companies?.find((c) => c.id === selectedCompanyId);
+
+  const { data: lastWorkOrder } = useQuery<WorkOrder | null>({
+    queryKey: ["/api/companies", selectedCompanyId, "last-work-order"],
+    enabled: !!selectedCompanyId,
+  });
+
+  const handleAutoFill = () => {
+    if (lastWorkOrder) {
+      if (lastWorkOrder.serviceTypeId) {
+        form.setValue("serviceTypeId", lastWorkOrder.serviceTypeId);
+      }
+      if (lastWorkOrder.isVip !== undefined) {
+        form.setValue("isVip", lastWorkOrder.isVip);
+      }
+      toast({
+        title: "Auto-filled",
+        description: "Form pre-filled with defaults from last work order.",
+      });
+    }
+  };
 
   // Normalize text for fuzzy matching
   const normalizeText = (text: string): string => {
@@ -583,10 +607,13 @@ export default function NewWorkOrder() {
                         <FormControl>
                           <div className="relative">
                             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              {...field}
+                            <MaskedInput
+                              mask="phone"
+                              value={field.value}
+                              onChange={field.onChange}
                               placeholder="+971 50 123 4567"
                               className="pl-10 h-11"
+                              aria-label="Applicant phone number"
                               data-testid="input-applicant-phone"
                             />
                           </div>
@@ -608,8 +635,11 @@ export default function NewWorkOrder() {
                             <Input
                               {...field}
                               type="email"
+                              inputMode="email"
+                              autoComplete="email"
                               placeholder="applicant@email.com"
                               className="pl-10 h-11"
+                              aria-label="Applicant email address"
                               data-testid="input-applicant-email"
                             />
                           </div>
@@ -663,10 +693,27 @@ export default function NewWorkOrder() {
 
                 {selectedCompany && (
                   <div className="p-4 rounded-lg bg-muted/30 border border-border/30" data-testid="company-snapshot">
-                    <p className="text-sm font-medium text-foreground">{selectedCompany.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Company preferences and staff will apply to this work order
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{selectedCompany.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Company preferences and staff will apply to this work order
+                        </p>
+                      </div>
+                      {lastWorkOrder && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleAutoFill}
+                          className="gap-1.5"
+                          data-testid="button-auto-fill"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5" />
+                          Auto-fill
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>

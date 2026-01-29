@@ -7,6 +7,8 @@ import { z } from "zod";
 import { ArrowLeft, Building2, MapPin, Users, UserCheck, Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MaskedInput } from "@/components/ui/masked-input";
+import { useScrollToError } from "@/hooks/use-scroll-to-error";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";

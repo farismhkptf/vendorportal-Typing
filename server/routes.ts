@@ -258,6 +258,30 @@ export async function registerRoutes(
     }
   });
 
+  // ========== Auto-fill Helpers ==========
+  app.get("/api/companies/:companyId/last-work-order", async (req, res) => {
+    try {
+      const { companyId } = req.params;
+      const workOrder = await storage.getLastWorkOrderByCompany(companyId);
+      res.json(workOrder || null);
+    } catch (error) {
+      console.error("Last work order error:", error);
+      res.status(500).json({ message: "Failed to fetch last work order" });
+    }
+  });
+
+  // ========== Audit Logs ==========
+  app.get("/api/audit-logs/:entityType/:entityId", async (req, res) => {
+    try {
+      const { entityType, entityId } = req.params;
+      const logs = await storage.getAuditLogsByEntity(entityType, entityId);
+      res.json(logs);
+    } catch (error) {
+      console.error("Audit logs error:", error);
+      res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+
   // ========== Appointments ==========
   app.get("/api/appointments", async (req, res) => {
     try {

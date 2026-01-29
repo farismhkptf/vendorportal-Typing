@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import { MaskedInput } from "@/components/ui/masked-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -1507,7 +1508,14 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel>Phone</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="+971 50 000 0000" className="h-11 rounded-xl" />
+                                <MaskedInput
+                                  mask="phone"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  placeholder="+971 50 000 0000"
+                                  className="h-11 rounded-xl"
+                                  aria-label="Staff phone number"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1653,7 +1661,14 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel className="text-xs text-muted-foreground">Phone</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="050 000 0000" className="h-9 rounded-lg" />
+                                <MaskedInput
+                                  mask="phone"
+                                  value={field.value}
+                                  onChange={field.onChange}
+                                  placeholder="050 000 0000"
+                                  className="h-9 rounded-lg"
+                                  aria-label="Staff phone number"
+                                />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
