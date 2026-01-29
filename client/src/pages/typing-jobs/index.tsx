@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3 } from "lucide-react";
+import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -229,10 +229,16 @@ export default function TypingJobsList() {
   return (
     <AppLayout>
       {/* Header Section */}
-      <div className="px-4 lg:px-6 pt-4 pb-3">
+      <div className="px-4 lg:px-6 pt-4 pb-3 flex items-center justify-between">
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           Typing Jobs
         </h1>
+        <Link href="/typing-jobs/new">
+          <Button size="sm" className="gap-1.5" data-testid="button-new-typing-job">
+            <Plus className="h-4 w-4" />
+            New Job
+          </Button>
+        </Link>
       </div>
 
       <div className="px-4 lg:px-6 pb-6 space-y-4">

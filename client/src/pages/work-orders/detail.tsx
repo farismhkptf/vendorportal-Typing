@@ -442,7 +442,7 @@ export default function WorkOrderDetail() {
                 data-testid="tab-typing"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                Type Medical Application
+                Type Medical & EID Application
               </TabsTrigger>
               <TabsTrigger 
                 value="appointments" 
