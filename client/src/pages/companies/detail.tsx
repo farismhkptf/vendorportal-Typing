@@ -60,7 +60,20 @@ export default function CompanyDetail() {
   const { data: staffList } = useQuery<Staff[]>({ queryKey: ["/api/staff"] });
 
   const medicalCenters = centers?.filter(c => c.type === "Medical" || c.type === "Both") || [];
+  const normalMedicalCenters = medicalCenters.filter(c => c.tier === "Normal");
+  const vipMedicalCenters = medicalCenters.filter(c => c.tier === "VIP");
   const eidCenters = centers?.filter(c => c.type === "EID" || c.type === "Both") || [];
+
+  // Filter staff by role - matches exact role titles from seed data
+  const crmStaff = staffList?.filter(s => {
+    const role = s.roleTitle?.toLowerCase() || "";
+    return role === "client relation manager" || role === "ceo";
+  }) || [];
+  
+  const medicalAssistStaff = staffList?.filter(s => {
+    const role = s.roleTitle?.toLowerCase() || "";
+    return role === "medical assistant support";
+  }) || [];
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companyFormSchema),
@@ -212,7 +225,7 @@ export default function CompanyDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {medicalCenters.map((center) => (
+                  {normalMedicalCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -230,7 +243,7 @@ export default function CompanyDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {medicalCenters.map((center) => (
+                  {vipMedicalCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -300,7 +313,7 @@ export default function CompanyDetail() {
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label className="text-xs">Client Relationship Manager (Ops Manager)</Label>
+              <Label className="text-xs">Client Relationship Manager</Label>
               <Select
                 value={form.watch("rmStaffId") || "__none__"}
                 onValueChange={(v) => form.setValue("rmStaffId", v === "__none__" ? "" : v)}
@@ -311,8 +324,8 @@ export default function CompanyDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {staffList?.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>{member.name} - {member.roleTitle}</SelectItem>
+                  {crmStaff.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>{member.name} ({member.roleTitle})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -329,8 +342,8 @@ export default function CompanyDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {staffList?.map((member) => (
-                    <SelectItem key={member.id} value={member.id}>{member.name} - {member.roleTitle}</SelectItem>
+                  {medicalAssistStaff.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
