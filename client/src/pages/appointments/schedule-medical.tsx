@@ -326,30 +326,42 @@ Please ensure the applicant arrives 15 minutes before the scheduled time with al
 Best regards,
 The P.R.O. Company`;
 
-    // WhatsApp contact section
-    const whatsappContacts = [];
-    if (medicalAssist) {
-      whatsappContacts.push(`${medicalAssist.name}${medicalAssist.phone ? ` (${medicalAssist.phone})` : ""}`);
-    }
-    if (crm) {
-      whatsappContacts.push(`${crm.name}${crm.phone ? ` (${crm.phone})` : ""}`);
-    }
-    const whatsappContactLine = whatsappContacts.length > 0 
-      ? `Contact: ${whatsappContacts.join(" / ")}` 
+    // WhatsApp assistance section
+    const assistanceSection = medicalAssist 
+      ? `👤 Assistance: ${medicalAssist.name}
+📞 ${medicalAssist.phone || ""}` 
       : "";
 
-    const whatsappBody = `*Medical Appointment Scheduled*
+    // Google Maps link for location
+    const locationLink = center?.address 
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(center.address)}`
+      : "";
 
-Applicant: ${selectedWo.applicantName}
-Date: ${formattedDate}
-Time: ${formatTime12h(time)}
-Center: ${center?.name || "TBD"}
-${center?.googleMapsUrl ? `📍 ${center.googleMapsUrl}` : ""}
-${appNum ? `Ref: ${appNum}` : ""}
+    const whatsappBody = `Hello 👋
 
-${whatsappContactLine}
+Your medical appointment has been scheduled successfully for the following work.
 
-Please arrive 15 mins early with documents.`;
+📄 WO: ${selectedWo.woNumber}
+👤 Applicant: ${selectedWo.applicantName}
+🏢 Company: ${selectedCompany?.name || ""}
+🧾 Service: ${woServiceTypeName}
+${appNum ? `🔢 Application No: ${appNum}` : ""}
+
+🏥 Medical Center: ${center?.name || "TBD"}
+📅 Date: ${formattedDate}
+⏰ Time: ${formatTime12h(time)}
+${center?.address ? `📍 Location: ${center.address}` : ""}
+${locationLink ? `🗺️ Map: ${locationLink}` : ""}
+
+${assistanceSection}
+
+⚠️ *Important:*
+• Please arrive at least *10 minutes before* the scheduled time.
+• Please ensure the applicant brings their *original passport*.
+${form.getValues("notes") ? `• ${form.getValues("notes")}` : ""}
+
+Thank you,
+*The P.R.O. Company*`;
 
     setEmailPreview(emailBody);
     setWhatsappPreview(whatsappBody);
