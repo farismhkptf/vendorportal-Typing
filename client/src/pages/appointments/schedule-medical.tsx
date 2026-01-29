@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WorkOrder, Company, Center, Staff, Appointment } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { MedicalAppointmentEmail } from "@/components/email-templates/medical-appointment-email";
 
 const TIME_SLOTS = [
   "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -923,25 +924,44 @@ Please arrive 15 mins early with documents.`;
           </TabsTrigger>
         </TabsList>
         <TabsContent value="email">
-          <Card>
-            <CardContent className="pt-4">
-              <pre className="whitespace-pre-wrap text-sm font-sans bg-muted/30 p-4 rounded-lg max-h-64 overflow-auto">
-                {emailPreview}
-              </pre>
-              <Button 
-                variant="outline" 
-                className="mt-3 w-full"
-                onClick={() => handleCopyMessage("email")}
-                data-testid="button-copy-email"
-              >
-                {messageCopied === "email" ? (
-                  <><Check className="h-4 w-4 mr-2" />Copied!</>
-                ) : (
-                  <><Copy className="h-4 w-4 mr-2" />Copy Email</>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-3">
+            <div className="max-h-[500px] overflow-auto rounded-lg border">
+              <MedicalAppointmentEmail
+                woNumber={selectedWo?.woNumber || ""}
+                companyName={selectedCompany?.name || ""}
+                applicantName={selectedWo?.applicantName || ""}
+                centerName={selectedCenter?.name || "TBD"}
+                centerType={selectedCenter?.tier === "VIP" ? "VIP" : "Normal"}
+                appointmentDate={form.getValues("appointmentDate") 
+                  ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric"
+                    })
+                  : "TBD"}
+                appointmentTime={form.getValues("appointmentTime") 
+                  ? formatTime12h(form.getValues("appointmentTime"))
+                  : "TBD"}
+                medicalAssistName={companyMedicalAssist?.name}
+                medicalAssistPhone={companyMedicalAssist?.phone || undefined}
+                crmName={companyCRM?.name}
+                crmPhone={companyCRM?.phone || undefined}
+                notes={form.getValues("notes") || undefined}
+              />
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => handleCopyMessage("email")}
+              data-testid="button-copy-email"
+            >
+              {messageCopied === "email" ? (
+                <><Check className="h-4 w-4 mr-2" />Copied!</>
+              ) : (
+                <><Copy className="h-4 w-4 mr-2" />Copy Email Text</>
+              )}
+            </Button>
+          </div>
         </TabsContent>
         <TabsContent value="whatsapp">
           <Card>
