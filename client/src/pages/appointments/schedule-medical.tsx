@@ -879,27 +879,18 @@ Please arrive 15 mins early with documents.`;
             )}
           </div>
           <div className="pt-2 border-t">
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-xs text-muted-foreground">Notes (editable)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Add any notes for this appointment..."
-                      className="text-sm h-16 resize-none"
-                      onChange={(e) => {
-                        field.onChange(e);
-                        generatePreviews();
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <label className="text-xs text-muted-foreground font-medium">Notes (editable)</label>
+              <Textarea
+                value={form.getValues("notes") || ""}
+                placeholder="Add any notes for this appointment..."
+                className="text-sm h-16 resize-none"
+                onChange={(e) => {
+                  form.setValue("notes", e.target.value);
+                  generatePreviews();
+                }}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
