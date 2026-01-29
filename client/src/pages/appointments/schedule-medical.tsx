@@ -21,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AppLayout } from "@/components/layout/app-layout";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { WorkOrder, Company, Center, Staff } from "@shared/schema";
+import type { WorkOrder, Company, Center, Staff, Appointment } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 const TIME_SLOTS = [
@@ -101,6 +101,15 @@ export default function ScheduleMedical() {
   const { data: staffList } = useQuery<Staff[]>({
     queryKey: ["/api/staff"],
   });
+
+  const { data: appointments } = useQuery<Appointment[]>({
+    queryKey: ["/api/appointments"],
+  });
+
+  const existingAppointments = useMemo(() => {
+    if (!appointments || !selectedWo) return [];
+    return appointments.filter(a => a.woId === selectedWo.id);
+  }, [appointments, selectedWo]);
 
   const medicalCenters = useMemo(() => {
     if (!centers) return [];
@@ -446,23 +455,32 @@ Please arrive 15 mins early with documents.`;
                   <Badge className="bg-amber-500 text-white">VIP</Badge>
                 )}
               </CardTitle>
-              <Badge variant="outline">Selected</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">{selectedWo.status}</Badge>
+                <Badge variant="secondary">Selected</Badge>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-4">
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">{selectedWo.applicantName}</span>
+              </div>
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">{selectedCompany?.name || "—"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{selectedWo.applicantName}</span>
               </div>
               {selectedWo.applicantPhone && (
                 <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">{selectedWo.applicantPhone}</span>
+                </div>
+              )}
+              {selectedWo.applicantEmail && (
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{selectedWo.applicantEmail}</span>
                 </div>
               )}
               {selectedCompany?.preferredMedicalCenterId && (
@@ -474,6 +492,49 @@ Please arrive 15 mins early with documents.`;
                 </div>
               )}
             </div>
+
+            {existingAppointments.length > 0 && (
+              <div className="border-t pt-3">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Existing Appointments</p>
+                <div className="space-y-2">
+                  {existingAppointments.map((apt) => {
+                    const aptCenter = centers?.find(c => c.id === apt.centerId);
+                    return (
+                      <div 
+                        key={apt.id} 
+                        className="flex items-center justify-between p-2 rounded-md bg-background/50"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Badge variant={apt.type === "Medical" ? "default" : "secondary"} className="text-xs">
+                            {apt.type}
+                          </Badge>
+                          <span className="text-sm">
+                            {new Date(apt.datetime).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(apt.datetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{aptCenter?.name}</span>
+                          <Badge 
+                            variant="outline" 
+                            className={cn(
+                              "text-xs",
+                              apt.status === "Completed" && "border-green-500 text-green-600",
+                              apt.status === "Cancelled" && "border-red-500 text-red-600",
+                              apt.status === "Scheduled" && "border-blue-500 text-blue-600"
+                            )}
+                          >
+                            {apt.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -855,17 +916,62 @@ Please arrive 15 mins early with documents.`;
         </div>
 
         {selectedWo && (
-          <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <div className="flex-1">
-              <div className="font-medium flex items-center gap-2">
-                {selectedWo.woNumber}
-                {selectedWo.isVip && <Badge className="bg-amber-500 text-white text-xs">VIP</Badge>}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="font-medium flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  {selectedWo.woNumber}
+                  {selectedWo.isVip && <Badge className="bg-amber-500 text-white text-xs">VIP</Badge>}
+                </div>
+                <Badge variant="outline" className="text-xs">{selectedWo.status}</Badge>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {selectedWo.applicantName} • {selectedCompany?.name}
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{selectedWo.applicantName}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-muted-foreground">{selectedCompany?.name}</span>
+                </div>
+                {selectedWo.applicantPhone && (
+                  <div className="flex items-center gap-1.5">
+                    <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">{selectedWo.applicantPhone}</span>
+                  </div>
+                )}
+                {selectedWo.applicantEmail && (
+                  <div className="flex items-center gap-1.5">
+                    <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">{selectedWo.applicantEmail}</span>
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
+              {existingAppointments.length > 0 && (
+                <div className="border-t pt-2">
+                  <p className="text-xs text-muted-foreground mb-1">Existing: {existingAppointments.length} appointment(s)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {existingAppointments.slice(0, 3).map((apt) => (
+                      <Badge 
+                        key={apt.id} 
+                        variant="outline" 
+                        className={cn(
+                          "text-xs",
+                          apt.status === "Scheduled" && "border-blue-500 text-blue-600"
+                        )}
+                      >
+                        {apt.type} - {new Date(apt.datetime).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                      </Badge>
+                    ))}
+                    {existingAppointments.length > 3 && (
+                      <Badge variant="secondary" className="text-xs">+{existingAppointments.length - 3} more</Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         <div className="grid grid-cols-2 gap-3">
