@@ -21,9 +21,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AppLayout } from "@/components/layout/app-layout";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { WorkOrder, Company, Center, Staff, Appointment } from "@shared/schema";
+import type { WorkOrder, Company, Center, Staff, Appointment, ServiceType } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { MedicalAppointmentEmail } from "@/components/email-templates/medical-appointment-email";
+import { MedicalAppointmentEmail, generateMedicalAppointmentEmailHtml } from "@/components/email-templates/medical-appointment-email";
 
 const TIME_SLOTS = [
   "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -106,6 +106,17 @@ export default function ScheduleMedical() {
   const { data: appointments } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
   });
+
+  const { data: serviceTypes } = useQuery<ServiceType[]>({
+    queryKey: ["/api/service-types"],
+  });
+
+  // Derive service type name from WO's serviceTypeId or default to "Medical Examination"
+  const woServiceTypeName = useMemo(() => {
+    if (!selectedWo?.serviceTypeId || !serviceTypes) return "Medical Examination";
+    const serviceType = serviceTypes.find(st => st.id === selectedWo.serviceTypeId);
+    return serviceType?.name || "Medical Examination";
+  }, [selectedWo, serviceTypes]);
 
   const existingAppointments = useMemo(() => {
     if (!appointments || !selectedWo) return [];
@@ -345,13 +356,54 @@ Please arrive 15 mins early with documents.`;
   };
 
   const handleCopyMessage = async (type: "email" | "whatsapp") => {
-    const text = type === "email" ? emailPreview : whatsappPreview;
-    await navigator.clipboard.writeText(text);
+    if (type === "whatsapp") {
+      await navigator.clipboard.writeText(whatsappPreview);
+    } else {
+      // Copy HTML for email to preserve formatting when pasted
+      const emailHtml = generateMedicalAppointmentEmailHtml({
+        woNumber: selectedWo?.woNumber || "",
+        companyName: selectedCompany?.name || "",
+        applicantName: selectedWo?.applicantName || "",
+        serviceType: woServiceTypeName,
+        centerName: selectedCenter?.name || "TBD",
+        centerAddress: selectedCenter?.address || undefined,
+        centerType: selectedCenter?.tier === "VIP" ? "VIP" : "Normal",
+        appointmentDate: form.getValues("appointmentDate") 
+          ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "long",
+              year: "numeric"
+            })
+          : "TBD",
+        appointmentTime: form.getValues("appointmentTime") 
+          ? formatTime12h(form.getValues("appointmentTime"))
+          : "TBD",
+        applicationNumber: form.getValues("applicationNumber") || undefined,
+        medicalAssistName: companyMedicalAssist?.name,
+        medicalAssistPhone: companyMedicalAssist?.phone || undefined,
+        crmName: companyCRM?.name,
+        crmPhone: companyCRM?.phone || undefined,
+        notes: form.getValues("notes") || undefined,
+      });
+      
+      try {
+        // Use Clipboard API to copy both HTML and plain text
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([emailHtml], { type: "text/html" }),
+            "text/plain": new Blob([emailPreview], { type: "text/plain" }),
+          }),
+        ]);
+      } catch (err) {
+        // Fallback to plain text if HTML copy fails
+        await navigator.clipboard.writeText(emailPreview);
+      }
+    }
     setMessageCopied(type);
     setTimeout(() => setMessageCopied(null), 2000);
     toast({
       title: "Copied!",
-      description: `${type === "email" ? "Email" : "WhatsApp"} message copied to clipboard.`,
+      description: `${type === "email" ? "Email (with formatting)" : "WhatsApp"} message copied to clipboard.`,
     });
   };
 
@@ -921,7 +973,9 @@ Please arrive 15 mins early with documents.`;
                 woNumber={selectedWo?.woNumber || ""}
                 companyName={selectedCompany?.name || ""}
                 applicantName={selectedWo?.applicantName || ""}
+                serviceType={woServiceTypeName}
                 centerName={selectedCenter?.name || "TBD"}
+                centerAddress={selectedCenter?.address || undefined}
                 centerType={selectedCenter?.tier === "VIP" ? "VIP" : "Normal"}
                 appointmentDate={form.getValues("appointmentDate") 
                   ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
@@ -933,6 +987,7 @@ Please arrive 15 mins early with documents.`;
                 appointmentTime={form.getValues("appointmentTime") 
                   ? formatTime12h(form.getValues("appointmentTime"))
                   : "TBD"}
+                applicationNumber={form.getValues("applicationNumber") || undefined}
                 medicalAssistName={companyMedicalAssist?.name}
                 medicalAssistPhone={companyMedicalAssist?.phone || undefined}
                 crmName={companyCRM?.name}
