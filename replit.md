@@ -142,5 +142,22 @@ Four user roles with different permissions:
 - Note: Passwords are still plain text (production deployment should use bcrypt/argon2 hashing)
 - Note: Authentication/session handling should be added before production use
 
+### UX Improvements (January 29, 2026)
+- **Input Masks**: MaskedInput component for phone numbers with auto-formatting (UAE format +971-XX-XXX-XXXX)
+- **Scroll-to-Error**: useScrollToError hook auto-scrolls to first validation error on form submission
+- **Mobile Optimization**: inputMode="tel" for phone fields, inputMode="email" for email fields
+- **Accessibility**: aria-label attributes on key form fields for screen readers
+- **Sticky Navigation**: Sticky footer navigation bar in Schedule Medical wizard for mobile usability
+- **Editable Review Step**: "Edit Details" button in Step 3 + inline notes editing before submission
+- **Autosave Indicator**: SaveStatusIndicator component ready for use in forms
+- **Auto-fill**: New work orders can auto-fill from previous WO for same company (via /api/companies/:id/last-work-order)
+- **Activity Timeline**: Work order detail page shows audit trail with Activity tab (via /api/audit-logs/work_order/:id)
+
+### New Components
+- `client/src/components/ui/masked-input.tsx` - Phone number input with auto-formatting
+- `client/src/components/ui/save-status.tsx` - Visual indicator for saving/saved states
+- `client/src/components/ui/activity-timeline.tsx` - Audit log display component
+- `client/src/hooks/use-scroll-to-error.ts` - Hook for form error navigation
+
 ### Test Credentials (Development Only)
 - Admin Portal: admin@procompany.ae / admin123
