@@ -52,7 +52,7 @@ const appointmentSchema = z.object({
   applicationNumber: z.string().optional(),
   appointmentDate: z.string().min(1, "Date is required"),
   appointmentTime: z.string().min(1, "Time is required"),
-  assignedStaffId: z.string().min(1, "Assigned staff is required"),
+  assignedStaffId: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -120,6 +120,17 @@ export default function ScheduleMedical() {
     if (!staffList) return [];
     return staffList.filter(s => s.status === "Active" || s.status === "TempActive");
   }, [staffList]);
+
+  // Get company's assigned staff members
+  const companyMedicalAssist = useMemo(() => {
+    if (!selectedCompany?.assistStaffId || !staffList) return null;
+    return staffList.find(s => s.id === selectedCompany.assistStaffId) || null;
+  }, [selectedCompany, staffList]);
+
+  const companyCRM = useMemo(() => {
+    if (!selectedCompany?.rmStaffId || !staffList) return null;
+    return staffList.find(s => s.id === selectedCompany.rmStaffId) || null;
+  }, [selectedCompany, staffList]);
 
   const filteredWorkOrders = useMemo(() => {
     if (!workOrders || !searchQuery.trim()) return [];
@@ -238,6 +249,10 @@ export default function ScheduleMedical() {
       if (preferredCenter) {
         form.setValue("centerId", preferredCenter);
       }
+      // Auto-assign the company's Medical Assistant Support
+      if (company.assistStaffId) {
+        form.setValue("assignedStaffId", company.assistStaffId);
+      }
     }
     
     setSearchQuery("");
@@ -250,7 +265,8 @@ export default function ScheduleMedical() {
     if (!selectedWo || !selectedCompany) return;
     
     const center = centers?.find(c => c.id === form.getValues("centerId"));
-    const staff = activeStaff?.find(s => s.id === form.getValues("assignedStaffId"));
+    const medicalAssist = staffList?.find(s => s.id === selectedCompany.assistStaffId);
+    const crm = staffList?.find(s => s.id === selectedCompany.rmStaffId);
     const date = form.getValues("appointmentDate");
     const time = form.getValues("appointmentTime");
     const appNum = form.getValues("applicationNumber");
@@ -261,6 +277,18 @@ export default function ScheduleMedical() {
       month: "long",
       year: "numeric"
     });
+    
+    // Build contact lines for team members
+    const contactLines = [];
+    if (medicalAssist) {
+      contactLines.push(`Medical Assistant: ${medicalAssist.name}${medicalAssist.phone ? ` - ${medicalAssist.phone}` : ""}`);
+    }
+    if (crm) {
+      contactLines.push(`Client Relations: ${crm.name}${crm.phone ? ` - ${crm.phone}` : ""}`);
+    }
+    const contactSection = contactLines.length > 0 
+      ? `Your P.R.O. Team:\n${contactLines.join("\n")}` 
+      : "";
     
     const emailBody = `Dear ${selectedCompany.name} Team,
 
@@ -277,7 +305,7 @@ ${center?.address ? `- Address: ${center.address}` : ""}
 ${center?.googleMapsUrl ? `- Location: ${center.googleMapsUrl}` : ""}
 ${appNum ? `- Application Number: ${appNum}` : ""}
 
-${staff ? `Your P.R.O. Contact: ${staff.name}${staff.phone ? ` - ${staff.phone}` : ""}` : ""}
+${contactSection}
 
 ${form.getValues("notes") ? `Note: ${form.getValues("notes")}` : ""}
 
@@ -285,6 +313,18 @@ Please ensure the applicant arrives 15 minutes before the scheduled time with al
 
 Best regards,
 The P.R.O. Company`;
+
+    // WhatsApp contact section
+    const whatsappContacts = [];
+    if (medicalAssist) {
+      whatsappContacts.push(`${medicalAssist.name}${medicalAssist.phone ? ` (${medicalAssist.phone})` : ""}`);
+    }
+    if (crm) {
+      whatsappContacts.push(`${crm.name}${crm.phone ? ` (${crm.phone})` : ""}`);
+    }
+    const whatsappContactLine = whatsappContacts.length > 0 
+      ? `Contact: ${whatsappContacts.join(" / ")}` 
+      : "";
 
     const whatsappBody = `*Medical Appointment Scheduled*
 
@@ -295,7 +335,7 @@ Center: ${center?.name || "TBD"}
 ${center?.googleMapsUrl ? `📍 ${center.googleMapsUrl}` : ""}
 ${appNum ? `Ref: ${appNum}` : ""}
 
-${staff ? `Contact: ${staff.name}${staff.phone ? ` (${staff.phone})` : ""}` : ""}
+${whatsappContactLine}
 
 Please arrive 15 mins early with documents.`;
 
@@ -316,15 +356,6 @@ Please arrive 15 mins early with documents.`;
 
   const handleNextStep = () => {
     if (currentStep === 2) {
-      if (!form.getValues("assignedStaffId")) {
-        toast({
-          title: "Staff required",
-          description: "Please assign a staff member before proceeding.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
       const selectedCenter = form.getValues("centerId");
       const preferredCenter = selectedWo?.isVip 
         ? selectedCompany?.preferredMedicalCenterVipId 
@@ -354,7 +385,6 @@ Please arrive 15 mins early with documents.`;
     createAppointmentMutation.mutate(form.getValues());
   };
 
-  const selectedStaff = activeStaff?.find(s => s.id === form.getValues("assignedStaffId"));
   const selectedCenter = centers?.find(c => c.id === form.getValues("centerId"));
 
   const renderStepIndicator = () => (
@@ -700,45 +730,60 @@ Please arrive 15 mins early with documents.`;
             />
           </div>
 
-          <FormField
-            control={form.control}
-            name="assignedStaffId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="flex items-center gap-1">
-                  Assigned Staff <span className="text-destructive">*</span>
-                </FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger data-testid="select-staff">
-                      <SelectValue placeholder="Select staff member" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {activeStaff.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} - {s.roleTitle}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+          {/* Company Team Contacts */}
+          <div className="space-y-2">
+            <FormLabel>Company Team Contacts</FormLabel>
+            {!companyMedicalAssist && !companyCRM && (
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg text-sm text-amber-600">
+                <AlertTriangle className="h-4 w-4" />
+                <span>No team members assigned to this company. Please update the company profile.</span>
+              </div>
             )}
-          />
-
-          {selectedStaff && (
-            <div className="flex items-center gap-4 text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
-              <UserCheck className="h-4 w-4" />
-              <span>{selectedStaff.name}</span>
-              {selectedStaff.phone && (
-                <span className="flex items-center gap-1">
-                  <Phone className="h-3 w-3" />
-                  {selectedStaff.phone}
-                </span>
+            <div className="grid gap-2">
+              {companyMedicalAssist ? (
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Stethoscope className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">{companyMedicalAssist.name}</p>
+                      <p className="text-xs text-muted-foreground">Medical Assistant Support</p>
+                    </div>
+                  </div>
+                  {companyMedicalAssist.phone && (
+                    <div className="flex items-center gap-1 text-sm">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{companyMedicalAssist.phone}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">
+                  No Medical Assistant assigned to this company
+                </div>
+              )}
+              {companyCRM ? (
+                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">{companyCRM.name}</p>
+                      <p className="text-xs text-muted-foreground">Client Relation Manager</p>
+                    </div>
+                  </div>
+                  {companyCRM.phone && (
+                    <div className="flex items-center gap-1 text-sm">
+                      <Phone className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span>{companyCRM.phone}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-3 bg-muted/30 rounded-lg text-sm text-muted-foreground">
+                  No Client Relation Manager assigned to this company
+                </div>
               )}
             </div>
-          )}
+          </div>
 
           <FormField
             control={form.control}
@@ -805,8 +850,12 @@ Please arrive 15 mins early with documents.`;
             <span className="ml-2 font-medium">{formatTime12h(form.getValues("appointmentTime"))}</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Staff:</span>
-            <span className="ml-2 font-medium">{selectedStaff?.name}</span>
+            <span className="text-muted-foreground">Medical Assist:</span>
+            <span className="ml-2 font-medium">{companyMedicalAssist?.name || "Not assigned"}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">CRM:</span>
+            <span className="ml-2 font-medium">{companyCRM?.name || "Not assigned"}</span>
           </div>
           {form.getValues("applicationNumber") && (
             <div>
@@ -1036,30 +1085,43 @@ Please arrive 15 mins early with documents.`;
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="assignedStaffId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-xs">Staff *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Assign staff" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {activeStaff.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
         </div>
+
+        {/* Compact Company Team Display */}
+        {selectedWo && (
+          <div className="space-y-2">
+            {!companyMedicalAssist && !companyCRM && (
+              <div className="flex items-center gap-1 p-2 bg-amber-500/10 rounded text-xs text-amber-600">
+                <AlertTriangle className="h-3 w-3" />
+                <span>No team assigned to company</span>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="p-2 bg-muted/50 rounded">
+                <p className="text-muted-foreground">Medical Assist</p>
+                {companyMedicalAssist ? (
+                  <div>
+                    <p className="font-medium">{companyMedicalAssist.name}</p>
+                    {companyMedicalAssist.phone && <p className="text-muted-foreground">{companyMedicalAssist.phone}</p>}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Not assigned</p>
+                )}
+              </div>
+              <div className="p-2 bg-muted/50 rounded">
+                <p className="text-muted-foreground">CRM</p>
+                {companyCRM ? (
+                  <div>
+                    <p className="font-medium">{companyCRM.name}</p>
+                    {companyCRM.phone && <p className="text-muted-foreground">{companyCRM.phone}</p>}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Not assigned</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         <FormField
           control={form.control}
@@ -1090,7 +1152,7 @@ Please arrive 15 mins early with documents.`;
 
         <Button 
           className="w-full"
-          disabled={!selectedWo || !form.getValues("assignedStaffId") || createAppointmentMutation.isPending}
+          disabled={!selectedWo || createAppointmentMutation.isPending}
           onClick={() => {
             generatePreviews();
             handleSaveAndSend();
