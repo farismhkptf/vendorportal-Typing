@@ -10,6 +10,7 @@ import {
   type CenterTimings
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 
 const topupSchema = z.object({
   amount: z.number().positive(),
@@ -38,6 +39,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  
+  // Register object storage routes
+  registerObjectStorageRoutes(app);
   
   // Seed database on startup
   await storage.seedData();

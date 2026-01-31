@@ -1,12 +1,13 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus } from "lucide-react";
+import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,6 +33,16 @@ export default function TypingJobsList() {
   const { data: typingJobs, isLoading } = useQuery<TypingJobWithRelations[]>({
     queryKey: ["/api/typing-jobs", { status: statusFilter }],
   });
+
+  const stats = useMemo(() => {
+    if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0 };
+    return {
+      pending: typingJobs.filter(j => j.status === "Draft" || j.status === "SentToVendor").length,
+      inProgress: typingJobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
+      completed: typingJobs.filter(j => j.status === "Returned" || j.status === "SentToClient").length,
+      issues: typingJobs.filter(j => j.status === "VendorMistake" || j.status === "Cancelled").length,
+    };
+  }, [typingJobs]);
 
   const filteredAndSortedJobs = useMemo(() => {
     let result = typingJobs?.filter((job) => {
@@ -228,20 +239,52 @@ export default function TypingJobsList() {
 
   return (
     <AppLayout>
-      {/* Header Section */}
-      <div className="px-4 lg:px-6 pt-4 pb-3 flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Typing Jobs
-        </h1>
-        <Link href="/typing-jobs/new">
-          <Button size="sm" className="gap-1.5" data-testid="button-new-typing-job">
-            <Plus className="h-4 w-4" />
-            New Job
-          </Button>
-        </Link>
-      </div>
+      <div className="p-4 lg:p-6 space-y-6 max-w-6xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground" data-testid="page-title">
+              Typing Jobs
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Manage medical and EID application typing
+            </p>
+          </div>
+          <Link href="/typing-jobs/new">
+            <Button size="sm" className="gap-1.5" data-testid="button-new-typing-job">
+              <Plus className="h-4 w-4" />
+              New Job
+            </Button>
+          </Link>
+        </div>
 
-      <div className="px-4 lg:px-6 pb-6 space-y-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <StatCard
+            title="Pending"
+            value={stats.pending}
+            icon={<Send className="h-4 w-4 text-blue-600" />}
+            animationDelay={1}
+          />
+          <StatCard
+            title="In Progress"
+            value={stats.inProgress}
+            icon={<Clock className="h-4 w-4 text-amber-600" />}
+            animationDelay={2}
+          />
+          <StatCard
+            title="Completed"
+            value={stats.completed}
+            icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
+            animationDelay={3}
+          />
+          <StatCard
+            title="Issues"
+            value={stats.issues}
+            icon={<AlertTriangle className="h-4 w-4 text-red-600" />}
+            animationDelay={4}
+          />
+        </div>
+
+      <div className="space-y-4">
         {/* Search, Filters, and View Mode */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -345,6 +388,7 @@ export default function TypingJobsList() {
             />
           )}
         </div>
+      </div>
       </div>
     </AppLayout>
   );

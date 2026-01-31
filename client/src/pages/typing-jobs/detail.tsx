@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ObjectUploader } from "@/components/ObjectUploader";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
@@ -39,6 +40,61 @@ export default function TypingJobDetail() {
   const { data: job, isLoading } = useQuery<TypingJobWithDetails>({
     queryKey: ["/api/typing-jobs", id],
   });
+
+  const saveFileMutation = useMutation({
+    mutationFn: async (data: { fileName: string; objectPath: string; direction: "Input" | "Output" }) => {
+      return apiRequest("POST", "/api/files", {
+        relatedType: "TypingJob",
+        relatedId: id,
+        direction: data.direction,
+        fileName: data.fileName,
+        workdriveLink: data.objectPath,
+        uploadedByType: "Internal",
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs", id] });
+      toast({ title: "File uploaded successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save file", variant: "destructive" });
+    },
+  });
+
+  const getUploadParameters = async (file: { name: string; size: number | null; type?: string }) => {
+    const res = await fetch("/api/uploads/request-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: file.name,
+        size: file.size || 0,
+        contentType: file.type || "application/octet-stream",
+      }),
+    });
+    const data = await res.json();
+    return {
+      method: "PUT" as const,
+      url: data.uploadURL as string,
+      headers: { "Content-Type": file.type || "application/octet-stream" },
+    };
+  };
+
+  const handleUploadComplete = (direction: "Input" | "Output") => (result: { successful?: Array<{ name: string }> }) => {
+    if (!result.successful) return;
+    result.successful.forEach(async (file) => {
+      const res = await fetch("/api/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, size: 0, contentType: "" }),
+      });
+      const data = await res.json();
+      saveFileMutation.mutate({
+        fileName: file.name,
+        objectPath: data.objectPath,
+        direction,
+      });
+    });
+  };
 
   const addCommentMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -285,10 +341,15 @@ export default function TypingJobDetail() {
                       <Upload className="h-4 w-4 text-blue-500" />
                       Sent to Vendor ({inputFiles.length})
                     </span>
-                    <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-upload-input">
+                    <ObjectUploader
+                      maxNumberOfFiles={5}
+                      onGetUploadParameters={getUploadParameters}
+                      onComplete={handleUploadComplete("Input")}
+                      buttonClassName="h-8 px-3 text-sm gap-1.5"
+                    >
                       <Upload className="h-3.5 w-3.5" />
                       Upload
-                    </Button>
+                    </ObjectUploader>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
