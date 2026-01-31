@@ -17,7 +17,9 @@ import {
   Pencil,
   Trash2,
   Phone,
-  Star
+  Star,
+  Loader2,
+  ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +41,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
-import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog } from "@shared/schema";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType } from "@shared/schema";
 
 const editWorkOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits"),
@@ -102,6 +106,9 @@ export default function WorkOrderDetail() {
   const id = params?.id;
   const { toast } = useToast();
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [showNewTypingJobForm, setShowNewTypingJobForm] = useState(false);
+  const [typeMedical, setTypeMedical] = useState(true);
+  const [typeEid, setTypeEid] = useState(true);
 
   const { data: workOrder, isLoading } = useQuery<WorkOrderDetail>({
     queryKey: ["/api/work-orders", id],
@@ -115,6 +122,73 @@ export default function WorkOrderDetail() {
   const { data: serviceTypes } = useQuery<ServiceType[]>({
     queryKey: ["/api/service-types"],
   });
+
+  const { data: jobTypes } = useQuery<JobType[]>({
+    queryKey: ["/api/job-types"],
+  });
+
+  const medicalJobType = jobTypes?.find(jt => jt.category === "Medical") || null;
+  const eidJobType = jobTypes?.find(jt => jt.category === "EID") || null;
+
+  const [isCreatingJobs, setIsCreatingJobs] = useState(false);
+
+  const handleCreateTypingJobs = async () => {
+    if (!id) return;
+    
+    const jobsToCreate: Array<{ woId: string; jobTypeId: string; name: string }> = [];
+    
+    if (typeMedical && medicalJobType) {
+      jobsToCreate.push({ woId: id, jobTypeId: medicalJobType.id, name: "Medical" });
+    }
+    
+    if (typeEid && eidJobType) {
+      jobsToCreate.push({ woId: id, jobTypeId: eidJobType.id, name: "EID" });
+    }
+    
+    if (jobsToCreate.length === 0) {
+      toast({ title: "Please select at least one job type", variant: "destructive" });
+      return;
+    }
+    
+    setIsCreatingJobs(true);
+    const results = { success: 0, failed: 0 };
+    
+    for (const job of jobsToCreate) {
+      try {
+        await apiRequest("POST", "/api/typing-jobs", {
+          woId: job.woId,
+          jobTypeId: job.jobTypeId,
+          status: "Draft",
+        });
+        results.success++;
+      } catch (error) {
+        results.failed++;
+        console.error(`Failed to create ${job.name} typing job:`, error);
+      }
+    }
+    
+    // Invalidate all typing jobs queries (with or without filters)
+    queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+    
+    setIsCreatingJobs(false);
+    
+    if (results.failed === 0) {
+      toast({ title: `${results.success} typing job${results.success > 1 ? 's' : ''} created successfully` });
+      setShowNewTypingJobForm(false);
+      setTypeMedical(true);
+      setTypeEid(true);
+    } else if (results.success > 0) {
+      toast({ 
+        title: "Partial success", 
+        description: `Created ${results.success} job(s), ${results.failed} failed`,
+        variant: "destructive" 
+      });
+      setShowNewTypingJobForm(false);
+    } else {
+      toast({ title: "Failed to create typing jobs", variant: "destructive" });
+    }
+  };
 
   const form = useForm<EditWorkOrderForm>({
     resolver: zodResolver(editWorkOrderSchema),
@@ -529,17 +603,102 @@ export default function WorkOrderDetail() {
             </TabsContent>
 
             <TabsContent value="typing" className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <h3 className="font-medium text-foreground">Typing Jobs</h3>
-                {(!workOrder.typingJobs || workOrder.typingJobs.length === 0) && (
-                  <Link href={`/typing-jobs/new?woId=${id}`}>
-                    <Button variant="outline" size="sm" className="gap-2" data-testid="button-new-typing-job">
-                      <Plus className="h-4 w-4" />
-                      New Typing Job
-                    </Button>
-                  </Link>
+                {(!workOrder.typingJobs || workOrder.typingJobs.length === 0) && !showNewTypingJobForm && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2" 
+                    onClick={() => setShowNewTypingJobForm(true)}
+                    data-testid="button-new-typing-job"
+                  >
+                    <Plus className="h-4 w-4" />
+                    New Typing Job
+                  </Button>
                 )}
               </div>
+
+              {showNewTypingJobForm && (
+                <Card className="border border-border/50 mb-4">
+                  <CardContent className="p-4 space-y-4">
+                    <h4 className="font-medium text-foreground">Create Typing Job</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Select the types of applications to submit for typing:
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id="typeMedical"
+                          checked={typeMedical}
+                          onCheckedChange={(checked) => setTypeMedical(checked === true)}
+                          data-testid="checkbox-type-medical"
+                        />
+                        <Label htmlFor="typeMedical" className="text-sm font-medium cursor-pointer">
+                          Medical Application
+                        </Label>
+                        {medicalJobType && (
+                          <span className="text-xs text-muted-foreground">
+                            (AED {medicalJobType.cost || 0})
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id="typeEid"
+                          checked={typeEid}
+                          onCheckedChange={(checked) => setTypeEid(checked === true)}
+                          data-testid="checkbox-type-eid"
+                        />
+                        <Label htmlFor="typeEid" className="text-sm font-medium cursor-pointer">
+                          Emirates ID Application
+                        </Label>
+                        {eidJobType && (
+                          <span className="text-xs text-muted-foreground">
+                            (AED {eidJobType.cost || 0})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-end gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowNewTypingJobForm(false);
+                          setTypeMedical(true);
+                          setTypeEid(true);
+                        }}
+                        data-testid="button-cancel-typing-job"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="gap-2"
+                        onClick={handleCreateTypingJobs}
+                        disabled={isCreatingJobs || (!typeMedical && !typeEid)}
+                        data-testid="button-create-typing-job"
+                      >
+                        {isCreatingJobs ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardList className="h-4 w-4" />
+                            Create Job{typeMedical && typeEid ? 's' : ''}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {workOrder.typingJobs && workOrder.typingJobs.length > 0 ? (
                 <div className="space-y-3">
@@ -547,8 +706,8 @@ export default function WorkOrderDetail() {
                     <Link key={job.id} href={`/typing-jobs/${job.id}`}>
                       <Card className="border border-border/50 hover-elevate cursor-pointer">
                         <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
                               <p className="font-medium text-foreground">Typing Job</p>
                               <p className="text-sm text-muted-foreground">
                                 Created {new Date(job.createdAt).toLocaleDateString()}
@@ -561,7 +720,7 @@ export default function WorkOrderDetail() {
                     </Link>
                   ))}
                 </div>
-              ) : (
+              ) : !showNewTypingJobForm && (
                 <EmptyState
                   icon={<FileText className="h-6 w-6" />}
                   title="No typing jobs"

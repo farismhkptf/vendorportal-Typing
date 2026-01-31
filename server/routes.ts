@@ -6,7 +6,7 @@ import { z } from "zod";
 import { 
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
   insertCenterSchema, insertServiceTypeSchema, insertJobTypeSchema, loginSchema,
-  insertAppointmentSchema,
+  insertAppointmentSchema, insertTypingJobSchema,
   type CenterTimings
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
@@ -806,6 +806,30 @@ export async function registerRoutes(
   });
 
   // ========== Typing Jobs ==========
+  app.post("/api/typing-jobs", async (req, res) => {
+    try {
+      const validation = validateBody(insertTypingJobSchema, req.body);
+      if ("error" in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      
+      const job = await storage.createTypingJob(validation.data);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: job.id,
+        action: "created",
+        details: { jobTypeId: job.jobTypeId, woId: job.woId },
+      });
+      
+      res.status(201).json(job);
+    } catch (error) {
+      console.error("Create typing job error:", error);
+      res.status(500).json({ message: "Failed to create typing job" });
+    }
+  });
+
   app.get("/api/typing-jobs", async (req, res) => {
     try {
       const { status } = req.query;
