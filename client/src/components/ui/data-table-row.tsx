@@ -11,19 +11,11 @@ export function DataTableRow({ children, onClick, className }: DataTableRowProps
   return (
     <div 
       className={cn(
-        "premium-card p-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 outline-none",
+        "premium-card p-4",
         onClick && "cursor-pointer",
         className
       )}
       onClick={onClick}
-      tabIndex={onClick ? 0 : undefined}
-      role={onClick ? "button" : undefined}
-      onKeyDown={onClick ? (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onClick();
-        }
-      } : undefined}
     >
       {children}
     </div>
