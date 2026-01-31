@@ -51,7 +51,8 @@ export async function registerRoutes(
     try {
       const workOrders = await storage.getWorkOrders();
       const todayAppointments = await storage.getTodayAppointments();
-      const pendingJobs = await storage.getTypingJobs("SentToVendor");
+      // Count Draft typing jobs as "pending" - these need to be submitted to vendor
+      const pendingJobs = await storage.getTypingJobs("Draft");
       const vendors = await storage.getVendors();
       
       let walletBalance = 0;
@@ -157,7 +158,16 @@ export async function registerRoutes(
 
       const company = await storage.getCompanyById(wo.companyId);
       const appointments = await storage.getAppointmentsByWoId(wo.id);
-      const typingJobs = await storage.getTypingJobsByWoId(wo.id);
+      const typingJobsRaw = await storage.getTypingJobsByWoId(wo.id);
+      
+      // Include typing job results and job type info
+      const typingJobs = await Promise.all(
+        typingJobsRaw.map(async (job) => {
+          const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+          const result = await storage.getTypingJobResult(job.id);
+          return { ...job, jobType, result };
+        })
+      );
 
       let companyWithDetails = null;
       if (company) {
@@ -214,6 +224,41 @@ export async function registerRoutes(
         ...validation.data,
         status: "Draft",
       });
+      
+      // Auto-create Medical and EID typing jobs for the new work order
+      try {
+        const jobTypes = await storage.getJobTypes();
+        const medicalJobType = jobTypes.find(jt => jt.category === "Medical");
+        const eidJobType = jobTypes.find(jt => jt.category === "EID");
+        
+        const typingJobPromises: Promise<any>[] = [];
+        
+        if (medicalJobType) {
+          typingJobPromises.push(
+            storage.createTypingJob({
+              woId: wo.id,
+              jobTypeId: medicalJobType.id,
+              status: "Draft",
+            })
+          );
+        }
+        
+        if (eidJobType) {
+          typingJobPromises.push(
+            storage.createTypingJob({
+              woId: wo.id,
+              jobTypeId: eidJobType.id,
+              status: "Draft",
+            })
+          );
+        }
+        
+        await Promise.all(typingJobPromises);
+      } catch (typingJobError) {
+        // Log but don't fail the WO creation if typing job creation fails
+        console.error("Failed to auto-create typing jobs for WO:", typingJobError);
+      }
+      
       res.status(201).json(wo);
     } catch (error) {
       console.error("Create work order error:", error);
@@ -932,6 +977,231 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Typing job comment error:", error);
       res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  // Submit typing job to vendor
+  app.post("/api/typing-jobs/:id/submit-to-vendor", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { vendorId } = req.body;
+      
+      if (!vendorId) {
+        return res.status(400).json({ message: "Vendor ID is required" });
+      }
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      if (job.status !== "Draft") {
+        return res.status(400).json({ message: "Only draft jobs can be submitted to vendor" });
+      }
+      
+      // Get job type to determine cost
+      const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+      const cost = jobType?.cost || 0;
+      
+      // Get vendor and check balance
+      const vendor = await storage.getVendorById(vendorId);
+      if (!vendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+      
+      const balance = await storage.getWalletBalance(vendorId);
+      if (balance < cost) {
+        return res.status(400).json({ 
+          message: `Insufficient vendor balance. Required: AED ${cost}, Available: AED ${balance}` 
+        });
+      }
+      
+      // Deduct from vendor wallet
+      if (cost > 0) {
+        await storage.createWalletEntry({
+          vendorId,
+          entryType: "Debit",
+          typingJobId: id,
+          amount: -cost,
+          note: `Job submission: ${job.id}`,
+        });
+      }
+      
+      // Update job with vendor assignment and status
+      const updatedJob = await storage.updateTypingJob(id, {
+        vendorId,
+        status: "SentToVendor",
+        costSnapshot: cost,
+        sentAt: new Date(),
+      });
+      
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "submitted_to_vendor",
+        details: { vendorId, vendorName: vendor.name, cost },
+      });
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Submit to vendor error:", error);
+      res.status(500).json({ message: "Failed to submit job to vendor" });
+    }
+  });
+
+  // Mark typing job as received from vendor
+  app.post("/api/typing-jobs/:id/mark-received", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { applicationRefNo, centerName, centerArea, centerNotes, biometricsRequired, biometricsDatetime, biometricsCenter, vendorNotes } = req.body;
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      if (job.status !== "SentToVendor" && job.status !== "InProgress") {
+        return res.status(400).json({ message: "Job must be with vendor to mark as received" });
+      }
+      
+      // Create or update typing job result
+      await storage.createTypingJobResult({
+        typingJobId: id,
+        applicationRefNo,
+        centerName,
+        centerArea,
+        centerNotes,
+        biometricsRequired: biometricsRequired || false,
+        biometricsDatetime: biometricsDatetime ? new Date(biometricsDatetime) : null,
+        biometricsCenter,
+        vendorNotes,
+      });
+      
+      // Update job status
+      const updatedJob = await storage.updateTypingJob(id, {
+        status: "WaitingForDocs",
+        returnedAt: new Date(),
+      });
+      
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "received_from_vendor",
+        details: { applicationRefNo },
+      });
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Mark received error:", error);
+      res.status(500).json({ message: "Failed to mark job as received" });
+    }
+  });
+
+  // Mark typing job as returned (needs more docs)
+  app.post("/api/typing-jobs/:id/mark-returned", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      // Update job status to Returned
+      const updatedJob = await storage.updateTypingJob(id, {
+        status: "Returned",
+      });
+      
+      // Add comment with reason
+      if (reason) {
+        await storage.createTypingJobComment({
+          typingJobId: id,
+          authorType: "Vendor",
+          message: `Returned for additional documents: ${reason}`,
+        });
+      }
+      
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "returned_by_vendor",
+        details: { reason },
+      });
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Mark returned error:", error);
+      res.status(500).json({ message: "Failed to mark job as returned" });
+    }
+  });
+
+  // Resubmit typing job to vendor
+  app.post("/api/typing-jobs/:id/resubmit", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      if (job.status !== "Returned") {
+        return res.status(400).json({ message: "Only returned jobs can be resubmitted" });
+      }
+      
+      // Update job status back to SentToVendor
+      const updatedJob = await storage.updateTypingJob(id, {
+        status: "SentToVendor",
+        sentAt: new Date(),
+      });
+      
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "resubmitted_to_vendor",
+        details: {},
+      });
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Resubmit error:", error);
+      res.status(500).json({ message: "Failed to resubmit job" });
+    }
+  });
+
+  // Deliver typing job to client
+  app.post("/api/typing-jobs/:id/deliver-to-client", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      // Update job status
+      const updatedJob = await storage.updateTypingJob(id, {
+        status: "SentToClient",
+        sentToClientAt: new Date(),
+      });
+      
+      // Create audit log
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "delivered_to_client",
+        details: {},
+      });
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Deliver to client error:", error);
+      res.status(500).json({ message: "Failed to deliver to client" });
     }
   });
 

@@ -4,7 +4,8 @@ import { Link, useParams } from "wouter";
 import { 
   ArrowLeft, FileText, Building2, User, Clock, Calendar, 
   Upload, Download, MessageSquare, Send, ChevronRight, 
-  AlertCircle, CheckCircle2, Briefcase, MapPin, History
+  AlertCircle, CheckCircle2, Briefcase, MapPin, History,
+  UserPlus, RotateCcw, Package, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,11 +13,29 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
@@ -38,14 +57,132 @@ export default function TypingJobDetail() {
   const { toast } = useToast();
   const [newComment, setNewComment] = useState("");
   const fileObjectPathsRef = useRef<Map<string, string>>(new Map());
+  
+  // Dialog states
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false);
+  const [showReceivedDialog, setShowReceivedDialog] = useState(false);
+  const [showReturnedDialog, setShowReturnedDialog] = useState(false);
+  
+  // Submit to vendor form
+  const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+  
+  // Mark received form
+  const [receivedForm, setReceivedForm] = useState({
+    applicationRefNo: "",
+    centerName: "",
+    centerArea: "",
+    centerNotes: "",
+    biometricsRequired: false,
+    biometricsDatetime: "",
+    biometricsCenter: "",
+    vendorNotes: "",
+  });
+  
+  // Return reason
+  const [returnReason, setReturnReason] = useState("");
 
   const { data: job, isLoading } = useQuery<TypingJobWithDetails>({
     queryKey: ["/api/typing-jobs", id],
   });
 
+  const { data: vendors = [] } = useQuery<Vendor[]>({
+    queryKey: ["/api/vendors"],
+  });
+
   const { data: activities = [] } = useQuery<ActivityItem[]>({
     queryKey: ["/api/audit-logs", "typing_job", id],
     enabled: !!id,
+  });
+  
+  // Mutations for workflow actions
+  const invalidateTypingJobQueries = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs", id] });
+    queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/audit-logs", "typing_job", id] });
+    queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet"] });
+  };
+
+  const submitToVendorMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/typing-jobs/${id}/submit-to-vendor`, {
+        vendorId: selectedVendorId,
+      });
+    },
+    onSuccess: () => {
+      invalidateTypingJobQueries();
+      setShowSubmitDialog(false);
+      setSelectedVendorId("");
+      toast({ title: "Job submitted to vendor" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to submit", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const markReceivedMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/typing-jobs/${id}/mark-received`, receivedForm);
+    },
+    onSuccess: () => {
+      invalidateTypingJobQueries();
+      setShowReceivedDialog(false);
+      setReceivedForm({
+        applicationRefNo: "",
+        centerName: "",
+        centerArea: "",
+        centerNotes: "",
+        biometricsRequired: false,
+        biometricsDatetime: "",
+        biometricsCenter: "",
+        vendorNotes: "",
+      });
+      toast({ title: "Job marked as received" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to mark received", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const markReturnedMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/typing-jobs/${id}/mark-returned`, { reason: returnReason });
+    },
+    onSuccess: () => {
+      invalidateTypingJobQueries();
+      setShowReturnedDialog(false);
+      setReturnReason("");
+      toast({ title: "Job marked as returned" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to mark returned", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const resubmitMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/typing-jobs/${id}/resubmit`, {});
+    },
+    onSuccess: () => {
+      invalidateTypingJobQueries();
+      toast({ title: "Job resubmitted to vendor" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to resubmit", description: error.message, variant: "destructive" });
+    },
+  });
+  
+  const deliverToClientMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/typing-jobs/${id}/deliver-to-client`, {});
+    },
+    onSuccess: () => {
+      invalidateTypingJobQueries();
+      toast({ title: "Application delivered to client" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to deliver", description: error.message, variant: "destructive" });
+    },
   });
 
   const saveFileMutation = useMutation({
@@ -203,13 +340,112 @@ export default function TypingJobDetail() {
               {job.workOrder?.woNumber} • {job.jobType?.name || "Typing Job"}
             </p>
           </div>
-          <Link href={`/work-orders/${job.woId}`}>
-            <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-view-wo">
-              View WO
-              <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href={`/work-orders/${job.woId}`}>
+              <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-view-wo">
+                View WO
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
         </div>
+
+        {/* Action Buttons based on status */}
+        <Card className="border border-primary/20 bg-primary/5">
+          <CardContent className="py-4">
+            <div className="flex flex-wrap items-center gap-3">
+              {job.status === "Draft" && (
+                <Button 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setShowSubmitDialog(true)}
+                  data-testid="button-submit-to-vendor"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Submit to Vendor
+                </Button>
+              )}
+              
+              {(job.status === "SentToVendor" || job.status === "InProgress") && (
+                <>
+                  <Button 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => setShowReceivedDialog(true)}
+                    data-testid="button-mark-received"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Mark Received
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => setShowReturnedDialog(true)}
+                    data-testid="button-mark-returned"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Mark Returned
+                  </Button>
+                </>
+              )}
+              
+              {job.status === "Returned" && (
+                <Button 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => resubmitMutation.mutate()}
+                  disabled={resubmitMutation.isPending}
+                  data-testid="button-resubmit"
+                >
+                  {resubmitMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                  Resubmit to Vendor
+                </Button>
+              )}
+              
+              {job.status === "WaitingForDocs" && (
+                <Button 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => deliverToClientMutation.mutate()}
+                  disabled={deliverToClientMutation.isPending}
+                  data-testid="button-deliver-to-client"
+                >
+                  {deliverToClientMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Package className="h-4 w-4" />
+                  )}
+                  Deliver to Client
+                </Button>
+              )}
+              
+              {job.status === "SentToClient" && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                  Completed - Delivered to Client
+                </Badge>
+              )}
+              
+              {job.status === "Cancelled" && (
+                <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                  Job Cancelled
+                </Badge>
+              )}
+              
+              {job.status === "VendorMistake" && (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Vendor Mistake
+                </Badge>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="border border-border/50">
           <CardHeader className="pb-2">
@@ -509,6 +745,209 @@ export default function TypingJobDetail() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Submit to Vendor Dialog */}
+      <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Submit to Vendor</DialogTitle>
+            <DialogDescription>
+              Select a vendor and submit this typing job. The cost will be deducted from the vendor's wallet.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Vendor</Label>
+              <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+                <SelectTrigger data-testid="select-vendor">
+                  <SelectValue placeholder="Select vendor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendors.map((vendor) => (
+                    <SelectItem key={vendor.id} value={vendor.id}>
+                      {vendor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {job?.jobType?.cost && (
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="text-sm text-muted-foreground">Cost to deduct</p>
+                <p className="text-lg font-semibold">AED {job.jobType.cost}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSubmitDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => submitToVendorMutation.mutate()}
+              disabled={!selectedVendorId || submitToVendorMutation.isPending}
+              data-testid="button-confirm-submit"
+            >
+              {submitToVendorMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit to Vendor"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark Received Dialog */}
+      <Dialog open={showReceivedDialog} onOpenChange={setShowReceivedDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Mark as Received</DialogTitle>
+            <DialogDescription>
+              Enter the application details received from the vendor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+            <div className="space-y-2">
+              <Label>Application Reference No.</Label>
+              <Input 
+                value={receivedForm.applicationRefNo}
+                onChange={(e) => setReceivedForm(prev => ({ ...prev, applicationRefNo: e.target.value }))}
+                placeholder="e.g., APP-2024-12345"
+                data-testid="input-application-ref"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Center Name</Label>
+                <Input 
+                  value={receivedForm.centerName}
+                  onChange={(e) => setReceivedForm(prev => ({ ...prev, centerName: e.target.value }))}
+                  placeholder="Center name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Center Area</Label>
+                <Input 
+                  value={receivedForm.centerArea}
+                  onChange={(e) => setReceivedForm(prev => ({ ...prev, centerArea: e.target.value }))}
+                  placeholder="Area"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Center Notes</Label>
+              <Textarea 
+                value={receivedForm.centerNotes}
+                onChange={(e) => setReceivedForm(prev => ({ ...prev, centerNotes: e.target.value }))}
+                placeholder="Any notes about the center"
+                rows={2}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="biometrics"
+                checked={receivedForm.biometricsRequired}
+                onCheckedChange={(checked) => setReceivedForm(prev => ({ ...prev, biometricsRequired: !!checked }))}
+              />
+              <Label htmlFor="biometrics" className="cursor-pointer">Biometrics Required</Label>
+            </div>
+            {receivedForm.biometricsRequired && (
+              <div className="grid grid-cols-2 gap-4 pl-6">
+                <div className="space-y-2">
+                  <Label>Biometrics Date/Time</Label>
+                  <Input 
+                    type="datetime-local"
+                    value={receivedForm.biometricsDatetime}
+                    onChange={(e) => setReceivedForm(prev => ({ ...prev, biometricsDatetime: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Biometrics Center</Label>
+                  <Input 
+                    value={receivedForm.biometricsCenter}
+                    onChange={(e) => setReceivedForm(prev => ({ ...prev, biometricsCenter: e.target.value }))}
+                    placeholder="Center name"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Vendor Notes</Label>
+              <Textarea 
+                value={receivedForm.vendorNotes}
+                onChange={(e) => setReceivedForm(prev => ({ ...prev, vendorNotes: e.target.value }))}
+                placeholder="Any additional notes from vendor"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReceivedDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => markReceivedMutation.mutate()}
+              disabled={markReceivedMutation.isPending}
+              data-testid="button-confirm-received"
+            >
+              {markReceivedMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                "Mark as Received"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark Returned Dialog */}
+      <Dialog open={showReturnedDialog} onOpenChange={setShowReturnedDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark as Returned</DialogTitle>
+            <DialogDescription>
+              The vendor needs additional documents. Enter the reason for return.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason for Return</Label>
+              <Textarea 
+                value={returnReason}
+                onChange={(e) => setReturnReason(e.target.value)}
+                placeholder="e.g., Missing passport copy, need updated visa photo..."
+                rows={3}
+                data-testid="input-return-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReturnedDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => markReturnedMutation.mutate()}
+              disabled={markReturnedMutation.isPending}
+              data-testid="button-confirm-returned"
+            >
+              {markReturnedMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Saving...
+                </>
+              ) : (
+                "Mark as Returned"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

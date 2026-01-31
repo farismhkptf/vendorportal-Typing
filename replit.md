@@ -159,5 +159,26 @@ Four user roles with different permissions:
 - `client/src/components/ui/activity-timeline.tsx` - Audit log display component
 - `client/src/hooks/use-scroll-to-error.ts` - Hook for form error navigation
 
+### Typing Job Workflow (January 31, 2026)
+- **Auto-Creation**: When a new Work Order is created, Medical and EID typing jobs are automatically created in "Draft" status
+- **Submit to Vendor**: Draft jobs can be assigned to a vendor with wallet deduction, status changes to "SentToVendor"
+- **Mark Received**: When vendor completes work, operator enters application details (ref number, center info, biometrics requirements)
+- **Mark Returned / Resubmit**: If vendor needs more documents, job is marked "Returned" with reason. Can be resubmitted after providing missing docs.
+- **Deliver to Client**: Final step marks job as "SentToClient" for completion
+- **Dashboard Integration**: "Pending Jobs" count shows Draft typing jobs awaiting submission
+- **Appointment Integration**: When scheduling medical appointments, application number auto-fills from typing job result
+
+### Typing Job API Endpoints
+- `POST /api/typing-jobs/:id/submit-to-vendor` - Assign vendor, deduct wallet, update status
+- `POST /api/typing-jobs/:id/mark-received` - Capture application result from vendor
+- `POST /api/typing-jobs/:id/mark-returned` - Mark job as needing more documents
+- `POST /api/typing-jobs/:id/resubmit` - Resubmit returned job to vendor
+- `POST /api/typing-jobs/:id/deliver-to-client` - Mark job as delivered to client
+
+### Typing Job Status Flow
+Draft → SentToVendor → (InProgress) → WaitingForDocs → SentToClient (completed)
+                     ↓                    
+                  Returned → (Resubmit) → SentToVendor
+
 ### Test Credentials (Development Only)
 - Admin Portal: admin@procompany.ae / admin123

@@ -69,8 +69,18 @@ const quickWoSchema = z.object({
 
 type QuickWoForm = z.infer<typeof quickWoSchema>;
 
+interface TypingJobWithResult {
+  id: string;
+  woId: string;
+  jobTypeId: string;
+  status: string;
+  jobType?: { id: string; name: string; category: string };
+  result?: { applicationRefNo?: string | null };
+}
+
 interface WorkOrderWithDetails extends WorkOrder {
   company?: Company;
+  typingJobs?: TypingJobWithResult[];
 }
 
 export default function ScheduleMedical() {
@@ -247,12 +257,33 @@ export default function ScheduleMedical() {
     },
   });
 
-  const handleSelectWorkOrder = (wo: WorkOrder) => {
+  const handleSelectWorkOrder = async (wo: WorkOrder) => {
     const company = companies?.find(c => c.id === wo.companyId);
     setSelectedWo({ ...wo, company });
     setSelectedCompany(company || null);
     form.setValue("woId", wo.id);
     form.setValue("isVip", wo.isVip || false);
+    
+    // Fetch full work order details to get typing job application numbers
+    try {
+      const response = await fetch(`/api/work-orders/${wo.id}`);
+      if (response.ok) {
+        const woDetails = await response.json() as WorkOrderWithDetails;
+        
+        // Auto-fill application number from Medical typing job result
+        if (woDetails.typingJobs) {
+          const medicalJob = woDetails.typingJobs.find(
+            job => job.jobType?.category === "Medical" && job.result?.applicationRefNo
+          );
+          if (medicalJob?.result?.applicationRefNo) {
+            form.setValue("applicationNumber", medicalJob.result.applicationRefNo);
+          }
+        }
+      }
+    } catch (error) {
+      // Silently fail - application number auto-fill is a convenience feature
+      console.error("Failed to fetch WO details for application number:", error);
+    }
     
     if (company) {
       const preferredCenter = wo.isVip 
