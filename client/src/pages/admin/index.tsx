@@ -42,6 +42,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Center, Staff, ServiceType, JobType, AppSettings, Company, CompanyEmail } from "@shared/schema";
+import { toProperCase } from "@/lib/proper-case";
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -856,7 +857,7 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel>Center Name</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., AMER Center Dubai" className="h-11 rounded-xl" />
+                                <Input {...field} placeholder="e.g., AMER Center Dubai" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) centerForm.setValue("name", toProperCase(e.target.value)); }} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -939,7 +940,7 @@ export default function AdminPage() {
                           <FormItem>
                             <FormLabel>Center Name</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="e.g., AMER Center Dubai" className="h-11 rounded-xl" />
+                              <Input {...field} placeholder="e.g., AMER Center Dubai" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) editCenterForm.setValue("name", toProperCase(e.target.value)); }} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -1461,7 +1462,7 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel>Full Name</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., John Smith" className="h-11 rounded-xl" />
+                                <Input {...field} placeholder="e.g., John Smith" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) staffForm.setValue("name", toProperCase(e.target.value)); }} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1474,7 +1475,7 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel>Role Title</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., PRO, Ops Manager" className="h-11 rounded-xl" />
+                                <Input {...field} placeholder="e.g., PRO, Ops Manager" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) staffForm.setValue("roleTitle", toProperCase(e.target.value)); }} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1614,7 +1615,7 @@ export default function AdminPage() {
                             <FormItem className="col-span-2">
                               <FormLabel className="text-xs text-muted-foreground">Full Name</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., John Smith" className="h-9 rounded-lg" />
+                                <Input {...field} placeholder="e.g., John Smith" className="h-9 rounded-lg" onBlur={(e) => { field.onBlur(); if (e.target.value) editStaffForm.setValue("name", toProperCase(e.target.value)); }} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1627,7 +1628,7 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel className="text-xs text-muted-foreground">Role Title</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., P.R.O." className="h-9 rounded-lg" />
+                                <Input {...field} placeholder="e.g., P.R.O." className="h-9 rounded-lg" onBlur={(e) => { field.onBlur(); if (e.target.value) editStaffForm.setValue("roleTitle", toProperCase(e.target.value)); }} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -2030,7 +2031,7 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel>Service Name</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., New Employment Visa - Inside" className="h-11 rounded-xl" />
+                                <Input {...field} placeholder="e.g., New Employment Visa - Inside" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) serviceForm.setValue("name", toProperCase(e.target.value)); }} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -2143,7 +2144,7 @@ export default function AdminPage() {
                           <FormItem>
                             <FormLabel>Service Name</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="e.g., New Employment Visa - Inside" className="h-11 rounded-xl" />
+                              <Input {...field} placeholder="e.g., New Employment Visa - Inside" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) editServiceForm.setValue("name", toProperCase(e.target.value)); }} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -2393,7 +2394,7 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel>Vendor Job Name</FormLabel>
                               <FormControl>
-                                <Input {...field} placeholder="e.g., Medical Application Normal" className="h-11 rounded-xl" />
+                                <Input {...field} placeholder="e.g., Medical Application Normal" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) jobTypeForm.setValue("name", toProperCase(e.target.value)); }} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -2468,7 +2469,7 @@ export default function AdminPage() {
                           <FormItem>
                             <FormLabel>Vendor Job Name</FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="e.g., Medical Application Normal" className="h-11 rounded-xl" />
+                              <Input {...field} placeholder="e.g., Medical Application Normal" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) editJobTypeForm.setValue("name", toProperCase(e.target.value)); }} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
