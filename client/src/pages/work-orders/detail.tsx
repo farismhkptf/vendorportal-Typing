@@ -531,10 +531,14 @@ export default function WorkOrderDetail() {
             <TabsContent value="typing" className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium text-foreground">Typing Jobs</h3>
-                <Button variant="outline" size="sm" className="gap-2" data-testid="button-new-typing-job">
-                  <Plus className="h-4 w-4" />
-                  New Typing Job
-                </Button>
+                {(!workOrder.typingJobs || workOrder.typingJobs.length === 0) && (
+                  <Link href={`/typing-jobs/new?woId=${id}`}>
+                    <Button variant="outline" size="sm" className="gap-2" data-testid="button-new-typing-job">
+                      <Plus className="h-4 w-4" />
+                      New Typing Job
+                    </Button>
+                  </Link>
+                )}
               </div>
 
               {workOrder.typingJobs && workOrder.typingJobs.length > 0 ? (

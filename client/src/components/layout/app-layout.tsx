@@ -21,7 +21,7 @@ interface AppLayoutProps {
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Work Orders", href: "/work-orders", icon: FileText },
-  { name: "Schedule Medical", href: "/appointments/schedule-medical", icon: Stethoscope },
+  { name: "Medical Appointments", href: "/appointments", icon: Stethoscope },
   { name: "Typing Jobs", href: "/typing-jobs", icon: Calendar },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
   { name: "Admin Console", href: "/admin", icon: Settings },

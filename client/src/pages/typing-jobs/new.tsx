@@ -74,6 +74,11 @@ export default function NewTypingJob() {
   const [emailPreview, setEmailPreview] = useState("");
   const [messageCopied, setMessageCopied] = useState(false);
   const [isRenewal, setIsRenewal] = useState(false);
+  const [initialWoLoaded, setInitialWoLoaded] = useState(false);
+
+  // Get woId from URL query params
+  const urlParams = new URLSearchParams(window.location.search);
+  const preselectedWoId = urlParams.get("woId");
 
   const { data: workOrders } = useQuery<WorkOrder[]>({
     queryKey: ["/api/work-orders"],
@@ -182,6 +187,21 @@ export default function NewTypingJob() {
     }
     return filtered;
   }, [medicalCenters, centerAuthority, isVip]);
+
+  // Auto-select WO from URL query params
+  useEffect(() => {
+    if (preselectedWoId && workOrders && companies && !initialWoLoaded) {
+      const wo = workOrders.find(w => w.id === preselectedWoId);
+      if (wo) {
+        const company = companies.find(c => c.id === wo.companyId);
+        setSelectedWo({ ...wo, company } as WorkOrderWithDetails);
+        setSelectedCompany(company || null);
+        form.setValue("woId", wo.id);
+        setCurrentStep(2);
+        setInitialWoLoaded(true);
+      }
+    }
+  }, [preselectedWoId, workOrders, companies, initialWoLoaded, form]);
 
   useEffect(() => {
     if (selectedWo && selectedCompany) {
