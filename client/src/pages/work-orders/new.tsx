@@ -21,6 +21,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Company, ServiceType, WorkOrder } from "@shared/schema";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { toProperCase } from "@/lib/proper-case";
 
 const workOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits (e.g., J016308)"),
@@ -345,7 +346,7 @@ export default function NewWorkOrder() {
     const { parsed } = parseResult;
 
     if (parsed.woNumber) form.setValue("woNumber", parsed.woNumber);
-    if (parsed.applicantName) form.setValue("applicantName", parsed.applicantName);
+    if (parsed.applicantName) form.setValue("applicantName", toProperCase(parsed.applicantName));
     if (parsed.matchedCompanyId) form.setValue("companyId", parsed.matchedCompanyId);
     if (parsed.matchedServiceTypeId) form.setValue("serviceTypeId", parsed.matchedServiceTypeId);
 
@@ -590,6 +591,12 @@ export default function NewWorkOrder() {
                           placeholder="Enter applicant's full name"
                           className="h-11"
                           data-testid="input-applicant-name"
+                          onBlur={(e) => {
+                            field.onBlur();
+                            if (e.target.value) {
+                              form.setValue("applicantName", toProperCase(e.target.value));
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />

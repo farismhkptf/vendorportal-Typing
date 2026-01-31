@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Center, Staff } from "@shared/schema";
 import { Link } from "wouter";
+import { toProperCase } from "@/lib/proper-case";
 
 const clientContactSchema = z.object({
   name: z.string().optional().default(""),
@@ -63,6 +64,13 @@ export default function NewCompany() {
       assistStaffId: "",
     },
   });
+
+  const handleProperCaseBlur = (fieldName: keyof CompanyFormData | `clientCoordinator.name` | `clientManager.name` | `clientAccountant.name`) => (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value) {
+      form.setValue(fieldName as any, toProperCase(value));
+    }
+  };
 
   const createMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
@@ -125,6 +133,7 @@ export default function NewCompany() {
                 placeholder="Enter company name"
                 className="h-9"
                 data-testid="input-company-name"
+                onBlur={handleProperCaseBlur("name")}
               />
               {form.formState.errors.name && (
                 <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>
@@ -220,6 +229,7 @@ export default function NewCompany() {
                 placeholder="Name"
                 className="h-9"
                 data-testid="input-coordinator-name"
+                onBlur={handleProperCaseBlur("clientCoordinator.name")}
               />
               <Input
                 {...form.register("clientCoordinator.email")}
@@ -246,6 +256,7 @@ export default function NewCompany() {
                 placeholder="Name"
                 className="h-9"
                 data-testid="input-manager-name"
+                onBlur={handleProperCaseBlur("clientManager.name")}
               />
               <Input
                 {...form.register("clientManager.email")}
@@ -272,6 +283,7 @@ export default function NewCompany() {
                 placeholder="Name"
                 className="h-9"
                 data-testid="input-accountant-name"
+                onBlur={handleProperCaseBlur("clientAccountant.name")}
               />
               <Input
                 {...form.register("clientAccountant.email")}
