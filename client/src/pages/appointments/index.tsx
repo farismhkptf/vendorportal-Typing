@@ -79,8 +79,8 @@ export default function AppointmentsIndex() {
   return (
     <AppLayout>
       <div className="p-4 lg:p-6 space-y-6 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-xl font-semibold text-foreground" data-testid="page-title">
               Appointments
             </h1>
@@ -141,7 +141,7 @@ export default function AppointmentsIndex() {
                 {todayAppointments.map((apt) => (
                   <div
                     key={apt.id}
-                    className="p-4 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-between"
+                    className="p-4 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-between gap-4"
                     data-testid={`appointment-today-${apt.id}`}
                   >
                     <div className="flex items-center gap-4">
@@ -209,7 +209,7 @@ export default function AppointmentsIndex() {
                 {upcomingAppointments.map((apt) => (
                   <div
                     key={apt.id}
-                    className="p-4 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-between"
+                    className="p-4 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-between gap-4"
                     data-testid={`appointment-upcoming-${apt.id}`}
                   >
                     <div className="flex items-center gap-4">

@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
   FileText, 
-  Calendar, 
+  ClipboardList, 
   Settings, 
   Wallet,
   LogOut,
@@ -22,7 +22,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Work Orders", href: "/work-orders", icon: FileText },
   { name: "Appointments", href: "/appointments", icon: Stethoscope },
-  { name: "Typing Jobs", href: "/typing-jobs", icon: Calendar },
+  { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
   { name: "Admin Console", href: "/admin", icon: Settings },
 ];

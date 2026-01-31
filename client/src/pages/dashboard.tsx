@@ -8,11 +8,9 @@ import {
   Clock,
   Plus,
   ArrowRight,
-  Building2,
-  Search
+  Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -100,17 +98,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Search Bar */}
-        <div className="relative opacity-0 animate-fade-in">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search by work order number or applicant..."
-            className="pl-9 h-9"
-            data-testid="input-search"
-          />
-        </div>
-
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {statsLoading ? (
@@ -154,9 +141,9 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-2 gap-4">
           {/* Today's Appointments */}
           <div className="space-y-3 opacity-0 animate-fade-in animate-delay-2">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-base font-semibold text-foreground">Today's Appointments</h2>
-              <Link href="/typing-jobs">
+              <Link href="/appointments">
                 <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground rounded-lg">
                   View All
                   <ArrowRight className="h-3.5 w-3.5" />
@@ -175,15 +162,15 @@ export default function Dashboard() {
                 todayAppointments.map((apt) => (
                   <Link key={apt.id} href={`/work-orders/${apt.id}`}>
                     <DataTableRow>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="space-y-1.5 min-w-0">
                           <div className="flex items-center gap-2.5">
                             <span className="font-medium text-foreground">{apt.woNumber}</span>
                             <StatusBadge status={apt.type} />
                           </div>
-                          <p className="text-sm text-muted-foreground">{apt.applicantName}</p>
+                          <p className="text-sm text-muted-foreground truncate">{apt.applicantName}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <p className="font-medium text-foreground">{apt.time}</p>
                           <p className="text-sm text-muted-foreground">{apt.center}</p>
                         </div>
@@ -203,7 +190,7 @@ export default function Dashboard() {
 
           {/* Recent Work Orders */}
           <div className="space-y-3 opacity-0 animate-fade-in animate-delay-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-base font-semibold text-foreground">Recent Work Orders</h2>
               <Link href="/work-orders">
                 <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground rounded-lg">
@@ -224,15 +211,15 @@ export default function Dashboard() {
                 recentWorkOrders.map((wo) => (
                   <Link key={wo.id} href={`/work-orders/${wo.id}`}>
                     <DataTableRow>
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="space-y-1.5 min-w-0">
                           <div className="flex items-center gap-2.5">
                             <span className="font-medium text-foreground">{wo.woNumber}</span>
                             <StatusBadge status={wo.status} />
                           </div>
-                          <p className="text-sm text-muted-foreground">{wo.applicantName}</p>
+                          <p className="text-sm text-muted-foreground truncate">{wo.applicantName}</p>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                             <Building2 className="h-3.5 w-3.5" />
                             <span className="truncate max-w-[120px]">{wo.companyName}</span>

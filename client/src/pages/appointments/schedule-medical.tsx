@@ -506,7 +506,7 @@ Thank you,
                   <button
                     key={wo.id}
                     onClick={() => handleSelectWorkOrder(wo)}
-                    className="w-full p-3 text-left rounded-lg hover-elevate flex items-center justify-between"
+                    className="w-full p-3 text-left rounded-lg hover-elevate flex items-center justify-between gap-3"
                     data-testid={`button-select-wo-${wo.woNumber}`}
                   >
                     <div>
@@ -542,7 +542,7 @@ Thank you,
       {selectedWo && (
         <Card className="mt-6 border-primary/20 bg-primary/5">
           <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
                 {selectedWo.woNumber}
@@ -597,7 +597,7 @@ Thank you,
                     return (
                       <div 
                         key={apt.id} 
-                        className="flex items-center justify-between p-2 rounded-md bg-background/50"
+                        className="flex items-center justify-between gap-3 p-2 rounded-md bg-background/50"
                       >
                         <div className="flex items-center gap-2">
                           <Badge variant={apt.type === "Medical" ? "default" : "secondary"} className="text-xs">
@@ -806,7 +806,7 @@ Thank you,
             )}
             <div className="grid gap-2">
               {companyMedicalAssist ? (
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <Stethoscope className="h-4 w-4 text-primary" />
                     <div>
@@ -827,7 +827,7 @@ Thank you,
                 </div>
               )}
               {companyCRM ? (
-                <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between gap-3 p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2">
                     <UserCheck className="h-4 w-4 text-primary" />
                     <div>
@@ -882,7 +882,7 @@ Thank you,
 
       <Card className="mb-4">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <CardTitle className="text-base flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               Appointment Summary
@@ -1067,7 +1067,7 @@ Thank you,
                     <button
                       key={wo.id}
                       onClick={() => handleSelectWorkOrder(wo)}
-                      className="w-full p-2 text-left rounded hover-elevate flex items-center justify-between text-sm"
+                      className="w-full p-2 text-left rounded hover-elevate flex items-center justify-between gap-3 text-sm"
                     >
                       <span className="font-medium">{wo.woNumber}</span>
                       <span className="text-muted-foreground">{wo.applicantName}</span>
@@ -1082,7 +1082,7 @@ Thank you,
         {selectedWo && (
           <Card className="border-primary/20 bg-primary/5">
             <CardContent className="p-3 space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <div className="font-medium flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
                   {selectedWo.woNumber}

@@ -352,7 +352,7 @@ export default function TypingJobDetail() {
             <div className="grid md:grid-cols-2 gap-4">
               <Card className="border border-border/50">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
                     <span className="flex items-center gap-2">
                       <Upload className="h-4 w-4 text-blue-500" />
                       Sent to Vendor ({inputFiles.length})
@@ -374,7 +374,7 @@ export default function TypingJobDetail() {
                       {inputFiles.map((file) => (
                         <div
                           key={file.id}
-                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
+                          className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50"
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -396,7 +396,7 @@ export default function TypingJobDetail() {
 
               <Card className="border border-border/50">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between">
+                  <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
                     <span className="flex items-center gap-2">
                       <Download className="h-4 w-4 text-green-500" />
                       Received from Vendor ({outputFiles.length})
@@ -409,7 +409,7 @@ export default function TypingJobDetail() {
                       {outputFiles.map((file) => (
                         <div
                           key={file.id}
-                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
+                          className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50"
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -483,9 +483,11 @@ export default function TypingJobDetail() {
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No comments yet
-                    </p>
+                    <EmptyState
+                      icon={<MessageSquare className="h-5 w-5" />}
+                      title="No comments yet"
+                      description="Add a comment to start a conversation about this job."
+                    />
                   )}
                 </div>
               </CardContent>

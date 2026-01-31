@@ -91,7 +91,7 @@ export default function TypingJobsList() {
       {items.map((job, index) => (
         <Link key={job.id} href={`/typing-jobs/${job.id}`}>
           <div 
-            className="flex items-center justify-between py-2 px-3 rounded-lg hover-elevate opacity-0 animate-fade-in"
+            className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg hover-elevate opacity-0 animate-fade-in"
             style={{ animationDelay: `${index * 0.02}s` }}
             data-testid={`typing-job-compact-${job.id}`}
           >
@@ -200,7 +200,7 @@ export default function TypingJobsList() {
       <div className="flex gap-4 overflow-x-auto pb-4">
         {STATUS_ORDER.map((status) => (
           <div key={status} className="flex-shrink-0 w-64">
-            <div className="flex items-center justify-between mb-3 px-1">
+            <div className="flex items-center justify-between gap-2 mb-3 px-1">
               <div className="flex items-center gap-2">
                 <StatusBadge status={status} />
                 <span className="text-xs text-muted-foreground">({kanbanGroups[status]?.length || 0})</span>
@@ -240,8 +240,8 @@ export default function TypingJobsList() {
   return (
     <AppLayout>
       <div className="p-4 lg:p-6 space-y-6 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-xl font-semibold text-foreground" data-testid="page-title">
               Typing Jobs
             </h1>

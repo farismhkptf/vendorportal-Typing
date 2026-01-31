@@ -204,7 +204,7 @@ export default function VendorJobDetail() {
       <div className="p-4 lg:p-8 max-w-4xl mx-auto space-y-6">
         <Card>
           <CardHeader className="pb-4">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
                   <FileText className="h-6 w-6 text-violet-600 dark:text-violet-400" />
@@ -307,7 +307,7 @@ export default function VendorJobDetail() {
                     {inputFiles.map(file => (
                       <div 
                         key={file.id} 
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                        className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50"
                         data-testid={`input-file-${file.id}`}
                       >
                         <div className="flex items-center gap-3">
@@ -420,7 +420,7 @@ export default function VendorJobDetail() {
                         }`}
                         data-testid={`comment-${comment.id}`}
                       >
-                        <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center justify-between gap-2 mb-1">
                           <Badge variant="secondary" className="text-xs">
                             {comment.authorType === "Vendor" ? "You" : "Company"}
                           </Badge>

@@ -85,7 +85,7 @@ export default function WorkOrdersList() {
       {items.map((wo, index) => (
         <Link key={wo.id} href={`/work-orders/${wo.id}`}>
           <div 
-            className="flex items-center justify-between py-2 px-3 rounded-lg hover-elevate opacity-0 animate-fade-in"
+            className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg hover-elevate opacity-0 animate-fade-in"
             style={{ animationDelay: `${index * 0.02}s` }}
             data-testid={`work-order-compact-${wo.woNumber}`}
           >
@@ -194,7 +194,7 @@ export default function WorkOrdersList() {
       <div className="flex gap-4 overflow-x-auto pb-4">
         {STATUS_ORDER.map((status) => (
           <div key={status} className="flex-shrink-0 w-72">
-            <div className="flex items-center justify-between mb-3 px-1">
+            <div className="flex items-center justify-between gap-2 mb-3 px-1">
               <div className="flex items-center gap-2">
                 <StatusBadge status={status} />
                 <span className="text-xs text-muted-foreground">({kanbanGroups[status]?.length || 0})</span>
