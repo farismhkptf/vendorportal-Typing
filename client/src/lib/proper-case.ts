@@ -2,7 +2,7 @@
  * Converts text to proper/title case with smart handling of small words.
  * - Capitalizes first letter of each word
  * - Keeps certain small words lowercase (unless they're the first word)
- * - Handles common abbreviations that should stay uppercase
+ * - Handles common abbreviations that should stay uppercase with dots (L.L.C., U.A.E., etc.)
  */
 
 // Words that should remain lowercase (unless first word)
@@ -18,18 +18,51 @@ const SMALL_WORDS = new Set([
   'vs', 'vs.',                // Versus
 ]);
 
-// Words/abbreviations that should stay uppercase
-const UPPERCASE_WORDS = new Set([
-  'llc', 'l.l.c', 'l.l.c.',
-  'uae', 'u.a.e', 'u.a.e.',
-  'usa', 'u.s.a', 'u.s.a.',
-  'uk', 'u.k', 'u.k.',
-  'id', 'eid', 'eida',
-  'pro', 'vip',
-  'hr', 'it', 'ceo', 'cfo', 'cto', 'coo',
-  'fzc', 'fze', 'fz', 'fzco', 'dmcc', 'dso', 'dip', 'difc', 'jlt', 'jvc', 'jvt',
-  'ii', 'iii', 'iv', 'vi', 'vii', 'viii', 'ix', 'xi',
-]);
+// Abbreviation mappings: normalized form (lowercase, no dots) -> dotted format
+const ABBREVIATION_MAP: Record<string, string> = {
+  'llc': 'L.L.C.',
+  'uae': 'U.A.E.',
+  'usa': 'U.S.A.',
+  'uk': 'U.K.',
+  'id': 'I.D.',
+  'eid': 'E.I.D.',
+  'eida': 'E.I.D.A.',
+  'pro': 'P.R.O.',
+  'vip': 'V.I.P.',
+  'hr': 'H.R.',
+  'it': 'I.T.',
+  'ceo': 'C.E.O.',
+  'cfo': 'C.F.O.',
+  'cto': 'C.T.O.',
+  'coo': 'C.O.O.',
+  'fzc': 'F.Z.C.',
+  'fze': 'F.Z.E.',
+  'fz': 'F.Z.',
+  'fzco': 'F.Z.C.O.',
+  'dmcc': 'D.M.C.C.',
+  'dso': 'D.S.O.',
+  'dip': 'D.I.P.',
+  'difc': 'D.I.F.C.',
+  'jlt': 'J.L.T.',
+  'jvc': 'J.V.C.',
+  'jvt': 'J.V.T.',
+  // Roman numerals stay as-is (no dots)
+  'ii': 'II',
+  'iii': 'III',
+  'iv': 'IV',
+  'vi': 'VI',
+  'vii': 'VII',
+  'viii': 'VIII',
+  'ix': 'IX',
+  'xi': 'XI',
+};
+
+/**
+ * Normalizes an abbreviation by removing dots and converting to lowercase
+ */
+function normalizeAbbreviation(word: string): string {
+  return word.replace(/\./g, '').toLowerCase();
+}
 
 /**
  * Converts a string to proper case (title case with smart word handling)
@@ -48,45 +81,49 @@ export function toProperCase(text: string): string {
     return '';
   }
 
-  const words = normalized.toLowerCase().split(' ');
+  const words = normalized.split(' ');
   
   return words.map((word, index) => {
     // Skip empty words
     if (!word) return word;
     
-    // Check if it's an abbreviation that should be uppercase
-    const lowerWord = word.replace(/[.,]/g, '');
-    if (UPPERCASE_WORDS.has(lowerWord)) {
-      return word.toUpperCase();
-    }
-    
-    // Check if it's a small word (not first word)
-    if (index > 0 && SMALL_WORDS.has(lowerWord)) {
-      return word;
-    }
-    
-    // Handle hyphenated words
+    // Handle hyphenated words (like FZ-LLC -> F.Z.-L.L.C.)
     if (word.includes('-')) {
       return word.split('-').map((part, partIndex) => {
-        const lowerPart = part.replace(/[.,]/g, '');
-        if (UPPERCASE_WORDS.has(lowerPart)) {
-          return part.toUpperCase();
-        }
-        if (partIndex > 0 && SMALL_WORDS.has(lowerPart)) {
-          return part;
-        }
-        return capitalizeFirst(part);
+        return processWord(part, index === 0 && partIndex === 0);
       }).join('-');
     }
     
-    // Handle words with apostrophes (like O'Brien, McDonald's)
-    if (word.includes("'")) {
-      return word.split("'").map(part => capitalizeFirst(part)).join("'");
-    }
-    
-    // Regular word - capitalize first letter
-    return capitalizeFirst(word);
+    return processWord(word, index === 0);
   }).join(' ');
+}
+
+/**
+ * Process a single word for proper casing
+ */
+function processWord(word: string, isFirst: boolean): string {
+  if (!word) return word;
+  
+  // Normalize the word (remove dots, lowercase) for lookup
+  const normalizedWord = normalizeAbbreviation(word);
+  
+  // Check if it's a known abbreviation
+  if (ABBREVIATION_MAP[normalizedWord]) {
+    return ABBREVIATION_MAP[normalizedWord];
+  }
+  
+  // Check if it's a small word (not first word)
+  if (!isFirst && SMALL_WORDS.has(normalizedWord)) {
+    return word.toLowerCase();
+  }
+  
+  // Handle words with apostrophes (like O'Brien, McDonald's)
+  if (word.includes("'")) {
+    return word.toLowerCase().split("'").map(part => capitalizeFirst(part)).join("'");
+  }
+  
+  // Regular word - capitalize first letter
+  return capitalizeFirst(word.toLowerCase());
 }
 
 /**

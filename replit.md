@@ -163,7 +163,7 @@ Four user roles with different permissions:
 ### Proper Case Auto-Formatting (January 31, 2026)
 - **toProperCase utility**: Converts UPPERCASE or lowercase text to Proper Case on input blur
 - **Small words**: a, the, for, from, to, and, or, of, in, on, at, by, via, per, vs stay lowercase (except at start)
-- **Abbreviations preserved**: LLC, UAE, PRO, VIP, EID, ID, CEO, CFO, IT, HR, FZC, FZE, FZCO, FZ-LLC stay uppercase
+- **Abbreviations with dots**: L.L.C., U.A.E., P.R.O., V.I.P., E.I.D., I.D., C.E.O., C.F.O., I.T., H.R., F.Z.C., F.Z.E., F.Z.C.O., D.M.C.C., etc.
 - **Applied to forms**: Work orders (applicant name), Companies (name, client contacts), Admin (centers, staff, service types, job types), Schedule Medical (quick WO form), Work Order Edit dialog
 
 ### Typing Job Workflow (January 31, 2026)
