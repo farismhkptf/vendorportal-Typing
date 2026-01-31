@@ -861,10 +861,23 @@ export async function registerRoutes(
   app.put("/api/typing-jobs/:id", async (req, res) => {
     try {
       const { id } = req.params;
+      const existingJob = await storage.getTypingJobById(id);
+      const previousStatus = existingJob?.status;
+      
       const job = await storage.updateTypingJob(id, req.body);
       if (!job) {
         return res.status(404).json({ message: "Typing job not found" });
       }
+      
+      if (req.body.status && req.body.status !== previousStatus) {
+        await storage.createAuditLog({
+          entityType: "typing_job",
+          entityId: id,
+          action: "status_changed",
+          details: { previousStatus, newStatus: req.body.status, changedBy: "Internal" },
+        });
+      }
+      
       res.json(job);
     } catch (error) {
       console.error("Typing job update error:", error);
@@ -880,6 +893,17 @@ export async function registerRoutes(
         typingJobId: id,
         ...req.body
       });
+      
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "comment_added",
+        details: { 
+          authorType: req.body.authorType || "Internal",
+          message: req.body.message?.substring(0, 100) 
+        },
+      });
+      
       res.status(201).json(comment);
     } catch (error) {
       console.error("Typing job comment error:", error);
@@ -902,6 +926,20 @@ export async function registerRoutes(
   app.post("/api/files", async (req, res) => {
     try {
       const file = await storage.createFile(req.body);
+      
+      if (req.body.relatedType === "TypingJob") {
+        await storage.createAuditLog({
+          entityType: "typing_job",
+          entityId: req.body.relatedId,
+          action: "file_uploaded",
+          details: { 
+            fileName: req.body.fileName, 
+            direction: req.body.direction,
+            uploadedBy: req.body.uploadedByType 
+          },
+        });
+      }
+      
       res.status(201).json(file);
     } catch (error) {
       console.error("File create error:", error);
@@ -1187,12 +1225,14 @@ export async function registerRoutes(
         jobs.map(async (job) => {
           const wo = await storage.getWorkOrderById(job.woId);
           const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+          const files = await storage.getFilesByRelated("TypingJob", job.id);
+          const comments = await storage.getTypingJobComments(job.id);
           return { 
             ...job, 
             workOrder: wo, 
             jobType,
-            hasInputDocs: false,
-            commentCount: 0,
+            hasInputDocs: files.some((f: { direction: string }) => f.direction === "Input"),
+            commentCount: comments.length,
           };
         })
       );
@@ -1201,6 +1241,145 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Vendor jobs error:", error);
       res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+
+  // Get single vendor job with full details
+  app.get("/api/vendor/jobs/:id", async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTypingJobById(jobId);
+      
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      const wo = await storage.getWorkOrderById(job.woId);
+      const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+      const files = await storage.getFilesByRelated("TypingJob", job.id);
+      const comments = await storage.getTypingJobComments(job.id);
+
+      res.json({
+        ...job,
+        workOrder: wo,
+        jobType,
+        files,
+        comments,
+        instructions: (job as any).vendorNotes || null,
+      });
+    } catch (error) {
+      console.error("Vendor job detail error:", error);
+      res.status(500).json({ message: "Failed to fetch job" });
+    }
+  });
+
+  // Vendor upload file (output document)
+  const vendorFileSchema = z.object({
+    fileName: z.string().min(1),
+    objectPath: z.string().min(1),
+  });
+
+  app.post("/api/vendor/jobs/:id/files", async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const validation = validateBody(vendorFileSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const { fileName, objectPath } = validation.data;
+      
+      const file = await storage.createFile({
+        relatedType: "TypingJob",
+        relatedId: jobId,
+        direction: "Output",
+        fileName,
+        workdriveLink: objectPath,
+        uploadedByType: "Vendor",
+      });
+
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: jobId,
+        action: "vendor_file_uploaded",
+        details: { fileName },
+      });
+
+      res.status(201).json(file);
+    } catch (error) {
+      console.error("Vendor file upload error:", error);
+      res.status(500).json({ message: "Failed to save file" });
+    }
+  });
+
+  // Vendor add comment
+  const vendorCommentSchema = z.object({
+    message: z.string().min(1).max(2000),
+  });
+
+  app.post("/api/vendor/jobs/:id/comments", async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const validation = validateBody(vendorCommentSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const { message } = validation.data;
+      
+      const comment = await storage.createTypingJobComment({
+        typingJobId: jobId,
+        authorType: "Vendor",
+        message,
+      });
+
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: jobId,
+        action: "vendor_comment_added",
+        details: { message: message.substring(0, 100) },
+      });
+
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Vendor comment error:", error);
+      res.status(500).json({ message: "Failed to add comment" });
+    }
+  });
+
+  // Vendor update job status
+  const vendorStatusSchema = z.object({
+    status: z.enum(["InProgress", "WaitingForDocs", "Returned"]),
+  });
+
+  app.put("/api/vendor/jobs/:id/status", async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const validation = validateBody(vendorStatusSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const { status } = validation.data;
+
+      const job = await storage.getTypingJobById(jobId);
+      const previousStatus = job?.status;
+
+      const updateData: Record<string, any> = { status };
+      if (status === "Returned") {
+        updateData.returnedAt = new Date();
+      }
+
+      const updated = await storage.updateTypingJob(jobId, updateData);
+
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: jobId,
+        action: "status_changed",
+        details: { previousStatus, newStatus: status, changedBy: "Vendor" },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Vendor status update error:", error);
+      res.status(500).json({ message: "Failed to update status" });
     }
   });
 

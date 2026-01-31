@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import { 
   ArrowLeft, FileText, Building2, User, Clock, Calendar, 
   Upload, Download, MessageSquare, Send, ChevronRight, 
-  AlertCircle, CheckCircle2, Briefcase, MapPin
+  AlertCircle, CheckCircle2, Briefcase, MapPin, History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
@@ -36,9 +37,15 @@ export default function TypingJobDetail() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [newComment, setNewComment] = useState("");
+  const fileObjectPathsRef = useRef<Map<string, string>>(new Map());
 
   const { data: job, isLoading } = useQuery<TypingJobWithDetails>({
     queryKey: ["/api/typing-jobs", id],
+  });
+
+  const { data: activities = [] } = useQuery<ActivityItem[]>({
+    queryKey: ["/api/audit-logs", "typing_job", id],
+    enabled: !!id,
   });
 
   const saveFileMutation = useMutation({
@@ -54,6 +61,7 @@ export default function TypingJobDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/audit-logs", "typing_job", id] });
       toast({ title: "File uploaded successfully" });
     },
     onError: () => {
@@ -61,7 +69,7 @@ export default function TypingJobDetail() {
     },
   });
 
-  const getUploadParameters = async (file: { name: string; size: number | null; type?: string }) => {
+  const getUploadParameters = async (file: { name: string; size: number | null; type?: string; id?: string }) => {
     const res = await fetch("/api/uploads/request-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -72,6 +80,9 @@ export default function TypingJobDetail() {
       }),
     });
     const data = await res.json();
+    const key = file.id || `${file.name}-${Date.now()}`;
+    fileObjectPathsRef.current.set(key, data.objectPath);
+    fileObjectPathsRef.current.set(file.name, data.objectPath);
     return {
       method: "PUT" as const,
       url: data.uploadURL as string,
@@ -79,20 +90,21 @@ export default function TypingJobDetail() {
     };
   };
 
-  const handleUploadComplete = (direction: "Input" | "Output") => (result: { successful?: Array<{ name: string }> }) => {
+  const handleUploadComplete = (direction: "Input" | "Output") => (result: { successful?: Array<{ name: string; id?: string }> }) => {
     if (!result.successful) return;
-    result.successful.forEach(async (file) => {
-      const res = await fetch("/api/uploads/request-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: file.name, size: 0, contentType: "" }),
-      });
-      const data = await res.json();
-      saveFileMutation.mutate({
-        fileName: file.name,
-        objectPath: data.objectPath,
-        direction,
-      });
+    result.successful.forEach((file) => {
+      const objectPath = file.id 
+        ? fileObjectPathsRef.current.get(file.id) 
+        : fileObjectPathsRef.current.get(file.name);
+      if (objectPath) {
+        saveFileMutation.mutate({
+          fileName: file.name,
+          objectPath,
+          direction,
+        });
+        if (file.id) fileObjectPathsRef.current.delete(file.id);
+        fileObjectPathsRef.current.delete(file.name);
+      }
     });
   };
 
@@ -321,7 +333,7 @@ export default function TypingJobDetail() {
         )}
 
         <Tabs defaultValue="files" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="files" className="gap-2" data-testid="tab-files">
               <FileText className="h-4 w-4" />
               Documents
@@ -329,6 +341,10 @@ export default function TypingJobDetail() {
             <TabsTrigger value="comments" className="gap-2" data-testid="tab-comments">
               <MessageSquare className="h-4 w-4" />
               Comments ({job.comments?.length || 0})
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="gap-2" data-testid="tab-activity">
+              <History className="h-4 w-4" />
+              Activity
             </TabsTrigger>
           </TabsList>
 
@@ -472,6 +488,20 @@ export default function TypingJobDetail() {
                     </p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-4">
+            <Card className="border border-border/50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <History className="h-4 w-4 text-muted-foreground" />
+                  Activity Timeline
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ActivityTimeline activities={activities} />
               </CardContent>
             </Card>
           </TabsContent>

@@ -21,6 +21,7 @@ import VendorWallet from "@/pages/vendor-wallet";
 import AdminPage from "@/pages/admin/index";
 import VendorLogin from "@/pages/vendor/login";
 import VendorJobs from "@/pages/vendor/jobs";
+import VendorJobDetail from "@/pages/vendor/job-detail";
 import ReschedulePage from "@/pages/reschedule";
 import AppointmentsIndex from "@/pages/appointments/index";
 import ScheduleMedical from "@/pages/appointments/schedule-medical";
@@ -44,6 +45,7 @@ function Router() {
       <Route path="/admin" component={AdminPage} />
       <Route path="/vendor/login" component={VendorLogin} />
       <Route path="/vendor/jobs" component={VendorJobs} />
+      <Route path="/vendor/jobs/:id" component={VendorJobDetail} />
       <Route path="/reschedule/:token" component={ReschedulePage} />
       <Route path="/appointments" component={AppointmentsIndex} />
       <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
