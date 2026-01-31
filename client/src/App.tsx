@@ -15,6 +15,7 @@ import NewCompany from "@/pages/companies/new";
 import CompanyDetail from "@/pages/companies/detail";
 import TypingJobsList from "@/pages/typing-jobs/index";
 import NewTypingJob from "@/pages/typing-jobs/new";
+import TypingJobDetail from "@/pages/typing-jobs/detail";
 import StaffList from "@/pages/staff/index";
 import VendorWallet from "@/pages/vendor-wallet";
 import AdminPage from "@/pages/admin/index";
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/companies/:id" component={CompanyDetail} />
       <Route path="/typing-jobs" component={TypingJobsList} />
       <Route path="/typing-jobs/new" component={NewTypingJob} />
+      <Route path="/typing-jobs/:id" component={TypingJobDetail} />
       <Route path="/staff" component={StaffList} />
       <Route path="/vendor-wallet" component={VendorWallet} />
       <Route path="/admin" component={AdminPage} />

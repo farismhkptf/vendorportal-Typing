@@ -82,10 +82,10 @@ export default function AppointmentsIndex() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-foreground" data-testid="page-title">
-              Medical Appointments
+              Appointments
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Manage medical appointment scheduling
+              Manage medical and EID appointment scheduling
             </p>
           </div>
           <Link href="/appointments/schedule-medical">

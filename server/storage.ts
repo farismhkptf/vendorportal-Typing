@@ -11,7 +11,7 @@ import {
   type Vendor, type InsertVendor, type TypingJob, type InsertTypingJob,
   type TypingJobResult, type InsertTypingJobResult, type TypingJobComment, type InsertTypingJobComment,
   type VendorWalletLedger, type InsertVendorWalletLedger, type AppSettings,
-  type AuditLog, type InsertAuditLog
+  type AuditLog, type InsertAuditLog, type InsertFile, type File
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
@@ -89,9 +89,25 @@ export interface IStorage {
   
   // Typing Jobs
   getTypingJobs(status?: string): Promise<TypingJob[]>;
+  getTypingJobById(id: string): Promise<TypingJob | undefined>;
   getTypingJobsByWoId(woId: string): Promise<TypingJob[]>;
   getTypingJobsByVendorId(vendorId: string): Promise<TypingJob[]>;
   createTypingJob(data: InsertTypingJob): Promise<TypingJob>;
+  updateTypingJob(id: string, data: Partial<InsertTypingJob>): Promise<TypingJob | undefined>;
+  
+  // Typing Job Results
+  getTypingJobResult(typingJobId: string): Promise<TypingJobResult | undefined>;
+  createTypingJobResult(data: InsertTypingJobResult): Promise<TypingJobResult>;
+  updateTypingJobResult(typingJobId: string, data: Partial<InsertTypingJobResult>): Promise<TypingJobResult | undefined>;
+  
+  // Typing Job Comments
+  getTypingJobComments(typingJobId: string): Promise<TypingJobComment[]>;
+  createTypingJobComment(data: InsertTypingJobComment): Promise<TypingJobComment>;
+  
+  // Files
+  getFilesByRelated(relatedType: string, relatedId: string): Promise<File[]>;
+  createFile(data: InsertFile): Promise<File>;
+  deleteFile(id: string): Promise<boolean>;
   
   // Vendor Wallet
   getWalletBalance(vendorId: string): Promise<number>;
@@ -466,6 +482,57 @@ export class DatabaseStorage implements IStorage {
   async createTypingJob(data: InsertTypingJob): Promise<TypingJob> {
     const [job] = await db.insert(typingJobs).values(data).returning();
     return job;
+  }
+
+  async getTypingJobById(id: string): Promise<TypingJob | undefined> {
+    const [job] = await db.select().from(typingJobs).where(eq(typingJobs.id, id));
+    return job;
+  }
+
+  async updateTypingJob(id: string, data: Partial<InsertTypingJob>): Promise<TypingJob | undefined> {
+    const [job] = await db.update(typingJobs).set(data).where(eq(typingJobs.id, id)).returning();
+    return job;
+  }
+
+  // Typing Job Results
+  async getTypingJobResult(typingJobId: string): Promise<TypingJobResult | undefined> {
+    const [result] = await db.select().from(typingJobResults).where(eq(typingJobResults.typingJobId, typingJobId));
+    return result;
+  }
+
+  async createTypingJobResult(data: InsertTypingJobResult): Promise<TypingJobResult> {
+    const [result] = await db.insert(typingJobResults).values(data).returning();
+    return result;
+  }
+
+  async updateTypingJobResult(typingJobId: string, data: Partial<InsertTypingJobResult>): Promise<TypingJobResult | undefined> {
+    const [result] = await db.update(typingJobResults).set(data).where(eq(typingJobResults.typingJobId, typingJobId)).returning();
+    return result;
+  }
+
+  // Typing Job Comments
+  async getTypingJobComments(typingJobId: string): Promise<TypingJobComment[]> {
+    return db.select().from(typingJobComments).where(eq(typingJobComments.typingJobId, typingJobId)).orderBy(desc(typingJobComments.createdAt));
+  }
+
+  async createTypingJobComment(data: InsertTypingJobComment): Promise<TypingJobComment> {
+    const [comment] = await db.insert(typingJobComments).values(data).returning();
+    return comment;
+  }
+
+  // Files
+  async getFilesByRelated(relatedType: string, relatedId: string): Promise<File[]> {
+    return db.select().from(files).where(and(eq(files.relatedType, relatedType), eq(files.relatedId, relatedId))).orderBy(desc(files.createdAt));
+  }
+
+  async createFile(data: InsertFile): Promise<File> {
+    const [file] = await db.insert(files).values(data).returning();
+    return file;
+  }
+
+  async deleteFile(id: string): Promise<boolean> {
+    const result = await db.delete(files).where(eq(files.id, id));
+    return true;
   }
 
   // Vendor Wallet

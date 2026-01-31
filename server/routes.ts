@@ -822,6 +822,100 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/typing-jobs/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const job = await storage.getTypingJobById(id);
+      
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      const wo = await storage.getWorkOrderById(job.woId);
+      const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+      const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+      const vendor = job.vendorId ? await storage.getVendorById(job.vendorId) : null;
+      const result = await storage.getTypingJobResult(id);
+      const comments = await storage.getTypingJobComments(id);
+      const jobFiles = await storage.getFilesByRelated("TypingJob", id);
+      
+      res.json({ 
+        ...job, 
+        workOrder: wo ? { ...wo, company } : null, 
+        jobType, 
+        vendor,
+        result,
+        comments,
+        files: jobFiles
+      });
+    } catch (error) {
+      console.error("Typing job detail error:", error);
+      res.status(500).json({ message: "Failed to fetch typing job" });
+    }
+  });
+
+  app.put("/api/typing-jobs/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const job = await storage.updateTypingJob(id, req.body);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      res.json(job);
+    } catch (error) {
+      console.error("Typing job update error:", error);
+      res.status(500).json({ message: "Failed to update typing job" });
+    }
+  });
+
+  // Typing Job Comments
+  app.post("/api/typing-jobs/:id/comments", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const comment = await storage.createTypingJobComment({
+        typingJobId: id,
+        ...req.body
+      });
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Typing job comment error:", error);
+      res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  // Files API
+  app.get("/api/files/:relatedType/:relatedId", async (req, res) => {
+    try {
+      const { relatedType, relatedId } = req.params;
+      const filesList = await storage.getFilesByRelated(relatedType, relatedId);
+      res.json(filesList);
+    } catch (error) {
+      console.error("Files fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch files" });
+    }
+  });
+
+  app.post("/api/files", async (req, res) => {
+    try {
+      const file = await storage.createFile(req.body);
+      res.status(201).json(file);
+    } catch (error) {
+      console.error("File create error:", error);
+      res.status(500).json({ message: "Failed to create file" });
+    }
+  });
+
+  app.delete("/api/files/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteFile(id);
+      res.status(204).end();
+    } catch (error) {
+      console.error("File delete error:", error);
+      res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
   // ========== Vendor Wallet ==========
   app.get("/api/vendor-wallet/summary", async (req, res) => {
     try {
