@@ -4,6 +4,7 @@ import { useRoute, Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { toProperCase } from "@/lib/proper-case";
 import { 
   ArrowLeft, 
   Building2, 
@@ -779,7 +780,7 @@ export default function WorkOrderDetail() {
                   <FormItem>
                     <FormLabel>Applicant Name</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="Full name" data-testid="input-edit-applicant" />
+                      <Input {...field} placeholder="Full name" data-testid="input-edit-applicant" onBlur={(e) => { field.onBlur(); if (e.target.value) form.setValue("applicantName", toProperCase(e.target.value)); }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

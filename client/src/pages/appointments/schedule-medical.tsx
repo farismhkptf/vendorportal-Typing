@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WorkOrder, Company, Center, Staff, Appointment, ServiceType } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { toProperCase } from "@/lib/proper-case";
 import { MedicalAppointmentEmail, generateMedicalAppointmentEmailHtml } from "@/components/email-templates/medical-appointment-email";
 
 const TIME_SLOTS = [
@@ -1432,7 +1433,7 @@ Thank you,
                   <FormItem>
                     <FormLabel>Applicant Name</FormLabel>
                     <FormControl>
-                      <Input {...field} />
+                      <Input {...field} onBlur={(e) => { field.onBlur(); if (e.target.value) quickWoForm.setValue("applicantName", toProperCase(e.target.value)); }} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
