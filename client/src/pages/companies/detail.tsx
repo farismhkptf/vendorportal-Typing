@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Center, Staff, Company, CompanyEmail, ClientContact } from "@shared/schema";
 import { Link } from "wouter";
+import { toProperCase } from "@/lib/proper-case";
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -92,6 +93,13 @@ export default function CompanyDetail() {
       assistStaffId: company.assistStaffId || "",
     } : undefined,
   });
+
+  const handleProperCaseBlur = (fieldName: keyof CompanyFormData | `clientCoordinator.name` | `clientManager.name` | `clientAccountant.name`) => (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value) {
+      form.setValue(fieldName as any, toProperCase(value));
+    }
+  };
 
   const updateMutation = useMutation({
     mutationFn: async (data: CompanyFormData) => {
@@ -194,6 +202,7 @@ export default function CompanyDetail() {
                 disabled={!isEditing}
                 className="h-9"
                 data-testid="input-company-name"
+                onBlur={handleProperCaseBlur("name")}
               />
             </div>
             <div className="space-y-1.5">
@@ -294,7 +303,7 @@ export default function CompanyDetail() {
           <div className="space-y-2">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Client Coordinator</h3>
             <div className="grid md:grid-cols-3 gap-3">
-              <Input {...form.register("clientCoordinator.name")} placeholder="Name" disabled={!isEditing} className="h-9" />
+              <Input {...form.register("clientCoordinator.name")} placeholder="Name" disabled={!isEditing} className="h-9" onBlur={handleProperCaseBlur("clientCoordinator.name")} />
               <Input {...form.register("clientCoordinator.email")} type="email" placeholder="Email" disabled={!isEditing} className="h-9" />
               <Input {...form.register("clientCoordinator.mobile")} placeholder="Mobile" disabled={!isEditing} className="h-9" />
             </div>
@@ -303,7 +312,7 @@ export default function CompanyDetail() {
           <div className="space-y-2">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Client Manager</h3>
             <div className="grid md:grid-cols-3 gap-3">
-              <Input {...form.register("clientManager.name")} placeholder="Name" disabled={!isEditing} className="h-9" />
+              <Input {...form.register("clientManager.name")} placeholder="Name" disabled={!isEditing} className="h-9" onBlur={handleProperCaseBlur("clientManager.name")} />
               <Input {...form.register("clientManager.email")} type="email" placeholder="Email" disabled={!isEditing} className="h-9" />
               <Input {...form.register("clientManager.mobile")} placeholder="Mobile" disabled={!isEditing} className="h-9" />
             </div>
@@ -312,7 +321,7 @@ export default function CompanyDetail() {
           <div className="space-y-2">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Client Accountant</h3>
             <div className="grid md:grid-cols-3 gap-3">
-              <Input {...form.register("clientAccountant.name")} placeholder="Name" disabled={!isEditing} className="h-9" />
+              <Input {...form.register("clientAccountant.name")} placeholder="Name" disabled={!isEditing} className="h-9" onBlur={handleProperCaseBlur("clientAccountant.name")} />
               <Input {...form.register("clientAccountant.email")} type="email" placeholder="Email" disabled={!isEditing} className="h-9" />
               <Input {...form.register("clientAccountant.mobile")} placeholder="Mobile" disabled={!isEditing} className="h-9" />
             </div>
