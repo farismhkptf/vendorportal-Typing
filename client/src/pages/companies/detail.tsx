@@ -207,6 +207,17 @@ export default function CompanyDetail() {
               />
             </div>
           </div>
+          
+          <div className="space-y-1.5">
+            <Label className="text-xs">Delivery Address (for Emirates ID)</Label>
+            <Input
+              {...form.register("deliveryAddress")}
+              placeholder="Enter delivery address for EID cards"
+              disabled={!isEditing}
+              className="h-9"
+              data-testid="input-delivery-address"
+            />
+          </div>
         </div>
 
         {/* Section: Center Preferences */}
@@ -270,17 +281,6 @@ export default function CompanyDetail() {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          
-          <div className="space-y-1.5">
-            <Label className="text-xs">Delivery Address (for Emirates ID)</Label>
-            <Input
-              {...form.register("deliveryAddress")}
-              placeholder="Enter delivery address for EID cards"
-              disabled={!isEditing}
-              className="h-9"
-              data-testid="input-delivery-address"
-            />
           </div>
         </div>
 
