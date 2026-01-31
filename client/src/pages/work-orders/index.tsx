@@ -250,81 +250,94 @@ export default function WorkOrdersList() {
 
       <div className="px-4 lg:px-6 pb-6 space-y-4">
         {/* Search, Filters, and View Mode */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by work order number or applicant..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9"
-              data-testid="input-search-work-orders"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-status-filter">
-              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Draft">Draft</SelectItem>
-              <SelectItem value="Scheduled">Scheduled</SelectItem>
-              <SelectItem value="Sent">Sent</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
-            <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
-              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="wo_asc">Work Order # A-Z</SelectItem>
-              <SelectItem value="wo_desc">Work Order # Z-A</SelectItem>
-              <SelectItem value="applicant_asc">Applicant A-Z</SelectItem>
-              <SelectItem value="applicant_desc">Applicant Z-A</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
-            <Button
-              size="icon"
-              variant={viewMode === "compact" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("compact")}
-              data-testid="button-view-compact"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "cards" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("cards")}
-              data-testid="button-view-cards"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("table")}
-              data-testid="button-view-table"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "kanban" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("kanban")}
-              data-testid="button-view-kanban"
-            >
-              <Columns3 className="h-4 w-4" />
-            </Button>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1 min-w-0">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search by work order number or applicant..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-9"
+                aria-label="Search work orders"
+                data-testid="input-search-work-orders"
+              />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32 h-9 rounded-lg" aria-label="Filter by status" data-testid="select-status-filter">
+                  <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="Draft">Draft</SelectItem>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="Sent">Sent</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+                <SelectTrigger className="w-36 h-9 rounded-lg" aria-label="Sort by" data-testid="select-sort-by">
+                  <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="oldest">Oldest First</SelectItem>
+                  <SelectItem value="wo_asc">Work Order # A-Z</SelectItem>
+                  <SelectItem value="wo_desc">Work Order # Z-A</SelectItem>
+                  <SelectItem value="applicant_asc">Applicant A-Z</SelectItem>
+                  <SelectItem value="applicant_desc">Applicant Z-A</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50" role="group" aria-label="View mode">
+                <Button
+                  size="icon"
+                  variant={viewMode === "compact" ? "secondary" : "ghost"}
+                  onClick={() => setViewMode("compact")}
+                  aria-label="Compact list view"
+                  aria-pressed={viewMode === "compact"}
+                  data-testid="button-view-compact"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant={viewMode === "cards" ? "secondary" : "ghost"}
+                  onClick={() => setViewMode("cards")}
+                  aria-label="Card view"
+                  aria-pressed={viewMode === "cards"}
+                  data-testid="button-view-cards"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant={viewMode === "table" ? "secondary" : "ghost"}
+                  onClick={() => setViewMode("table")}
+                  aria-label="Table view"
+                  aria-pressed={viewMode === "table"}
+                  data-testid="button-view-table"
+                >
+                  <Table2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                  onClick={() => setViewMode("kanban")}
+                  aria-label="Kanban board view"
+                  aria-pressed={viewMode === "kanban"}
+                  data-testid="button-view-kanban"
+                >
+                  <Columns3 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 

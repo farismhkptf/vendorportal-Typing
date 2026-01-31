@@ -59,12 +59,14 @@ export default function CompaniesList() {
   }, [companies, search, sortBy]);
 
   const renderCompactList = (items: CompanyWithRelations[]) => (
-    <div className="space-y-1">
+    <div className="space-y-1" role="list">
       {items.map((company, index) => (
         <Link key={company.id} href={`/companies/${company.id}`}>
           <div 
-            className="flex items-center justify-between py-2.5 px-3 rounded-lg hover-elevate opacity-0 animate-fade-in"
+            className="flex items-center justify-between py-2.5 px-3 rounded-lg hover-elevate opacity-0 animate-fade-in focus-visible:ring-2 focus-visible:ring-ring"
             style={{ animationDelay: `${index * 0.02}s` }}
+            role="listitem"
+            tabIndex={0}
             data-testid={`company-compact-${company.id}`}
           >
             <div className="flex items-center gap-3 min-w-0">

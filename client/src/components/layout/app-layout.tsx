@@ -68,6 +68,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               size="icon"
               className="lg:hidden rounded-xl"
               onClick={() => setSidebarOpen(false)}
+              aria-label="Close navigation menu"
               data-testid="button-close-sidebar"
             >
               <X className="h-5 w-5" />
@@ -109,7 +110,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <p className="text-xs text-muted-foreground">Admin</p>
               </div>
               <Link href="/login">
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground" data-testid="button-logout">
+                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground" aria-label="Log out" data-testid="button-logout">
                   <LogOut className="h-4 w-4" />
                 </Button>
               </Link>
@@ -128,6 +129,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               size="icon"
               className="lg:hidden rounded-xl"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation menu"
               data-testid="button-open-sidebar"
             >
               <Menu className="h-5 w-5" />

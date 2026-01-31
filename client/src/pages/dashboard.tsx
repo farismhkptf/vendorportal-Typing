@@ -107,6 +107,7 @@ export default function Dashboard() {
             type="search"
             placeholder="Search by work order number or applicant..."
             className="pl-9 h-9"
+            aria-label="Search work orders"
             data-testid="input-search"
           />
         </div>
