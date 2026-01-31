@@ -158,6 +158,13 @@ Four user roles with different permissions:
 - `client/src/components/ui/save-status.tsx` - Visual indicator for saving/saved states
 - `client/src/components/ui/activity-timeline.tsx` - Audit log display component
 - `client/src/hooks/use-scroll-to-error.ts` - Hook for form error navigation
+- `client/src/lib/proper-case.ts` - Utility for converting text to Proper Case with smart handling
+
+### Proper Case Auto-Formatting (January 31, 2026)
+- **toProperCase utility**: Converts UPPERCASE or lowercase text to Proper Case on input blur
+- **Small words**: a, the, for, from, to, and, or, of, in, on, at, by, via, per, vs stay lowercase (except at start)
+- **Abbreviations preserved**: LLC, UAE, PRO, VIP, EID, ID, CEO, CFO, IT, HR, FZC, FZE, FZCO, FZ-LLC stay uppercase
+- **Applied to forms**: Work orders (applicant name), Companies (name, client contacts), Admin (centers, staff, service types, job types), Schedule Medical (quick WO form), Work Order Edit dialog
 
 ### Typing Job Workflow (January 31, 2026)
 - **Auto-Creation**: When a new Work Order is created, Medical and EID typing jobs are automatically created in "Draft" status
