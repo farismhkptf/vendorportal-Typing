@@ -160,6 +160,8 @@ export const companies = pgTable("companies", {
   // Our team assignments
   rmStaffId: varchar("rm_staff_id"),
   assistStaffId: varchar("assist_staff_id"),
+  // Delivery address for Emirates ID
+  deliveryAddress: text("delivery_address"),
   active: boolean("active").notNull().default(true),
 });
 

@@ -145,7 +145,7 @@ export default function NewTypingJob() {
       typeMedical: true,
       typeEid: true,
       isVip: false,
-      centerAuthority: undefined,
+      centerAuthority: "DHA",
       medicalCenterId: "",
       hadIdBefore: false,
       biometricsCenterId: "",
@@ -189,11 +189,25 @@ export default function NewTypingJob() {
       const isRenewalType = isRenewalService(serviceType?.name);
       setIsRenewal(isRenewalType);
       
-      form.setValue("isVip", selectedWo.isVip || false);
+      const woIsVip = selectedWo.isVip || false;
+      form.setValue("isVip", woIsVip);
       form.setValue("hadIdBefore", isRenewalType);
       
+      // Auto-fill medical center based on VIP status
+      if (woIsVip && selectedCompany.preferredMedicalCenterVipId) {
+        form.setValue("medicalCenterId", selectedCompany.preferredMedicalCenterVipId);
+      } else if (!woIsVip && selectedCompany.preferredMedicalCenterId) {
+        form.setValue("medicalCenterId", selectedCompany.preferredMedicalCenterId);
+      }
+      
+      // Auto-fill biometrics center
       if (selectedCompany.preferredBiometricsCenterId) {
         form.setValue("biometricsCenterId", selectedCompany.preferredBiometricsCenterId);
+      }
+      
+      // Auto-fill delivery address from company
+      if (selectedCompany.deliveryAddress) {
+        form.setValue("deliveryAddress", selectedCompany.deliveryAddress);
       }
     }
   }, [selectedWo, selectedCompany, serviceTypes, form]);
@@ -530,6 +544,45 @@ The P.R.O. Company`;
 
               {(mode === "quick" || currentStep === 2) && selectedWo && (
                 <div className="space-y-6">
+                  <Card className="border border-border/50 shadow-sm bg-muted/30">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        Work Order Details
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">WO Number</p>
+                          <p className="font-medium text-foreground" data-testid="text-wo-number">{selectedWo.woNumber}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Applicant</p>
+                          <p className="font-medium text-foreground" data-testid="text-applicant-name">{selectedWo.applicantName}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Company</p>
+                          <p className="font-medium text-foreground" data-testid="text-company-name">{selectedCompany?.name || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Service Type</p>
+                          <p className="font-medium text-foreground" data-testid="text-service-type">
+                            {serviceTypes?.find(st => st.id === selectedWo.serviceTypeId)?.name || "-"}
+                          </p>
+                        </div>
+                        {selectedWo.isVip && (
+                          <div>
+                            <p className="text-xs text-muted-foreground">Status</p>
+                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" data-testid="badge-vip">
+                              VIP
+                            </Badge>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
                   <Card className="border border-border/50 shadow-sm">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-lg">Job Type Selection</CardTitle>

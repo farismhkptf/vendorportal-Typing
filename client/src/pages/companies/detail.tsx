@@ -37,6 +37,7 @@ const companyFormSchema = z.object({
   preferredMedicalCenterId: z.string().optional().nullable(),
   preferredMedicalCenterVipId: z.string().optional().nullable(),
   preferredBiometricsCenterId: z.string().optional().nullable(),
+  deliveryAddress: z.string().optional().nullable(),
   clientCoordinator: clientContactSchema.optional().nullable(),
   clientManager: clientContactSchema.optional().nullable(),
   clientAccountant: clientContactSchema.optional().nullable(),
@@ -83,6 +84,7 @@ export default function CompanyDetail() {
       preferredMedicalCenterId: company.preferredMedicalCenterId || "",
       preferredMedicalCenterVipId: company.preferredMedicalCenterVipId || "",
       preferredBiometricsCenterId: company.preferredBiometricsCenterId || "",
+      deliveryAddress: company.deliveryAddress || "",
       clientCoordinator: company.clientCoordinator || { name: "", email: "", mobile: "" },
       clientManager: company.clientManager || { name: "", email: "", mobile: "" },
       clientAccountant: company.clientAccountant || { name: "", email: "", mobile: "" },
@@ -98,6 +100,7 @@ export default function CompanyDetail() {
         preferredMedicalCenterId: data.preferredMedicalCenterId || null,
         preferredMedicalCenterVipId: data.preferredMedicalCenterVipId || null,
         preferredBiometricsCenterId: data.preferredBiometricsCenterId || null,
+        deliveryAddress: data.deliveryAddress || null,
         rmStaffId: data.rmStaffId || null,
         assistStaffId: data.assistStaffId || null,
         clientCoordinator: (data.clientCoordinator as ClientContact)?.name ? data.clientCoordinator : null,
@@ -267,6 +270,17 @@ export default function CompanyDetail() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          
+          <div className="space-y-1.5">
+            <Label className="text-xs">Delivery Address (for Emirates ID)</Label>
+            <Input
+              {...form.register("deliveryAddress")}
+              placeholder="Enter delivery address for EID cards"
+              disabled={!isEditing}
+              className="h-9"
+              data-testid="input-delivery-address"
+            />
           </div>
         </div>
 
