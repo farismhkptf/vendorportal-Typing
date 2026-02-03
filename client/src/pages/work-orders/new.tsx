@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X, Phone, Mail, Star, RefreshCw, Home } from "lucide-react";
+import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X, Phone, Mail, Star, RefreshCw, Home, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -802,8 +802,10 @@ export default function NewWorkOrder() {
               <Button
                 type="submit"
                 disabled={createMutation.isPending}
+                className="gap-2"
                 data-testid="button-create-work-order"
               >
+                {createMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 {createMutation.isPending ? "Creating..." : "Create Work Order"}
               </Button>
             </div>

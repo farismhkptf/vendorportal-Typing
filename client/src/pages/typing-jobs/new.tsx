@@ -6,7 +6,7 @@ import { useLocation } from "wouter";
 import { 
   ArrowLeft, ArrowRight, Check, Building2, User, Home, 
   FileText, Copy, Send, Stethoscope, CreditCard, 
-  MapPin, Truck, CheckCircle2
+  MapPin, Truck, CheckCircle2, Loader2
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -929,7 +929,7 @@ The P.R.O. Company™`;
                         className="gap-2"
                         data-testid="button-submit"
                       >
-                        <Check className="h-4 w-4" />
+                        {submitMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                         {submitMutation.isPending ? "Creating..." : "Create Typing Job"}
                       </Button>
                     )}
@@ -945,7 +945,7 @@ The P.R.O. Company™`;
                     className="w-full gap-2"
                     data-testid="button-submit-quick"
                   >
-                    <Check className="h-4 w-4" />
+                    {submitMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     {submitMutation.isPending ? "Creating..." : "Create Typing Job"}
                   </Button>
                 </div>
