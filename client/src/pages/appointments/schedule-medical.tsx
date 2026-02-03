@@ -6,7 +6,8 @@ import { useLocation, useSearch } from "wouter";
 import { 
   ArrowLeft, ArrowRight, Check, Building2, User, Calendar, Clock, MapPin, 
   Phone, Mail, Star, Copy, Send, AlertTriangle, Zap, ListOrdered,
-  Stethoscope, FileText, UserCheck, MessageSquare, CheckCircle2, Pencil
+  Stethoscope, FileText, UserCheck, MessageSquare, CheckCircle2, Pencil,
+  Maximize2, X
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -98,6 +99,7 @@ export default function ScheduleMedical() {
   const [emailPreview, setEmailPreview] = useState("");
   const [whatsappPreview, setWhatsappPreview] = useState("");
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
+  const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [urlWoProcessed, setUrlWoProcessed] = useState(false);
 
   const { data: workOrders } = useQuery<WorkOrder[]>({
@@ -1032,7 +1034,16 @@ Thank you,
         </TabsList>
         <TabsContent value="email">
           <div className="space-y-3">
-            <div className="max-h-[500px] overflow-auto rounded-lg border">
+            <div className="relative max-h-[500px] overflow-auto rounded-lg border">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="absolute top-2 right-2 z-10 h-8 w-8 bg-white/80 hover:bg-white shadow-sm"
+                onClick={() => setEmailFullscreen(true)}
+                data-testid="button-expand-email"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
               <MedicalAppointmentEmail
                 woNumber={selectedWo?.woNumber || ""}
                 companyName={toProperCase(selectedCompany?.name || "")}
@@ -1060,15 +1071,14 @@ Thank you,
               />
             </div>
             <Button 
-              variant="outline" 
-              className="w-full"
+              className="w-full bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d] hover:from-[#3d6a4c] hover:to-[#254a33] text-white shadow-md"
               onClick={() => handleCopyMessage("email")}
               data-testid="button-copy-email"
             >
               {messageCopied === "email" ? (
-                <><Check className="h-4 w-4 mr-2" />Copied!</>
+                <><Check className="h-4 w-4 mr-2" />Copied to Clipboard!</>
               ) : (
-                <><Copy className="h-4 w-4 mr-2" />Copy Email Text</>
+                <><Copy className="h-4 w-4 mr-2" />Copy Email to Clipboard</>
               )}
             </Button>
           </div>
@@ -1550,6 +1560,67 @@ Thank you,
               setCurrentStep(3);
             }}>
               Continue Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emailFullscreen} onOpenChange={setEmailFullscreen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+          <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d]">
+            <DialogTitle className="flex items-center justify-between text-white">
+              <div className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Email Preview
+              </div>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-white hover:bg-white/20"
+                onClick={() => setEmailFullscreen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-auto max-h-[calc(90vh-140px)]">
+            <MedicalAppointmentEmail
+              woNumber={selectedWo?.woNumber || ""}
+              companyName={toProperCase(selectedCompany?.name || "")}
+              applicantName={toProperCase(selectedWo?.applicantName || "")}
+              serviceType={toProperCase(woServiceTypeName)}
+              centerName={selectedCenter?.name || "TBD"}
+              centerAddress={selectedCenter?.address || undefined}
+              centerType={selectedCenter?.tier === "VIP" ? "VIP" : "Normal"}
+              appointmentDate={form.getValues("appointmentDate") 
+                ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric"
+                  })
+                : "TBD"}
+              appointmentTime={form.getValues("appointmentTime") 
+                ? formatTime12h(form.getValues("appointmentTime"))
+                : "TBD"}
+              applicationNumber={form.getValues("applicationNumber") || undefined}
+              medicalAssistName={companyMedicalAssist?.name}
+              medicalAssistPhone={companyMedicalAssist?.phone || undefined}
+              crmName={companyCRM?.name}
+              crmPhone={companyCRM?.phone || undefined}
+              notes={form.getValues("notes") || undefined}
+            />
+          </div>
+          <DialogFooter className="px-6 py-4 border-t">
+            <Button 
+              className="bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d] hover:from-[#3d6a4c] hover:to-[#254a33] text-white shadow-md"
+              onClick={() => {
+                handleCopyMessage("email");
+                setEmailFullscreen(false);
+              }}
+              data-testid="button-copy-email-fullscreen"
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              Copy Email to Clipboard
             </Button>
           </DialogFooter>
         </DialogContent>

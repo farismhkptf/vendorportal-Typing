@@ -51,7 +51,7 @@ export function MedicalAppointmentEmail({
           <Stethoscope className="h-4 w-4 text-white" />
         </div>
         <div>
-          <div className="text-white font-semibold text-base">The P.R.O. Company</div>
+          <div className="text-white font-semibold text-base">The P.R.O. Company™</div>
           <div className="text-white/80 text-xs">Government Services & PRO Solutions</div>
         </div>
       </div>
@@ -94,7 +94,7 @@ export function MedicalAppointmentEmail({
                 </div>
                 <div className="flex gap-2">
                   <span className="text-muted-foreground min-w-[90px]">Service Type:</span>
-                  <span className="font-semibold underline">{serviceType}</span>
+                  <span className="font-semibold">{serviceType}</span>
                 </div>
                 {applicationNumber && (
                   <div className="flex gap-2">
@@ -139,11 +139,11 @@ export function MedicalAppointmentEmail({
                 )}
                 <div className="flex gap-2">
                   <span className="text-muted-foreground min-w-[40px]">Date:</span>
-                  <span className="font-semibold text-[#4a7c59]">{appointmentDate}</span>
+                  <span className="font-bold text-[#2d5a3d] bg-[#4a7c59]/10 px-2 py-0.5 rounded">{appointmentDate}</span>
                 </div>
                 <div className="flex gap-2">
                   <span className="text-muted-foreground min-w-[40px]">Time:</span>
-                  <span className="font-semibold text-[#4a7c59]">{appointmentTime}</span>
+                  <span className="font-bold text-[#2d5a3d] bg-[#4a7c59]/10 px-2 py-0.5 rounded">{appointmentTime}</span>
                 </div>
               </div>
             </div>
@@ -224,14 +224,14 @@ export function MedicalAppointmentEmail({
         )}
         
         <div className="text-xs text-gray-600 space-y-2 mb-4">
-          <p>Once the medical is completed, we are expecting the result <span className="font-semibold">within 24 hours</span> from the medical test.</p>
-          <p>Thank you for your continued trust in <span className="font-semibold text-[#2d5a3d]">The P.R.O. Company</span> and the team.</p>
+          <p>Once the medical is completed, we are expecting the result <span className="font-semibold">after completing</span> the medical test.</p>
+          <p>Thank you for your continued trust in <span className="font-semibold text-[#2d5a3d]">The P.R.O. Company™</span> and the team.</p>
         </div>
         
         <div className="text-xs text-gray-600">
           <p>Warm regards,</p>
           <p className="font-semibold">Operations Team</p>
-          <p className="font-semibold text-[#2d5a3d]">The P.R.O. Company</p>
+          <p className="font-semibold text-[#2d5a3d]">The P.R.O. Company™</p>
         </div>
       </div>
       
@@ -283,7 +283,7 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
             <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; text-align: center; line-height: 32px; color: white;">&#x1F3E5;</div>
           </td>
           <td style="vertical-align: middle;">
-            <div style="color: white; font-weight: 600; font-size: 16px;">The P.R.O. Company</div>
+            <div style="color: white; font-weight: 600; font-size: 16px;">The P.R.O. Company™</div>
             <div style="color: rgba(255,255,255,0.8); font-size: 12px;">Government Services & PRO Solutions</div>
           </td>
         </tr>
@@ -326,7 +326,7 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
                   <tr><td style="color: #666; width: 100px;">Work Order No:</td><td style="font-weight: 600; color: #2d5a3d;">${props.woNumber}</td></tr>
                   <tr><td style="color: #666;">Company Name:</td><td style="font-weight: 600;">${props.companyName}</td></tr>
                   <tr><td style="color: #666;">Applicant Name:</td><td style="font-weight: 600;">${props.applicantName}</td></tr>
-                  <tr><td style="color: #666;">Service Type:</td><td style="font-weight: 600; text-decoration: underline;">${props.serviceType}</td></tr>
+                  <tr><td style="color: #666;">Service Type:</td><td style="font-weight: 600;">${props.serviceType}</td></tr>
                   ${props.applicationNumber ? `<tr><td style="color: #666;">Application No:</td><td style="font-weight: 600; color: #4a7c59;">${props.applicationNumber}</td></tr>` : ''}
                 </table>
               </td>
@@ -337,8 +337,8 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
                   <tr><td style="color: #666;">Type:</td><td style="font-weight: 600;">${props.centerType}</td></tr>
                   ${props.centerAddress ? `<tr><td style="color: #666;">Address:</td><td style="font-weight: 500; color: #374151;">${props.centerAddress}</td></tr>` : ''}
                   ${googleMapsUrl ? `<tr><td style="color: #666;">Map:</td><td><a href="${googleMapsUrl}" target="_blank" style="color: #4a7c59; text-decoration: underline;">View on Google Maps &#x2197;</a></td></tr>` : ''}
-                  <tr><td style="color: #666;">Date:</td><td style="font-weight: 600; color: #4a7c59;">${props.appointmentDate}</td></tr>
-                  <tr><td style="color: #666;">Time:</td><td style="font-weight: 600; color: #4a7c59;">${props.appointmentTime}</td></tr>
+                  <tr><td style="color: #666;">Date:</td><td style="font-weight: 700; color: #2d5a3d; background: rgba(74, 124, 89, 0.1); padding: 2px 8px; border-radius: 4px;">${props.appointmentDate}</td></tr>
+                  <tr><td style="color: #666;">Time:</td><td style="font-weight: 700; color: #2d5a3d; background: rgba(74, 124, 89, 0.1); padding: 2px 8px; border-radius: 4px;">${props.appointmentTime}</td></tr>
                 </table>
               </td>
             </tr>
@@ -405,15 +405,15 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
       
       <!-- Closing -->
       <div style="font-size: 12px; color: #4b5563; margin-bottom: 16px;">
-        <p style="margin: 0 0 8px 0;">Once the medical is completed, we are expecting the result <strong>within 24 hours</strong> from the medical test.</p>
-        <p style="margin: 0;">Thank you for your continued trust in <strong style="color: #2d5a3d;">The P.R.O. Company</strong> and the team.</p>
+        <p style="margin: 0 0 8px 0;">Once the medical is completed, we are expecting the result <strong>after completing</strong> the medical test.</p>
+        <p style="margin: 0;">Thank you for your continued trust in <strong style="color: #2d5a3d;">The P.R.O. Company™</strong> and the team.</p>
       </div>
       
       <!-- Signature -->
       <div style="font-size: 12px; color: #4b5563;">
         <p style="margin: 0;">Warm regards,</p>
         <p style="margin: 0; font-weight: 600;">Operations Team</p>
-        <p style="margin: 0; font-weight: 600; color: #2d5a3d;">The P.R.O. Company</p>
+        <p style="margin: 0; font-weight: 600; color: #2d5a3d;">The P.R.O. Company™</p>
       </div>
     </div>
     
