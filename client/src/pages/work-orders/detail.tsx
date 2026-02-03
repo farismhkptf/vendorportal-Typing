@@ -325,6 +325,10 @@ export default function WorkOrderDetail() {
       <PageHeader
         title={workOrder.woNumber}
         subtitle={workOrder.applicantName}
+        breadcrumbs={[
+          { label: "Work Orders", href: "/work-orders" },
+          { label: workOrder.woNumber }
+        ]}
         actions={
           <div className="flex items-center gap-2">
             <StatusBadge status={workOrder.status} />

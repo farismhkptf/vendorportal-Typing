@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTableRow } from "@/components/ui/data-table-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getGreeting } from "@/lib/greeting";
 
 interface DashboardStats {
   totalWorkOrders: number;
@@ -62,9 +63,12 @@ export default function Dashboard() {
       {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Dashboard
-          </h1>
+          <div>
+            <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              Dashboard
+            </h1>
+          </div>
           <Link href="/work-orders/new">
             <Button size="sm" className="gap-1.5 rounded-lg" data-testid="button-new-work-order">
               <Plus className="h-4 w-4" />

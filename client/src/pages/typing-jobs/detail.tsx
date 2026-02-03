@@ -7,6 +7,7 @@ import {
   AlertCircle, CheckCircle2, Briefcase, MapPin, History,
   UserPlus, RotateCcw, Package, Loader2, Home
 } from "lucide-react";
+import { PageBreadcrumb } from "@/components/ui/page-breadcrumb";
 import { formatDateWithWeekday, formatDateTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -305,6 +306,12 @@ export default function TypingJobDetail() {
   return (
     <AppLayout>
       <div className="p-4 lg:p-6 space-y-6 max-w-4xl mx-auto">
+        <div className="mb-3">
+          <PageBreadcrumb items={[
+            { label: "Typing Jobs", href: "/typing-jobs" },
+            { label: job.jobCode || job.jobType?.name || "Job" }
+          ]} />
+        </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
             <Link href="/typing-jobs">

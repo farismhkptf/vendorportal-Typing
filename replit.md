@@ -2,15 +2,7 @@
 
 ## Overview
 
-This is an internal enterprise web application for The P.R.O. Company™, serving as both an internal operations portal and vendor management system. The application manages:
-
-- Work Orders with unique WO numbers (format: X00000) for individual applicants
-- Medical and Emirates ID appointment scheduling with client communications
-- Vendor typing workflow for medical and EID application processing
-- Vendor wallet accounting with advance top-ups, auto-deductions, and reversals
-- File storage integration (designed for Zoho WorkDrive)
-
-The UI follows an Apple-inspired, glassmorphism design language with soft gradients, rounded corners, and a premium, minimal aesthetic that works well on both mobile (iPhone-first) and desktop.
+This project is an internal enterprise web application for The P.R.O. Company™, functioning as an operations portal and vendor management system. Its core purpose is to streamline work order processing, appointment scheduling (medical/Emirates ID), and vendor-based typing workflows. The system also includes vendor wallet accounting and file storage integration capabilities. The application aims for a premium, minimal, Apple-inspired glassmorphism UI/UX, optimized for both mobile and desktop.
 
 ## User Preferences
 
@@ -20,210 +12,57 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend Architecture
 
-- **Framework**: React with TypeScript, using Vite as the build tool
-- **Routing**: Wouter for client-side routing (lightweight alternative to React Router)
-- **State Management**: TanStack React Query for server state and caching
-- **UI Components**: shadcn/ui component library built on Radix UI primitives
-- **Styling**: TailwindCSS with custom CSS variables for theming (light/dark mode support)
-- **Forms**: React Hook Form with Zod validation via @hookform/resolvers
-
-The frontend follows a pages-based structure in `client/src/pages/` with shared components in `client/src/components/`. Custom UI components extend shadcn/ui with application-specific patterns like `StatCard`, `SectionCard`, `StatusBadge`, and `EmptyState`.
+The frontend is built with React and TypeScript, using Vite, Wouter for routing, and TanStack React Query for state management. It leverages `shadcn/ui` (built on Radix UI) for components and TailwindCSS for styling, supporting light/dark modes. Forms are managed with React Hook Form and Zod validation. The structure is pages-based, with shared components and custom UI extensions.
 
 ### Backend Architecture
 
-- **Framework**: Express.js 5 with TypeScript
-- **API Pattern**: RESTful JSON API with routes prefixed by `/api/`
-- **Database ORM**: Drizzle ORM with PostgreSQL dialect
-- **Schema Location**: Shared schema in `shared/schema.ts` using Drizzle's pgTable definitions
-- **Type Safety**: Zod schemas generated from Drizzle schemas via drizzle-zod for validation
-
-The server uses a storage abstraction layer (`server/storage.ts`) that implements database operations, making it easier to swap implementations or add caching.
+The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API. Drizzle ORM with a PostgreSQL dialect manages database interactions, with schema definitions shared for type safety. Zod schemas generated from Drizzle schemas are used for API validation. A storage abstraction layer is implemented for flexible database operations.
 
 ### Database Design
 
-PostgreSQL database with the following core entities:
-- Users (with roles: Admin, Ops, Viewer, Vendor)
-- Companies and Company Emails
-- Work Orders (unique WO numbers, linked to applicants and companies)
-- Appointments (Medical/EID scheduling)
-- Typing Jobs (vendor workflow with multiple statuses)
-- Vendors and Vendor Wallet Ledger (accounting)
-- Service Types, Centers, Staff
-- Files, Messages, Audit Logs
-
-Enums are defined using pgEnum for type safety (user roles, appointment types, job statuses, etc.).
+The PostgreSQL database includes core entities such as Users (with roles: Admin, Ops, Viewer, Vendor), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations.
 
 ### Build System
 
-- **Development**: tsx for running TypeScript directly
-- **Production Build**: Custom build script using esbuild for server bundling and Vite for client
-- **Database Migrations**: Drizzle Kit with `db:push` command for schema synchronization
+`tsx` is used for development, while `esbuild` and Vite handle production builds. Drizzle Kit is used for database migrations.
 
 ### Role-Based Access Control
 
-Four user roles with different permissions:
-- **Admin**: Full access to all features
-- **Ops**: Create/edit work orders, schedule appointments, manage typing jobs
-- **Viewer**: Read-only access to internal data
-- **Vendor**: Vendor portal access only (view assigned jobs, upload outputs, comments)
+Four distinct roles (`Admin`, `Ops`, `Viewer`, `Vendor`) provide granular access control to different features and data within the application.
+
+### UI/UX Decisions
+
+The design follows an Apple-inspired glassmorphism aesthetic with soft gradients, rounded corners, and a compact layout. Custom components extend `shadcn/ui` for application-specific patterns. Accessibility features like input masks, scroll-to-error, and ARIA labels are integrated. There are smooth fade page transitions and a time-based dynamic greeting on the Dashboard.
+
+### Technical Implementations
+
+- **Work Order Management**: Unique WO numbers, applicant details, company linking.
+- **Appointment Scheduling**: Medical/Emirates ID appointments, client communication, staff assignment, VIP/Normal center filtering.
+- **Typing Job Workflow**: Auto-creation of Medical/EID jobs, vendor assignment, wallet deductions, status tracking (Draft, SentToVendor, Returned, SentToClient), and unique job codes (M00001, E00001).
+- **Vendor Management**: CRUD operations for vendors, vendor wallet ledger with advance top-ups, auto-deductions, and reversals.
+- **Document Management**: `woDocuments` and `documentRequirements` tables. Supports presigned URL upload flow to object storage, document status updates, and context-based filtering of requirements.
+- **Input Formatting**: `Proper Case` auto-formatting for textual inputs and phone number masking.
+- **Activity Timeline**: Audit trail display for work orders.
 
 ## External Dependencies
 
 ### Database
-- **PostgreSQL**: Primary database, connected via `DATABASE_URL` environment variable
-- **connect-pg-simple**: Session storage in PostgreSQL
+
+- **PostgreSQL**: Primary database.
+- **connect-pg-simple**: For session storage in PostgreSQL.
 
 ### UI Framework Dependencies
-- **Radix UI**: Comprehensive set of accessible, unstyled UI primitives
-- **shadcn/ui**: Pre-styled component system built on Radix
-- **Embla Carousel**: Carousel/slider functionality
-- **cmdk**: Command palette component
-- **vaul**: Drawer component
-- **react-day-picker**: Calendar/date picker
 
-### Future Integrations (Designed but not fully implemented)
-- **Zoho WorkDrive**: File storage (file IDs and share links stored, upload via API placeholder)
-- **Email Service**: Email identity configured (notifications@procompany.ae) but sending marked as "later"
-- **WhatsApp**: Draft generation for client communications
+- **Radix UI**: Accessible UI primitives.
+- **shadcn/ui**: Component system built on Radix.
+- **Embla Carousel**: Carousel functionality.
+- **cmdk**: Command palette component.
+- **vaul**: Drawer component.
+- **react-day-picker**: Calendar and date picker.
 
-### Development Tools
-- **Replit Plugins**: vite-plugin-runtime-error-modal, vite-plugin-cartographer, vite-plugin-dev-banner for enhanced Replit development experience
+### Integrations
 
-## Recent Changes (January 27, 2026)
-
-### Compact Premium UI Design
-- All pages use compact, efficient layouts without excessive whitespace
-- Headers: text-xl titles, pt-4 pb-3 padding, px-4 lg:px-6 horizontal padding
-- Stat cards: h-24 height, p-4 padding, text-xl values, text-xs labels
-- Buttons: size="sm" standard, gap-1.5 icon spacing, rounded-lg borders
-- Search inputs: h-9 height, pl-9 for icon space
-- Sections: gap-3/gap-4 spacing, space-y-4 for vertical flow
-- Icons: h-4 w-4 standard size, smaller h-3.5 w-3.5 for compact elements
-
-### Premium UI Redesign
-- Complete Apple-inspired minimalist design across all pages
-- Refined CSS design system with premium-card styling, smooth animations, and glassmorphism utilities
-- Consistent typography, spacing, and visual hierarchy throughout the application
-- All search inputs use shadcn Input components for consistency
-- Removed custom hover states from Buttons - relies on built-in elevation utilities
-- Pages updated: Dashboard, Work Orders, Companies, Typing Jobs, Vendor Wallet, Admin
-
-### Database & Backend Implementation
-- Completed PostgreSQL database setup with Drizzle ORM
-- Implemented DatabaseStorage class with full CRUD operations for all entities
-- Added comprehensive API routes with Zod request validation
-- Fixed work order number generation to use MAX instead of COUNT for proper sequencing
-- Minimal seed data: Only admin user and app settings (no sample data)
-- Gated seed data to development environment only (won't run in production)
-- Real data: 42 companies and 10 medical centers from spreadsheet
-
-### Admin Module - Full CRUD
-- Tab-based admin page with management for all entities
-- **Medical Centers**: Add/edit dialogs with name, type, authority, tier, area, address, timings
-- **Staff**: Add/edit dialogs with name, role title, phone, email
-- **Service Types**: Add/edit dialogs with name
-- **Job Types**: Add/edit dialogs with name, category (Medical/EID), cost
-- **Settings**: Edit dialogs for CC recipients and low balance threshold
-- All forms use z.coerce.number() for numeric fields
-- All mutations properly invalidate cache on success
-
-### Schedule Medical Feature (January 28, 2026)
-- Two modes: Wizard (3-step guided flow) and Quick (compact single-screen)
-- Step 1: WO search with autocomplete, Create WO modal for missing entries
-- Step 2: Appointment details - center selection filtered by VIP/Normal, date/time pickers, staff assignment
-- Step 3: Email/WhatsApp preview with copy-to-clipboard functionality
-- Medical centers filter based on VIP selection (uses company's preferred center as default)
-- Appointments schema extended with isVip, applicationNumber, notes, messageSentAt/By fields
-- Guardrails: Hard block if staff not assigned, soft warning if center differs from company preference
-
-### Security Improvements
-- Added Zod validation to all POST/PUT API endpoints
-- Request body validation prevents invalid data from being saved
-- Note: Passwords are still plain text (production deployment should use bcrypt/argon2 hashing)
-- Note: Authentication/session handling should be added before production use
-
-### UX Improvements (January 29, 2026)
-- **Input Masks**: MaskedInput component for phone numbers with auto-formatting (UAE format +971-XX-XXX-XXXX)
-- **Scroll-to-Error**: useScrollToError hook auto-scrolls to first validation error on form submission
-- **Mobile Optimization**: inputMode="tel" for phone fields, inputMode="email" for email fields
-- **Accessibility**: aria-label attributes on key form fields for screen readers
-- **Sticky Navigation**: Sticky footer navigation bar in Schedule Medical wizard for mobile usability
-- **Editable Review Step**: "Edit Details" button in Step 3 + inline notes editing before submission
-- **Autosave Indicator**: SaveStatusIndicator component ready for use in forms
-- **Auto-fill**: New work orders can auto-fill from previous WO for same company (via /api/companies/:id/last-work-order)
-- **Activity Timeline**: Work order detail page shows audit trail with Activity tab (via /api/audit-logs/work_order/:id)
-
-### New Components
-- `client/src/components/ui/masked-input.tsx` - Phone number input with auto-formatting
-- `client/src/components/ui/save-status.tsx` - Visual indicator for saving/saved states
-- `client/src/components/ui/activity-timeline.tsx` - Audit log display component
-- `client/src/hooks/use-scroll-to-error.ts` - Hook for form error navigation
-- `client/src/lib/proper-case.ts` - Utility for converting text to Proper Case with smart handling
-
-### Proper Case Auto-Formatting (January 31, 2026)
-- **toProperCase utility**: Converts UPPERCASE or lowercase text to Proper Case on input blur
-- **Small words**: a, the, for, from, to, and, or, of, in, on, at, by, via, per, vs stay lowercase (except at start)
-- **Abbreviations with dots**: L.L.C., U.A.E., P.R.O., V.I.P., E.I.D., I.D., C.E.O., C.F.O., I.T., H.R., F.Z.C., F.Z.E., F.Z.C.O., D.M.C.C., etc.
-- **Applied to forms**: Work orders (applicant name), Companies (name, client contacts), Admin (centers, staff, service types, job types), Schedule Medical (quick WO form), Work Order Edit dialog
-
-### Typing Job Workflow (January 31, 2026)
-- **Auto-Creation**: When a new Work Order is created, Medical and EID typing jobs are automatically created in "Draft" status
-- **Submit to Vendor**: Draft jobs can be assigned to a vendor with wallet deduction, status changes to "SentToVendor"
-- **Mark Received**: When vendor completes work, operator enters application details (ref number, center info, biometrics requirements)
-- **Mark Returned / Resubmit**: If vendor needs more documents, job is marked "Returned" with reason. Can be resubmitted after providing missing docs.
-- **Deliver to Client**: Final step marks job as "SentToClient" for completion
-- **Dashboard Integration**: "Pending Jobs" count shows Draft typing jobs awaiting submission
-- **Appointment Integration**: When scheduling medical appointments, application number auto-fills from typing job result
-
-### Typing Job API Endpoints
-- `POST /api/typing-jobs/:id/submit-to-vendor` - Assign vendor, deduct wallet, update status
-- `POST /api/typing-jobs/:id/mark-received` - Capture application result from vendor
-- `POST /api/typing-jobs/:id/mark-returned` - Mark job as needing more documents
-- `POST /api/typing-jobs/:id/resubmit` - Resubmit returned job to vendor
-- `POST /api/typing-jobs/:id/deliver-to-client` - Mark job as delivered to client
-
-### Typing Job Status Flow
-Draft → SentToVendor → (InProgress) → WaitingForDocs → SentToClient (completed)
-                     ↓                    
-                  Returned → (Resubmit) → SentToVendor
-
-### Document Management System (February 3, 2026)
-- **Database Tables**: `woDocuments` (work order documents), `documentRequirements` (requirements by service category)
-- **Document Types**: PassportCopy, Photo, EntryPermit, ChangeStatus, CurrentResidency, OldResidencyOrId, CurrentEmiratesId, SponsorEmiratesId, BirthCertificate, LostEmiratesId
-- **Service Categories**: NewVisaInside, NewVisaOutside, GoldenVisa, RenewVisa, NewbornDependent, LostReplaceEid
-- **23 Document Requirements** seeded for 6 service categories
-- **26 Service Types** mapped to categories based on naming patterns
-- **Presigned URL Upload Flow**: Uses Replit Object Storage with 3-step flow (get presigned URL → upload to storage → save document record)
-- **Context Filtering**: `appliesToMedical` and `appliesToEid` flags filter requirements per context
-
-### Document API Endpoints
-- `GET /api/work-orders/:id/documents` - List documents for a work order
-- `POST /api/work-orders/:id/documents` - Upload document record (after file upload)
-- `PUT /api/documents/:id/status` - Update document status (Pending, Uploaded, Verified)
-- `DELETE /api/documents/:id` - Delete document
-- `GET /api/document-requirements` - List all requirements
-- `GET /api/document-requirements/:category` - Requirements by service category
-
-### Document Components
-- `client/src/components/documents/document-panel.tsx` - Main panel with upload zones and status
-- `client/src/components/documents/document-upload-zone.tsx` - Drag-and-drop upload with thumbnails
-- `client/src/components/documents/document-types.ts` - Type definitions and labels
-
-### Typing Jobs Enhancements (February 3, 2026)
-- **Job Code**: Each typing job now has a unique job code with category-based prefixes:
-  - Medical jobs: M00001, M00002, etc.
-  - Emirates ID jobs: E00001, E00002, etc.
-- **Auto-generation**: Job codes auto-generated based on job type category when typing jobs are created
-- **Medical/EID Filter**: Category tabs (All, Medical, EID) on typing jobs list page
-- **Vendor Management**: New Vendors tab in Admin section to add/edit/delete typing vendors
-- **Display Updates**: Job code shown in typing job list (cards, table, kanban views) and detail page
-
-### Vendor API Endpoints
-- `GET /api/vendors` - List all active vendors
-- `GET /api/vendors/:id` - Get vendor by ID
-- `POST /api/vendors` - Create new vendor
-- `PUT /api/vendors/:id` - Update vendor
-- `DELETE /api/vendors/:id` - Soft delete vendor (sets active=false)
-
-### Test Credentials (Development Only)
-- Admin Portal: admin@procompany.ae / admin123
+- **Zoho WorkDrive**: Designed for file storage (file IDs and share links are stored).
+- **Email Service**: Configured email identity (`notifications@procompany.ae`) for future notification sending.
+- **WhatsApp**: Placeholder for client communication generation.
+- **Replit Object Storage**: Used for the presigned URL document upload flow.
