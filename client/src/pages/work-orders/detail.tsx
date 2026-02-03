@@ -555,10 +555,12 @@ export default function WorkOrderDetail() {
                       Medical
                     </Button>
                   </Link>
-                  <Button variant="outline" size="sm" className="gap-2" disabled data-testid="button-schedule-eid" title="EID scheduling coming soon">
+                  <Link href={`/appointments/schedule-eid?wo=${id}`}>
+                    <Button variant="outline" size="sm" className="gap-2" data-testid="button-schedule-eid">
                       <Plus className="h-4 w-4" />
                       Emirates ID
                     </Button>
+                  </Link>
                 </div>
               </div>
 
