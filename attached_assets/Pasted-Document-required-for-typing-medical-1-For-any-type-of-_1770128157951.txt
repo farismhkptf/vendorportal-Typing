@@ -1,0 +1,76 @@
+Document required for typing medical:
+1.	For any type of New visa (except golden visa);
+•	Passport copy
+•	Photo
+•	Entry Permit
+•	Change status (for ‘inside’ applications only)
+
+2.	For any type of Renew Visa Application;
+•	Passport Copy
+•	Photo
+•	Current Residency Copy
+
+3.	For New golden visa (Golden Visa)
+•	Passport Copy
+•	Photo
+•	Old Residency or ID copy (if available)
+
+Documents required for Emirates ID Application:
+1.	Documents required are Same as Medical application. Apart from the same documents, for EID application, system need to ask the following as well:
+-	For any type of renewal application, Current Emirates ID Copy (not mandatory)
+-	If dependent visa (new or renew) requires Sponsor Emirates ID Copy (not mandatory)
+
+2.	For the service type - NEW BORN DEPENDENT VISA, documents required are;
+-	Passport Copy
+-	Photo
+-	Sponsor ID copy
+-	Birth Certificate
+3.	For the service type - LOST/REPLACE EMIRATES ID APPLICATION, documents required are;
+-	Passport Copy
+-	Photo
+-	Lost Emirates ID copy
+-	Residency Copy
+
+These documents should be linked to a WO. So we do not have to attach it twice. We should be able to upload it while typing medical, or EIDA or both. Also in WO. Anywhere it has been uploaded, not to be repeated
+
+
+Service list : 
+New Visa – Inside (Except Golden Visa) (for ‘inside’ applications only)
+•	NEW EMPLOYMENT VISA - INSIDE
+•	THIRD PARTY VISA – INSIDE
+•	NEW PARENT VISA - INSIDE
+•	NEW DEPENDENT VISA - INSIDE (NOT PARENT)
+•	NEW PARTNER VISA – INSIDE
+•	NEW IFZA FREEZONE EMPLOYMENT VISA - INSIDE
+•	SPC FREEZONE EMPLOYMENT VISA - INSIDE
+
+New Visa – Outside (Except Golden Visa)
+•	NEW EMPLOYMENT VISA – INSIDE
+•	THIRD PARTY VISA – OUTSIDE
+•	NEW PARENT VISA - OUTSIDE
+•	NEW DEPENDENT VISA - OUTSIDE (NOT PARENT)
+•	NEW PARTNER VISA – OUTSIDE
+•	NEW IFZA FREEZONE EMPLOYMENT VISA - OUTSIDE
+•	SPC FREEZONE EMPLOYMENT VISA – OUTSIDE
+
+Golden Visa
+•	GOLDEN VISA - MANAGER
+•	GOLDEN VISA - CULTURE
+•	GOLDEN VISA - STUDENT
+•	GOLDEN VISA FOR DEPENDENT - MANAGER
+•	GOLDEN VISA FOR DEPENDENT - CULTURE
+•	GOLDEN VISA FOR DEPENDENT - STUDENT
+•	GOLDEN VISA FOR DEPENDENT - DLD CUBE (NOT PARENT)
+•	GOLDEN VISA FOR DEPENDENT - DLD CUBE (PARENT)
+
+Renew Visa Applications
+•	RENEW EMPLOYMENT VISA
+•	RENEW DEPENDENT VISA
+•	RENEW PARTNER VISA
+
+Other Applications
+•	NEW BORN DEPENDENT VISA
+•	LOST/REPLACE EMIRATES ID APPLICATION
+
+
+
