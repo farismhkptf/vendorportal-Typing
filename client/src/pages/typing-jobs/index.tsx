@@ -54,7 +54,7 @@ export default function TypingJobsList() {
       const matchesSearch = !search || 
         job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
         job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase()) ||
-        job.workCode?.toLowerCase().includes(search.toLowerCase());
+        job.jobCode?.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || job.status === statusFilter;
       const matchesCategory = categoryFilter === "all" || job.jobType?.category === categoryFilter;
       return matchesSearch && matchesStatus && matchesCategory;
@@ -103,7 +103,7 @@ export default function TypingJobsList() {
             data-testid={`typing-job-compact-${job.id}`}
           >
             <div className="flex items-center gap-3 min-w-0">
-              <span className="font-mono text-xs text-primary">{job.workCode || "-"}</span>
+              <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
               <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
               <span className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</span>
               {job.jobType && (
@@ -138,7 +138,7 @@ export default function TypingJobsList() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs text-primary">{job.workCode || "-"}</span>
+                    <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
                     <span className="font-semibold text-sm text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
                     <StatusBadge status={job.status} />
                   </div>
@@ -168,7 +168,7 @@ export default function TypingJobsList() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-24">Work Code</TableHead>
+            <TableHead className="w-24">Job Code</TableHead>
             <TableHead className="w-28">Work Order #</TableHead>
             <TableHead>Applicant</TableHead>
             <TableHead className="hidden sm:table-cell">Job Type</TableHead>
@@ -185,7 +185,7 @@ export default function TypingJobsList() {
               data-testid={`typing-job-table-${job.id}`}
             >
               <TableCell>
-                <span className="font-mono text-xs text-primary">{job.workCode || "-"}</span>
+                <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
               </TableCell>
               <TableCell>
                 <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
@@ -228,7 +228,7 @@ export default function TypingJobsList() {
                     data-testid={`typing-job-kanban-${job.id}`}
                   >
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono text-xs text-primary">{job.workCode || "-"}</span>
+                      <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
                       <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
                     </div>
                     <div className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</div>
@@ -343,7 +343,7 @@ export default function TypingJobsList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by WO#, applicant, or work code..."
+              placeholder="Search by WO#, applicant, or job code..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9"

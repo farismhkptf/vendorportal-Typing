@@ -98,7 +98,7 @@ export interface IStorage {
   getTypingJobsByVendorId(vendorId: string): Promise<TypingJob[]>;
   createTypingJob(data: InsertTypingJob): Promise<TypingJob>;
   updateTypingJob(id: string, data: Partial<InsertTypingJob>): Promise<TypingJob | undefined>;
-  generateNextWorkCode(): Promise<string>;
+  generateNextJobCode(category: "Medical" | "EID"): Promise<string>;
   
   // Typing Job Results
   getTypingJobResult(typingJobId: string): Promise<TypingJobResult | undefined>;
@@ -523,24 +523,26 @@ export class DatabaseStorage implements IStorage {
     return job;
   }
 
-  async generateNextWorkCode(): Promise<string> {
-    const result = await db.select({ workCode: typingJobs.workCode })
+  async generateNextJobCode(category: "Medical" | "EID"): Promise<string> {
+    const prefix = category === "Medical" ? "M" : "E";
+    const result = await db.select({ jobCode: typingJobs.jobCode })
       .from(typingJobs)
-      .orderBy(desc(typingJobs.workCode))
+      .where(sql`${typingJobs.jobCode} LIKE ${prefix + '%'}`)
+      .orderBy(desc(typingJobs.jobCode))
       .limit(1);
     
-    if (result.length === 0 || !result[0].workCode) {
-      return "TJ00001";
+    if (result.length === 0 || !result[0].jobCode) {
+      return `${prefix}00001`;
     }
     
-    const lastCode = result[0].workCode;
-    const match = lastCode.match(/^TJ(\d+)$/);
+    const lastCode = result[0].jobCode;
+    const match = lastCode.match(/^[ME](\d+)$/);
     if (!match) {
-      return "TJ00001";
+      return `${prefix}00001`;
     }
     
     const nextNumber = parseInt(match[1], 10) + 1;
-    return `TJ${nextNumber.toString().padStart(5, '0')}`;
+    return `${prefix}${nextNumber.toString().padStart(5, '0')}`;
   }
 
   // Typing Job Results

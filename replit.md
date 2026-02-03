@@ -210,11 +210,13 @@ Draft → SentToVendor → (InProgress) → WaitingForDocs → SentToClient (com
 - `client/src/components/documents/document-types.ts` - Type definitions and labels
 
 ### Typing Jobs Enhancements (February 3, 2026)
-- **Work Code**: Each typing job now has a unique work code (TJ00001 format) for vendor reference
-- **Auto-generation**: Work codes auto-generated when typing jobs are created
+- **Job Code**: Each typing job now has a unique job code with category-based prefixes:
+  - Medical jobs: M00001, M00002, etc.
+  - Emirates ID jobs: E00001, E00002, etc.
+- **Auto-generation**: Job codes auto-generated based on job type category when typing jobs are created
 - **Medical/EID Filter**: Category tabs (All, Medical, EID) on typing jobs list page
 - **Vendor Management**: New Vendors tab in Admin section to add/edit/delete typing vendors
-- **Display Updates**: Work code shown in typing job list (cards, table, kanban views) and detail page
+- **Display Updates**: Job code shown in typing job list (cards, table, kanban views) and detail page
 
 ### Vendor API Endpoints
 - `GET /api/vendors` - List all active vendors

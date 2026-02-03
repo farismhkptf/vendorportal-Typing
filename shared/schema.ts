@@ -301,7 +301,7 @@ export const vendors = pgTable("vendors", {
 // Typing Jobs table
 export const typingJobs = pgTable("typing_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  workCode: text("work_code"), // Unique reference code: TJ00001 format
+  jobCode: text("job_code"), // Unique reference code: M00001 for Medical, E00001 for EID
   woId: varchar("wo_id").notNull(),
   vendorId: varchar("vendor_id"),
   jobTypeId: varchar("job_type_id").notNull(),

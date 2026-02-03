@@ -234,20 +234,20 @@ export async function registerRoutes(
         const eidJobType = jobTypes.find(jt => jt.category === "EID");
         
         if (medicalJobType) {
-          const workCode = await storage.generateNextWorkCode();
+          const jobCode = await storage.generateNextJobCode("Medical");
           await storage.createTypingJob({
             woId: wo.id,
-            workCode,
+            jobCode,
             jobTypeId: medicalJobType.id,
             status: "Draft",
           });
         }
         
         if (eidJobType) {
-          const workCode = await storage.generateNextWorkCode();
+          const jobCode = await storage.generateNextJobCode("EID");
           await storage.createTypingJob({
             woId: wo.id,
-            workCode,
+            jobCode,
             jobTypeId: eidJobType.id,
             status: "Draft",
           });
@@ -993,17 +993,21 @@ export async function registerRoutes(
   // ========== Typing Jobs ==========
   app.post("/api/typing-jobs", async (req, res) => {
     try {
-      const validation = validateBody(insertTypingJobSchema.omit({ workCode: true }), req.body);
+      const validation = validateBody(insertTypingJobSchema.omit({ jobCode: true }), req.body);
       if ("error" in validation) {
         return res.status(400).json({ message: validation.error });
       }
       
-      // Auto-generate work code
-      const workCode = await storage.generateNextWorkCode();
+      // Get job type to determine category for job code generation
+      const jobType = await storage.getJobTypeById(validation.data.jobTypeId);
+      const category = jobType?.category || "Medical";
+      
+      // Auto-generate job code based on category
+      const jobCode = await storage.generateNextJobCode(category as "Medical" | "EID");
       
       const job = await storage.createTypingJob({
         ...validation.data,
-        workCode,
+        jobCode,
       });
       
       // Create audit log
@@ -1011,7 +1015,7 @@ export async function registerRoutes(
         entityType: "typing_job",
         entityId: job.id,
         action: "created",
-        details: { jobTypeId: job.jobTypeId, woId: job.woId, workCode },
+        details: { jobTypeId: job.jobTypeId, woId: job.woId, jobCode },
       });
       
       res.status(201).json(job);
