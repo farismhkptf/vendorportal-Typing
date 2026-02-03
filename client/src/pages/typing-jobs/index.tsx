@@ -2,8 +2,8 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard } from "lucide-react";
-import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -152,9 +152,7 @@ export default function TypingJobsList() {
                 {job.costSnapshot && (
                   <p className="font-medium text-sm text-foreground">AED {job.costSnapshot}</p>
                 )}
-                <p className="text-xs text-muted-foreground">
-                  {formatDate(job.createdAt)}
-                </p>
+                <RelativeTime date={job.createdAt} className="text-xs" />
               </div>
             </div>
           </div>

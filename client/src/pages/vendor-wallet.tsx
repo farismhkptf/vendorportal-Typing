@@ -14,8 +14,8 @@ import {
   ArrowRight,
   LayoutGrid
 } from "lucide-react";
-import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
+import { RelativeTime } from "@/components/ui/relative-time";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -359,9 +359,7 @@ export default function VendorWallet() {
                             <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
                               {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
                             </p>
-                            <p className="text-xs text-muted-foreground">
-                              {formatDate(entry.createdAt)}
-                            </p>
+                            <RelativeTime date={entry.createdAt} className="text-xs" />
                           </div>
                         </div>
                       </div>
@@ -399,9 +397,7 @@ export default function VendorWallet() {
                         <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
                           {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(entry.createdAt)}
-                        </p>
+                        <RelativeTime date={entry.createdAt} className="text-xs" />
                       </div>
                     </div>
                   </div>

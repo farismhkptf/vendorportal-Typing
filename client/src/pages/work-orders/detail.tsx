@@ -49,6 +49,7 @@ import { Label } from "@/components/ui/label";
 import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType } from "@shared/schema";
 import { DocumentPanel } from "@/components/documents/document-panel";
 import type { ServiceCategory } from "@/components/documents/document-types";
+import { CopyableText } from "@/components/ui/copy-button";
 
 const editWorkOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits"),
@@ -396,7 +397,9 @@ export default function WorkOrderDetail() {
                 <div className="flex items-center gap-2">
                   <div>
                     <p className="text-sm text-muted-foreground">Work Order Number</p>
-                    <p className="font-medium text-foreground">{workOrder.woNumber}</p>
+                    <CopyableText value={workOrder.woNumber} className="font-medium text-foreground">
+                      {workOrder.woNumber}
+                    </CopyableText>
                   </div>
                   {workOrder.isVip && (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 text-xs font-medium">
@@ -423,10 +426,14 @@ export default function WorkOrderDetail() {
                   <div>
                     <p className="text-sm text-muted-foreground">Applicant Contact</p>
                     {workOrder.applicantPhone && (
-                      <p className="text-sm text-foreground">{workOrder.applicantPhone}</p>
+                      <CopyableText value={workOrder.applicantPhone} className="text-sm text-foreground">
+                        {workOrder.applicantPhone}
+                      </CopyableText>
                     )}
                     {workOrder.applicantEmail && (
-                      <p className="text-sm text-foreground">{workOrder.applicantEmail}</p>
+                      <CopyableText value={workOrder.applicantEmail} className="text-sm text-foreground">
+                        {workOrder.applicantEmail}
+                      </CopyableText>
                     )}
                   </div>
                 </div>
