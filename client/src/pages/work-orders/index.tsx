@@ -246,7 +246,7 @@ export default function WorkOrdersList() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-6 pb-6 space-y-4">
+      <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
         {/* Search, Filters, and View Mode */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">

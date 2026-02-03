@@ -137,17 +137,17 @@ export default function AppointmentsIndex() {
                 {todayAppointments.map((apt) => (
                   <div
                     key={apt.id}
-                    className="p-4 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-between gap-4"
+                    className="p-4 rounded-lg bg-muted/30 border border-border/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                     data-testid={`appointment-today-${apt.id}`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="text-center min-w-[60px]">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="text-center min-w-[50px] sm:min-w-[60px]">
                         <p className="font-semibold text-foreground">{formatTime(apt.datetime)}</p>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <User className="h-3.5 w-3.5 text-muted-foreground" />
-                          <p className="font-medium text-foreground">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <p className="font-medium text-foreground truncate">
                             {apt.workOrder?.applicantName || "Unknown"}
                           </p>
                           {apt.isVip && (
@@ -157,14 +157,14 @@ export default function AppointmentsIndex() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">
+                          <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <p className="text-sm text-muted-foreground truncate">
                             {apt.workOrder?.company?.name || "Unknown Company"}
                           </p>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 self-end sm:self-auto shrink-0">
                       <Badge variant={apt.status === "Scheduled" ? "default" : apt.status === "Completed" ? "secondary" : "destructive"}>
                         {apt.status}
                       </Badge>
@@ -205,18 +205,18 @@ export default function AppointmentsIndex() {
                 {upcomingAppointments.map((apt) => (
                   <div
                     key={apt.id}
-                    className="p-4 rounded-lg bg-muted/30 border border-border/30 flex items-center justify-between gap-4"
+                    className="p-4 rounded-lg bg-muted/30 border border-border/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
                     data-testid={`appointment-upcoming-${apt.id}`}
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="text-center min-w-[80px]">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                      <div className="text-center min-w-[60px] sm:min-w-[80px]">
                         <p className="text-xs text-muted-foreground">{formatDateDisplay(apt.datetime)}</p>
                         <p className="font-semibold text-foreground">{formatTime(apt.datetime)}</p>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <User className="h-3.5 w-3.5 text-muted-foreground" />
-                          <p className="font-medium text-foreground">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <p className="font-medium text-foreground truncate">
                             {apt.workOrder?.applicantName || "Unknown"}
                           </p>
                           {apt.isVip && (
@@ -226,14 +226,14 @@ export default function AppointmentsIndex() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">
+                          <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <p className="text-sm text-muted-foreground truncate">
                             {apt.workOrder?.company?.name || "Unknown Company"}
                           </p>
                         </div>
                       </div>
                     </div>
-                    <Link href={`/work-orders/${apt.woId}`}>
+                    <Link href={`/work-orders/${apt.woId}`} className="self-end sm:self-auto shrink-0">
                       <Button variant="outline" size="sm" data-testid={`button-view-wo-upcoming-${apt.id}`}>
                         View WO
                       </Button>

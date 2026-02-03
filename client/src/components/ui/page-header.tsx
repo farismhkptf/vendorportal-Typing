@@ -29,7 +29,7 @@ export function PageHeader({ title, subtitle, actions, breadcrumbs }: PageHeader
             )}
           </div>
           {actions && (
-            <div className="flex items-center gap-3" data-testid="page-actions">
+            <div className="flex items-center flex-wrap gap-3" data-testid="page-actions">
               {actions}
             </div>
           )}

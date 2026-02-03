@@ -331,7 +331,7 @@ export default function WorkOrderDetail() {
           { label: workOrder.woNumber }
         ]}
         actions={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center flex-wrap gap-2">
             <StatusBadge status={workOrder.status} />
             <Button 
               variant="outline" 
