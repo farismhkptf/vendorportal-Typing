@@ -280,7 +280,7 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
       <table cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td style="vertical-align: middle; padding-right: 12px;">
-            <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; text-align: center; line-height: 32px; color: white;">&#x1F3E5;</div>
+            <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.2); border-radius: 50%; text-align: center; line-height: 32px; color: white; font-weight: bold;">P</div>
           </td>
           <td style="vertical-align: middle;">
             <div style="color: white; font-weight: 600; font-size: 16px;">The P.R.O. Company™</div>
@@ -297,7 +297,7 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
         <table cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="vertical-align: middle; padding-right: 12px;">
-              <div style="width: 40px; height: 40px; background: rgba(74, 124, 89, 0.1); border-radius: 8px; text-align: center; line-height: 40px; font-size: 20px;">&#x1F4C5;</div>
+              <div style="width: 40px; height: 40px; background: rgba(74, 124, 89, 0.1); border-radius: 8px; text-align: center; line-height: 40px; font-size: 16px; color: #4a7c59; font-weight: bold;">MED</div>
             </td>
             <td style="vertical-align: middle;">
               <div style="font-weight: 600; color: #2d5a3d; font-size: 18px;">Medical Appointment Scheduled</div>
@@ -316,7 +316,7 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
       <!-- Appointment Details -->
       <div style="background: white; border: 1px solid rgba(74, 124, 89, 0.2); border-radius: 8px; margin-bottom: 16px; overflow: hidden;">
         <div style="background: rgba(74, 124, 89, 0.1); padding: 8px 12px; border-bottom: 1px solid rgba(74, 124, 89, 0.2);">
-          <strong style="color: #2d5a3d; font-size: 14px;">&#x1F4C4; Appointment Details</strong>
+          <strong style="color: #2d5a3d; font-size: 14px;">Appointment Details</strong>
         </div>
         <div style="padding: 12px;">
           <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size: 12px;">
@@ -331,12 +331,12 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
                 </table>
               </td>
               <td style="vertical-align: top; width: 50%; border-left: 1px solid rgba(74, 124, 89, 0.1); padding-left: 16px;">
-                <div style="margin-bottom: 4px;"><strong style="color: #2d5a3d; font-size: 12px;">&#x1F4CD; Medical Center:</strong></div>
+                <div style="margin-bottom: 4px;"><strong style="color: #2d5a3d; font-size: 12px;">Medical Center:</strong></div>
                 <table cellpadding="0" cellspacing="4" border="0" width="100%">
                   <tr><td style="color: #666; width: 50px;">Name:</td><td style="font-weight: 600; color: #4a7c59;">${props.centerName}</td></tr>
                   <tr><td style="color: #666;">Type:</td><td style="font-weight: 600;">${props.centerType}</td></tr>
                   ${props.centerAddress ? `<tr><td style="color: #666;">Address:</td><td style="font-weight: 500; color: #374151;">${props.centerAddress}</td></tr>` : ''}
-                  ${googleMapsUrl ? `<tr><td style="color: #666;">Map:</td><td><a href="${googleMapsUrl}" target="_blank" style="color: #4a7c59; text-decoration: underline;">View on Google Maps &#x2197;</a></td></tr>` : ''}
+                  ${googleMapsUrl ? `<tr><td style="color: #666;">Map:</td><td><a href="${googleMapsUrl}" target="_blank" style="color: #4a7c59; text-decoration: underline;">View on Google Maps</a></td></tr>` : ''}
                   <tr><td style="color: #666;">Date:</td><td style="font-weight: 700; color: #2d5a3d; background: rgba(74, 124, 89, 0.1); padding: 2px 8px; border-radius: 4px;">${props.appointmentDate}</td></tr>
                   <tr><td style="color: #666;">Time:</td><td style="font-weight: 700; color: #2d5a3d; background: rgba(74, 124, 89, 0.1); padding: 2px 8px; border-radius: 4px;">${props.appointmentTime}</td></tr>
                 </table>
@@ -350,17 +350,17 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
       <!-- Assigned Staff -->
       <div style="background: white; border: 1px solid rgba(74, 124, 89, 0.2); border-radius: 8px; margin-bottom: 16px; overflow: hidden;">
         <div style="background: rgba(74, 124, 89, 0.1); padding: 8px 12px; border-bottom: 1px solid rgba(74, 124, 89, 0.2);">
-          <strong style="color: #2d5a3d; font-size: 14px;">&#x2705; Assigned Staff for Assistance</strong>
+          <strong style="color: #2d5a3d; font-size: 14px;">Assigned Staff for Assistance</strong>
         </div>
         <div style="padding: 12px;">
           <table cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td style="vertical-align: middle; padding-right: 12px;">
-                <div style="width: 40px; height: 40px; background: rgba(74, 124, 89, 0.2); border-radius: 50%; text-align: center; line-height: 40px; font-size: 18px;">&#x1F464;</div>
+                <div style="width: 40px; height: 40px; background: rgba(74, 124, 89, 0.2); border-radius: 50%; text-align: center; line-height: 40px; font-size: 16px; color: #4a7c59; font-weight: bold;">S</div>
               </td>
               <td style="vertical-align: middle;">
                 <div style="font-weight: 600;">${props.medicalAssistName}</div>
-                ${props.medicalAssistPhone ? `<div style="font-size: 12px; color: #666;">&#x1F4DE; Staff Number: ${props.medicalAssistPhone}</div>` : ''}
+                ${props.medicalAssistPhone ? `<div style="font-size: 12px; color: #666;">Staff Number: ${props.medicalAssistPhone}</div>` : ''}
               </td>
             </tr>
           </table>
@@ -371,7 +371,7 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
       <!-- Important Notes -->
       <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; margin-bottom: 16px; overflow: hidden;">
         <div style="background: #dbeafe; padding: 8px 12px; border-bottom: 1px solid #bfdbfe;">
-          <strong style="color: #1e40af; font-size: 14px;">&#x2705; Important Notes</strong>
+          <strong style="color: #1e40af; font-size: 14px;">Important Notes</strong>
         </div>
         <div style="padding: 12px; font-size: 12px; color: #374151;">
           <p style="margin: 0 0 8px 0;"><span style="color: #2563eb;">•</span> Please ensure the applicant arrives at least <strong>10 minutes before</strong> the scheduled appointment time.</p>
@@ -385,17 +385,17 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
       <!-- CRM -->
       <div style="background: white; border: 1px solid rgba(74, 124, 89, 0.2); border-radius: 8px; margin-bottom: 16px; overflow: hidden;">
         <div style="background: rgba(74, 124, 89, 0.1); padding: 8px 12px; border-bottom: 1px solid rgba(74, 124, 89, 0.2);">
-          <strong style="color: #2d5a3d; font-size: 14px;">&#x1F4AC; Client Relationship Manager</strong>
+          <strong style="color: #2d5a3d; font-size: 14px;">Client Relationship Manager</strong>
         </div>
         <div style="padding: 12px;">
           <table cellpadding="0" cellspacing="0" border="0">
             <tr>
               <td style="vertical-align: middle; padding-right: 12px;">
-                <div style="width: 40px; height: 40px; background: rgba(74, 124, 89, 0.2); border-radius: 50%; text-align: center; line-height: 40px; font-size: 18px;">&#x1F464;</div>
+                <div style="width: 40px; height: 40px; background: rgba(74, 124, 89, 0.2); border-radius: 50%; text-align: center; line-height: 40px; font-size: 16px; color: #4a7c59; font-weight: bold;">S</div>
               </td>
               <td style="vertical-align: middle;">
                 <div style="font-weight: 600;">${props.crmName}</div>
-                ${props.crmPhone ? `<div style="font-size: 12px; color: #666;">&#x1F4DE; Contact Number: ${props.crmPhone}</div>` : ''}
+                ${props.crmPhone ? `<div style="font-size: 12px; color: #666;">Contact Number: ${props.crmPhone}</div>` : ''}
               </td>
             </tr>
           </table>
@@ -421,9 +421,9 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
     <div style="background: linear-gradient(135deg, #4a7c59 0%, #2d5a3d 100%); padding: 12px 16px; font-size: 12px; color: rgba(255,255,255,0.9);">
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
-          <td>&#x1F3E2; Government Services & PRO Solutions</td>
+          <td>Government Services & PRO Solutions</td>
           <td style="text-align: right;">
-            &#x1F4DE; +971 4 123 4567 &nbsp;&nbsp; &#x2709; support@procompany.com
+            +971 4 123 4567 | support@procompany.com
           </td>
         </tr>
       </table>

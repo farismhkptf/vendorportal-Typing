@@ -1037,8 +1037,8 @@ Thank you,
             <div className="relative max-h-[500px] overflow-auto rounded-lg border">
               <Button
                 size="icon"
-                variant="ghost"
-                className="absolute top-2 right-2 z-10 h-8 w-8 bg-white/80 hover:bg-white shadow-sm"
+                variant="secondary"
+                className="absolute top-2 right-2 z-10 shadow-sm"
                 onClick={() => setEmailFullscreen(true)}
                 data-testid="button-expand-email"
               >
@@ -1071,7 +1071,8 @@ Thank you,
               />
             </div>
             <Button 
-              className="w-full bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d] hover:from-[#3d6a4c] hover:to-[#254a33] text-white shadow-md"
+              variant="default"
+              className="w-full"
               onClick={() => handleCopyMessage("email")}
               data-testid="button-copy-email"
             >
@@ -1576,8 +1577,9 @@ Thank you,
               <Button
                 size="icon"
                 variant="ghost"
-                className="text-white hover:bg-white/20"
+                className="text-white"
                 onClick={() => setEmailFullscreen(false)}
+                data-testid="button-close-email-fullscreen"
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -1612,7 +1614,7 @@ Thank you,
           </div>
           <DialogFooter className="px-6 py-4 border-t">
             <Button 
-              className="bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d] hover:from-[#3d6a4c] hover:to-[#254a33] text-white shadow-md"
+              variant="default"
               onClick={() => {
                 handleCopyMessage("email");
                 setEmailFullscreen(false);
