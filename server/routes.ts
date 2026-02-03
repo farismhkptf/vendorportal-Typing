@@ -11,6 +11,7 @@ import {
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { toProperCase } from "./proper-case";
 
 const topupSchema = z.object({
   amount: z.number().positive(),
@@ -222,6 +223,7 @@ export async function registerRoutes(
       
       const wo = await storage.createWorkOrder({
         ...validation.data,
+        applicantName: toProperCase(validation.data.applicantName),
         status: "Draft",
       });
       
@@ -282,7 +284,11 @@ export async function registerRoutes(
         }
       }
       
-      const wo = await storage.updateWorkOrder(id, validation.data);
+      const updateData = {
+        ...validation.data,
+        ...(validation.data.applicantName && { applicantName: toProperCase(validation.data.applicantName) }),
+      };
+      const wo = await storage.updateWorkOrder(id, updateData);
       if (!wo) {
         return res.status(404).json({ message: "Work order not found" });
       }
@@ -423,7 +429,13 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const company = await storage.createCompany(validation.data);
+      const companyData = {
+        ...validation.data,
+        name: toProperCase(validation.data.name),
+        ...(validation.data.clientContact1Name && { clientContact1Name: toProperCase(validation.data.clientContact1Name) }),
+        ...(validation.data.clientContact2Name && { clientContact2Name: toProperCase(validation.data.clientContact2Name) }),
+      };
+      const company = await storage.createCompany(companyData);
       res.status(201).json(company);
     } catch (error) {
       console.error("Create company error:", error);
@@ -474,7 +486,13 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const company = await storage.updateCompany(id, validation.data);
+      const updateData = {
+        ...validation.data,
+        ...(validation.data.name && { name: toProperCase(validation.data.name) }),
+        ...(validation.data.clientContact1Name && { clientContact1Name: toProperCase(validation.data.clientContact1Name) }),
+        ...(validation.data.clientContact2Name && { clientContact2Name: toProperCase(validation.data.clientContact2Name) }),
+      };
+      const company = await storage.updateCompany(id, updateData);
       if (!company) {
         return res.status(404).json({ message: "Company not found" });
       }
@@ -502,7 +520,11 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const member = await storage.createStaff(validation.data);
+      const staffData = {
+        ...validation.data,
+        name: toProperCase(validation.data.name),
+      };
+      const member = await storage.createStaff(staffData);
       res.status(201).json(member);
     } catch (error) {
       console.error("Create staff error:", error);
@@ -517,7 +539,11 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const member = await storage.updateStaff(id, validation.data);
+      const updateData = {
+        ...validation.data,
+        ...(validation.data.name && { name: toProperCase(validation.data.name) }),
+      };
+      const member = await storage.updateStaff(id, updateData);
       if (!member) {
         return res.status(404).json({ message: "Staff member not found" });
       }
@@ -573,7 +599,11 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const center = await storage.createCenter(validation.data);
+      const centerData = {
+        ...validation.data,
+        name: toProperCase(validation.data.name),
+      };
+      const center = await storage.createCenter(centerData);
       res.status(201).json(center);
     } catch (error) {
       console.error("Create center error:", error);
@@ -584,7 +614,11 @@ export async function registerRoutes(
   app.put("/api/centers/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const center = await storage.updateCenter(id, req.body);
+      const updateData = {
+        ...req.body,
+        ...(req.body.name && { name: toProperCase(req.body.name) }),
+      };
+      const center = await storage.updateCenter(id, updateData);
       if (!center) {
         return res.status(404).json({ message: "Center not found" });
       }
@@ -725,7 +759,11 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const type = await storage.createServiceType(validation.data);
+      const typeData = {
+        ...validation.data,
+        name: toProperCase(validation.data.name),
+      };
+      const type = await storage.createServiceType(typeData);
       res.status(201).json(type);
     } catch (error) {
       console.error("Create service type error:", error);
@@ -736,7 +774,11 @@ export async function registerRoutes(
   app.put("/api/service-types/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const type = await storage.updateServiceType(id, req.body);
+      const updateData = {
+        ...req.body,
+        ...(req.body.name && { name: toProperCase(req.body.name) }),
+      };
+      const type = await storage.updateServiceType(id, updateData);
       if (!type) {
         return res.status(404).json({ message: "Service type not found" });
       }
@@ -806,7 +848,11 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const type = await storage.createJobType(validation.data);
+      const typeData = {
+        ...validation.data,
+        name: toProperCase(validation.data.name),
+      };
+      const type = await storage.createJobType(typeData);
       res.status(201).json(type);
     } catch (error) {
       console.error("Create job type error:", error);
@@ -817,7 +863,11 @@ export async function registerRoutes(
   app.put("/api/job-types/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const type = await storage.updateJobType(id, req.body);
+      const updateData = {
+        ...req.body,
+        ...(req.body.name && { name: toProperCase(req.body.name) }),
+      };
+      const type = await storage.updateJobType(id, updateData);
       if (!type) {
         return res.status(404).json({ message: "Job type not found" });
       }
