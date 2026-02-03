@@ -350,7 +350,13 @@ export async function registerRoutes(
 
   app.post("/api/appointments", async (req, res) => {
     try {
-      const validation = validateBody(insertAppointmentSchema.omit({ messageSentAt: true, messageSentBy: true }), req.body);
+      // Convert datetime string to Date object
+      const body = {
+        ...req.body,
+        datetime: req.body.datetime ? new Date(req.body.datetime) : undefined,
+      };
+      
+      const validation = validateBody(insertAppointmentSchema.omit({ messageSentAt: true, messageSentBy: true }), body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }

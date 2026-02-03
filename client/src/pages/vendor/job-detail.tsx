@@ -5,6 +5,7 @@ import {
   ArrowLeft, FileText, User, Clock, Calendar, 
   Upload, Download, MessageSquare, Send, LogOut, CheckCircle2
 } from "lucide-react";
+import { formatDate, formatDateTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -234,7 +235,7 @@ export default function VendorJobDetail() {
                 <Calendar className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">Sent:</span>
                 <span className="font-medium">
-                  {job.sentAt ? new Date(job.sentAt).toLocaleDateString() : "—"}
+                  {job.sentAt ? formatDate(job.sentAt) : "—"}
                 </span>
               </div>
             </div>
@@ -360,7 +361,7 @@ export default function VendorJobDetail() {
                           <span className="text-sm font-medium">{file.fileName}</span>
                         </div>
                         <span className="text-xs text-muted-foreground">
-                          {file.createdAt ? new Date(file.createdAt).toLocaleString() : ""}
+                          {file.createdAt ? formatDateTime(file.createdAt) : ""}
                         </span>
                       </div>
                     ))}
@@ -425,7 +426,7 @@ export default function VendorJobDetail() {
                             {comment.authorType === "Vendor" ? "You" : "Company"}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            {comment.createdAt ? new Date(comment.createdAt).toLocaleString() : ""}
+                            {comment.createdAt ? formatDateTime(comment.createdAt) : ""}
                           </span>
                         </div>
                         <p className="text-sm">{comment.message}</p>

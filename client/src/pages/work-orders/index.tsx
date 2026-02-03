@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Plus, Search, FileText, Building2, Filter, ArrowUpDown, List, LayoutGrid, Columns3, Table2 } from "lucide-react";
+import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -99,7 +100,7 @@ export default function WorkOrdersList() {
             <div className="flex items-center gap-2 shrink-0">
               <StatusBadge status={wo.status} />
               <span className="text-xs text-muted-foreground">
-                {new Date(wo.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                {formatDate(wo.createdAt)}
               </span>
             </div>
           </div>
@@ -138,7 +139,7 @@ export default function WorkOrdersList() {
               </div>
               <div className="text-right shrink-0">
                 <p className="text-xs text-muted-foreground">
-                  {new Date(wo.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {formatDate(wo.createdAt)}
                 </p>
               </div>
             </div>
@@ -179,7 +180,7 @@ export default function WorkOrdersList() {
                 <StatusBadge status={wo.status} />
               </TableCell>
               <TableCell className="text-right text-muted-foreground text-sm">
-                {new Date(wo.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                {formatDate(wo.createdAt)}
               </TableCell>
             </TableRow>
           ))}

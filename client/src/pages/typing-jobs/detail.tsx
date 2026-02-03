@@ -7,6 +7,7 @@ import {
   AlertCircle, CheckCircle2, Briefcase, MapPin, History,
   UserPlus, RotateCcw, Package, Loader2
 } from "lucide-react";
+import { formatDateWithWeekday, formatDateTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -262,28 +263,14 @@ export default function TypingJobDetail() {
     },
   });
 
-  const formatDate = (date: Date | string | null) => {
+  const formatDateDisplay = (date: Date | string | null) => {
     if (!date) return "-";
-    const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return formatDateWithWeekday(date);
   };
 
-  const formatDateTime = (date: Date | string | null) => {
+  const formatDateTimeDisplay = (date: Date | string | null) => {
     if (!date) return "-";
-    const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+    return formatDateTime(date);
   };
 
   const inputFiles = job?.files?.filter((f) => f.direction === "Input") || [];

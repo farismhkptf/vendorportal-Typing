@@ -5,6 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import { z } from "zod";
+import { formatDateWithWeekday } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
@@ -200,15 +201,10 @@ export default function ReschedulePage() {
               <Calendar className="h-5 w-5 text-muted-foreground" />
               <div>
                 <p className="font-medium text-foreground">
-                  {new Date(appointment.datetime).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "long",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
+                  {formatDateWithWeekday(appointment.datetime)}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(appointment.datetime).toLocaleTimeString("en-US", {
+                  {new Date(appointment.datetime).toLocaleTimeString("en-GB", {
                     hour: "numeric",
                     minute: "2-digit",
                   })}
@@ -261,7 +257,7 @@ export default function ReschedulePage() {
                   <Alert variant="destructive" className="rounded-xl">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      The center is closed on {selectedDate.toLocaleDateString("en-US", { weekday: "long" })}. Please select a different date.
+                      The center is closed on {selectedDate.toLocaleDateString("en-GB", { weekday: "long" })}. Please select a different date.
                     </AlertDescription>
                   </Alert>
                 )}

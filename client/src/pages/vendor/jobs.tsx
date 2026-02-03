@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Search, FileText, Filter, Calendar, Upload, MessageSquare, LogOut } from "lucide-react";
+import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -165,10 +166,7 @@ export default function VendorJobs() {
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground flex items-center gap-1.5 justify-end">
                           <Calendar className="h-3.5 w-3.5" />
-                          {job.sentAt ? new Date(job.sentAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          }) : "—"}
+                          {job.sentAt ? formatDate(job.sentAt) : "—"}
                         </p>
                       </div>
                     </div>

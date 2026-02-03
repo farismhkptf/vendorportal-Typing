@@ -43,6 +43,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Center, Staff, ServiceType, JobType, AppSettings, Company, CompanyEmail } from "@shared/schema";
 import { toProperCase } from "@/lib/proper-case";
+import { formatDate } from "@/lib/format-date";
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -1877,7 +1878,7 @@ export default function AdminPage() {
                           {member.status === "OnLeave" && member.replacementId && (
                             <div className="text-xs text-muted-foreground mt-1">
                               Covered by: {staffList?.find((s: Staff) => s.id === member.replacementId)?.name || "Unknown"}
-                              {(member as any).leaveEndDate && ` (until ${new Date((member as any).leaveEndDate).toLocaleDateString()})`}
+                              {(member as any).leaveEndDate && ` (until ${formatDate((member as any).leaveEndDate)})`}
                             </div>
                           )}
                         </div>

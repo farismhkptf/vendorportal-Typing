@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toProperCase } from "@/lib/proper-case";
+import { formatDate, formatDateWithWeekday } from "@/lib/format-date";
 import { 
   ArrowLeft, 
   Building2, 
@@ -574,14 +575,10 @@ export default function WorkOrderDetail() {
                             <StatusBadge status={apt.type} />
                             <div>
                               <p className="font-medium text-foreground">
-                                {new Date(apt.datetime).toLocaleDateString("en-US", {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                })}
+                                {formatDateWithWeekday(apt.datetime)}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                {new Date(apt.datetime).toLocaleTimeString("en-US", {
+                                {new Date(apt.datetime).toLocaleTimeString("en-GB", {
                                   hour: "numeric",
                                   minute: "2-digit",
                                 })}
@@ -711,7 +708,7 @@ export default function WorkOrderDetail() {
                             <div className="min-w-0">
                               <p className="font-medium text-foreground">Typing Job</p>
                               <p className="text-sm text-muted-foreground">
-                                Created {new Date(job.createdAt).toLocaleDateString()}
+                                Created {formatDate(job.createdAt)}
                               </p>
                             </div>
                             <StatusBadge status={job.status} />

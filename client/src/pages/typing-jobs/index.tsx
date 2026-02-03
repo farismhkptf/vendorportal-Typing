@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send } from "lucide-react";
+import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -144,7 +145,7 @@ export default function TypingJobsList() {
                   <p className="font-medium text-sm text-foreground">AED {job.costSnapshot}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {new Date(job.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  {formatDate(job.createdAt)}
                 </p>
               </div>
             </div>

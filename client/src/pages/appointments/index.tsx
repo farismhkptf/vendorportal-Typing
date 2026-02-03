@@ -4,6 +4,7 @@ import {
   Calendar, Clock, Plus, Stethoscope, 
   CheckCircle2, AlertCircle, Building2, User
 } from "lucide-react";
+import { formatDateWithWeekday } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,13 +68,8 @@ export default function AppointmentsIndex() {
     });
   };
 
-  const formatDate = (datetime: string | Date) => {
-    const d = typeof datetime === "string" ? new Date(datetime) : datetime;
-    return d.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
+  const formatDateDisplay = (datetime: string | Date) => {
+    return formatDateWithWeekday(datetime);
   };
 
   return (
@@ -214,7 +210,7 @@ export default function AppointmentsIndex() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="text-center min-w-[80px]">
-                        <p className="text-xs text-muted-foreground">{formatDate(apt.datetime)}</p>
+                        <p className="text-xs text-muted-foreground">{formatDateDisplay(apt.datetime)}</p>
                         <p className="font-semibold text-foreground">{formatTime(apt.datetime)}</p>
                       </div>
                       <div>

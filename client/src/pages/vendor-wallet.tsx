@@ -14,6 +14,7 @@ import {
   ArrowRight,
   LayoutGrid
 } from "lucide-react";
+import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -138,7 +139,7 @@ export default function VendorWallet() {
       if (viewBy === "type") {
         key = entry.entryType;
       } else if (viewBy === "date") {
-        key = new Date(entry.createdAt).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+        key = new Date(entry.createdAt).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
       } else {
         key = "All";
       }
@@ -359,7 +360,7 @@ export default function VendorWallet() {
                               {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              {formatDate(entry.createdAt)}
                             </p>
                           </div>
                         </div>
@@ -399,7 +400,7 @@ export default function VendorWallet() {
                           {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(entry.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                          {formatDate(entry.createdAt)}
                         </p>
                       </div>
                     </div>
