@@ -549,18 +549,16 @@ export default function WorkOrderDetail() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-medium text-foreground">Scheduled Appointments</h3>
                 <div className="flex gap-2">
-                  <Link href={`/schedule/medical?wo=${id}`}>
+                  <Link href={`/appointments/schedule-medical?wo=${id}`}>
                     <Button variant="outline" size="sm" className="gap-2" data-testid="button-schedule-medical">
                       <Plus className="h-4 w-4" />
                       Medical
                     </Button>
                   </Link>
-                  <Link href={`/schedule/eid?wo=${id}`}>
-                    <Button variant="outline" size="sm" className="gap-2" data-testid="button-schedule-eid">
+                  <Button variant="outline" size="sm" className="gap-2" disabled data-testid="button-schedule-eid" title="EID scheduling coming soon">
                       <Plus className="h-4 w-4" />
                       Emirates ID
                     </Button>
-                  </Link>
                 </div>
               </div>
 
