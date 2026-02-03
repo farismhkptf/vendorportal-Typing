@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { 
   ArrowLeft, ArrowRight, Check, Building2, User, Calendar, Clock, MapPin, 
   Phone, Mail, Star, Copy, Send, AlertTriangle, Zap, ListOrdered,
@@ -86,6 +86,7 @@ interface WorkOrderWithDetails extends WorkOrder {
 
 export default function ScheduleMedical() {
   const [, setLocation] = useLocation();
+  const searchParams = useSearch();
   const { toast } = useToast();
   const [mode, setMode] = useState<"wizard" | "quick">("wizard");
   const [currentStep, setCurrentStep] = useState(1);
@@ -97,6 +98,7 @@ export default function ScheduleMedical() {
   const [emailPreview, setEmailPreview] = useState("");
   const [whatsappPreview, setWhatsappPreview] = useState("");
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
+  const [urlWoProcessed, setUrlWoProcessed] = useState(false);
 
   const { data: workOrders } = useQuery<WorkOrder[]>({
     queryKey: ["/api/work-orders"],
@@ -191,6 +193,71 @@ export default function ScheduleMedical() {
 
   const watchedIsVip = useWatch({ control: form.control, name: "isVip" });
 
+  const handleSelectWorkOrder = async (wo: WorkOrder) => {
+    const company = companies?.find(c => c.id === wo.companyId);
+    setSelectedWo({ ...wo, company });
+    setSelectedCompany(company || null);
+    form.setValue("woId", wo.id);
+    form.setValue("isVip", wo.isVip || false);
+    
+    // Fetch full work order details to get typing job application numbers
+    try {
+      const response = await fetch(`/api/work-orders/${wo.id}`);
+      if (response.ok) {
+        const woDetails = await response.json() as WorkOrderWithDetails;
+        
+        // Auto-fill application number from Medical typing job result
+        if (woDetails.typingJobs) {
+          const medicalJob = woDetails.typingJobs.find(
+            job => job.jobType?.category === "Medical" && job.result?.applicationRefNo
+          );
+          if (medicalJob?.result?.applicationRefNo) {
+            form.setValue("applicationNumber", medicalJob.result.applicationRefNo);
+          }
+        }
+      }
+    } catch (error) {
+      // Silently fail - application number auto-fill is a convenience feature
+      console.error("Failed to fetch WO details for application number:", error);
+    }
+    
+    if (company) {
+      const preferredCenter = wo.isVip 
+        ? company.preferredMedicalCenterVipId 
+        : company.preferredMedicalCenterId;
+      if (preferredCenter) {
+        form.setValue("centerId", preferredCenter);
+      }
+      // Auto-assign the company's Medical Assistant Support
+      if (company.assistStaffId) {
+        form.setValue("assignedStaffId", company.assistStaffId);
+      }
+    }
+    
+    setSearchQuery("");
+    if (mode === "wizard") {
+      setCurrentStep(2);
+    }
+  };
+
+  // Handle URL parameter for pre-selecting work order
+  useEffect(() => {
+    if (urlWoProcessed || !workOrders || !companies) return;
+    
+    const params = new URLSearchParams(searchParams);
+    const woId = params.get("wo");
+    
+    if (woId) {
+      const wo = workOrders.find(w => w.id === woId);
+      if (wo) {
+        // Reuse existing handler which handles all setup: form values, fetch details,
+        // auto-fill application number, preferred center, assigned staff, and step advancement
+        handleSelectWorkOrder(wo);
+      }
+    }
+    setUrlWoProcessed(true);
+  }, [workOrders, companies, searchParams, urlWoProcessed]);
+
   const filteredCenters = useMemo(() => {
     return medicalCenters.filter(c => 
       watchedIsVip ? c.tier === "VIP" : c.tier === "Normal"
@@ -257,53 +324,6 @@ export default function ScheduleMedical() {
       });
     },
   });
-
-  const handleSelectWorkOrder = async (wo: WorkOrder) => {
-    const company = companies?.find(c => c.id === wo.companyId);
-    setSelectedWo({ ...wo, company });
-    setSelectedCompany(company || null);
-    form.setValue("woId", wo.id);
-    form.setValue("isVip", wo.isVip || false);
-    
-    // Fetch full work order details to get typing job application numbers
-    try {
-      const response = await fetch(`/api/work-orders/${wo.id}`);
-      if (response.ok) {
-        const woDetails = await response.json() as WorkOrderWithDetails;
-        
-        // Auto-fill application number from Medical typing job result
-        if (woDetails.typingJobs) {
-          const medicalJob = woDetails.typingJobs.find(
-            job => job.jobType?.category === "Medical" && job.result?.applicationRefNo
-          );
-          if (medicalJob?.result?.applicationRefNo) {
-            form.setValue("applicationNumber", medicalJob.result.applicationRefNo);
-          }
-        }
-      }
-    } catch (error) {
-      // Silently fail - application number auto-fill is a convenience feature
-      console.error("Failed to fetch WO details for application number:", error);
-    }
-    
-    if (company) {
-      const preferredCenter = wo.isVip 
-        ? company.preferredMedicalCenterVipId 
-        : company.preferredMedicalCenterId;
-      if (preferredCenter) {
-        form.setValue("centerId", preferredCenter);
-      }
-      // Auto-assign the company's Medical Assistant Support
-      if (company.assistStaffId) {
-        form.setValue("assignedStaffId", company.assistStaffId);
-      }
-    }
-    
-    setSearchQuery("");
-    if (mode === "wizard") {
-      setCurrentStep(2);
-    }
-  };
 
   const generatePreviews = () => {
     if (!selectedWo || !selectedCompany) return;
