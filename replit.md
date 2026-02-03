@@ -32,7 +32,16 @@ Four distinct roles (`Admin`, `Ops`, `Viewer`, `Vendor`) provide granular access
 
 ### UI/UX Decisions
 
-The design follows an Apple-inspired glassmorphism aesthetic with soft gradients, rounded corners, and a compact layout. Custom components extend `shadcn/ui` for application-specific patterns. Accessibility features like input masks, scroll-to-error, and ARIA labels are integrated. There are smooth fade page transitions and a time-based dynamic greeting on the Dashboard.
+The design follows an Apple-inspired glassmorphism aesthetic with soft gradients, rounded corners, and a compact layout. Custom components extend `shadcn/ui` for application-specific patterns. Accessibility features like input masks, scroll-to-error, and ARIA labels are integrated.
+
+**UX Polish Features:**
+- **Page Transitions**: Smooth fade transitions with `prefers-reduced-motion` support.
+- **Dynamic Greeting**: Time-based greeting on Dashboard (Good morning/afternoon/evening).
+- **Breadcrumb Navigation**: Consistent navigation on detail pages.
+- **Copy to Clipboard**: CopyableText component for WO numbers, phone, email with visual feedback.
+- **Relative Dates**: RelativeTime component shows "2 hours ago" with hover tooltip for exact timestamps.
+- **Mobile FAB**: FloatingActionButton for primary actions on mobile list pages (Work Orders, Typing Jobs, Companies).
+- **Loading States**: Loader2 spinner icons on all form submit buttons.
 
 ### Technical Implementations
 
