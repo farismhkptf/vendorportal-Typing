@@ -1,0 +1,73 @@
+You are working on our existing Medical app (React + routing). Implement the following UX polish items in **batches**, in order, and after each batch confirm what files you changed and what was tested. Keep changes minimal and safe (no refactors unless required). Respect prefers-reduced-motion.
+
+========================
+BATCH 1 — Baseline polish (do all)
+========================
+
+1) FAVICON (Brand)
+- Add a favicon that shows in browser tabs.
+- Use /public/favicon.ico and also add PNG favicons if needed.
+- Ensure <head> has correct <link rel="icon"> entries.
+- Verify it works in both dev preview and production build.
+
+2) SKELETON LOADERS (Loading states)
+- Replace blank/flash loading states with skeleton placeholders.
+- Apply to: Dashboard summary cards, Work Orders list, Work Order details view, any main tables/lists that fetch data.
+- Use a small reusable <Skeleton /> component (or existing one if already present).
+- Skeleton should match the approximate layout (rows, cards, headings).
+- Show skeleton only when loading; show “empty state” only when loaded and list is actually empty.
+
+3) SMOOTH PAGE TRANSITIONS (Routes)
+- Add subtle fade transition between route changes.
+- Must not block interactions or slow navigation.
+- Must respect prefers-reduced-motion (disable transitions if user prefers reduced motion).
+- Implement at the Router layout level so it applies consistently.
+
+After Batch 1, confirm:
+- Which screens have skeletons
+- How prefers-reduced-motion was handled
+- That favicon appears reliably
+
+========================
+BATCH 2 — Quality-of-life navigation
+========================
+
+4) DYNAMIC GREETING (Time-based)
+- On the dashboard header, show “Good morning/afternoon/evening, Admin” based on local time.
+- If user name exists in auth/profile context, use it instead of “Admin”.
+- Keep it simple: no API calls, just local time.
+
+5) BREADCRUMBS
+- Add breadcrumbs on inner pages (e.g., Dashboard > Work Orders > WO-XXXXX).
+- Must be clickable where it makes sense (Dashboard, Work Orders).
+- Use route-based labels and allow dynamic label for specific WO.
+
+After Batch 2, confirm:
+- Greeting logic and where name comes from
+- Breadcrumb mapping and pages covered
+
+========================
+BATCH 3 — Confirmations (safe actions)
+========================
+
+6) TOAST NOTIFICATIONS (with optional undo)
+- Add toast system (use existing library if present; otherwise pick a lightweight one).
+- Show toasts for: Work Order created, updated, archived, deleted.
+- For destructive/irreversible actions, include “Undo” for 5 seconds when possible.
+- If Undo is clicked, revert the change (only where technically feasible without heavy backend work).
+- Keep message tone professional.
+
+After Batch 3, confirm:
+- Events covered
+- Which actions support Undo vs not (and why)
+
+========================
+Rules / Guardrails
+========================
+- Do NOT redesign UI or change business logic.
+- Keep styling consistent with current design system.
+- No breaking changes to existing APIs.
+- Add minimal tests or at least manual test checklist per batch (what you clicked and verified).
+- Provide a short “Implementation summary” after each batch.
+
+Start with Batch 1 now.
