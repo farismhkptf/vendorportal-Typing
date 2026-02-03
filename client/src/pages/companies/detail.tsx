@@ -4,7 +4,7 @@ import { useLocation, useParams } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Building2, MapPin, Users, UserCheck, Save, Loader2, Pencil } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Users, UserCheck, Save, Loader2, Pencil, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -159,11 +159,18 @@ export default function CompanyDetail() {
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link href="/companies">
-              <Button variant="ghost" size="icon" className="rounded-lg" data-testid="button-back">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link href="/companies">
+                <Button variant="ghost" size="icon" className="rounded-lg" data-testid="button-back">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="ghost" size="icon" className="rounded-lg" data-testid="button-home">
+                  <Home className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
             <div>
               <h1 className="text-xl font-semibold tracking-tight text-foreground">{company.name}</h1>
               <p className="text-sm text-muted-foreground">

@@ -21,7 +21,8 @@ import {
   Phone,
   Star,
   Loader2,
-  ClipboardList
+  ClipboardList,
+  Home
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -261,12 +262,18 @@ export default function WorkOrderDetail() {
         <PageHeader
           title="Loading..."
           actions={
-            <Link href="/work-orders">
-              <Button variant="outline" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link href="/work-orders">
+                <Button variant="ghost" size="icon" data-testid="button-back">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="ghost" size="icon" data-testid="button-home">
+                  <Home className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           }
         />
         <div className="p-4 lg:p-8 space-y-6">
@@ -283,12 +290,18 @@ export default function WorkOrderDetail() {
         <PageHeader
           title="Work Order Not Found"
           actions={
-            <Link href="/work-orders">
-              <Button variant="outline" className="gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link href="/work-orders">
+                <Button variant="ghost" size="icon" data-testid="button-back">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="ghost" size="icon" data-testid="button-home">
+                  <Home className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           }
         />
         <div className="p-4 lg:p-8">
@@ -350,12 +363,18 @@ export default function WorkOrderDetail() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Link href="/work-orders">
-              <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-back">
-                <ArrowLeft className="h-3.5 w-3.5" />
-                Back
-              </Button>
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link href="/work-orders">
+                <Button variant="ghost" size="icon" data-testid="button-back">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="ghost" size="icon" data-testid="button-home">
+                  <Home className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
         }
       />

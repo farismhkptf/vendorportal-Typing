@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X, Phone, Mail, Star, RefreshCw } from "lucide-react";
+import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X, Phone, Mail, Star, RefreshCw, Home } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -381,12 +381,18 @@ export default function NewWorkOrder() {
               <ClipboardPaste className="h-4 w-4" />
               {showPasteArea ? "Hide Quick Paste" : "Quick Paste"}
             </Button>
-            <Link href="/work-orders">
-              <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-back">
-                <ArrowLeft className="h-4 w-4" />
-                Back
-              </Button>
-            </Link>
+            <div className="flex items-center gap-1">
+              <Link href="/work-orders">
+                <Button variant="ghost" size="icon" data-testid="button-back">
+                  <ArrowLeft className="h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/">
+                <Button variant="ghost" size="icon" data-testid="button-home">
+                  <Home className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
         }
       />

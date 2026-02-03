@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { 
-  ArrowLeft, ArrowRight, Check, Building2, User, 
+  ArrowLeft, ArrowRight, Check, Building2, User, Home, 
   FileText, Copy, Send, Stethoscope, CreditCard, 
   MapPin, Truck, CheckCircle2
 } from "lucide-react";
@@ -407,14 +407,24 @@ The P.R.O. Company™`;
           <div className="max-w-4xl mx-auto px-4 lg:px-6 pt-4 pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setLocation("/typing-jobs")}
-                  data-testid="button-back"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setLocation("/typing-jobs")}
+                    data-testid="button-back"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => setLocation("/")}
+                    data-testid="button-home"
+                  >
+                    <Home className="h-4 w-4" />
+                  </Button>
+                </div>
                 <div>
                   <h1 className="text-xl font-semibold text-foreground">New Typing Job</h1>
                   <p className="text-sm text-muted-foreground">Send applications to vendor for typing</p>

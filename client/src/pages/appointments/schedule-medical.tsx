@@ -7,7 +7,7 @@ import {
   ArrowLeft, ArrowRight, Check, Building2, User, Calendar, Clock, MapPin, 
   Phone, Mail, Star, Copy, Send, AlertTriangle, Zap, ListOrdered,
   Stethoscope, FileText, UserCheck, MessageSquare, CheckCircle2, Pencil,
-  Maximize2, X
+  Maximize2, X, Home
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -1347,9 +1347,14 @@ Thank you,
     <AppLayout>
       <div className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-4">
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/work-orders")} data-testid="button-back-nav">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/work-orders")} data-testid="button-back">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={() => setLocation("/")} data-testid="button-home">
+              <Home className="h-4 w-4" />
+            </Button>
+          </div>
           <div>
             <h1 className="text-xl font-semibold">Schedule Medical</h1>
             <p className="text-sm text-muted-foreground">Create a medical appointment and notify the client</p>

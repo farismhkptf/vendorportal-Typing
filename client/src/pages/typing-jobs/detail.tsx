@@ -5,7 +5,7 @@ import {
   ArrowLeft, FileText, Building2, User, Clock, Calendar, 
   Upload, Download, MessageSquare, Send, ChevronRight, 
   AlertCircle, CheckCircle2, Briefcase, MapPin, History,
-  UserPlus, RotateCcw, Package, Loader2
+  UserPlus, RotateCcw, Package, Loader2, Home
 } from "lucide-react";
 import { formatDateWithWeekday, formatDateTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
@@ -306,11 +306,18 @@ export default function TypingJobDetail() {
     <AppLayout>
       <div className="p-4 lg:p-6 space-y-6 max-w-4xl mx-auto">
         <div className="flex items-center gap-4">
-          <Link href="/typing-jobs">
-            <Button variant="ghost" size="icon" data-testid="button-back">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link href="/typing-jobs">
+              <Button variant="ghost" size="icon" data-testid="button-back">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/">
+              <Button variant="ghost" size="icon" data-testid="button-home">
+                <Home className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-xl font-semibold text-foreground" data-testid="page-title">
