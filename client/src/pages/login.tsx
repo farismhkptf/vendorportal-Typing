@@ -67,7 +67,7 @@ export default function Login() {
           <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mb-4 shadow-lg">
             <span className="text-2xl font-bold text-white">P</span>
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">The P.R.O. Company</h1>
+          <h1 className="text-2xl font-semibold text-foreground">The P.R.O. Company™</h1>
           <p className="text-sm text-muted-foreground mt-1">Internal Portal</p>
         </div>
 
@@ -163,7 +163,7 @@ export default function Login() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} The P.R.O. Company. All rights reserved.
+          &copy; {new Date().getFullYear()} The P.R.O. Company™. All rights reserved.
         </p>
       </div>
     </div>

@@ -68,7 +68,7 @@ export default function VendorLogin() {
             <span className="text-2xl font-bold text-white">V</span>
           </div>
           <h1 className="text-2xl font-semibold text-foreground">Vendor Portal</h1>
-          <p className="text-sm text-muted-foreground mt-1">The P.R.O. Company</p>
+          <p className="text-sm text-muted-foreground mt-1">The P.R.O. Company™</p>
         </div>
 
         {/* Login Card */}
@@ -161,7 +161,7 @@ export default function VendorLogin() {
 
         {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} The P.R.O. Company. All rights reserved.
+          &copy; {new Date().getFullYear()} The P.R.O. Company™. All rights reserved.
         </p>
       </div>
     </div>

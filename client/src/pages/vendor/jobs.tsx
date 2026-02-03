@@ -47,7 +47,7 @@ export default function VendorJobs() {
             </div>
             <div>
               <h1 className="text-sm font-semibold text-foreground">Vendor Portal</h1>
-              <p className="text-xs text-muted-foreground">The P.R.O. Company</p>
+              <p className="text-xs text-muted-foreground">The P.R.O. Company™</p>
             </div>
           </div>
           <Link href="/vendor/login">

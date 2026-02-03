@@ -59,7 +59,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <span className="text-base font-semibold text-white">P</span>
               </div>
               <div>
-                <h1 className="text-[15px] font-semibold text-foreground tracking-tight">The P.R.O. Company</h1>
+                <h1 className="text-[15px] font-semibold text-foreground tracking-tight">The P.R.O. Company™</h1>
                 <p className="text-xs text-muted-foreground">Portal</p>
               </div>
             </div>

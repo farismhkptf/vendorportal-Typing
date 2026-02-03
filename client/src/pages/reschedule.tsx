@@ -186,7 +186,7 @@ export default function ReschedulePage() {
           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mx-auto mb-4">
             <span className="text-lg font-bold text-white">P</span>
           </div>
-          <h1 className="text-xl font-semibold text-foreground">The P.R.O. Company</h1>
+          <h1 className="text-xl font-semibold text-foreground">The P.R.O. Company™</h1>
           <p className="text-sm text-muted-foreground mt-1">Appointment Reschedule</p>
         </div>
 

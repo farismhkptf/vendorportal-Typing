@@ -378,7 +378,7 @@ ${form.getValues("notes") ? `Note: ${form.getValues("notes")}` : ""}
 Please ensure the applicant arrives 15 minutes before the scheduled time with all required documents.
 
 Best regards,
-The P.R.O. Company`;
+The P.R.O. Company™`;
 
     // WhatsApp assistance section
     const assistanceSection = medicalAssist 
@@ -415,7 +415,7 @@ ${assistanceSection}
 ${form.getValues("notes") ? `• ${form.getValues("notes")}` : ""}
 
 Thank you,
-*The P.R.O. Company*`;
+*The P.R.O. Company™*`;
 
     setEmailPreview(emailBody);
     setWhatsappPreview(whatsappBody);

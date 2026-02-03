@@ -321,7 +321,7 @@ Notes: ${form.getValues("notes")}
 Please process at your earliest convenience.
 
 Best regards,
-The P.R.O. Company`;
+The P.R.O. Company™`;
 
     setEmailPreview(`Subject: ${subject}\n\n${body}`);
   };
