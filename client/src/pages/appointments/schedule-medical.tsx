@@ -354,11 +354,11 @@ export default function ScheduleMedical() {
       ? `Your P.R.O. Team:\n${contactLines.join("\n")}` 
       : "";
     
-    const emailBody = `Dear ${selectedCompany.name} Team,
+    const emailBody = `Dear ${toProperCase(selectedCompany.name)} Team,
 
 We have scheduled a medical appointment for your employee:
 
-Applicant: ${selectedWo.applicantName}
+Applicant: ${toProperCase(selectedWo.applicantName)}
 ${selectedWo.applicantPhone ? `Contact: ${selectedWo.applicantPhone}` : ""}
 
 Appointment Details:
@@ -394,9 +394,9 @@ The P.R.O. Company`;
 Your medical appointment has been scheduled successfully for the following work.
 
 📄 WO: ${selectedWo.woNumber}
-👤 Applicant: ${selectedWo.applicantName}
-🏢 Company: ${selectedCompany?.name || ""}
-🧾 Service: ${woServiceTypeName}
+👤 Applicant: ${toProperCase(selectedWo.applicantName)}
+🏢 Company: ${toProperCase(selectedCompany?.name || "")}
+🧾 Service: ${toProperCase(woServiceTypeName)}
 ${appNum ? `🔢 Application No: ${appNum}` : ""}
 
 🏥 Medical Center: ${center?.name || "TBD"}
@@ -426,9 +426,9 @@ Thank you,
       // Copy HTML for email to preserve formatting when pasted
       const emailHtml = generateMedicalAppointmentEmailHtml({
         woNumber: selectedWo?.woNumber || "",
-        companyName: selectedCompany?.name || "",
-        applicantName: selectedWo?.applicantName || "",
-        serviceType: woServiceTypeName,
+        companyName: toProperCase(selectedCompany?.name || ""),
+        applicantName: toProperCase(selectedWo?.applicantName || ""),
+        serviceType: toProperCase(woServiceTypeName),
         centerName: selectedCenter?.name || "TBD",
         centerAddress: selectedCenter?.address || undefined,
         centerType: selectedCenter?.tier === "VIP" ? "VIP" : "Normal",
@@ -568,9 +568,9 @@ Thank you,
                           <Badge className="bg-amber-500 text-white text-xs">VIP</Badge>
                         )}
                       </div>
-                      <div className="text-sm text-muted-foreground">{wo.applicantName}</div>
+                      <div className="text-sm text-muted-foreground">{toProperCase(wo.applicantName)}</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">{company?.name}</div>
+                    <div className="text-sm text-muted-foreground">{toProperCase(company?.name || "")}</div>
                   </button>
                 );
               })}
@@ -612,11 +612,11 @@ Thank you,
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">{selectedWo.applicantName}</span>
+                <span className="text-sm font-medium">{toProperCase(selectedWo.applicantName)}</span>
               </div>
               <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{selectedCompany?.name || "—"}</span>
+                <span className="text-sm">{toProperCase(selectedCompany?.name || "—")}</span>
               </div>
               {selectedWo.applicantPhone && (
                 <div className="flex items-center gap-2">
@@ -959,11 +959,11 @@ Thank you,
             </div>
             <div>
               <span className="text-muted-foreground">Applicant:</span>
-              <span className="ml-2 font-medium">{selectedWo?.applicantName}</span>
+              <span className="ml-2 font-medium">{toProperCase(selectedWo?.applicantName || "")}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Company:</span>
-              <span className="ml-2 font-medium">{selectedCompany?.name}</span>
+              <span className="ml-2 font-medium">{toProperCase(selectedCompany?.name || "")}</span>
             </div>
             <div>
               <span className="text-muted-foreground">Center:</span>
@@ -1035,9 +1035,9 @@ Thank you,
             <div className="max-h-[500px] overflow-auto rounded-lg border">
               <MedicalAppointmentEmail
                 woNumber={selectedWo?.woNumber || ""}
-                companyName={selectedCompany?.name || ""}
-                applicantName={selectedWo?.applicantName || ""}
-                serviceType={woServiceTypeName}
+                companyName={toProperCase(selectedCompany?.name || "")}
+                applicantName={toProperCase(selectedWo?.applicantName || "")}
+                serviceType={toProperCase(woServiceTypeName)}
                 centerName={selectedCenter?.name || "TBD"}
                 centerAddress={selectedCenter?.address || undefined}
                 centerType={selectedCenter?.tier === "VIP" ? "VIP" : "Normal"}
@@ -1122,7 +1122,7 @@ Thank you,
                       className="w-full p-2 text-left rounded hover-elevate flex items-center justify-between gap-3 text-sm"
                     >
                       <span className="font-medium">{wo.woNumber}</span>
-                      <span className="text-muted-foreground">{wo.applicantName}</span>
+                      <span className="text-muted-foreground">{toProperCase(wo.applicantName)}</span>
                     </button>
                   );
                 })}
@@ -1145,11 +1145,11 @@ Thank you,
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span>{selectedWo.applicantName}</span>
+                  <span>{toProperCase(selectedWo.applicantName)}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-muted-foreground">{selectedCompany?.name}</span>
+                  <span className="text-muted-foreground">{toProperCase(selectedCompany?.name || "")}</span>
                 </div>
                 {selectedWo.applicantPhone && (
                   <div className="flex items-center gap-1.5">
