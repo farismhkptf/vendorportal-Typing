@@ -3,6 +3,7 @@ import {
   workOrders, appointments, rescheduleRequests, jobTypes, vendors,
   typingJobs, typingJobResults, typingJobComments, files, messages,
   vendorWalletLedger, vendorStatements, vendorInvoices, appSettings, auditLog,
+  woDocuments, documentRequirements,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -11,7 +12,8 @@ import {
   type Vendor, type InsertVendor, type TypingJob, type InsertTypingJob,
   type TypingJobResult, type InsertTypingJobResult, type TypingJobComment, type InsertTypingJobComment,
   type VendorWalletLedger, type InsertVendorWalletLedger, type AppSettings,
-  type AuditLog, type InsertAuditLog, type InsertFile, type File
+  type AuditLog, type InsertAuditLog, type InsertFile, type File,
+  type WoDocument, type InsertWoDocument, type DocumentRequirement, type InsertDocumentRequirement
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
@@ -122,6 +124,20 @@ export interface IStorage {
   // Audit Log
   getAuditLogsByEntity(entityType: string, entityId: string): Promise<AuditLog[]>;
   createAuditLog(data: InsertAuditLog): Promise<AuditLog>;
+  
+  // Work Order Documents
+  getWoDocuments(woId: string): Promise<WoDocument[]>;
+  getWoDocumentById(id: string): Promise<WoDocument | undefined>;
+  createWoDocument(data: InsertWoDocument): Promise<WoDocument>;
+  updateWoDocument(id: string, data: Partial<InsertWoDocument>): Promise<WoDocument | undefined>;
+  deleteWoDocument(id: string): Promise<boolean>;
+  
+  // Document Requirements
+  getDocumentRequirements(): Promise<DocumentRequirement[]>;
+  getDocumentRequirementsByCategory(category: string): Promise<DocumentRequirement[]>;
+  createDocumentRequirement(data: InsertDocumentRequirement): Promise<DocumentRequirement>;
+  seedDocumentRequirements(): Promise<{ added: number; skipped: number }>;
+  updateServiceTypeCategories(): Promise<{ updated: number }>;
   
   // Auto-fill helpers
   getLastWorkOrderByCompany(companyId: string): Promise<WorkOrder | undefined>;
@@ -928,9 +944,24 @@ export class DatabaseStorage implements IStorage {
     return { added, skipped };
   }
 
+  // Helper to determine category from service type name
+  private getCategoryFromName(name: string): "NewVisaInside" | "NewVisaOutside" | "GoldenVisa" | "RenewVisa" | "NewbornDependent" | "LostReplaceEid" | null {
+    const upperName = name.toUpperCase();
+    
+    if (upperName.includes("GOLDEN VISA")) return "GoldenVisa";
+    if (upperName.includes("RENEW")) return "RenewVisa";
+    if (upperName.includes("NEW BORN") || upperName.includes("NEWBORN")) return "NewbornDependent";
+    if (upperName.includes("LOST") || upperName.includes("REPLACE")) return "LostReplaceEid";
+    if (upperName.includes("- INSIDE") || upperName.includes("-INSIDE")) return "NewVisaInside";
+    if (upperName.includes("- OUTSIDE") || upperName.includes("-OUTSIDE")) return "NewVisaOutside";
+    // Default new visas without location specified
+    if (upperName.includes("NEW ") && !upperName.includes("RENEW")) return "NewVisaOutside";
+    
+    return null;
+  }
+
   async seedServiceTypes(): Promise<{ added: number; skipped: number }> {
-    // Service types with their requirement flags from the spreadsheet
-    // Format: [name, requiresMedicalTyping, requiresMedicalScheduling, requiresIdTyping2Years, requiresIdTyping1Year, requiresIdTyping10Years, requiresIdBiometrics]
+    // Service types with their requirement flags
     const serviceTypesData: Array<{
       name: string;
       requiresMedicalTyping: boolean;
@@ -982,13 +1013,31 @@ export class DatabaseStorage implements IStorage {
         continue;
       }
 
-      // Insert the service type
-      await db.insert(serviceTypes).values(stData);
+      // Insert the service type with category
+      const category = this.getCategoryFromName(stData.name);
+      await db.insert(serviceTypes).values({ ...stData, category });
       added++;
     }
 
     console.log(`Service types seeded: ${added} added, ${skipped} skipped`);
     return { added, skipped };
+  }
+
+  async updateServiceTypeCategories(): Promise<{ updated: number }> {
+    // Get all service types without a category
+    const allTypes = await db.select().from(serviceTypes);
+    let updated = 0;
+
+    for (const st of allTypes) {
+      const category = this.getCategoryFromName(st.name);
+      if (category && st.category !== category) {
+        await db.update(serviceTypes).set({ category }).where(eq(serviceTypes.id, st.id));
+        updated++;
+      }
+    }
+
+    console.log(`Service type categories updated: ${updated}`);
+    return { updated };
   }
 
   async seedVendorJobs(): Promise<{ added: number; skipped: number }> {
@@ -1092,6 +1141,104 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(workOrders.createdAt))
       .limit(1);
     return wo || undefined;
+  }
+
+  // Work Order Documents
+  async getWoDocuments(woId: string): Promise<WoDocument[]> {
+    return db.select().from(woDocuments).where(eq(woDocuments.woId, woId)).orderBy(desc(woDocuments.uploadedAt));
+  }
+
+  async getWoDocumentById(id: string): Promise<WoDocument | undefined> {
+    const [doc] = await db.select().from(woDocuments).where(eq(woDocuments.id, id));
+    return doc || undefined;
+  }
+
+  async createWoDocument(data: InsertWoDocument): Promise<WoDocument> {
+    const [doc] = await db.insert(woDocuments).values(data).returning();
+    return doc;
+  }
+
+  async updateWoDocument(id: string, data: Partial<InsertWoDocument>): Promise<WoDocument | undefined> {
+    const [doc] = await db.update(woDocuments).set(data).where(eq(woDocuments.id, id)).returning();
+    return doc || undefined;
+  }
+
+  async deleteWoDocument(id: string): Promise<boolean> {
+    const result = await db.delete(woDocuments).where(eq(woDocuments.id, id));
+    return true;
+  }
+
+  // Document Requirements
+  async getDocumentRequirements(): Promise<DocumentRequirement[]> {
+    return db.select().from(documentRequirements);
+  }
+
+  async getDocumentRequirementsByCategory(category: string): Promise<DocumentRequirement[]> {
+    return db.select().from(documentRequirements).where(eq(documentRequirements.serviceCategory, category as any));
+  }
+
+  async createDocumentRequirement(data: InsertDocumentRequirement): Promise<DocumentRequirement> {
+    const [req] = await db.insert(documentRequirements).values(data).returning();
+    return req;
+  }
+
+  async seedDocumentRequirements(): Promise<{ added: number; skipped: number }> {
+    // Check if any requirements exist
+    const existing = await db.select().from(documentRequirements);
+    if (existing.length > 0) {
+      return { added: 0, skipped: existing.length };
+    }
+
+    // Document requirements based on service categories
+    const requirements: Array<{
+      serviceCategory: "NewVisaInside" | "NewVisaOutside" | "GoldenVisa" | "RenewVisa" | "NewbornDependent" | "LostReplaceEid";
+      documentType: "PassportCopy" | "Photo" | "EntryPermit" | "ChangeStatus" | "CurrentResidency" | "OldResidencyOrId" | "CurrentEmiratesId" | "SponsorEmiratesId" | "BirthCertificate" | "LostEmiratesId";
+      isRequired: boolean;
+      appliesToMedical: boolean;
+      appliesToEid: boolean;
+    }> = [
+      // New Visa Inside - requires Entry Permit + Change Status
+      { serviceCategory: "NewVisaInside", documentType: "PassportCopy", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "NewVisaInside", documentType: "Photo", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "NewVisaInside", documentType: "EntryPermit", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "NewVisaInside", documentType: "ChangeStatus", isRequired: true, appliesToMedical: true, appliesToEid: true },
+
+      // New Visa Outside - requires Entry Permit only
+      { serviceCategory: "NewVisaOutside", documentType: "PassportCopy", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "NewVisaOutside", documentType: "Photo", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "NewVisaOutside", documentType: "EntryPermit", isRequired: true, appliesToMedical: true, appliesToEid: true },
+
+      // Golden Visa - Old Residency/ID optional
+      { serviceCategory: "GoldenVisa", documentType: "PassportCopy", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "GoldenVisa", documentType: "Photo", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "GoldenVisa", documentType: "OldResidencyOrId", isRequired: false, appliesToMedical: true, appliesToEid: true },
+
+      // Renew Visa - requires Current Residency
+      { serviceCategory: "RenewVisa", documentType: "PassportCopy", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "RenewVisa", documentType: "Photo", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "RenewVisa", documentType: "CurrentResidency", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "RenewVisa", documentType: "CurrentEmiratesId", isRequired: false, appliesToMedical: false, appliesToEid: true },
+      { serviceCategory: "RenewVisa", documentType: "SponsorEmiratesId", isRequired: false, appliesToMedical: false, appliesToEid: true },
+
+      // Newborn Dependent - requires Birth Certificate + Sponsor ID
+      { serviceCategory: "NewbornDependent", documentType: "PassportCopy", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "NewbornDependent", documentType: "Photo", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "NewbornDependent", documentType: "SponsorEmiratesId", isRequired: true, appliesToMedical: true, appliesToEid: true },
+      { serviceCategory: "NewbornDependent", documentType: "BirthCertificate", isRequired: true, appliesToMedical: true, appliesToEid: true },
+
+      // Lost/Replace EID - requires Lost EID + Residency
+      { serviceCategory: "LostReplaceEid", documentType: "PassportCopy", isRequired: true, appliesToMedical: false, appliesToEid: true },
+      { serviceCategory: "LostReplaceEid", documentType: "Photo", isRequired: true, appliesToMedical: false, appliesToEid: true },
+      { serviceCategory: "LostReplaceEid", documentType: "LostEmiratesId", isRequired: true, appliesToMedical: false, appliesToEid: true },
+      { serviceCategory: "LostReplaceEid", documentType: "CurrentResidency", isRequired: true, appliesToMedical: false, appliesToEid: true },
+    ];
+
+    for (const req of requirements) {
+      await db.insert(documentRequirements).values(req);
+    }
+
+    console.log(`Document requirements seeded: ${requirements.length} added`);
+    return { added: requirements.length, skipped: 0 };
   }
 }
 

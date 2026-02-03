@@ -187,5 +187,27 @@ Draft → SentToVendor → (InProgress) → WaitingForDocs → SentToClient (com
                      ↓                    
                   Returned → (Resubmit) → SentToVendor
 
+### Document Management System (February 3, 2026)
+- **Database Tables**: `woDocuments` (work order documents), `documentRequirements` (requirements by service category)
+- **Document Types**: PassportCopy, Photo, EntryPermit, ChangeStatus, CurrentResidency, OldResidencyOrId, CurrentEmiratesId, SponsorEmiratesId, BirthCertificate, LostEmiratesId
+- **Service Categories**: NewVisaInside, NewVisaOutside, GoldenVisa, RenewVisa, NewbornDependent, LostReplaceEid
+- **23 Document Requirements** seeded for 6 service categories
+- **26 Service Types** mapped to categories based on naming patterns
+- **Presigned URL Upload Flow**: Uses Replit Object Storage with 3-step flow (get presigned URL → upload to storage → save document record)
+- **Context Filtering**: `appliesToMedical` and `appliesToEid` flags filter requirements per context
+
+### Document API Endpoints
+- `GET /api/work-orders/:id/documents` - List documents for a work order
+- `POST /api/work-orders/:id/documents` - Upload document record (after file upload)
+- `PUT /api/documents/:id/status` - Update document status (Pending, Uploaded, Verified)
+- `DELETE /api/documents/:id` - Delete document
+- `GET /api/document-requirements` - List all requirements
+- `GET /api/document-requirements/:category` - Requirements by service category
+
+### Document Components
+- `client/src/components/documents/document-panel.tsx` - Main panel with upload zones and status
+- `client/src/components/documents/document-upload-zone.tsx` - Drag-and-drop upload with thumbnails
+- `client/src/components/documents/document-types.ts` - Type definitions and labels
+
 ### Test Credentials (Development Only)
 - Admin Portal: admin@procompany.ae / admin123

@@ -46,6 +46,8 @@ import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-ti
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType } from "@shared/schema";
+import { DocumentPanel } from "@/components/documents/document-panel";
+import type { ServiceCategory } from "@/components/documents/document-types";
 
 const editWorkOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits"),
@@ -544,6 +546,14 @@ export default function WorkOrderDetail() {
                 <FileText className="h-4 w-4 mr-2" />
                 Activity
               </TabsTrigger>
+              <TabsTrigger 
+                value="documents" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+                data-testid="tab-documents"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Documents
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="appointments" className="p-6">
@@ -737,6 +747,14 @@ export default function WorkOrderDetail() {
 
             <TabsContent value="activity" className="p-6">
               <ActivityTimelineSection workOrderId={id || ""} />
+            </TabsContent>
+
+            <TabsContent value="documents" className="p-6">
+              <DocumentPanel 
+                woId={id || ""}
+                serviceCategory={serviceTypes?.find(st => st.id === workOrder.serviceTypeId)?.category as ServiceCategory | undefined}
+                title="Work Order Documents"
+              />
             </TabsContent>
 
           </Tabs>

@@ -69,6 +69,27 @@ export const typingJobStatusEnum = pgEnum("typing_job_status", [
 export const jobCategoryEnum = pgEnum("job_category", ["Medical", "EID"]);
 export const fileDirectionEnum = pgEnum("file_direction", ["Input", "Output"]);
 export const uploadedByTypeEnum = pgEnum("uploaded_by_type", ["Internal", "Vendor"]);
+export const documentTypeEnum = pgEnum("document_type", [
+  "PassportCopy",
+  "Photo",
+  "EntryPermit",
+  "ChangeStatus",
+  "CurrentResidency",
+  "OldResidencyOrId",
+  "CurrentEmiratesId",
+  "SponsorEmiratesId",
+  "BirthCertificate",
+  "LostEmiratesId"
+]);
+export const documentStatusEnum = pgEnum("document_status", ["Pending", "Uploaded", "Verified"]);
+export const serviceCategoryEnum = pgEnum("service_category", [
+  "NewVisaInside",
+  "NewVisaOutside",
+  "GoldenVisa",
+  "RenewVisa",
+  "NewbornDependent",
+  "LostReplaceEid"
+]);
 export const authorTypeEnum = pgEnum("author_type", ["Internal", "Vendor"]);
 export const messageChannelEnum = pgEnum("message_channel", ["Email", "WhatsApp"]);
 export const messageStatusEnum = pgEnum("message_status", ["Draft", "MarkedSent", "Failed"]);
@@ -180,6 +201,7 @@ export const companyEmails = pgTable("company_emails", {
 export const serviceTypes = pgTable("service_types", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
+  category: serviceCategoryEnum("category"),
   requiresMedicalTyping: boolean("requires_medical_typing").notNull().default(false),
   requiresMedicalScheduling: boolean("requires_medical_scheduling").notNull().default(false),
   requiresIdTyping2Years: boolean("requires_id_typing_2_years").notNull().default(false),
@@ -187,6 +209,30 @@ export const serviceTypes = pgTable("service_types", {
   requiresIdTyping10Years: boolean("requires_id_typing_10_years").notNull().default(false),
   requiresIdBiometrics: boolean("requires_id_biometrics").notNull().default(false),
   active: boolean("active").notNull().default(true),
+});
+
+// Work Order Documents table - documents linked to a work order
+export const woDocuments = pgTable("wo_documents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  woId: varchar("wo_id").notNull(),
+  documentType: documentTypeEnum("document_type").notNull(),
+  fileName: text("file_name").notNull(),
+  fileUrl: text("file_url").notNull(),
+  mimeType: text("mime_type"),
+  fileSize: integer("file_size"),
+  status: documentStatusEnum("status").notNull().default("Uploaded"),
+  uploadedBy: varchar("uploaded_by"),
+  uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+});
+
+// Document Requirements table - defines which documents are required/optional per service category
+export const documentRequirements = pgTable("document_requirements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceCategory: serviceCategoryEnum("service_category").notNull(),
+  documentType: documentTypeEnum("document_type").notNull(),
+  isRequired: boolean("is_required").notNull().default(true),
+  appliesToMedical: boolean("applies_to_medical").notNull().default(true),
+  appliesToEid: boolean("applies_to_eid").notNull().default(true),
 });
 
 // Work Orders table
@@ -389,6 +435,8 @@ export const insertCenterSchema = createInsertSchema(centers).omit({ id: true })
 export const insertCompanySchema = createInsertSchema(companies).omit({ id: true });
 export const insertCompanyEmailSchema = createInsertSchema(companyEmails).omit({ id: true });
 export const insertServiceTypeSchema = createInsertSchema(serviceTypes).omit({ id: true });
+export const insertWoDocumentSchema = createInsertSchema(woDocuments).omit({ id: true, uploadedAt: true });
+export const insertDocumentRequirementSchema = createInsertSchema(documentRequirements).omit({ id: true });
 export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({ id: true, createdAt: true });
 export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, createdAt: true });
 export const insertRescheduleRequestSchema = createInsertSchema(rescheduleRequests).omit({ id: true, createdAt: true });
@@ -417,6 +465,10 @@ export type InsertCompanyEmail = z.infer<typeof insertCompanyEmailSchema>;
 export type CompanyEmail = typeof companyEmails.$inferSelect;
 export type InsertServiceType = z.infer<typeof insertServiceTypeSchema>;
 export type ServiceType = typeof serviceTypes.$inferSelect;
+export type InsertWoDocument = z.infer<typeof insertWoDocumentSchema>;
+export type WoDocument = typeof woDocuments.$inferSelect;
+export type InsertDocumentRequirement = z.infer<typeof insertDocumentRequirementSchema>;
+export type DocumentRequirement = typeof documentRequirements.$inferSelect;
 export type InsertWorkOrder = z.infer<typeof insertWorkOrderSchema>;
 export type WorkOrder = typeof workOrders.$inferSelect;
 export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;

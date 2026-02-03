@@ -432,8 +432,15 @@ export async function registerRoutes(
       const companyData = {
         ...validation.data,
         name: toProperCase(validation.data.name),
-        ...(validation.data.clientContact1Name && { clientContact1Name: toProperCase(validation.data.clientContact1Name) }),
-        ...(validation.data.clientContact2Name && { clientContact2Name: toProperCase(validation.data.clientContact2Name) }),
+        ...(validation.data.clientCoordinator?.name && { 
+          clientCoordinator: { ...validation.data.clientCoordinator, name: toProperCase(validation.data.clientCoordinator.name) } 
+        }),
+        ...(validation.data.clientManager?.name && { 
+          clientManager: { ...validation.data.clientManager, name: toProperCase(validation.data.clientManager.name) } 
+        }),
+        ...(validation.data.clientAccountant?.name && { 
+          clientAccountant: { ...validation.data.clientAccountant, name: toProperCase(validation.data.clientAccountant.name) } 
+        }),
       };
       const company = await storage.createCompany(companyData);
       res.status(201).json(company);
@@ -489,8 +496,15 @@ export async function registerRoutes(
       const updateData = {
         ...validation.data,
         ...(validation.data.name && { name: toProperCase(validation.data.name) }),
-        ...(validation.data.clientContact1Name && { clientContact1Name: toProperCase(validation.data.clientContact1Name) }),
-        ...(validation.data.clientContact2Name && { clientContact2Name: toProperCase(validation.data.clientContact2Name) }),
+        ...(validation.data.clientCoordinator?.name && { 
+          clientCoordinator: { ...validation.data.clientCoordinator, name: toProperCase(validation.data.clientCoordinator.name) } 
+        }),
+        ...(validation.data.clientManager?.name && { 
+          clientManager: { ...validation.data.clientManager, name: toProperCase(validation.data.clientManager.name) } 
+        }),
+        ...(validation.data.clientAccountant?.name && { 
+          clientAccountant: { ...validation.data.clientAccountant, name: toProperCase(validation.data.clientAccountant.name) } 
+        }),
       };
       const company = await storage.updateCompany(id, updateData);
       if (!company) {
@@ -1730,6 +1744,146 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Vendor status update error:", error);
       res.status(500).json({ message: "Failed to update status" });
+    }
+  });
+
+  // ========== Work Order Documents ==========
+  app.get("/api/work-orders/:id/documents", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const documents = await storage.getWoDocuments(id);
+      res.json(documents);
+    } catch (error) {
+      console.error("Get documents error:", error);
+      res.status(500).json({ message: "Failed to fetch documents" });
+    }
+  });
+
+  app.post("/api/work-orders/:id/documents", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { documentType, fileName, fileUrl, mimeType, fileSize } = req.body;
+      
+      if (!documentType || !fileName || !fileUrl) {
+        return res.status(400).json({ message: "documentType, fileName, and fileUrl are required" });
+      }
+
+      const document = await storage.createWoDocument({
+        woId: id,
+        documentType,
+        fileName,
+        fileUrl,
+        mimeType,
+        fileSize,
+        status: "Uploaded",
+      });
+
+      await storage.createAuditLog({
+        entityType: "work_order",
+        entityId: id,
+        action: "document_uploaded",
+        details: { documentType, fileName },
+      });
+
+      res.status(201).json(document);
+    } catch (error) {
+      console.error("Create document error:", error);
+      res.status(500).json({ message: "Failed to upload document" });
+    }
+  });
+
+  app.put("/api/documents/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!status || !["Pending", "Uploaded", "Verified"].includes(status)) {
+        return res.status(400).json({ message: "Valid status required (Pending, Uploaded, Verified)" });
+      }
+
+      const document = await storage.updateWoDocument(id, { status });
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      await storage.createAuditLog({
+        entityType: "work_order",
+        entityId: document.woId,
+        action: "document_status_changed",
+        details: { documentId: id, newStatus: status },
+      });
+
+      res.json(document);
+    } catch (error) {
+      console.error("Update document status error:", error);
+      res.status(500).json({ message: "Failed to update document status" });
+    }
+  });
+
+  app.delete("/api/documents/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const document = await storage.getWoDocumentById(id);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      await storage.deleteWoDocument(id);
+
+      await storage.createAuditLog({
+        entityType: "work_order",
+        entityId: document.woId,
+        action: "document_deleted",
+        details: { documentType: document.documentType, fileName: document.fileName },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete document error:", error);
+      res.status(500).json({ message: "Failed to delete document" });
+    }
+  });
+
+  // ========== Document Requirements ==========
+  app.get("/api/document-requirements", async (req, res) => {
+    try {
+      const requirements = await storage.getDocumentRequirements();
+      res.json(requirements);
+    } catch (error) {
+      console.error("Get document requirements error:", error);
+      res.status(500).json({ message: "Failed to fetch document requirements" });
+    }
+  });
+
+  app.get("/api/document-requirements/:category", async (req, res) => {
+    try {
+      const { category } = req.params;
+      const requirements = await storage.getDocumentRequirementsByCategory(category);
+      res.json(requirements);
+    } catch (error) {
+      console.error("Get document requirements by category error:", error);
+      res.status(500).json({ message: "Failed to fetch document requirements" });
+    }
+  });
+
+  app.post("/api/document-requirements/seed", async (req, res) => {
+    try {
+      const result = await storage.seedDocumentRequirements();
+      res.json(result);
+    } catch (error) {
+      console.error("Seed document requirements error:", error);
+      res.status(500).json({ message: "Failed to seed document requirements" });
+    }
+  });
+
+  app.post("/api/service-types/update-categories", async (req, res) => {
+    try {
+      const result = await storage.updateServiceTypeCategories();
+      res.json(result);
+    } catch (error) {
+      console.error("Update service type categories error:", error);
+      res.status(500).json({ message: "Failed to update service type categories" });
     }
   });
 
