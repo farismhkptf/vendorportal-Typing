@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { PageTransition } from "@/components/ui/page-transition";
 import NotFound from "@/pages/not-found";
 
 import Dashboard from "@/pages/dashboard";
@@ -28,29 +29,31 @@ import ScheduleMedical from "@/pages/appointments/schedule-medical";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/login" component={Login} />
-      <Route path="/work-orders" component={WorkOrdersList} />
-      <Route path="/work-orders/new" component={NewWorkOrder} />
-      <Route path="/work-orders/:id" component={WorkOrderDetail} />
-      <Route path="/companies" component={CompaniesList} />
-      <Route path="/companies/new" component={NewCompany} />
-      <Route path="/companies/:id" component={CompanyDetail} />
-      <Route path="/typing-jobs" component={TypingJobsList} />
-      <Route path="/typing-jobs/new" component={NewTypingJob} />
-      <Route path="/typing-jobs/:id" component={TypingJobDetail} />
-      <Route path="/staff" component={StaffList} />
-      <Route path="/vendor-wallet" component={VendorWallet} />
-      <Route path="/admin" component={AdminPage} />
-      <Route path="/vendor/login" component={VendorLogin} />
-      <Route path="/vendor/jobs" component={VendorJobs} />
-      <Route path="/vendor/jobs/:id" component={VendorJobDetail} />
-      <Route path="/reschedule/:token" component={ReschedulePage} />
-      <Route path="/appointments" component={AppointmentsIndex} />
-      <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
-      <Route component={NotFound} />
-    </Switch>
+    <PageTransition>
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/login" component={Login} />
+        <Route path="/work-orders" component={WorkOrdersList} />
+        <Route path="/work-orders/new" component={NewWorkOrder} />
+        <Route path="/work-orders/:id" component={WorkOrderDetail} />
+        <Route path="/companies" component={CompaniesList} />
+        <Route path="/companies/new" component={NewCompany} />
+        <Route path="/companies/:id" component={CompanyDetail} />
+        <Route path="/typing-jobs" component={TypingJobsList} />
+        <Route path="/typing-jobs/new" component={NewTypingJob} />
+        <Route path="/typing-jobs/:id" component={TypingJobDetail} />
+        <Route path="/staff" component={StaffList} />
+        <Route path="/vendor-wallet" component={VendorWallet} />
+        <Route path="/admin" component={AdminPage} />
+        <Route path="/vendor/login" component={VendorLogin} />
+        <Route path="/vendor/jobs" component={VendorJobs} />
+        <Route path="/vendor/jobs/:id" component={VendorJobDetail} />
+        <Route path="/reschedule/:token" component={ReschedulePage} />
+        <Route path="/appointments" component={AppointmentsIndex} />
+        <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
+        <Route component={NotFound} />
+      </Switch>
+    </PageTransition>
   );
 }
 

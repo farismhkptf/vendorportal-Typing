@@ -1,0 +1,80 @@
+Add-on request (continue in the same project). Please implement the following in NEW BATCHES after finishing the earlier Batch 1–3 work. Keep changes minimal, no redesigns, and confirm changed files + a quick manual test checklist after each batch. Respect prefers-reduced-motion.
+
+========================
+BATCH 4 — Empty states + button safety (must do)
+========================
+
+1) EMPTY STATES (replace “nothing” screens)
+- For all main lists (Work Orders, Typing Jobs, Scheduling, Vendor Ledger, Notifications if present):
+  - When data is fully loaded AND the list is empty, show a clean empty state:
+    - short title (“No work orders yet”)
+    - 1-line help text
+    - primary CTA button (e.g., “Create Work Order”)
+- Do NOT show empty state during loading (skeleton should show instead).
+
+2) BUTTON LOADING STATES (prevent double submit)
+- For Create/Save/Update actions:
+  - Disable the button while request is in progress
+  - Show inline spinner + text change (“Saving…”, “Creating…”)
+  - Prevent double clicks and duplicate requests
+- Ensure errors re-enable the button and show a toast (use existing toast system if already added).
+
+After Batch 4, confirm:
+- Which pages got empty states
+- Which forms/actions have button loading states
+
+========================
+BATCH 5 — Copy + timestamps (time savers)
+========================
+
+3) COPY TO CLIPBOARD (critical fields only)
+- Add small copy icons/buttons next to:
+  - Work Order number
+  - Applicant phone number
+  - Any reference IDs that staff copy often (if present)
+- On copy:
+  - Copy value to clipboard
+  - Show toast “Copied” (short, professional)
+- Must work on desktop and mobile.
+
+4) RELATIVE DATES
+- In lists/tables, show relative time like:
+  - “5 min ago”, “2 hours ago”, “Yesterday”
+- On hover (desktop) or secondary text (mobile), still show the exact timestamp.
+- Use local timezone; keep formatting consistent across app.
+
+After Batch 5, confirm:
+- Fields that have copy buttons
+- Where relative dates are used and exact dates are shown
+
+========================
+BATCH 6 — Mobile action + motion safety
+========================
+
+5) STICKY PRIMARY ACTION (mobile only)
+- Add a floating “New Work Order” button on mobile screens (Work Orders list and other relevant lists).
+- It must not cover bottom navigation or important UI.
+- It should hide/shift appropriately when modals are open.
+
+6) REDUCED MOTION SUPPORT (accessibility + pro feel)
+- Ensure all animations/transitions respect prefers-reduced-motion.
+- If user prefers reduced motion:
+  - disable or reduce route fades
+  - disable non-essential animations
+- Do NOT add a settings page unless one already exists; system preference is enough for now.
+
+After Batch 6, confirm:
+- Which screens have the mobile sticky button
+- How reduced-motion was implemented and verified
+
+========================
+Guardrails
+========================
+- No business logic changes.
+- No layout redesign; keep current UI style.
+- Keep it fast: avoid heavy animation libraries if not already present.
+- After each batch, provide:
+  1) changed files list
+  2) what was manually tested
+  3) any edge cases / limitations
+Start with Batch 4 now.
