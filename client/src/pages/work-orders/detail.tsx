@@ -397,7 +397,7 @@ export default function WorkOrderDetail() {
                 <div className="flex items-center gap-2">
                   <div>
                     <p className="text-sm text-muted-foreground">Work Order Number</p>
-                    <CopyableText value={workOrder.woNumber} className="font-medium text-foreground">
+                    <CopyableText value={workOrder.woNumber} className="font-medium text-foreground" testId={`copy-wo-${workOrder.id}`}>
                       {workOrder.woNumber}
                     </CopyableText>
                   </div>
@@ -426,12 +426,12 @@ export default function WorkOrderDetail() {
                   <div>
                     <p className="text-sm text-muted-foreground">Applicant Contact</p>
                     {workOrder.applicantPhone && (
-                      <CopyableText value={workOrder.applicantPhone} className="text-sm text-foreground">
+                      <CopyableText value={workOrder.applicantPhone} className="text-sm text-foreground" testId={`copy-phone-${workOrder.id}`}>
                         {workOrder.applicantPhone}
                       </CopyableText>
                     )}
                     {workOrder.applicantEmail && (
-                      <CopyableText value={workOrder.applicantEmail} className="text-sm text-foreground">
+                      <CopyableText value={workOrder.applicantEmail} className="text-sm text-foreground" testId={`copy-email-${workOrder.id}`}>
                         {workOrder.applicantEmail}
                       </CopyableText>
                     )}

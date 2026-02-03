@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AppLayout } from "@/components/layout/app-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Company, Staff, Center, CompanyEmail } from "@shared/schema";
@@ -309,6 +310,7 @@ export default function CompaniesList() {
           )}
         </div>
       </div>
+      <FloatingActionButton href="/companies/new" label="Add Company" testId="fab-add-company" />
     </AppLayout>
   );
 }

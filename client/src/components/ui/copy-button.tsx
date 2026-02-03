@@ -7,17 +7,17 @@ import { cn } from "@/lib/utils";
 interface CopyButtonProps {
   value: string;
   className?: string;
-  size?: "sm" | "default" | "icon";
   variant?: "ghost" | "outline" | "default";
   label?: string;
+  testId?: string;
 }
 
 export function CopyButton({ 
   value, 
   className, 
-  size = "icon", 
   variant = "ghost",
-  label = "Copy"
+  label = "Copy",
+  testId,
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
 
@@ -35,11 +35,13 @@ export function CopyButton({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          type="button"
           variant={variant}
-          size={size}
-          className={cn("h-7 w-7", className)}
+          size="icon"
+          className={cn(className)}
           onClick={handleCopy}
-          data-testid={`button-copy-${value?.slice(0, 10)}`}
+          data-testid={testId || `button-copy-${value?.slice(0, 10)}`}
+          aria-label={copied ? "Copied" : label}
         >
           {copied ? (
             <Check className="h-3.5 w-3.5 text-green-500" />
@@ -59,9 +61,10 @@ interface CopyableTextProps {
   value: string;
   className?: string;
   children?: React.ReactNode;
+  testId?: string;
 }
 
-export function CopyableText({ value, className, children }: CopyableTextProps) {
+export function CopyableText({ value, className, children, testId }: CopyableTextProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -78,12 +81,14 @@ export function CopyableText({ value, className, children }: CopyableTextProps) 
     <Tooltip>
       <TooltipTrigger asChild>
         <button
+          type="button"
           onClick={handleCopy}
           className={cn(
-            "inline-flex items-center gap-1.5 hover:text-primary transition-colors cursor-pointer",
+            "inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer",
             className
           )}
-          data-testid={`copyable-${value?.slice(0, 10)}`}
+          data-testid={testId || `copyable-${value?.slice(0, 10)}`}
+          aria-label={`Copy ${value} to clipboard`}
         >
           {children || value}
           {copied ? (

@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { TypingJob, WorkOrder, JobType } from "@shared/schema";
 
@@ -152,7 +153,7 @@ export default function TypingJobsList() {
                 {job.costSnapshot && (
                   <p className="font-medium text-sm text-foreground">AED {job.costSnapshot}</p>
                 )}
-                <RelativeTime date={job.createdAt} className="text-xs" />
+                <RelativeTime date={job.createdAt} className="text-xs" id={job.id} />
               </div>
             </div>
           </div>
@@ -440,6 +441,7 @@ export default function TypingJobsList() {
         </div>
       </div>
       </div>
+      <FloatingActionButton href="/typing-jobs/new" label="New Typing Job" testId="fab-new-typing-job" />
     </AppLayout>
   );
 }

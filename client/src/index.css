@@ -368,6 +368,23 @@
   .animate-delay-3 { animation-delay: 0.15s; }
   .animate-delay-4 { animation-delay: 0.2s; }
 
+  /* Respect user preference for reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-fade-in {
+      animation: none;
+      opacity: 1;
+    }
+    .animate-count {
+      animation: none;
+      opacity: 1;
+    }
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
   /* Premium icon container - refined with indigo accents */
   .icon-container {
     display: flex;

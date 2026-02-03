@@ -6,6 +6,7 @@ interface RelativeTimeProps {
   date: Date | string | null | undefined;
   className?: string;
   showTooltip?: boolean;
+  id?: string;
 }
 
 function getRelativeTime(date: Date): string {
@@ -60,7 +61,7 @@ function formatExactDate(date: Date): string {
   });
 }
 
-export function RelativeTime({ date, className, showTooltip = true }: RelativeTimeProps) {
+export function RelativeTime({ date, className, showTooltip = true, id }: RelativeTimeProps) {
   const [, setTick] = useState(0);
 
   const parsedDate = useMemo(() => {
@@ -80,20 +81,30 @@ export function RelativeTime({ date, className, showTooltip = true }: RelativeTi
 
   const relativeText = getRelativeTime(parsedDate);
   const exactText = formatExactDate(parsedDate);
+  const testIdSuffix = id ? `-${id}` : "";
 
   if (!showTooltip) {
-    return <span className={cn("text-muted-foreground", className)}>{relativeText}</span>;
+    return (
+      <span 
+        className={cn("text-muted-foreground", className)}
+        data-testid={`relative-time${testIdSuffix}`}
+      >
+        {relativeText}
+      </span>
+    );
   }
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span 
-          className={cn("text-muted-foreground cursor-default", className)}
-          data-testid="relative-time"
+        <button 
+          type="button"
+          className={cn("text-muted-foreground cursor-default hover:opacity-80", className)}
+          data-testid={`relative-time${testIdSuffix}`}
+          aria-label={`${relativeText}, ${exactText}`}
         >
           {relativeText}
-        </span>
+        </button>
       </TooltipTrigger>
       <TooltipContent>
         <p>{exactText}</p>

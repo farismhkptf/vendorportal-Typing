@@ -10,6 +10,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { WorkOrder, Company } from "@shared/schema";
 
@@ -99,7 +100,7 @@ export default function WorkOrdersList() {
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <StatusBadge status={wo.status} />
-              <RelativeTime date={wo.createdAt} className="text-xs" />
+              <RelativeTime date={wo.createdAt} className="text-xs" id={wo.id} />
             </div>
           </div>
         </Link>
@@ -136,7 +137,7 @@ export default function WorkOrdersList() {
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <RelativeTime date={wo.createdAt} className="text-xs" />
+                <RelativeTime date={wo.createdAt} className="text-xs" id={wo.id} />
               </div>
             </div>
           </div>
@@ -176,7 +177,7 @@ export default function WorkOrdersList() {
                 <StatusBadge status={wo.status} />
               </TableCell>
               <TableCell className="text-right text-sm">
-                <RelativeTime date={wo.createdAt} />
+                <RelativeTime date={wo.createdAt} id={wo.id} />
               </TableCell>
             </TableRow>
           ))}
@@ -359,6 +360,7 @@ export default function WorkOrdersList() {
           )}
         </div>
       </div>
+      <FloatingActionButton href="/work-orders/new" label="New Work Order" testId="fab-new-work-order" />
     </AppLayout>
   );
 }

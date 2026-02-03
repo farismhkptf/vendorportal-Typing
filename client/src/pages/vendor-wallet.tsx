@@ -359,7 +359,7 @@ export default function VendorWallet() {
                             <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
                               {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
                             </p>
-                            <RelativeTime date={entry.createdAt} className="text-xs" />
+                            <RelativeTime date={entry.createdAt} className="text-xs" id={entry.id} />
                           </div>
                         </div>
                       </div>
@@ -397,7 +397,7 @@ export default function VendorWallet() {
                         <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
                           {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
                         </p>
-                        <RelativeTime date={entry.createdAt} className="text-xs" />
+                        <RelativeTime date={entry.createdAt} className="text-xs" id={entry.id} />
                       </div>
                     </div>
                   </div>
