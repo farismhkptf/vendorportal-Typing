@@ -233,29 +233,25 @@ export async function registerRoutes(
         const medicalJobType = jobTypes.find(jt => jt.category === "Medical");
         const eidJobType = jobTypes.find(jt => jt.category === "EID");
         
-        const typingJobPromises: Promise<any>[] = [];
-        
         if (medicalJobType) {
-          typingJobPromises.push(
-            storage.createTypingJob({
-              woId: wo.id,
-              jobTypeId: medicalJobType.id,
-              status: "Draft",
-            })
-          );
+          const workCode = await storage.generateNextWorkCode();
+          await storage.createTypingJob({
+            woId: wo.id,
+            workCode,
+            jobTypeId: medicalJobType.id,
+            status: "Draft",
+          });
         }
         
         if (eidJobType) {
-          typingJobPromises.push(
-            storage.createTypingJob({
-              woId: wo.id,
-              jobTypeId: eidJobType.id,
-              status: "Draft",
-            })
-          );
+          const workCode = await storage.generateNextWorkCode();
+          await storage.createTypingJob({
+            woId: wo.id,
+            workCode,
+            jobTypeId: eidJobType.id,
+            status: "Draft",
+          });
         }
-        
-        await Promise.all(typingJobPromises);
       } catch (typingJobError) {
         // Log but don't fail the WO creation if typing job creation fails
         console.error("Failed to auto-create typing jobs for WO:", typingJobError);
@@ -756,6 +752,80 @@ export async function registerRoutes(
     }
   });
 
+  // ========== Vendors ==========
+  app.get("/api/vendors", async (req, res) => {
+    try {
+      const vendorsList = await storage.getVendors();
+      res.json(vendorsList);
+    } catch (error) {
+      console.error("Vendors error:", error);
+      res.status(500).json({ message: "Failed to fetch vendors" });
+    }
+  });
+
+  app.get("/api/vendors/:id", async (req, res) => {
+    try {
+      const vendor = await storage.getVendorById(req.params.id);
+      if (!vendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+      res.json(vendor);
+    } catch (error) {
+      console.error("Get vendor error:", error);
+      res.status(500).json({ message: "Failed to fetch vendor" });
+    }
+  });
+
+  app.post("/api/vendors", async (req, res) => {
+    try {
+      const { name, contactPerson, phone, email } = req.body;
+      if (!name) {
+        return res.status(400).json({ message: "Vendor name is required" });
+      }
+      const vendor = await storage.createVendor({
+        name: toProperCase(name),
+        contactPerson: contactPerson ? toProperCase(contactPerson) : undefined,
+        phone,
+        email,
+      });
+      res.status(201).json(vendor);
+    } catch (error) {
+      console.error("Create vendor error:", error);
+      res.status(500).json({ message: "Failed to create vendor" });
+    }
+  });
+
+  app.put("/api/vendors/:id", async (req, res) => {
+    try {
+      const { name, contactPerson, phone, email, active } = req.body;
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = toProperCase(name);
+      if (contactPerson !== undefined) updateData.contactPerson = contactPerson ? toProperCase(contactPerson) : null;
+      if (phone !== undefined) updateData.phone = phone;
+      if (email !== undefined) updateData.email = email;
+      if (active !== undefined) updateData.active = active;
+      
+      const vendor = await storage.updateVendor(req.params.id, updateData);
+      if (!vendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+      res.json(vendor);
+    } catch (error) {
+      console.error("Update vendor error:", error);
+      res.status(500).json({ message: "Failed to update vendor" });
+    }
+  });
+
+  app.delete("/api/vendors/:id", async (req, res) => {
+    try {
+      await storage.deleteVendor(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete vendor error:", error);
+      res.status(500).json({ message: "Failed to delete vendor" });
+    }
+  });
+
   // ========== Service Types ==========
   app.get("/api/service-types", async (req, res) => {
     try {
@@ -923,19 +993,25 @@ export async function registerRoutes(
   // ========== Typing Jobs ==========
   app.post("/api/typing-jobs", async (req, res) => {
     try {
-      const validation = validateBody(insertTypingJobSchema, req.body);
+      const validation = validateBody(insertTypingJobSchema.omit({ workCode: true }), req.body);
       if ("error" in validation) {
         return res.status(400).json({ message: validation.error });
       }
       
-      const job = await storage.createTypingJob(validation.data);
+      // Auto-generate work code
+      const workCode = await storage.generateNextWorkCode();
+      
+      const job = await storage.createTypingJob({
+        ...validation.data,
+        workCode,
+      });
       
       // Create audit log
       await storage.createAuditLog({
         entityType: "typing_job",
         entityId: job.id,
         action: "created",
-        details: { jobTypeId: job.jobTypeId, woId: job.woId },
+        details: { jobTypeId: job.jobTypeId, woId: job.woId, workCode },
       });
       
       res.status(201).json(job);

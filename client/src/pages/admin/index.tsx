@@ -41,7 +41,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { Center, Staff, ServiceType, JobType, AppSettings, Company, CompanyEmail } from "@shared/schema";
+import type { Center, Staff, ServiceType, JobType, AppSettings, Company, CompanyEmail, Vendor } from "@shared/schema";
 import { toProperCase } from "@/lib/proper-case";
 import { formatDate } from "@/lib/format-date";
 
@@ -100,6 +100,13 @@ const thresholdSchema = z.object({
   lowBalanceThreshold: z.coerce.number().min(0, "Must be 0 or greater"),
 });
 
+const vendorSchema = z.object({
+  name: z.string().min(1, "Vendor name is required"),
+  contactPerson: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+});
+
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("companies");
   const [centerDialogOpen, setCenterDialogOpen] = useState(false);
@@ -114,6 +121,9 @@ export default function AdminPage() {
   const [jobTypeDialogOpen, setJobTypeDialogOpen] = useState(false);
   const [editJobTypeDialogOpen, setEditJobTypeDialogOpen] = useState(false);
   const [editingJobType, setEditingJobType] = useState<JobType | null>(null);
+  const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
+  const [editVendorDialogOpen, setEditVendorDialogOpen] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [editCcDialogOpen, setEditCcDialogOpen] = useState(false);
   const [editThresholdDialogOpen, setEditThresholdDialogOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
@@ -158,6 +168,10 @@ export default function AdminPage() {
 
   const { data: settings } = useQuery<AppSettings>({
     queryKey: ["/api/settings"],
+  });
+
+  const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
+    queryKey: ["/api/vendors"],
   });
 
   const filteredCompanies = companies?.filter((company) =>
@@ -275,6 +289,71 @@ export default function AdminPage() {
     resolver: zodResolver(thresholdSchema),
     defaultValues: {
       lowBalanceThreshold: 1000,
+    },
+  });
+
+  const vendorForm = useForm<z.infer<typeof vendorSchema>>({
+    resolver: zodResolver(vendorSchema),
+    defaultValues: {
+      name: "",
+      contactPerson: "",
+      phone: "",
+      email: "",
+    },
+  });
+
+  const editVendorForm = useForm<z.infer<typeof vendorSchema>>({
+    resolver: zodResolver(vendorSchema),
+    defaultValues: {
+      name: "",
+      contactPerson: "",
+      phone: "",
+      email: "",
+    },
+  });
+
+  const createVendorMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof vendorSchema>) => {
+      return apiRequest("POST", "/api/vendors", data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      toast({ title: "Vendor added successfully" });
+      setVendorDialogOpen(false);
+      vendorForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateVendorMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof vendorSchema> & { id: string }) => {
+      const { id, ...rest } = data;
+      return apiRequest("PUT", `/api/vendors/${id}`, rest);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      toast({ title: "Vendor updated successfully" });
+      setEditVendorDialogOpen(false);
+      setEditingVendor(null);
+      editVendorForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteVendorMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest("DELETE", `/api/vendors/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      toast({ title: "Vendor deleted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -706,6 +785,14 @@ export default function AdminPage() {
               >
                 <Briefcase className="h-4 w-4 mr-2" />
                 Vendor Jobs
+              </TabsTrigger>
+              <TabsTrigger 
+                value="vendors" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
+                data-testid="tab-vendors"
+              >
+                <Building2 className="h-4 w-4 mr-2" />
+                Vendors
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
@@ -2614,6 +2701,285 @@ export default function AdminPage() {
                     icon={<Briefcase className="h-6 w-6" />}
                     title="No vendor jobs"
                     description="Vendor jobs define pricing for typing work."
+                  />
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Vendors Tab */}
+            <TabsContent value="vendors" className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-foreground">Typing Vendors</h3>
+                <Dialog open={vendorDialogOpen} onOpenChange={setVendorDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" className="gap-1.5" data-testid="button-add-vendor">
+                      <Plus className="h-4 w-4" />
+                      Add Vendor
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Vendor</DialogTitle>
+                    </DialogHeader>
+                    <Form {...vendorForm}>
+                      <form onSubmit={vendorForm.handleSubmit((data) => createVendorMutation.mutate(data))} className="space-y-4">
+                        <FormField
+                          control={vendorForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Vendor Name</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  onBlur={(e) => {
+                                    field.onBlur();
+                                    field.onChange(toProperCase(e.target.value));
+                                  }}
+                                  data-testid="input-vendor-name" 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={vendorForm.control}
+                          name="contactPerson"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Contact Person</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  {...field} 
+                                  onBlur={(e) => {
+                                    field.onBlur();
+                                    field.onChange(toProperCase(e.target.value));
+                                  }}
+                                  data-testid="input-vendor-contact" 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={vendorForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone</FormLabel>
+                              <FormControl>
+                                <MaskedInput mask="phone" {...field} data-testid="input-vendor-phone" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={vendorForm.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email</FormLabel>
+                              <FormControl>
+                                <Input type="email" {...field} data-testid="input-vendor-email" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="flex justify-end">
+                          <Button type="submit" disabled={createVendorMutation.isPending} data-testid="button-save-vendor">
+                            {createVendorMutation.isPending ? "Adding..." : "Add Vendor"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {/* Edit Vendor Dialog */}
+              <Dialog open={editVendorDialogOpen} onOpenChange={setEditVendorDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Edit Vendor</DialogTitle>
+                  </DialogHeader>
+                  <Form {...editVendorForm}>
+                    <form onSubmit={editVendorForm.handleSubmit((data) => updateVendorMutation.mutate({ ...data, id: editingVendor?.id || "" }))} className="space-y-4">
+                      <FormField
+                        control={editVendorForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vendor Name</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                onBlur={(e) => {
+                                  field.onBlur();
+                                  field.onChange(toProperCase(e.target.value));
+                                }}
+                                data-testid="input-edit-vendor-name" 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editVendorForm.control}
+                        name="contactPerson"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Contact Person</FormLabel>
+                            <FormControl>
+                              <Input 
+                                {...field} 
+                                onBlur={(e) => {
+                                  field.onBlur();
+                                  field.onChange(toProperCase(e.target.value));
+                                }}
+                                data-testid="input-edit-vendor-contact" 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editVendorForm.control}
+                        name="phone"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Phone</FormLabel>
+                            <FormControl>
+                              <MaskedInput mask="phone" {...field} data-testid="input-edit-vendor-phone" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editVendorForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" {...field} data-testid="input-edit-vendor-email" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end">
+                        <Button type="submit" disabled={updateVendorMutation.isPending} data-testid="button-update-vendor">
+                          {updateVendorMutation.isPending ? "Updating..." : "Update Vendor"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+
+              <div className="space-y-3">
+                {vendorsLoading ? (
+                  <>
+                    <Skeleton className="h-20 rounded-lg" />
+                    <Skeleton className="h-20 rounded-lg" />
+                  </>
+                ) : vendors && vendors.length > 0 ? (
+                  vendors.map((vendor) => (
+                    <div
+                      key={vendor.id}
+                      className="p-4 rounded-xl bg-muted/30 border border-border/30"
+                      data-testid={`vendor-card-${vendor.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3">
+                          <div className="icon-container icon-container-sm shrink-0">
+                            <Building2 className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-foreground">{vendor.name}</h4>
+                            {vendor.contactPerson && (
+                              <p className="text-sm text-muted-foreground">{vendor.contactPerson}</p>
+                            )}
+                            <div className="flex flex-wrap gap-3 mt-2 text-sm text-muted-foreground">
+                              {vendor.phone && (
+                                <span className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {vendor.phone}
+                                </span>
+                              )}
+                              {vendor.email && (
+                                <span className="flex items-center gap-1">
+                                  <Mail className="h-3 w-3" />
+                                  {vendor.email}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-lg"
+                            onClick={() => {
+                              setEditingVendor(vendor);
+                              editVendorForm.reset({
+                                name: vendor.name,
+                                contactPerson: vendor.contactPerson || "",
+                                phone: vendor.phone || "",
+                                email: vendor.email || "",
+                              });
+                              setEditVendorDialogOpen(true);
+                            }}
+                            data-testid={`button-edit-vendor-${vendor.id}`}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                                data-testid={`button-delete-vendor-${vendor.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Vendor</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete &quot;{vendor.name}&quot;? This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteVendorMutation.mutate(vendor.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState
+                    icon={<Building2 className="h-6 w-6" />}
+                    title="No vendors"
+                    description="Add a typing vendor to assign typing jobs."
                   />
                 )}
               </div>

@@ -209,5 +209,19 @@ Draft → SentToVendor → (InProgress) → WaitingForDocs → SentToClient (com
 - `client/src/components/documents/document-upload-zone.tsx` - Drag-and-drop upload with thumbnails
 - `client/src/components/documents/document-types.ts` - Type definitions and labels
 
+### Typing Jobs Enhancements (February 3, 2026)
+- **Work Code**: Each typing job now has a unique work code (TJ00001 format) for vendor reference
+- **Auto-generation**: Work codes auto-generated when typing jobs are created
+- **Medical/EID Filter**: Category tabs (All, Medical, EID) on typing jobs list page
+- **Vendor Management**: New Vendors tab in Admin section to add/edit/delete typing vendors
+- **Display Updates**: Work code shown in typing job list (cards, table, kanban views) and detail page
+
+### Vendor API Endpoints
+- `GET /api/vendors` - List all active vendors
+- `GET /api/vendors/:id` - Get vendor by ID
+- `POST /api/vendors` - Create new vendor
+- `PUT /api/vendors/:id` - Update vendor
+- `DELETE /api/vendors/:id` - Soft delete vendor (sets active=false)
+
 ### Test Credentials (Development Only)
 - Admin Portal: admin@procompany.ae / admin123

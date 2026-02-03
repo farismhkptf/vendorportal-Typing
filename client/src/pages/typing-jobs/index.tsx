@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send } from "lucide-react";
+import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard } from "lucide-react";
 import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ interface TypingJobWithRelations extends TypingJob {
 
 type ViewMode = "compact" | "cards" | "table" | "kanban";
 type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc";
+type CategoryFilter = "all" | "Medical" | "EID";
 
 const STATUS_ORDER = ["Draft", "SentToVendor", "InProgress", "WaitingForDocs", "Returned", "SentToClient", "VendorMistake", "Cancelled"] as const;
 
@@ -28,6 +29,7 @@ export default function TypingJobsList() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
 
@@ -36,12 +38,14 @@ export default function TypingJobsList() {
   });
 
   const stats = useMemo(() => {
-    if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0 };
+    if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0, medical: 0, eid: 0 };
     return {
       pending: typingJobs.filter(j => j.status === "Draft" || j.status === "SentToVendor").length,
       inProgress: typingJobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
       completed: typingJobs.filter(j => j.status === "Returned" || j.status === "SentToClient").length,
       issues: typingJobs.filter(j => j.status === "VendorMistake" || j.status === "Cancelled").length,
+      medical: typingJobs.filter(j => j.jobType?.category === "Medical").length,
+      eid: typingJobs.filter(j => j.jobType?.category === "EID").length,
     };
   }, [typingJobs]);
 
@@ -49,9 +53,11 @@ export default function TypingJobsList() {
     let result = typingJobs?.filter((job) => {
       const matchesSearch = !search || 
         job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
-        job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
+        job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase()) ||
+        job.workCode?.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || job.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const matchesCategory = categoryFilter === "all" || job.jobType?.category === categoryFilter;
+      return matchesSearch && matchesStatus && matchesCategory;
     });
     
     if (result) {
@@ -97,6 +103,7 @@ export default function TypingJobsList() {
             data-testid={`typing-job-compact-${job.id}`}
           >
             <div className="flex items-center gap-3 min-w-0">
+              <span className="font-mono text-xs text-primary">{job.workCode || "-"}</span>
               <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
               <span className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</span>
               {job.jobType && (
@@ -130,7 +137,8 @@ export default function TypingJobsList() {
                   <FileText className="h-4 w-4" />
                 </div>
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-xs text-primary">{job.workCode || "-"}</span>
                     <span className="font-semibold text-sm text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
                     <StatusBadge status={job.status} />
                   </div>
@@ -160,6 +168,7 @@ export default function TypingJobsList() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-24">Work Code</TableHead>
             <TableHead className="w-28">Work Order #</TableHead>
             <TableHead>Applicant</TableHead>
             <TableHead className="hidden sm:table-cell">Job Type</TableHead>
@@ -176,7 +185,10 @@ export default function TypingJobsList() {
               data-testid={`typing-job-table-${job.id}`}
             >
               <TableCell>
-                <span className="font-mono font-medium text-primary">{job.workOrder?.woNumber || "N/A"}</span>
+                <span className="font-mono text-xs text-primary">{job.workCode || "-"}</span>
+              </TableCell>
+              <TableCell>
+                <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
               </TableCell>
               <TableCell>{job.workOrder?.applicantName || "-"}</TableCell>
               <TableCell className="hidden sm:table-cell text-muted-foreground">
@@ -215,7 +227,10 @@ export default function TypingJobsList() {
                     style={{ animationDelay: `${index * 0.03}s` }}
                     data-testid={`typing-job-kanban-${job.id}`}
                   >
-                    <div className="font-mono text-sm font-medium text-foreground mb-1">{job.workOrder?.woNumber || "N/A"}</div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono text-xs text-primary">{job.workCode || "-"}</span>
+                      <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
+                    </div>
                     <div className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</div>
                     {job.jobType && (
                       <div className="text-xs text-muted-foreground mt-1">{job.jobType.name}</div>
@@ -285,6 +300,42 @@ export default function TypingJobsList() {
           />
         </div>
 
+        {/* Category Filter Tabs */}
+        <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg w-fit">
+          <Button
+            variant={categoryFilter === "all" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setCategoryFilter("all")}
+            className="gap-1.5"
+            data-testid="filter-category-all"
+          >
+            All
+            <span className="text-xs opacity-60">({typingJobs?.length || 0})</span>
+          </Button>
+          <Button
+            variant={categoryFilter === "Medical" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setCategoryFilter("Medical")}
+            className="gap-1.5"
+            data-testid="filter-category-medical"
+          >
+            <Stethoscope className="h-3.5 w-3.5" />
+            Medical
+            <span className="text-xs opacity-60">({stats.medical})</span>
+          </Button>
+          <Button
+            variant={categoryFilter === "EID" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setCategoryFilter("EID")}
+            className="gap-1.5"
+            data-testid="filter-category-eid"
+          >
+            <CreditCard className="h-3.5 w-3.5" />
+            EID
+            <span className="text-xs opacity-60">({stats.eid})</span>
+          </Button>
+        </div>
+
       <div className="space-y-4">
         {/* Search, Filters, and View Mode */}
         <div className="flex flex-col sm:flex-row gap-3">
@@ -292,7 +343,7 @@ export default function TypingJobsList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by work order number or applicant..."
+              placeholder="Search by WO#, applicant, or work code..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 h-9"

@@ -88,6 +88,8 @@ export interface IStorage {
   getVendors(): Promise<Vendor[]>;
   getVendorById(id: string): Promise<Vendor | undefined>;
   createVendor(data: InsertVendor): Promise<Vendor>;
+  updateVendor(id: string, data: Partial<InsertVendor>): Promise<Vendor | undefined>;
+  deleteVendor(id: string): Promise<boolean>;
   
   // Typing Jobs
   getTypingJobs(status?: string): Promise<TypingJob[]>;
@@ -96,6 +98,7 @@ export interface IStorage {
   getTypingJobsByVendorId(vendorId: string): Promise<TypingJob[]>;
   createTypingJob(data: InsertTypingJob): Promise<TypingJob>;
   updateTypingJob(id: string, data: Partial<InsertTypingJob>): Promise<TypingJob | undefined>;
+  generateNextWorkCode(): Promise<string>;
   
   // Typing Job Results
   getTypingJobResult(typingJobId: string): Promise<TypingJobResult | undefined>;
@@ -479,6 +482,16 @@ export class DatabaseStorage implements IStorage {
     return vendor;
   }
 
+  async updateVendor(id: string, data: Partial<InsertVendor>): Promise<Vendor | undefined> {
+    const [vendor] = await db.update(vendors).set(data).where(eq(vendors.id, id)).returning();
+    return vendor;
+  }
+
+  async deleteVendor(id: string): Promise<boolean> {
+    await db.update(vendors).set({ active: false }).where(eq(vendors.id, id));
+    return true;
+  }
+
   // Typing Jobs
   async getTypingJobs(status?: string): Promise<TypingJob[]> {
     if (status && status !== "all") {
@@ -508,6 +521,26 @@ export class DatabaseStorage implements IStorage {
   async updateTypingJob(id: string, data: Partial<InsertTypingJob>): Promise<TypingJob | undefined> {
     const [job] = await db.update(typingJobs).set(data).where(eq(typingJobs.id, id)).returning();
     return job;
+  }
+
+  async generateNextWorkCode(): Promise<string> {
+    const result = await db.select({ workCode: typingJobs.workCode })
+      .from(typingJobs)
+      .orderBy(desc(typingJobs.workCode))
+      .limit(1);
+    
+    if (result.length === 0 || !result[0].workCode) {
+      return "TJ00001";
+    }
+    
+    const lastCode = result[0].workCode;
+    const match = lastCode.match(/^TJ(\d+)$/);
+    if (!match) {
+      return "TJ00001";
+    }
+    
+    const nextNumber = parseInt(match[1], 10) + 1;
+    return `TJ${nextNumber.toString().padStart(5, '0')}`;
   }
 
   // Typing Job Results

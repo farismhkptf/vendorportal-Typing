@@ -331,7 +331,7 @@ export default function TypingJobDetail() {
               )}
             </div>
             <p className="text-sm text-muted-foreground mt-0.5">
-              {job.workOrder?.woNumber} • {job.jobType?.name || "Typing Job"}
+              <span className="font-mono text-foreground" data-testid="text-work-code-header">{job.workCode || "-"}</span> • {job.workOrder?.woNumber} • {job.jobType?.name || "Typing Job"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -450,6 +450,10 @@ export default function TypingJobDetail() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Work Code</p>
+                <p className="text-sm font-mono font-medium" data-testid="text-work-code-detail">{job.workCode || "-"}</p>
+              </div>
               <div>
                 <p className="text-xs text-muted-foreground">Applicant Name</p>
                 <p className="text-sm font-medium">{job.workOrder?.applicantName || "-"}</p>
