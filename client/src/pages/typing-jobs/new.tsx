@@ -582,7 +582,7 @@ The P.R.O. Company™`;
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
                           <p className="text-xs text-muted-foreground">WO Number</p>
                           <p className="font-medium text-foreground" data-testid="text-wo-number">{selectedWo.woNumber}</p>

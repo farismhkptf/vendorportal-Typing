@@ -272,7 +272,7 @@ export default function TypingJobsList() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
             title="Pending"
             value={stats.pending}

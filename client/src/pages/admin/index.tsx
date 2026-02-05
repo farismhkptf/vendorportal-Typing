@@ -745,7 +745,7 @@ export default function AdminPage() {
       <div className="px-4 lg:px-6 pb-6">
         <div className="premium-card overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full justify-start border-b border-border/50 rounded-none bg-transparent p-0 h-auto overflow-x-auto">
+            <TabsList className="w-full justify-start border-b border-border/50 rounded-none bg-transparent p-0 h-auto overflow-x-auto scroll-fade-x">
               <TabsTrigger 
                 value="companies" 
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
@@ -1695,7 +1695,7 @@ export default function AdminPage() {
                   </div>
                   <Form {...editStaffForm}>
                     <form onSubmit={editStaffForm.handleSubmit((data) => editingStaff && updateStaffMutation.mutate({ ...data, id: editingStaff.id }))} className="p-5 space-y-4">
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                         <FormField
                           control={editStaffForm.control}
                           name="name"
@@ -2127,7 +2127,7 @@ export default function AdminPage() {
                         />
                         <div className="space-y-3">
                           <FormLabel className="text-sm font-medium">Requirements</FormLabel>
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                             <FormField
                               control={serviceForm.control}
                               name="requiresMedicalTyping"
@@ -2240,7 +2240,7 @@ export default function AdminPage() {
                       />
                       <div className="space-y-3">
                         <FormLabel className="text-sm font-medium">Requirements</FormLabel>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 xs:grid-cols-2 gap-3">
                           <FormField
                             control={editServiceForm.control}
                             name="requiresMedicalTyping"

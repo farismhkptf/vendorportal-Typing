@@ -831,7 +831,7 @@ export default function WorkOrderDetail() {
                   </FormItem>
                 )}
               />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="applicantPhone"

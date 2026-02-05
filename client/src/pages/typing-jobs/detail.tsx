@@ -456,7 +456,7 @@ export default function TypingJobDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Job Code</p>
                 <p className="text-sm font-mono font-medium" data-testid="text-job-code-detail">{job.jobCode || "-"}</p>
@@ -485,7 +485,7 @@ export default function TypingJobDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Job Type</p>
                 <p className="text-sm font-medium">{job.jobType?.name || "-"}</p>
@@ -501,7 +501,7 @@ export default function TypingJobDetail() {
                 <p className="text-sm font-medium">{job.vendor?.name || "Not assigned"}</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2 border-t border-border/50">
+            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4 pt-2 border-t border-border/50">
               <div>
                 <p className="text-xs text-muted-foreground">Created</p>
                 <p className="text-sm">{formatDateTime(job.createdAt)}</p>
@@ -533,7 +533,7 @@ export default function TypingJobDetail() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4">
                 <div>
                   <p className="text-xs text-muted-foreground">Application Ref No.</p>
                   <p className="text-sm font-mono font-medium">{job.result.applicationRefNo || "-"}</p>
@@ -548,7 +548,7 @@ export default function TypingJobDetail() {
                 </div>
               </div>
               {job.result.biometricsRequired && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-2 border-t border-border/50">
+                <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4 pt-2 border-t border-border/50">
                   <div>
                     <p className="text-xs text-muted-foreground">Biometrics Required</p>
                     <Badge variant="outline">Yes</Badge>
@@ -824,7 +824,7 @@ export default function TypingJobDetail() {
                 data-testid="input-application-ref"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Center Name</Label>
                 <Input 
@@ -860,7 +860,7 @@ export default function TypingJobDetail() {
               <Label htmlFor="biometrics" className="cursor-pointer">Biometrics Required</Label>
             </div>
             {receivedForm.biometricsRequired && (
-              <div className="grid grid-cols-2 gap-4 pl-6">
+              <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 pl-6">
                 <div className="space-y-2">
                   <Label>Biometrics Date/Time</Label>
                   <Input 

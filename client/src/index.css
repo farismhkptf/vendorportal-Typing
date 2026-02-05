@@ -78,7 +78,7 @@
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-serif: Georgia, serif;
-  --font-mono: 'SF Mono', Menlo, monospace;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
   --radius: .625rem; /* Slightly tighter radius for refined look */
   --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
   --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
@@ -216,6 +216,7 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
   }
 
   /* Premium smooth transitions for all interactive elements */
@@ -532,5 +533,25 @@
   .border.active-elevate-2:not(.no-active-interaction-elevate)::after,
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
+  }
+
+  /* Horizontal scroll fade indicator for scrollable tabs/pills */
+  .scroll-fade-x {
+    position: relative;
+  }
+
+  .scroll-fade-x::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(to right, transparent, hsl(var(--card)));
+    pointer-events: none;
+  }
+
+  .dark .scroll-fade-x::after {
+    background: linear-gradient(to right, transparent, hsl(var(--card)));
   }
 }
