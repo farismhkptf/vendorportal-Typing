@@ -1,0 +1,67 @@
+You are working on this Replit web app. I need a MOBILE-FIRST diagnostic and fixes plan.
+
+GOAL:
+Run a full diagnostic specifically for the mobile version (real phones), focusing on scaling, responsiveness, usability, and performance. Do not give generic tips—inspect the actual code, identify concrete issues, and propose exact changes with file names + snippets.
+
+STEP 1 — Confirm setup
+1) Identify the framework (React/Next/Vite/etc.) and styling system (Tailwind/CSS modules/plain CSS).
+2) Identify where global layout styles live (e.g., index.html, App layout, global.css, tailwind.config, etc.).
+
+STEP 2 — Mobile viewport + scaling checks (must do)
+A) Viewport meta tag:
+- Confirm <meta name="viewport" content="width=device-width, initial-scale=1" /> exists and is correct.
+
+B) Breakpoint testing (simulate these widths):
+- 320, 360, 375, 390, 412, 430, and also 768
+For each width, check:
+- Any horizontal scroll? (body overflow-x)
+- Any clipped/overlapping sections?
+- Any elements wider than viewport?
+Return a list of offenders with the DOM selector/class and file location.
+
+C) Layout integrity:
+- Ensure hero, sections, CTA, footer stack correctly on mobile.
+- Ensure all images/video/svg scale properly (no stretching).
+- Ensure spacing/padding is consistent and not edge-hugging.
+- Ensure fixed/sticky headers/CTAs don’t cover content.
+
+STEP 3 — Touch + interaction checks
+- Verify tap targets are >= 44px height for buttons/links.
+- Verify no hover-only interactions are required on mobile.
+- If menus/modals exist, ensure:
+  - Open/close works reliably
+  - Close button is reachable
+  - Background does NOT scroll when modal open
+  - Modal content scrolls internally if taller than screen
+  - Focus trap is not broken (basic)
+
+STEP 4 — Typography + readability checks
+- Validate mobile font sizes, line-height, and wrapping (no truncation).
+- Check headings don’t overflow or cause awkward line breaks.
+- Identify any text clipping in buttons/badges.
+
+STEP 5 — Forms (if any)
+- Inputs must remain visible when the keyboard opens.
+- Correct input types: email/tel
+- Validation messages visible on mobile
+- Submit button always reachable
+
+STEP 6 — Performance (mobile)
+- Check for oversized images and missing lazy-loading.
+- Check for heavy JS bundles / render-blocking resources.
+- Identify top 5 easiest wins (image compression, lazy load, code split, remove unused CSS, etc.)
+
+OUTPUT FORMAT (strict):
+1) Mobile Diagnostic Summary (pass/fail)
+2) Issue List (table):
+   - Severity (Critical/Major/Minor)
+   - Symptom (what user sees)
+   - Root cause (why)
+   - Exact location (file + component + line range if possible)
+   - Fix (specific code change)
+3) Apply Fixes:
+   - Make the actual edits in code (not just suggestions)
+   - After edits, re-run the same checks and report results
+4) Final “Mobile Ready” checklist with remaining known limitations (if any)
+
+Start now by scanning the codebase and reporting STEP 1 findings, then proceed through the steps.
