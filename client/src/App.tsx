@@ -26,6 +26,9 @@ import VendorJobDetail from "@/pages/vendor/job-detail";
 import ReschedulePage from "@/pages/reschedule";
 import AppointmentsIndex from "@/pages/appointments/index";
 import ScheduleMedical from "@/pages/appointments/schedule-medical";
+import BotsHub from "@/pages/bots/index";
+import QuickPasteBot from "@/pages/bots/quick-paste-bot";
+import SchedulerBot from "@/pages/bots/scheduler-bot";
 
 function Router() {
   return (
@@ -51,6 +54,9 @@ function Router() {
         <Route path="/reschedule/:token" component={ReschedulePage} />
         <Route path="/appointments" component={AppointmentsIndex} />
         <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
+        <Route path="/bots" component={BotsHub} />
+        <Route path="/bots/quick-paste" component={QuickPasteBot} />
+        <Route path="/bots/scheduler" component={SchedulerBot} />
         <Route component={NotFound} />
       </Switch>
     </PageTransition>

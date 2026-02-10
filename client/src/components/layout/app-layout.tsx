@@ -9,7 +9,8 @@ import {
   LogOut,
   Menu,
   X,
-  Stethoscope
+  Stethoscope,
+  Bot
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Appointments", href: "/appointments", icon: Stethoscope },
   { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
+  { name: "Bots", href: "/bots", icon: Bot },
   { name: "Admin Console", href: "/admin", icon: Settings },
 ];
 
