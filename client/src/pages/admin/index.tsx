@@ -940,7 +940,7 @@ export default function AdminPage() {
                       <DialogTitle>Add New Center</DialogTitle>
                     </DialogHeader>
                     <Form {...centerForm}>
-                      <form onSubmit={centerForm.handleSubmit((data) => createCenterMutation.mutate(data))} className="space-y-4">
+                      <form onSubmit={centerForm.handleSubmit((data) => createCenterMutation.mutate(data))} className="space-y-3">
                         <FormField
                           control={centerForm.control}
                           name="name"
@@ -954,6 +954,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
+                        <div className="grid grid-cols-2 gap-3">
                         <FormField
                           control={centerForm.control}
                           name="type"
@@ -1009,27 +1010,40 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
+                        </div>
                         <FormField
                           control={centerForm.control}
                           name="tier"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Tier</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value || ""}>
-                                <FormControl>
-                                  <SelectTrigger className="h-11 rounded-xl">
-                                    <SelectValue placeholder="Select tier" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="rounded-xl">
-                                  <SelectItem value="Normal">Normal</SelectItem>
-                                  <SelectItem value="VIP">VIP</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className={`flex-1 rounded-lg ${field.value === "Normal" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+                                  onClick={() => field.onChange("Normal")}
+                                  data-testid="button-tier-normal"
+                                >
+                                  Normal
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className={`flex-1 rounded-lg ${field.value === "VIP" ? "bg-amber-500 text-white border-amber-500" : ""}`}
+                                  onClick={() => field.onChange("VIP")}
+                                  data-testid="button-tier-vip"
+                                >
+                                  VIP
+                                </Button>
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                        <div className="grid grid-cols-2 gap-3">
                         <FormField
                           control={centerForm.control}
                           name="address"
@@ -1056,6 +1070,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
+                        </div>
                         <FormField
                           control={centerForm.control}
                           name="googleMapsUrl"
@@ -1069,6 +1084,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
+                        <div className="grid grid-cols-2 gap-3">
                         <FormField
                           control={centerForm.control}
                           name="timingText"
@@ -1089,13 +1105,14 @@ export default function AdminPage() {
                             <FormItem>
                               <FormLabel>Notes</FormLabel>
                               <FormControl>
-                                <Textarea {...field} placeholder="Additional notes..." className="rounded-xl" />
+                                <Textarea {...field} placeholder="Additional notes..." className="rounded-xl min-h-[38px] max-h-[80px]" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
-                        <div className="flex justify-end gap-3 pt-4">
+                        </div>
+                        <div className="flex justify-end gap-2 pt-3">
                           <Button type="button" variant="outline" className="rounded-xl" onClick={() => setCenterDialogOpen(false)}>
                             Cancel
                           </Button>
@@ -1116,7 +1133,7 @@ export default function AdminPage() {
                     <DialogTitle>Edit Center</DialogTitle>
                   </DialogHeader>
                   <Form {...editCenterForm}>
-                    <form onSubmit={editCenterForm.handleSubmit((data) => editingCenter && updateCenterMutation.mutate({ ...data, id: editingCenter.id }))} className="space-y-4">
+                    <form onSubmit={editCenterForm.handleSubmit((data) => editingCenter && updateCenterMutation.mutate({ ...data, id: editingCenter.id }))} className="space-y-3">
                       <FormField
                         control={editCenterForm.control}
                         name="name"
@@ -1130,6 +1147,7 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
+                      <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={editCenterForm.control}
                         name="type"
@@ -1185,27 +1203,40 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
+                      </div>
                       <FormField
                         control={editCenterForm.control}
                         name="tier"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Tier</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger className="h-11 rounded-xl">
-                                  <SelectValue placeholder="Select tier" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Normal">Normal</SelectItem>
-                                <SelectItem value="VIP">VIP</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className={`flex-1 rounded-lg ${field.value === "Normal" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+                                onClick={() => field.onChange("Normal")}
+                                data-testid="button-tier-normal"
+                              >
+                                Normal
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className={`flex-1 rounded-lg ${field.value === "VIP" ? "bg-amber-500 text-white border-amber-500" : ""}`}
+                                onClick={() => field.onChange("VIP")}
+                                data-testid="button-tier-vip"
+                              >
+                                VIP
+                              </Button>
+                            </div>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={editCenterForm.control}
                         name="address"
@@ -1232,6 +1263,7 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
+                      </div>
                       <FormField
                         control={editCenterForm.control}
                         name="googleMapsUrl"
@@ -1245,6 +1277,7 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
+                      <div className="grid grid-cols-2 gap-3">
                       <FormField
                         control={editCenterForm.control}
                         name="timingText"
@@ -1265,13 +1298,14 @@ export default function AdminPage() {
                           <FormItem>
                             <FormLabel>Notes</FormLabel>
                             <FormControl>
-                              <Textarea {...field} placeholder="Additional notes..." className="rounded-xl" />
+                              <Textarea {...field} placeholder="Additional notes..." className="rounded-xl min-h-[38px] max-h-[80px]" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <div className="flex justify-end gap-3 pt-4">
+                      </div>
+                      <div className="flex justify-end gap-2 pt-3">
                         <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditCenterDialogOpen(false)}>
                           Cancel
                         </Button>
@@ -1799,7 +1833,8 @@ export default function AdminPage() {
                       <DialogTitle>Add Staff Member</DialogTitle>
                     </DialogHeader>
                     <Form {...staffForm}>
-                      <form onSubmit={staffForm.handleSubmit((data) => createStaffMutation.mutate(data))} className="space-y-4">
+                      <form onSubmit={staffForm.handleSubmit((data) => createStaffMutation.mutate(data))} className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
                         <FormField
                           control={staffForm.control}
                           name="name"
@@ -1826,27 +1861,40 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
+                        </div>
                         <FormField
                           control={staffForm.control}
                           name="staffType"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Staff Type</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger className="h-11 rounded-xl">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="rounded-xl">
-                                  <SelectItem value="Permanent">Permanent Staff</SelectItem>
-                                  <SelectItem value="Temporary">Temporary Staff</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className={`flex-1 rounded-lg ${field.value === "Permanent" ? "bg-primary text-primary-foreground border-primary" : ""}`}
+                                  onClick={() => field.onChange("Permanent")}
+                                  data-testid="button-staff-type-permanent"
+                                >
+                                  Permanent
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className={`flex-1 rounded-lg ${field.value === "Temporary" ? "bg-amber-500 text-white border-amber-500" : ""}`}
+                                  onClick={() => field.onChange("Temporary")}
+                                  data-testid="button-staff-type-temporary"
+                                >
+                                  Temporary
+                                </Button>
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                        <div className="grid grid-cols-2 gap-3">
                         <FormField
                           control={staffForm.control}
                           name="phone"
@@ -1880,6 +1928,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
+                        </div>
                         <FormField
                           control={staffForm.control}
                           name="status"
@@ -1928,7 +1977,7 @@ export default function AdminPage() {
                             )}
                           />
                         )}
-                        <div className="flex justify-end gap-3 pt-4">
+                        <div className="flex justify-end gap-2 pt-3">
                           <Button type="button" variant="outline" className="rounded-xl" onClick={() => setStaffDialogOpen(false)}>
                             Cancel
                           </Button>
@@ -2731,12 +2780,45 @@ export default function AdminPage() {
                       <DialogTitle>Add Vendor Job</DialogTitle>
                     </DialogHeader>
                     <Form {...jobTypeForm}>
-                      <form onSubmit={jobTypeForm.handleSubmit((data) => createJobTypeMutation.mutate(data))} className="space-y-4">
+                      <form onSubmit={jobTypeForm.handleSubmit((data) => createJobTypeMutation.mutate(data))} className="space-y-3">
+                        <FormField
+                          control={jobTypeForm.control}
+                          name="category"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Category</FormLabel>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className={`flex-1 rounded-lg ${field.value === "Medical" ? "bg-green-600 text-white border-green-600" : ""}`}
+                                  onClick={() => field.onChange("Medical")}
+                                  data-testid="button-category-medical"
+                                >
+                                  Medical
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className={`flex-1 rounded-lg ${(field.value as string) === "EID" ? "bg-blue-600 text-white border-blue-600" : ""}`}
+                                  onClick={() => field.onChange("EID")}
+                                  data-testid="button-category-eid"
+                                >
+                                  EID
+                                </Button>
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <div className="grid grid-cols-3 gap-3">
                         <FormField
                           control={jobTypeForm.control}
                           name="name"
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="col-span-2">
                               <FormLabel>Vendor Job Name</FormLabel>
                               <FormControl>
                                 <Input {...field} placeholder="e.g., Medical Application Normal" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) jobTypeForm.setValue("name", toProperCase(e.target.value)); }} />
@@ -2747,30 +2829,9 @@ export default function AdminPage() {
                         />
                         <FormField
                           control={jobTypeForm.control}
-                          name="category"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Category</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger className="h-11 rounded-xl">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent className="rounded-xl">
-                                  <SelectItem value="Medical">Medical</SelectItem>
-                                  <SelectItem value="EID">EID</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={jobTypeForm.control}
                           name="cost"
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="col-span-1">
                               <FormLabel>Cost (AED)</FormLabel>
                               <FormControl>
                                 <Input 
@@ -2785,7 +2846,8 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
-                        <div className="flex justify-end gap-3 pt-4">
+                        </div>
+                        <div className="flex justify-end gap-2 pt-3">
                           <Button type="button" variant="outline" className="rounded-xl" onClick={() => setJobTypeDialogOpen(false)}>
                             Cancel
                           </Button>
@@ -2806,12 +2868,45 @@ export default function AdminPage() {
                     <DialogTitle>Edit Vendor Job</DialogTitle>
                   </DialogHeader>
                   <Form {...editJobTypeForm}>
-                    <form onSubmit={editJobTypeForm.handleSubmit((data) => editingJobType && updateJobTypeMutation.mutate({ ...data, id: editingJobType.id }))} className="space-y-4">
+                    <form onSubmit={editJobTypeForm.handleSubmit((data) => editingJobType && updateJobTypeMutation.mutate({ ...data, id: editingJobType.id }))} className="space-y-3">
+                      <FormField
+                        control={editJobTypeForm.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className={`flex-1 rounded-lg ${field.value === "Medical" ? "bg-green-600 text-white border-green-600" : ""}`}
+                                onClick={() => field.onChange("Medical")}
+                                data-testid="button-category-medical"
+                              >
+                                Medical
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className={`flex-1 rounded-lg ${field.value === "EID" ? "bg-blue-600 text-white border-blue-600" : ""}`}
+                                onClick={() => field.onChange("EID")}
+                                data-testid="button-category-eid"
+                              >
+                                EID
+                              </Button>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="grid grid-cols-3 gap-3">
                       <FormField
                         control={editJobTypeForm.control}
                         name="name"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-2">
                             <FormLabel>Vendor Job Name</FormLabel>
                             <FormControl>
                               <Input {...field} placeholder="e.g., Medical Application Normal" className="h-11 rounded-xl" onBlur={(e) => { field.onBlur(); if (e.target.value) editJobTypeForm.setValue("name", toProperCase(e.target.value)); }} />
@@ -2822,30 +2917,9 @@ export default function AdminPage() {
                       />
                       <FormField
                         control={editJobTypeForm.control}
-                        name="category"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Category</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger className="h-11 rounded-xl">
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="rounded-xl">
-                                <SelectItem value="Medical">Medical</SelectItem>
-                                <SelectItem value="EID">EID</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={editJobTypeForm.control}
                         name="cost"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="col-span-1">
                             <FormLabel>Cost (AED)</FormLabel>
                             <FormControl>
                               <Input 
@@ -2860,7 +2934,8 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
-                      <div className="flex justify-end gap-3 pt-4">
+                      </div>
+                      <div className="flex justify-end gap-2 pt-3">
                         <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditJobTypeDialogOpen(false)}>
                           Cancel
                         </Button>
