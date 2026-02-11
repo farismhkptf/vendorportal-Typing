@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
-  Calendar, Clock, Plus, Stethoscope, 
+  Calendar, Clock, Plus, Stethoscope, CreditCard,
   CheckCircle2, AlertCircle, Building2, User
 } from "lucide-react";
 import { formatDateWithWeekday } from "@/lib/format-date";
@@ -84,12 +84,20 @@ export default function AppointmentsIndex() {
               Manage medical and EID appointment scheduling
             </p>
           </div>
-          <Link href="/appointments/schedule-medical">
-            <Button size="sm" className="gap-2 rounded-lg" data-testid="button-schedule-new">
-              <Plus className="h-4 w-4" />
-              Schedule New
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/appointments/schedule-medical">
+              <Button size="sm" variant="default" className="gap-2 rounded-lg" data-testid="button-schedule-medical">
+                <Stethoscope className="h-4 w-4" />
+                Medical
+              </Button>
+            </Link>
+            <Link href="/appointments/schedule-eid">
+              <Button size="sm" variant="outline" className="gap-2 rounded-lg" data-testid="button-schedule-eid">
+                <CreditCard className="h-4 w-4" />
+                Emirates ID
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
