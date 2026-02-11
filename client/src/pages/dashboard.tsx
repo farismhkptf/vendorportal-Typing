@@ -18,6 +18,7 @@ import { DataTableRow } from "@/components/ui/data-table-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getGreeting } from "@/lib/greeting";
+import { toProperCase } from "@/lib/proper-case";
 
 interface DashboardStats {
   totalWorkOrders: number;
@@ -172,7 +173,7 @@ export default function Dashboard() {
                             <span className="font-medium text-foreground">{apt.woNumber}</span>
                             <StatusBadge status={apt.type} />
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">{apt.applicantName}</p>
+                          <p className="text-sm text-muted-foreground truncate">{toProperCase(apt.applicantName)}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="font-medium text-foreground">{apt.time}</p>
@@ -221,12 +222,12 @@ export default function Dashboard() {
                             <span className="font-medium text-foreground">{wo.woNumber}</span>
                             <StatusBadge status={wo.status} />
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">{wo.applicantName}</p>
+                          <p className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                             <Building2 className="h-3.5 w-3.5" />
-                            <span className="truncate max-w-[120px]">{wo.companyName}</span>
+                            <span className="truncate max-w-[120px]">{toProperCase(wo.companyName)}</span>
                           </div>
                         </div>
                       </div>

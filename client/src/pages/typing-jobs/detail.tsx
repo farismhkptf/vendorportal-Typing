@@ -22,6 +22,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { toProperCase } from "@/lib/proper-case";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import {
   Dialog,
@@ -463,7 +464,7 @@ export default function TypingJobDetail() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Applicant Name</p>
-                <p className="text-sm font-medium">{job.workOrder?.applicantName || "-"}</p>
+                <p className="text-sm font-medium">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Work Order</p>
@@ -471,7 +472,7 @@ export default function TypingJobDetail() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Company</p>
-                <p className="text-sm font-medium">{job.workOrder?.company?.name || "-"}</p>
+                <p className="text-sm font-medium">{job.workOrder?.company?.name ? toProperCase(job.workOrder.company.name) : "-"}</p>
               </div>
             </div>
           </CardContent>

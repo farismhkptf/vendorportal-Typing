@@ -325,7 +325,7 @@ export default function WorkOrderDetail() {
     <AppLayout>
       <PageHeader
         title={workOrder.woNumber}
-        subtitle={workOrder.applicantName}
+        subtitle={toProperCase(workOrder.applicantName)}
         breadcrumbs={[
           { label: "Work Orders", href: "/work-orders" },
           { label: workOrder.woNumber }
@@ -415,7 +415,7 @@ export default function WorkOrderDetail() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Applicant Name</p>
-                  <p className="font-medium text-foreground">{workOrder.applicantName}</p>
+                  <p className="font-medium text-foreground">{toProperCase(workOrder.applicantName)}</p>
                 </div>
               </div>
               {(workOrder.applicantPhone || workOrder.applicantEmail) && (
@@ -470,7 +470,7 @@ export default function WorkOrderDetail() {
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Company</p>
-                    <p className="font-medium text-foreground">{workOrder.company.name}</p>
+                    <p className="font-medium text-foreground">{toProperCase(workOrder.company.name)}</p>
                   </div>
                 </div>
 

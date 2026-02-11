@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toProperCase } from "@/lib/proper-case";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   Wallet, 
@@ -351,7 +352,7 @@ export default function VendorWallet() {
                                 )}
                               </div>
                               <p className="text-xs text-muted-foreground truncate">
-                                {entry.note || (entry.typingJob ? entry.typingJob.applicantName : "—")}
+                                {entry.note || (entry.typingJob ? toProperCase(entry.typingJob.applicantName) : "—")}
                               </p>
                             </div>
                           </div>
@@ -389,7 +390,7 @@ export default function VendorWallet() {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground truncate">
-                            {entry.note || (entry.typingJob ? entry.typingJob.applicantName : "—")}
+                            {entry.note || (entry.typingJob ? toProperCase(entry.typingJob.applicantName) : "—")}
                           </p>
                         </div>
                       </div>

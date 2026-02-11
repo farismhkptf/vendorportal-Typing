@@ -172,7 +172,7 @@ export default function CompanyDetail() {
               </Link>
             </div>
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-foreground">{company.name}</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">{toProperCase(company.name)}</h1>
               <p className="text-sm text-muted-foreground">
                 {company.tradeLicenseNumber ? `TL: ${company.tradeLicenseNumber}` : "Company details"}
               </p>

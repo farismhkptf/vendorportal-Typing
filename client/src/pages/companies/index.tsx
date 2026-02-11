@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toProperCase } from "@/lib/proper-case";
 import type { Company, Staff, Center, CompanyEmail } from "@shared/schema";
 
 type ViewMode = "compact" | "cards" | "table";
@@ -70,7 +71,7 @@ export default function CompaniesList() {
           >
             <div className="flex items-center gap-3 min-w-0">
               <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="font-medium text-foreground truncate">{company.name}</span>
+              <span className="font-medium text-foreground truncate">{toProperCase(company.name)}</span>
               {company.rmStaff && (
                 <span className="text-xs text-muted-foreground hidden sm:inline">• RM: {company.rmStaff.name}</span>
               )}
@@ -103,7 +104,7 @@ export default function CompaniesList() {
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">{company.name}</h3>
+                  <h3 className="font-semibold text-foreground truncate">{toProperCase(company.name)}</h3>
                   {company.emails && company.emails.filter(e => e.active).length > 0 && (
                     <div className="flex items-center gap-1.5 mt-1.5 text-sm text-muted-foreground">
                       <Mail className="h-3.5 w-3.5" />
@@ -180,7 +181,7 @@ export default function CompaniesList() {
               <TableCell>
                 <div className="flex items-center gap-2">
                   <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-primary">{company.name}</span>
+                  <span className="font-medium text-primary">{toProperCase(company.name)}</span>
                 </div>
               </TableCell>
               <TableCell className="hidden md:table-cell text-muted-foreground">

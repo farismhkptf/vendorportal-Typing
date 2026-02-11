@@ -13,6 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toProperCase } from "@/lib/proper-case";
 import type { TypingJob, WorkOrder, JobType } from "@shared/schema";
 
 interface TypingJobWithRelations extends TypingJob {
@@ -106,7 +107,7 @@ export default function TypingJobsList() {
             <div className="flex items-center gap-3 min-w-0">
               <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
               <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
-              <span className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</span>
+              <span className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : ""}</span>
               {job.jobType && (
                 <span className="text-xs text-muted-foreground/70 hidden sm:inline">• {job.jobType.name}</span>
               )}
@@ -143,7 +144,7 @@ export default function TypingJobsList() {
                     <span className="font-semibold text-sm text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
                     <StatusBadge status={job.status} />
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                  <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : ""}</p>
                   {job.jobType && (
                     <span className="text-xs text-muted-foreground">{job.jobType.name}</span>
                   )}
@@ -189,7 +190,7 @@ export default function TypingJobsList() {
               <TableCell>
                 <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
               </TableCell>
-              <TableCell>{job.workOrder?.applicantName || "-"}</TableCell>
+              <TableCell>{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</TableCell>
               <TableCell className="hidden sm:table-cell text-muted-foreground">
                 {job.jobType?.name || "-"}
               </TableCell>
@@ -230,7 +231,7 @@ export default function TypingJobsList() {
                       <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
                       <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
                     </div>
-                    <div className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</div>
+                    <div className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : ""}</div>
                     {job.jobType && (
                       <div className="text-xs text-muted-foreground mt-1">{job.jobType.name}</div>
                     )}

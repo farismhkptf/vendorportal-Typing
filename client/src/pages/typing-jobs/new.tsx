@@ -22,6 +22,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AppLayout } from "@/components/layout/app-layout";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { toProperCase } from "@/lib/proper-case";
 import type { WorkOrder, Company, Center, Staff, ServiceType, Vendor, JobType } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -288,7 +289,7 @@ export default function NewTypingJob() {
 Please type the following application(s):
 
 Work Order: ${selectedWo.woNumber}
-Applicant: ${selectedWo.applicantName}
+Applicant: ${toProperCase(selectedWo.applicantName)}
 Company: ${selectedCompany.name}
 Service: ${woServiceTypeName}
 `;
@@ -498,7 +499,7 @@ The P.R.O. Company™`;
                             </div>
                             <div>
                               <p className="font-semibold text-foreground">{selectedWo.woNumber}</p>
-                              <p className="text-sm text-muted-foreground">{selectedWo.applicantName}</p>
+                              <p className="text-sm text-muted-foreground">{toProperCase(selectedWo.applicantName)}</p>
                               <div className="flex items-center gap-2 mt-1">
                                 <Building2 className="h-3 w-3 text-muted-foreground" />
                                 <span className="text-xs text-muted-foreground">{selectedCompany?.name}</span>
@@ -545,7 +546,7 @@ The P.R.O. Company™`;
                               >
                                 <div className="flex items-center gap-3">
                                   <span className="font-mono font-medium text-primary">{wo.woNumber}</span>
-                                  <span className="text-sm text-muted-foreground">{wo.applicantName}</span>
+                                  <span className="text-sm text-muted-foreground">{toProperCase(wo.applicantName)}</span>
                                 </div>
                                 {wo.isVip && <Badge variant="secondary">VIP</Badge>}
                               </div>
@@ -589,7 +590,7 @@ The P.R.O. Company™`;
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Applicant</p>
-                          <p className="font-medium text-foreground" data-testid="text-applicant-name">{selectedWo.applicantName}</p>
+                          <p className="font-medium text-foreground" data-testid="text-applicant-name">{toProperCase(selectedWo.applicantName)}</p>
                         </div>
                         <div>
                           <p className="text-xs text-muted-foreground">Company</p>

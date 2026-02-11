@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { toProperCase } from "@/lib/proper-case";
 import type { WorkOrder, Company } from "@shared/schema";
 
 interface WorkOrderWithCompany extends WorkOrder {
@@ -93,9 +94,9 @@ export default function WorkOrdersList() {
           >
             <div className="flex items-center gap-3 min-w-0">
               <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
-              <span className="text-sm text-muted-foreground truncate">{wo.applicantName}</span>
+              <span className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</span>
               {wo.company && (
-                <span className="text-xs text-muted-foreground/70 hidden sm:inline">• {wo.company.name}</span>
+                <span className="text-xs text-muted-foreground/70 hidden sm:inline">• {toProperCase(wo.company.name)}</span>
               )}
             </div>
             <div className="flex items-center gap-2 shrink-0">
@@ -127,11 +128,11 @@ export default function WorkOrdersList() {
                     <span className="font-semibold text-sm text-foreground">{wo.woNumber}</span>
                     <StatusBadge status={wo.status} />
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{wo.applicantName}</p>
+                  <p className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</p>
                   {wo.company && (
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Building2 className="h-3 w-3" />
-                      {wo.company.name}
+                      {toProperCase(wo.company.name)}
                     </div>
                   )}
                 </div>
@@ -169,9 +170,9 @@ export default function WorkOrdersList() {
               <TableCell>
                 <span className="font-mono font-medium text-primary">{wo.woNumber}</span>
               </TableCell>
-              <TableCell>{wo.applicantName}</TableCell>
+              <TableCell>{toProperCase(wo.applicantName)}</TableCell>
               <TableCell className="hidden sm:table-cell text-muted-foreground">
-                {wo.company?.name || "-"}
+                {wo.company?.name ? toProperCase(wo.company.name) : "-"}
               </TableCell>
               <TableCell>
                 <StatusBadge status={wo.status} />
@@ -207,11 +208,11 @@ export default function WorkOrdersList() {
                     data-testid={`work-order-kanban-${wo.woNumber}`}
                   >
                     <div className="font-mono text-sm font-medium text-foreground mb-1">{wo.woNumber}</div>
-                    <div className="text-sm text-muted-foreground truncate">{wo.applicantName}</div>
+                    <div className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</div>
                     {wo.company && (
                       <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                         <Building2 className="h-3 w-3" />
-                        <span className="truncate">{wo.company.name}</span>
+                        <span className="truncate">{toProperCase(wo.company.name)}</span>
                       </div>
                     )}
                   </div>

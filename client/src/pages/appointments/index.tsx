@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { toProperCase } from "@/lib/proper-case";
 import type { Appointment, WorkOrder, Center } from "@shared/schema";
 
 interface AppointmentWithRelations extends Appointment {
@@ -169,7 +170,7 @@ export default function AppointmentsIndex() {
           <div className="flex items-center gap-2 flex-wrap">
             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <p className="font-medium text-foreground truncate">
-              {apt.workOrder?.applicantName || "Unknown"}
+              {apt.workOrder?.applicantName ? toProperCase(apt.workOrder.applicantName) : "Unknown"}
             </p>
             <Badge variant="secondary" className="text-xs">
               {apt.type}
@@ -184,7 +185,7 @@ export default function AppointmentsIndex() {
             <div className="flex items-center gap-1.5">
               <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <p className="text-sm text-muted-foreground truncate">
-                {apt.workOrder?.company?.name || "Unknown Company"}
+                {apt.workOrder?.company?.name ? toProperCase(apt.workOrder.company.name) : "Unknown Company"}
               </p>
             </div>
             {apt.center?.name && (
@@ -390,7 +391,7 @@ export default function AppointmentsIndex() {
               <div className="space-y-2 text-sm">
                 <p>
                   <span className="text-muted-foreground">Applicant:</span>{" "}
-                  <span className="font-medium">{confirmDialog.appointment.workOrder?.applicantName}</span>
+                  <span className="font-medium">{confirmDialog.appointment.workOrder?.applicantName ? toProperCase(confirmDialog.appointment.workOrder.applicantName) : "Unknown"}</span>
                 </p>
                 <p>
                   <span className="text-muted-foreground">Type:</span>{" "}

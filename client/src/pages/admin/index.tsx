@@ -849,7 +849,7 @@ export default function AdminPage() {
                             <Building2 className="h-4 w-4" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-medium text-foreground text-sm truncate">{company.name}</h3>
+                            <h3 className="font-medium text-foreground text-sm truncate">{toProperCase(company.name)}</h3>
                             {company.emails && company.emails.filter(e => e.active).length > 0 && (
                               <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
                                 <Mail className="h-3 w-3" />
