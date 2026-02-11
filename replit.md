@@ -52,6 +52,7 @@ The design follows an Apple-inspired glassmorphism aesthetic with soft gradients
 - **Document Management**: `woDocuments` and `documentRequirements` tables. Supports presigned URL upload flow to object storage, document status updates, and context-based filtering of requirements.
 - **Input Formatting**: `Proper Case` auto-formatting for textual inputs and phone number masking.
 - **Activity Timeline**: Audit trail display for work orders.
+- **Company Profile UX**: Always-editable form (no edit toggle), persistent Save button with dirty state tracking, Ctrl+S keyboard shortcut, unsaved changes warning on navigation/page unload.
 - **Bots System**: Two conversational bots accessible from sidebar:
   - **Bot 1 - Quick Paste WO** (`/bots/quick-paste`): Paste spreadsheet rows, auto-parse WO number/company/applicant/service type using fuzzy matching, create work orders in one click.
   - **Bot 2 - Appointment Scheduler** (`/bots/scheduler`): Multi-step chat flow for scheduling Medical/EID appointments. Steps: WO search → confirm details → choose appointment type → view filtered centers (VIP/Normal) → enter application number/date/time → generates copy-ready Email and WhatsApp messages.
