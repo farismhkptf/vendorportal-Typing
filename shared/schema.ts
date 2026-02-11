@@ -56,7 +56,7 @@ export const ALL_ROLES = [
 
 export type UserRole = typeof ALL_ROLES[number];
 export const centerTypeEnum = pgEnum("center_type", ["Medical", "EID", "Both"]);
-export const centerAuthorityEnum = pgEnum("center_authority", ["DHA", "EHS"]);
+export const centerAuthorityEnum = pgEnum("center_authority", ["DHA", "EHS", "ICP"]);
 export const centerTierEnum = pgEnum("center_tier", ["Normal", "VIP"]);
 export const woStatusEnum = pgEnum("wo_status", ["Draft", "Scheduled", "Sent", "Completed", "Cancelled"]);
 export const appointmentTypeEnum = pgEnum("appointment_type", ["Medical", "EID"]);

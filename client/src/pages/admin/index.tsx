@@ -58,7 +58,7 @@ interface CompanyWithRelations extends Company {
 const centerSchema = z.object({
   name: z.string().min(1, "Name is required"),
   type: z.enum(["Medical", "EID", "Both"]),
-  authority: z.enum(["DHA", "EHS"]).optional().nullable(),
+  authority: z.enum(["DHA", "EHS", "ICP"]).optional().nullable(),
   tier: z.enum(["Normal", "VIP"]).optional().nullable(),
   address: z.string().optional(),
   area: z.string().optional(),
@@ -989,8 +989,20 @@ export default function AdminPage() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent className="rounded-xl">
-                                  <SelectItem value="DHA">DHA</SelectItem>
-                                  <SelectItem value="EHS">EHS</SelectItem>
+                                  {((centerForm.watch("type") as string) === "EID") ? (
+                                    <SelectItem value="ICP">ICP</SelectItem>
+                                  ) : ((centerForm.watch("type") as string) === "Medical") ? (
+                                    <>
+                                      <SelectItem value="DHA">DHA</SelectItem>
+                                      <SelectItem value="EHS">EHS</SelectItem>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <SelectItem value="DHA">DHA</SelectItem>
+                                      <SelectItem value="EHS">EHS</SelectItem>
+                                      <SelectItem value="ICP">ICP</SelectItem>
+                                    </>
+                                  )}
                                 </SelectContent>
                               </Select>
                               <FormMessage />
@@ -1153,8 +1165,20 @@ export default function AdminPage() {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="rounded-xl">
-                                <SelectItem value="DHA">DHA</SelectItem>
-                                <SelectItem value="EHS">EHS</SelectItem>
+                                {((editCenterForm.watch("type") as string) === "EID") ? (
+                                  <SelectItem value="ICP">ICP</SelectItem>
+                                ) : ((editCenterForm.watch("type") as string) === "Medical") ? (
+                                  <>
+                                    <SelectItem value="DHA">DHA</SelectItem>
+                                    <SelectItem value="EHS">EHS</SelectItem>
+                                  </>
+                                ) : (
+                                  <>
+                                    <SelectItem value="DHA">DHA</SelectItem>
+                                    <SelectItem value="EHS">EHS</SelectItem>
+                                    <SelectItem value="ICP">ICP</SelectItem>
+                                  </>
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />

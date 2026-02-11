@@ -57,6 +57,10 @@ The design follows an Apple-inspired glassmorphism aesthetic with soft gradients
   - **Bot 2 - Appointment Scheduler** (`/bots/scheduler`): Multi-step chat flow for scheduling Medical/EID appointments. Steps: WO search → confirm details → choose appointment type → view filtered centers (VIP/Normal) → enter application number/date/time → generates copy-ready Email and WhatsApp messages.
   - Shared chat UI components in `client/src/components/ui/bot-chat.tsx` (BotMessage, UserMessage, ChatContainer, ChatInput, OptionButtons, CopyBlock).
 
+## Pending Tasks
+
+- **Excel Import/Export for Admin Console**: Build a downloadable template Excel sheet (.xlsx) with pre-formatted columns for Centers, Companies, Staff, Service Types, and Job Types. Add an import button in Admin that reads an uploaded .xlsx file and bulk-loads the data into the database. Template should include column headers matching the exact format expected by the import.
+
 ## External Dependencies
 
 ### Database
