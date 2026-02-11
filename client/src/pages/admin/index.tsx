@@ -16,7 +16,9 @@ import {
   Trash2,
   Calendar,
   ChevronDown,
-  Star
+  Star,
+  CreditCard,
+  Stethoscope
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -131,9 +133,10 @@ export default function AdminPage() {
   const [bulkServiceNames, setBulkServiceNames] = useState("");
   const [selectedCenters, setSelectedCenters] = useState<string[]>([]);
   const [centerSectionsOpen, setCenterSectionsOpen] = useState({
-    vip: true,
-    normal: true,
-    eid: true
+    medicalVip: true,
+    medicalNormal: true,
+    eidVip: true,
+    eidNormal: true
   });
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -975,6 +978,61 @@ export default function AdminPage() {
                         />
                         <FormField
                           control={centerForm.control}
+                          name="authority"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Authority</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || ""}>
+                                <FormControl>
+                                  <SelectTrigger className="h-11 rounded-xl">
+                                    <SelectValue placeholder="Select authority" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="rounded-xl">
+                                  <SelectItem value="DHA">DHA</SelectItem>
+                                  <SelectItem value="EHS">EHS</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={centerForm.control}
+                          name="tier"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Tier</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || ""}>
+                                <FormControl>
+                                  <SelectTrigger className="h-11 rounded-xl">
+                                    <SelectValue placeholder="Select tier" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="rounded-xl">
+                                  <SelectItem value="Normal">Normal</SelectItem>
+                                  <SelectItem value="VIP">VIP</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={centerForm.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="Full address" className="h-11 rounded-xl" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={centerForm.control}
                           name="area"
                           render={({ field }) => (
                             <FormItem>
@@ -994,6 +1052,32 @@ export default function AdminPage() {
                               <FormLabel>Google Maps URL</FormLabel>
                               <FormControl>
                                 <Input {...field} placeholder="https://maps.google.com/..." className="h-11 rounded-xl" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={centerForm.control}
+                          name="timingText"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Timing Text</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g., Sun-Thu 8AM-4PM" className="h-11 rounded-xl" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={centerForm.control}
+                          name="notes"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Notes</FormLabel>
+                              <FormControl>
+                                <Textarea {...field} placeholder="Additional notes..." className="rounded-xl" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -1183,32 +1267,40 @@ export default function AdminPage() {
                 </div>
               ) : centers && centers.length > 0 ? (
                 <div className="space-y-4">
-                  {/* Medical VIP Centers */}
+                  {/* Medical Centers Group */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+                      <Stethoscope className="h-3 w-3 text-white" />
+                    </div>
+                    <span className="font-semibold text-sm text-foreground">Medical Centers</span>
+                  </div>
+
+                  {/* Medical Centers (VIP) */}
                   {(() => {
-                    const vipCenters = centers.filter((c: Center) => c.type === "Medical" && c.tier === "VIP");
-                    if (vipCenters.length === 0) return null;
+                    const medicalVipCenters = centers.filter((c: Center) => (c.type === "Medical" || c.type === "Both") && c.tier === "VIP");
+                    if (medicalVipCenters.length === 0) return null;
                     return (
                       <Collapsible 
-                        open={centerSectionsOpen.vip} 
-                        onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, vip: open }))}
+                        open={centerSectionsOpen.medicalVip} 
+                        onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, medicalVip: open }))}
                       >
                         <CollapsibleTrigger 
                           className="flex items-center justify-between gap-2 w-full p-3 rounded-lg bg-amber-500/5 border border-amber-400/30"
-                          data-testid="button-toggle-section-vip"
+                          data-testid="button-toggle-section-medical-vip"
                         >
                           <div className="flex items-center gap-2">
                             <div className="h-6 w-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
                               <Star className="h-3 w-3 text-white fill-white" />
                             </div>
                             <span className="font-medium text-sm">Medical Centers (VIP)</span>
-                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-xs" data-testid="text-center-count-vip">
-                              {vipCenters.length}
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-xs" data-testid="text-center-count-medical-vip">
+                              {medicalVipCenters.length}
                             </Badge>
                           </div>
-                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${centerSectionsOpen.vip ? "rotate-180" : ""}`} />
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${centerSectionsOpen.medicalVip ? "rotate-180" : ""}`} />
                         </CollapsibleTrigger>
                         <CollapsibleContent className="pt-2 space-y-2">
-                          {vipCenters.map((center: Center, index: number) => (
+                          {medicalVipCenters.map((center: Center, index: number) => (
                             <div
                               key={center.id}
                               className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-amber-500/5 to-amber-400/10 border-2 border-amber-400/40 opacity-0 animate-fade-in"
@@ -1239,105 +1331,12 @@ export default function AdminPage() {
                                   {center.area && (
                                     <span className="text-xs text-muted-foreground">{center.area}</span>
                                   )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="rounded-lg"
-                                  onClick={() => handleEditCenter(center)}
-                                  data-testid={`button-edit-center-${center.id}`}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <AlertDialog>
-                                  <AlertDialogTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="rounded-lg text-destructive"
-                                      data-testid={`button-delete-center-${center.id}`}
-                                    >
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                  <AlertDialogContent className="rounded-2xl">
-                                    <AlertDialogHeader>
-                                      <AlertDialogTitle>Delete Center</AlertDialogTitle>
-                                      <AlertDialogDescription>
-                                        Are you sure you want to delete "{center.name}"? This action cannot be undone.
-                                      </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                                      <AlertDialogAction 
-                                        className="rounded-xl"
-                                        onClick={() => deleteCenterMutation.mutate(center.id)}
-                                      >
-                                        Delete
-                                      </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                  </AlertDialogContent>
-                                </AlertDialog>
-                              </div>
-                            </div>
-                          ))}
-                        </CollapsibleContent>
-                      </Collapsible>
-                    );
-                  })()}
-
-                  {/* Medical Normal Centers */}
-                  {(() => {
-                    const normalCenters = centers.filter((c: Center) => c.type === "Medical" && c.tier !== "VIP");
-                    if (normalCenters.length === 0) return null;
-                    return (
-                      <Collapsible 
-                        open={centerSectionsOpen.normal} 
-                        onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, normal: open }))}
-                      >
-                        <CollapsibleTrigger 
-                          className="flex items-center justify-between gap-2 w-full p-3 rounded-lg bg-muted/30 border border-border/30"
-                          data-testid="button-toggle-section-normal"
-                        >
-                          <div className="flex items-center gap-2">
-                            <div className="icon-container icon-container-sm">
-                              <MapPin className="h-3.5 w-3.5" />
-                            </div>
-                            <span className="font-medium text-sm">Medical Centers (Normal)</span>
-                            <Badge variant="outline" className="text-xs" data-testid="text-center-count-normal">
-                              {normalCenters.length}
-                            </Badge>
-                          </div>
-                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${centerSectionsOpen.normal ? "rotate-180" : ""}`} />
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="pt-2 space-y-2">
-                          {normalCenters.map((center: Center, index: number) => (
-                            <div
-                              key={center.id}
-                              className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
-                              style={{ animationDelay: `${index * 0.03}s` }}
-                            >
-                              <div className="flex items-center gap-2.5">
-                                <Checkbox
-                                  checked={selectedCenters.includes(center.id)}
-                                  onCheckedChange={(checked) => {
-                                    if (checked) {
-                                      setSelectedCenters([...selectedCenters, center.id]);
-                                    } else {
-                                      setSelectedCenters(selectedCenters.filter(id => id !== center.id));
-                                    }
-                                  }}
-                                  data-testid={`checkbox-center-${center.id}`}
-                                />
-                                <div className="icon-container icon-container-sm">
-                                  <MapPin className="h-3.5 w-3.5" />
-                                </div>
-                                <div>
-                                  <p className="font-medium text-foreground text-sm">{center.name}</p>
-                                  {center.area && (
-                                    <span className="text-xs text-muted-foreground">{center.area}</span>
+                                  {(center.authority || center.timingText) && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      {center.authority && <span>{center.authority}</span>}
+                                      {center.authority && center.timingText && <span>·</span>}
+                                      {center.timingText && <span>{center.timingText}</span>}
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -1388,32 +1387,259 @@ export default function AdminPage() {
                     );
                   })()}
 
-                  {/* Emirates ID Biometric Centers */}
+                  {/* Medical Centers (Normal) */}
                   {(() => {
-                    const eidCenters = centers.filter((c: Center) => c.type === "EID" || c.type === "Both");
-                    if (eidCenters.length === 0) return null;
+                    const medicalNormalCenters = centers.filter((c: Center) => (c.type === "Medical" || c.type === "Both") && c.tier !== "VIP");
+                    if (medicalNormalCenters.length === 0) return null;
                     return (
                       <Collapsible 
-                        open={centerSectionsOpen.eid} 
-                        onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, eid: open }))}
+                        open={centerSectionsOpen.medicalNormal} 
+                        onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, medicalNormal: open }))}
+                      >
+                        <CollapsibleTrigger 
+                          className="flex items-center justify-between gap-2 w-full p-3 rounded-lg bg-muted/30 border border-border/30"
+                          data-testid="button-toggle-section-medical-normal"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="icon-container icon-container-sm">
+                              <MapPin className="h-3.5 w-3.5" />
+                            </div>
+                            <span className="font-medium text-sm">Medical Centers (Normal)</span>
+                            <Badge variant="outline" className="text-xs" data-testid="text-center-count-medical-normal">
+                              {medicalNormalCenters.length}
+                            </Badge>
+                          </div>
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${centerSectionsOpen.medicalNormal ? "rotate-180" : ""}`} />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pt-2 space-y-2">
+                          {medicalNormalCenters.map((center: Center, index: number) => (
+                            <div
+                              key={center.id}
+                              className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                              style={{ animationDelay: `${index * 0.03}s` }}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <Checkbox
+                                  checked={selectedCenters.includes(center.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedCenters([...selectedCenters, center.id]);
+                                    } else {
+                                      setSelectedCenters(selectedCenters.filter(id => id !== center.id));
+                                    }
+                                  }}
+                                  data-testid={`checkbox-center-${center.id}`}
+                                />
+                                <div className="icon-container icon-container-sm">
+                                  <MapPin className="h-3.5 w-3.5" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-foreground text-sm">{center.name}</p>
+                                  {center.area && (
+                                    <span className="text-xs text-muted-foreground">{center.area}</span>
+                                  )}
+                                  {(center.authority || center.timingText) && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      {center.authority && <span>{center.authority}</span>}
+                                      {center.authority && center.timingText && <span>·</span>}
+                                      {center.timingText && <span>{center.timingText}</span>}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="rounded-lg"
+                                  onClick={() => handleEditCenter(center)}
+                                  data-testid={`button-edit-center-${center.id}`}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="rounded-lg text-destructive"
+                                      data-testid={`button-delete-center-${center.id}`}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="rounded-2xl">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Center</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{center.name}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        className="rounded-xl"
+                                        onClick={() => deleteCenterMutation.mutate(center.id)}
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })()}
+
+                  {/* ID Centers Group */}
+                  <div className="flex items-center gap-2 mb-2 mt-4">
+                    <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                      <CreditCard className="h-3 w-3 text-white" />
+                    </div>
+                    <span className="font-semibold text-sm text-foreground">ID Centers</span>
+                  </div>
+
+                  {/* ID Centers (VIP) */}
+                  {(() => {
+                    const eidVipCenters = centers.filter((c: Center) => (c.type === "EID" || c.type === "Both") && c.tier === "VIP");
+                    if (eidVipCenters.length === 0) return null;
+                    return (
+                      <Collapsible 
+                        open={centerSectionsOpen.eidVip} 
+                        onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, eidVip: open }))}
+                      >
+                        <CollapsibleTrigger 
+                          className="flex items-center justify-between gap-2 w-full p-3 rounded-lg bg-amber-500/5 border border-amber-400/30"
+                          data-testid="button-toggle-section-eid-vip"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                              <Star className="h-3 w-3 text-white fill-white" />
+                            </div>
+                            <span className="font-medium text-sm">ID Centers (VIP)</span>
+                            <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-xs" data-testid="text-center-count-eid-vip">
+                              {eidVipCenters.length}
+                            </Badge>
+                          </div>
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${centerSectionsOpen.eidVip ? "rotate-180" : ""}`} />
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pt-2 space-y-2">
+                          {eidVipCenters.map((center: Center, index: number) => (
+                            <div
+                              key={center.id}
+                              className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-amber-500/5 to-amber-400/10 border-2 border-amber-400/40 opacity-0 animate-fade-in"
+                              style={{ animationDelay: `${index * 0.03}s` }}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <Checkbox
+                                  checked={selectedCenters.includes(center.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setSelectedCenters([...selectedCenters, center.id]);
+                                    } else {
+                                      setSelectedCenters(selectedCenters.filter(id => id !== center.id));
+                                    }
+                                  }}
+                                  data-testid={`checkbox-center-${center.id}`}
+                                />
+                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center ring-2 ring-amber-300/50">
+                                  <MapPin className="h-3.5 w-3.5 text-white" />
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium text-foreground text-sm">{center.name}</p>
+                                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-300 text-[10px] px-1.5 py-0" data-testid={`badge-eid-vip-${center.id}`}>
+                                      ID VIP
+                                    </Badge>
+                                  </div>
+                                  {center.area && (
+                                    <span className="text-xs text-muted-foreground">{center.area}</span>
+                                  )}
+                                  {(center.authority || center.timingText) && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      {center.authority && <span>{center.authority}</span>}
+                                      {center.authority && center.timingText && <span>·</span>}
+                                      {center.timingText && <span>{center.timingText}</span>}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="rounded-lg"
+                                  onClick={() => handleEditCenter(center)}
+                                  data-testid={`button-edit-center-${center.id}`}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="rounded-lg text-destructive"
+                                      data-testid={`button-delete-center-${center.id}`}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="rounded-2xl">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Center</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{center.name}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                                      <AlertDialogAction 
+                                        className="rounded-xl"
+                                        onClick={() => deleteCenterMutation.mutate(center.id)}
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })()}
+
+                  {/* ID Centers (Normal) */}
+                  {(() => {
+                    const eidNormalCenters = centers.filter((c: Center) => (c.type === "EID" || c.type === "Both") && c.tier !== "VIP");
+                    if (eidNormalCenters.length === 0) return null;
+                    return (
+                      <Collapsible 
+                        open={centerSectionsOpen.eidNormal} 
+                        onOpenChange={(open) => setCenterSectionsOpen(prev => ({ ...prev, eidNormal: open }))}
                       >
                         <CollapsibleTrigger 
                           className="flex items-center justify-between gap-2 w-full p-3 rounded-lg bg-blue-500/5 border border-blue-400/30"
-                          data-testid="button-toggle-section-eid"
+                          data-testid="button-toggle-section-eid-normal"
                         >
                           <div className="flex items-center gap-2">
                             <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                              <User className="h-3 w-3 text-white" />
+                              <CreditCard className="h-3 w-3 text-white" />
                             </div>
-                            <span className="font-medium text-sm">Emirates ID Biometric Centers</span>
-                            <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-300 text-xs" data-testid="text-center-count-eid">
-                              {eidCenters.length}
+                            <span className="font-medium text-sm">ID Centers (Normal)</span>
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-300 text-xs" data-testid="text-center-count-eid-normal">
+                              {eidNormalCenters.length}
                             </Badge>
                           </div>
-                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${centerSectionsOpen.eid ? "rotate-180" : ""}`} />
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${centerSectionsOpen.eidNormal ? "rotate-180" : ""}`} />
                         </CollapsibleTrigger>
                         <CollapsibleContent className="pt-2 space-y-2">
-                          {eidCenters.map((center: Center, index: number) => (
+                          {eidNormalCenters.map((center: Center, index: number) => (
                             <div
                               key={center.id}
                               className="flex items-center justify-between p-3 rounded-lg bg-blue-500/5 border border-blue-400/20 opacity-0 animate-fade-in"
@@ -1432,12 +1658,19 @@ export default function AdminPage() {
                                   data-testid={`checkbox-center-${center.id}`}
                                 />
                                 <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                                  <User className="h-3.5 w-3.5 text-white" />
+                                  <CreditCard className="h-3.5 w-3.5 text-white" />
                                 </div>
                                 <div>
                                   <p className="font-medium text-foreground text-sm">{center.name}</p>
                                   {center.area && (
                                     <span className="text-xs text-muted-foreground">{center.area}</span>
+                                  )}
+                                  {(center.authority || center.timingText) && (
+                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                      {center.authority && <span>{center.authority}</span>}
+                                      {center.authority && center.timingText && <span>·</span>}
+                                      {center.timingText && <span>{center.timingText}</span>}
+                                    </div>
                                   )}
                                 </div>
                               </div>
