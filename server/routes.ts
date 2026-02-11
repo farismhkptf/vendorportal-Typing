@@ -337,13 +337,26 @@ export async function registerRoutes(
   app.get("/api/appointments", async (req, res) => {
     try {
       const { woId } = req.query;
+      let rawAppointments;
       if (woId && typeof woId === "string") {
-        const appointments = await storage.getAppointmentsByWoId(woId);
-        res.json(appointments);
+        rawAppointments = await storage.getAppointmentsByWoId(woId);
       } else {
-        const appointments = await storage.getTodayAppointments();
-        res.json(appointments);
+        rawAppointments = await storage.getAllAppointments();
       }
+      
+      const allCompanies = await storage.getCompanies();
+      const enriched = await Promise.all(rawAppointments.map(async (apt) => {
+        const workOrder = apt.woId ? await storage.getWorkOrderById(apt.woId) : undefined;
+        const center = apt.centerId ? await storage.getCenterById(apt.centerId) : undefined;
+        const company = workOrder?.companyId ? allCompanies.find(c => c.id === workOrder.companyId) : undefined;
+        return {
+          ...apt,
+          workOrder: workOrder ? { ...workOrder, company: company ? { name: company.name } : undefined } : undefined,
+          center: center || undefined,
+        };
+      }));
+      
+      res.json(enriched);
     } catch (error) {
       console.error("Appointments error:", error);
       res.status(500).json({ message: "Failed to fetch appointments" });
@@ -363,6 +376,17 @@ export async function registerRoutes(
         return res.status(400).json({ message: validation.error });
       }
       
+      const existingActive = await storage.getActiveAppointmentByWoAndType(
+        validation.data.woId,
+        validation.data.type
+      );
+      if (existingActive) {
+        return res.status(409).json({ 
+          message: `This work order already has an active ${validation.data.type} appointment scheduled.`,
+          existingAppointmentId: existingActive.id
+        });
+      }
+
       const rescheduleToken = randomUUID();
       const appointment = await storage.createAppointment({
         ...validation.data,
@@ -377,6 +401,27 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Create appointment error:", error);
       res.status(500).json({ message: "Failed to create appointment" });
+    }
+  });
+
+  app.patch("/api/appointments/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!status || !["Completed", "Cancelled", "Rescheduled"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status. Must be Completed, Cancelled, or Rescheduled." });
+      }
+      
+      const updated = await storage.updateAppointment(id, { status });
+      if (!updated) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Update appointment error:", error);
+      res.status(500).json({ message: "Failed to update appointment" });
     }
   });
 

@@ -72,6 +72,9 @@ export interface IStorage {
   getAppointmentByToken(token: string): Promise<Appointment | undefined>;
   createAppointment(data: InsertAppointment): Promise<Appointment>;
   getTodayAppointments(): Promise<Appointment[]>;
+  getAllAppointments(): Promise<Appointment[]>;
+  updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined>;
+  getActiveAppointmentByWoAndType(woId: string, type: string): Promise<Appointment | undefined>;
   
   // Reschedule Requests
   createRescheduleRequest(data: InsertRescheduleRequest): Promise<RescheduleRequest>;
@@ -426,6 +429,26 @@ export class DatabaseStorage implements IStorage {
         eq(appointments.status, "Scheduled")
       )
     );
+  }
+
+  async getAllAppointments(): Promise<Appointment[]> {
+    return db.select().from(appointments).orderBy(desc(appointments.datetime));
+  }
+
+  async updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined> {
+    const [apt] = await db.update(appointments).set(data).where(eq(appointments.id, id)).returning();
+    return apt || undefined;
+  }
+
+  async getActiveAppointmentByWoAndType(woId: string, type: string): Promise<Appointment | undefined> {
+    const [apt] = await db.select().from(appointments).where(
+      and(
+        eq(appointments.woId, woId),
+        eq(appointments.type, type as any),
+        eq(appointments.status, "Scheduled")
+      )
+    );
+    return apt || undefined;
   }
 
   // Reschedule Requests
