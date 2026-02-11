@@ -133,10 +133,10 @@ export default function AdminPage() {
   const [bulkServiceNames, setBulkServiceNames] = useState("");
   const [selectedCenters, setSelectedCenters] = useState<string[]>([]);
   const [centerSectionsOpen, setCenterSectionsOpen] = useState({
-    medicalVip: true,
-    medicalNormal: true,
-    eidVip: true,
-    eidNormal: true
+    medicalVip: false,
+    medicalNormal: false,
+    eidVip: false,
+    eidNormal: false
   });
   const [selectedStaff, setSelectedStaff] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
@@ -2096,19 +2096,33 @@ export default function AdminPage() {
                 </DialogContent>
               </Dialog>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {staffLoading ? (
                   <>
                     <Skeleton className="h-20 rounded-xl" />
                     <Skeleton className="h-20 rounded-xl" />
                   </>
                 ) : staffList && staffList.length > 0 ? (
-                  staffList.map((member, index) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
-                      style={{ animationDelay: `${index * 0.05}s` }}
-                    >
+                  <>
+                  {/* Permanent Staff Section */}
+                  {(() => {
+                    const permanentStaff = staffList.filter((s: Staff) => s.staffType === "Permanent");
+                    return (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-6 w-6 rounded-full bg-gradient-to-br from-primary/80 to-primary flex items-center justify-center">
+                            <Users className="h-3 w-3 text-primary-foreground" />
+                          </div>
+                          <span className="font-semibold text-sm text-foreground">Permanent Staff</span>
+                          <Badge variant="outline" className="text-xs">{permanentStaff.length}</Badge>
+                        </div>
+                        <div className="space-y-3">
+                          {permanentStaff.length > 0 ? permanentStaff.map((member, index) => (
+                            <div
+                              key={member.id}
+                              className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                              style={{ animationDelay: `${index * 0.05}s` }}
+                            >
                       <div className="flex items-center gap-3">
                         <Checkbox
                           checked={selectedStaff.includes(member.id)}
@@ -2317,7 +2331,193 @@ export default function AdminPage() {
                         </AlertDialog>
                       </div>
                     </div>
-                  ))
+                  )) : (
+                    <p className="text-sm text-muted-foreground py-3">No permanent staff members.</p>
+                  )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Temporary Staff Section */}
+                  {(() => {
+                    const temporaryStaff = staffList.filter((s: Staff) => s.staffType === "Temporary");
+                    return (
+                      <div className="mt-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="h-6 w-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                            <Users className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="font-semibold text-sm text-foreground">Temporary Staff</span>
+                          <Badge variant="outline" className="text-xs">{temporaryStaff.length}</Badge>
+                        </div>
+                        <div className="space-y-3">
+                          {temporaryStaff.length > 0 ? temporaryStaff.map((member, index) => (
+                            <div
+                              key={member.id}
+                              className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                              style={{ animationDelay: `${index * 0.05}s` }}
+                            >
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          checked={selectedStaff.includes(member.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedStaff([...selectedStaff, member.id]);
+                            } else {
+                              setSelectedStaff(selectedStaff.filter(id => id !== member.id));
+                            }
+                          }}
+                          data-testid={`checkbox-staff-temp-${member.id}`}
+                        />
+                        <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center ring-1 ring-amber-500/10">
+                          <span className="text-sm font-medium text-amber-600">
+                            {member.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                          </span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-foreground">{member.name}</p>
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs rounded-full bg-amber-500/10 text-amber-600 border-amber-200"
+                            >
+                              Temp
+                            </Badge>
+                            <Popover 
+                              open={statusPopoverId === member.id} 
+                              onOpenChange={(open) => {
+                                if (open) {
+                                  setStatusPopoverId(member.id);
+                                  setStatusChangeData({ 
+                                    status: member.status, 
+                                    leaveEndDate: (member as any).leaveEndDate || "", 
+                                    replacementId: member.replacementId || "" 
+                                  });
+                                } else {
+                                  setStatusPopoverId(null);
+                                }
+                              }}
+                            >
+                              <PopoverTrigger asChild>
+                                <Button 
+                                  variant="outline"
+                                  size="sm"
+                                  className={`h-auto py-0.5 px-2 text-xs rounded-full gap-1 ${
+                                    member.status === "TempActive" ? "bg-cyan-500/10 text-cyan-700 border-cyan-200" :
+                                    member.status === "Cancelled" ? "bg-red-500/10 text-red-700 border-red-200" :
+                                    "bg-gray-500/10 text-gray-700 border-gray-200"
+                                  }`}
+                                  data-testid={`button-status-temp-${member.id}`}
+                                >
+                                  {member.status === "TempActive" ? "Temp Active" :
+                                   member.status === "TempInactive" ? "Inactive" :
+                                   member.status}
+                                  <ChevronDown className="h-3 w-3" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-72 rounded-xl p-4" align="start">
+                                <div className="space-y-4">
+                                  <div className="font-medium text-sm">Change Status</div>
+                                  <div className="space-y-2">
+                                    <Label className="text-xs text-muted-foreground">Status</Label>
+                                    <Select
+                                      value={statusChangeData.status}
+                                      onValueChange={(value) => setStatusChangeData(prev => ({ ...prev, status: value }))}
+                                    >
+                                      <SelectTrigger className="h-9 rounded-lg">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent className="rounded-lg">
+                                        <SelectItem value="TempActive">Temp Active</SelectItem>
+                                        <SelectItem value="TempInactive">Inactive</SelectItem>
+                                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div className="flex gap-2 pt-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="flex-1 rounded-lg"
+                                      onClick={() => setStatusPopoverId(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      className="flex-1 rounded-lg"
+                                      disabled={updateStaffStatusMutation.isPending}
+                                      onClick={() => {
+                                        updateStaffStatusMutation.mutate({
+                                          id: member.id,
+                                          status: statusChangeData.status,
+                                        });
+                                      }}
+                                    >
+                                      {updateStaffStatusMutation.isPending ? "Saving..." : "Save"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                            <span>{member.roleTitle}</span>
+                            {member.phone && <span>{member.phone}</span>}
+                            {member.email && <span>{member.email}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-xl"
+                          onClick={() => handleEditStaff(member)}
+                          data-testid={`button-edit-staff-temp-${member.id}`}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="rounded-xl text-destructive"
+                              data-testid={`button-delete-staff-temp-${member.id}`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="rounded-2xl">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Staff Member</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{member.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="rounded-xl"
+                                onClick={() => deleteStaffMutation.mutate(member.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                            </div>
+                          )) : (
+                            <p className="text-sm text-muted-foreground py-3">No temporary staff members.</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  </>
                 ) : (
                   <EmptyState
                     icon={<Users className="h-6 w-6" />}
