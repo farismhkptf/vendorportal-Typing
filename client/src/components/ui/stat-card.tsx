@@ -11,9 +11,10 @@ interface StatCardProps {
   };
   className?: string;
   animationDelay?: number;
+  onClick?: () => void;
 }
 
-export function StatCard({ title, value, icon, trend, className, animationDelay = 0 }: StatCardProps) {
+export function StatCard({ title, value, icon, trend, className, animationDelay = 0, onClick }: StatCardProps) {
   return (
     <div 
       className={cn(
@@ -22,9 +23,14 @@ export function StatCard({ title, value, icon, trend, className, animationDelay 
         animationDelay === 2 && "animate-delay-2",
         animationDelay === 3 && "animate-delay-3",
         animationDelay === 4 && "animate-delay-4",
+        onClick && "cursor-pointer hover-elevate",
         className
       )} 
       data-testid={`stat-${title.toLowerCase().replace(/\s+/g, "-")}`}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
     >
       <div className="relative z-10 flex items-start justify-between gap-2">
         <div className="space-y-1.5 min-w-0">

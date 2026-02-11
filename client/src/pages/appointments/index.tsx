@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { 
@@ -86,6 +86,26 @@ export default function AppointmentsIndex() {
 
   const cancelledAppointments = appointments?.filter(a => a.status === "Cancelled" || a.status === "Rescheduled")
     .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()).slice(0, 10) || [];
+
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollToSection = useCallback((sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+      document.querySelectorAll("[data-highlight]").forEach(e => {
+        e.classList.remove("ring-2", "ring-primary/40");
+        e.removeAttribute("data-highlight");
+      });
+      el.setAttribute("data-highlight", "true");
+      el.classList.add("ring-2", "ring-primary/40");
+      highlightTimerRef.current = setTimeout(() => {
+        el.classList.remove("ring-2", "ring-primary/40");
+        el.removeAttribute("data-highlight");
+        highlightTimerRef.current = null;
+      }, 1500);
+    }
+  }, []);
 
   const formatTime = (datetime: string | Date) => {
     const d = typeof datetime === "string" ? new Date(datetime) : datetime;
@@ -261,13 +281,13 @@ export default function AppointmentsIndex() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard title="Today" value={stats.todayCount} icon={<Calendar className="h-4 w-4" />} />
-          <StatCard title="Upcoming" value={stats.upcomingCount} icon={<Clock className="h-4 w-4" />} animationDelay={1} />
-          <StatCard title="Completed" value={stats.completedCount} icon={<CheckCircle2 className="h-4 w-4" />} animationDelay={2} />
-          <StatCard title="Cancelled" value={stats.cancelledCount} icon={<AlertCircle className="h-4 w-4" />} animationDelay={3} />
+          <StatCard title="Today" value={stats.todayCount} icon={<Calendar className="h-4 w-4" />} onClick={() => scrollToSection("section-today")} />
+          <StatCard title="Upcoming" value={stats.upcomingCount} icon={<Clock className="h-4 w-4" />} animationDelay={1} onClick={() => scrollToSection("section-upcoming")} />
+          <StatCard title="Completed" value={stats.completedCount} icon={<CheckCircle2 className="h-4 w-4" />} animationDelay={2} onClick={() => scrollToSection("section-completed")} />
+          <StatCard title="Cancelled" value={stats.cancelledCount} icon={<AlertCircle className="h-4 w-4" />} animationDelay={3} onClick={() => scrollToSection("section-cancelled")} />
         </div>
 
-        <Card className="border border-border/50 shadow-sm">
+        <Card id="section-today" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
@@ -294,7 +314,7 @@ export default function AppointmentsIndex() {
           </CardContent>
         </Card>
 
-        <Card className="border border-border/50 shadow-sm">
+        <Card id="section-upcoming" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="h-5 w-5 text-blue-600" />
@@ -322,7 +342,7 @@ export default function AppointmentsIndex() {
         </Card>
 
         {completedAppointments.length > 0 && (
-          <Card className="border border-border/50 shadow-sm">
+          <Card id="section-completed" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
@@ -339,7 +359,7 @@ export default function AppointmentsIndex() {
         )}
 
         {cancelledAppointments.length > 0 && (
-          <Card className="border border-border/50 shadow-sm">
+          <Card id="section-cancelled" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <XCircle className="h-5 w-5 text-destructive" />
