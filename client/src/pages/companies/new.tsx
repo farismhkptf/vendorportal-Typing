@@ -339,7 +339,7 @@ export default function NewCompany() {
         <div className="premium-card p-4 space-y-4">
           <div className="flex items-center gap-2 pb-2 border-b border-border/50">
             <UserCheck className="h-4 w-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Our Team Contact</h2>
+            <h2 className="text-sm font-semibold text-foreground">Our Team</h2>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-1.5">

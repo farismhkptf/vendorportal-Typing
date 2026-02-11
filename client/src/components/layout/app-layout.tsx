@@ -10,7 +10,8 @@ import {
   Menu,
   X,
   Stethoscope,
-  Bot
+  Bot,
+  Building2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Work Orders", href: "/work-orders", icon: FileText },
   { name: "Appointments", href: "/appointments", icon: Stethoscope },
   { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList },
+  { name: "Companies", href: "/companies", icon: Building2 },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
   { name: "Bots", href: "/bots", icon: Bot },
   { name: "Admin Console", href: "/admin", icon: Settings },
@@ -135,15 +137,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Menu className="h-5 w-5" />
             </Button>
             <div className="flex-1" />
-            {/* Help widget */}
-            <Button 
-              variant="outline" 
-              className="rounded-full px-4 h-10 text-sm font-medium gap-2 border-border/60 shadow-sm"
-              data-testid="button-help"
-            >
-              <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              Ask Ainoo
-            </Button>
           </div>
         </header>
 
