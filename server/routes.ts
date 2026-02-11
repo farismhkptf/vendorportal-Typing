@@ -184,6 +184,9 @@ export async function registerRoutes(
         const preferredBiometricsCenter = company.preferredBiometricsCenterId 
           ? await storage.getCenterById(company.preferredBiometricsCenterId) 
           : null;
+        const preferredBiometricsCenterVip = company.preferredBiometricsCenterVipId 
+          ? await storage.getCenterById(company.preferredBiometricsCenterVipId) 
+          : null;
         
         companyWithDetails = {
           ...company,
@@ -193,6 +196,7 @@ export async function registerRoutes(
           preferredMedicalCenter,
           preferredMedicalCenterVip,
           preferredBiometricsCenter,
+          preferredBiometricsCenterVip,
         };
       }
 
@@ -444,6 +448,9 @@ export async function registerRoutes(
           const preferredBiometricsCenter = company.preferredBiometricsCenterId 
             ? await storage.getCenterById(company.preferredBiometricsCenterId) 
             : null;
+          const preferredBiometricsCenterVip = company.preferredBiometricsCenterVipId 
+            ? await storage.getCenterById(company.preferredBiometricsCenterVipId) 
+            : null;
           
           return {
             ...company,
@@ -453,6 +460,7 @@ export async function registerRoutes(
             preferredMedicalCenter,
             preferredMedicalCenterVip,
             preferredBiometricsCenter,
+            preferredBiometricsCenterVip,
             workOrderCount: workOrderCounts[company.id] || 0,
           };
         })
@@ -511,6 +519,9 @@ export async function registerRoutes(
       const preferredBiometricsCenter = company.preferredBiometricsCenterId 
         ? await storage.getCenterById(company.preferredBiometricsCenterId) 
         : null;
+      const preferredBiometricsCenterVip = company.preferredBiometricsCenterVipId 
+        ? await storage.getCenterById(company.preferredBiometricsCenterVipId) 
+        : null;
 
       res.json({
         ...company,
@@ -520,6 +531,7 @@ export async function registerRoutes(
         preferredMedicalCenter,
         preferredMedicalCenterVip,
         preferredBiometricsCenter,
+        preferredBiometricsCenterVip,
       });
     } catch (error) {
       console.error("Get company error:", error);

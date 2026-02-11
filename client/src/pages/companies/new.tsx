@@ -30,6 +30,7 @@ const companyFormSchema = z.object({
   preferredMedicalCenterId: z.string().optional(),
   preferredMedicalCenterVipId: z.string().optional(),
   preferredBiometricsCenterId: z.string().optional(),
+  preferredBiometricsCenterVipId: z.string().optional(),
   clientCoordinator: clientContactSchema.optional(),
   clientManager: clientContactSchema.optional(),
   clientAccountant: clientContactSchema.optional(),
@@ -47,7 +48,11 @@ export default function NewCompany() {
   const { data: staffList } = useQuery<Staff[]>({ queryKey: ["/api/staff"] });
 
   const medicalCenters = centers?.filter(c => c.type === "Medical" || c.type === "Both") || [];
+  const normalMedicalCenters = medicalCenters.filter(c => c.tier === "Normal");
+  const vipMedicalCenters = medicalCenters.filter(c => c.tier === "VIP");
   const eidCenters = centers?.filter(c => c.type === "EID" || c.type === "Both") || [];
+  const normalEidCenters = eidCenters.filter(c => c.tier === "Normal");
+  const vipEidCenters = eidCenters.filter(c => c.tier === "VIP");
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(companyFormSchema),
@@ -57,6 +62,7 @@ export default function NewCompany() {
       preferredMedicalCenterId: "",
       preferredMedicalCenterVipId: "",
       preferredBiometricsCenterId: "",
+      preferredBiometricsCenterVipId: "",
       clientCoordinator: { name: "", email: "", mobile: "" },
       clientManager: { name: "", email: "", mobile: "" },
       clientAccountant: { name: "", email: "", mobile: "" },
@@ -79,6 +85,7 @@ export default function NewCompany() {
         preferredMedicalCenterId: data.preferredMedicalCenterId || null,
         preferredMedicalCenterVipId: data.preferredMedicalCenterVipId || null,
         preferredBiometricsCenterId: data.preferredBiometricsCenterId || null,
+        preferredBiometricsCenterVipId: data.preferredBiometricsCenterVipId || null,
         rmStaffId: data.rmStaffId || null,
         assistStaffId: data.assistStaffId || null,
         clientCoordinator: data.clientCoordinator?.name ? data.clientCoordinator : null,
@@ -167,7 +174,7 @@ export default function NewCompany() {
             <MapPin className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Center Preferences</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs">Favorite Medical Center (Normal)</Label>
               <Select
@@ -179,7 +186,7 @@ export default function NewCompany() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {medicalCenters.map((center) => (
+                  {normalMedicalCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -196,14 +203,14 @@ export default function NewCompany() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {medicalCenters.map((center) => (
+                  {vipMedicalCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Favorite ID Biometrics Center</Label>
+              <Label className="text-xs">Favorite ID Center (Normal)</Label>
               <Select
                 value={form.watch("preferredBiometricsCenterId") || "__none__"}
                 onValueChange={(v) => form.setValue("preferredBiometricsCenterId", v === "__none__" ? "" : v)}
@@ -213,7 +220,24 @@ export default function NewCompany() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {eidCenters.map((center) => (
+                  {normalEidCenters.map((center) => (
+                    <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Favorite ID Center (VIP)</Label>
+              <Select
+                value={form.watch("preferredBiometricsCenterVipId") || "__none__"}
+                onValueChange={(v) => form.setValue("preferredBiometricsCenterVipId", v === "__none__" ? "" : v)}
+              >
+                <SelectTrigger className="h-9" data-testid="select-biometrics-vip">
+                  <SelectValue placeholder="Select center" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {vipEidCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
                 </SelectContent>

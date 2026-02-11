@@ -174,6 +174,7 @@ export const companies = pgTable("companies", {
   preferredMedicalCenterId: varchar("preferred_medical_center_id"),
   preferredMedicalCenterVipId: varchar("preferred_medical_center_vip_id"),
   preferredBiometricsCenterId: varchar("preferred_biometrics_center_id"),
+  preferredBiometricsCenterVipId: varchar("preferred_biometrics_center_vip_id"),
   // Client contacts
   clientCoordinator: json("client_coordinator").$type<ClientContact>(),
   clientManager: json("client_manager").$type<ClientContact>(),

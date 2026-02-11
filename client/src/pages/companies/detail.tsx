@@ -38,6 +38,7 @@ const companyFormSchema = z.object({
   preferredMedicalCenterId: z.string().optional().nullable(),
   preferredMedicalCenterVipId: z.string().optional().nullable(),
   preferredBiometricsCenterId: z.string().optional().nullable(),
+  preferredBiometricsCenterVipId: z.string().optional().nullable(),
   deliveryAddress: z.string().optional().nullable(),
   clientCoordinator: clientContactSchema.optional().nullable(),
   clientManager: clientContactSchema.optional().nullable(),
@@ -65,6 +66,8 @@ export default function CompanyDetail() {
   const normalMedicalCenters = medicalCenters.filter(c => c.tier === "Normal");
   const vipMedicalCenters = medicalCenters.filter(c => c.tier === "VIP");
   const eidCenters = centers?.filter(c => c.type === "EID" || c.type === "Both") || [];
+  const normalEidCenters = eidCenters.filter(c => c.tier === "Normal");
+  const vipEidCenters = eidCenters.filter(c => c.tier === "VIP");
 
   // Filter staff by role - matches exact role titles from seed data
   const crmStaff = staffList?.filter(s => {
@@ -85,6 +88,7 @@ export default function CompanyDetail() {
       preferredMedicalCenterId: company.preferredMedicalCenterId || "",
       preferredMedicalCenterVipId: company.preferredMedicalCenterVipId || "",
       preferredBiometricsCenterId: company.preferredBiometricsCenterId || "",
+      preferredBiometricsCenterVipId: company.preferredBiometricsCenterVipId || "",
       deliveryAddress: company.deliveryAddress || "",
       clientCoordinator: company.clientCoordinator || { name: "", email: "", mobile: "" },
       clientManager: company.clientManager || { name: "", email: "", mobile: "" },
@@ -108,6 +112,7 @@ export default function CompanyDetail() {
         preferredMedicalCenterId: data.preferredMedicalCenterId || null,
         preferredMedicalCenterVipId: data.preferredMedicalCenterVipId || null,
         preferredBiometricsCenterId: data.preferredBiometricsCenterId || null,
+        preferredBiometricsCenterVipId: data.preferredBiometricsCenterVipId || null,
         deliveryAddress: data.deliveryAddress || null,
         rmStaffId: data.rmStaffId || null,
         assistStaffId: data.assistStaffId || null,
@@ -242,7 +247,7 @@ export default function CompanyDetail() {
             <MapPin className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Center Preferences</h2>
           </div>
-          <div className="grid md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs">Favorite Medical Center (Normal)</Label>
               <Select
@@ -280,7 +285,7 @@ export default function CompanyDetail() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Favorite ID Biometrics Center</Label>
+              <Label className="text-xs">Favorite ID Center (Normal)</Label>
               <Select
                 value={form.watch("preferredBiometricsCenterId") || "__none__"}
                 onValueChange={(v) => form.setValue("preferredBiometricsCenterId", v === "__none__" ? "" : v)}
@@ -291,7 +296,25 @@ export default function CompanyDetail() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">None</SelectItem>
-                  {eidCenters.map((center) => (
+                  {normalEidCenters.map((center) => (
+                    <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Favorite ID Center (VIP)</Label>
+              <Select
+                value={form.watch("preferredBiometricsCenterVipId") || "__none__"}
+                onValueChange={(v) => form.setValue("preferredBiometricsCenterVipId", v === "__none__" ? "" : v)}
+                disabled={!isEditing}
+              >
+                <SelectTrigger className="h-9" data-testid="select-biometrics-vip">
+                  <SelectValue placeholder="Select center" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  {vipEidCenters.map((center) => (
                     <SelectItem key={center.id} value={center.id}>{center.name}</SelectItem>
                   ))}
                 </SelectContent>

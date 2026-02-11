@@ -219,7 +219,9 @@ export default function ScheduleEid() {
     }
     
     if (company) {
-      const preferredCenter = company.preferredBiometricsCenterId;
+      const preferredCenter = wo.isVip 
+        ? company.preferredBiometricsCenterVipId 
+        : company.preferredBiometricsCenterId;
       if (preferredCenter) {
         form.setValue("centerId", preferredCenter);
       }
@@ -463,7 +465,9 @@ Thank you,
   const handleNextStep = () => {
     if (currentStep === 2) {
       const selectedCenterId = form.getValues("centerId");
-      const preferredCenter = selectedCompany?.preferredBiometricsCenterId;
+      const preferredCenter = watchedIsVip 
+        ? selectedCompany?.preferredBiometricsCenterVipId 
+        : selectedCompany?.preferredBiometricsCenterId;
       
       if (selectedCenterId && preferredCenter && selectedCenterId !== preferredCenter) {
         setShowCenterWarning(true);
@@ -617,11 +621,11 @@ Thank you,
                   <span className="text-sm">{selectedWo.applicantEmail}</span>
                 </div>
               )}
-              {selectedCompany?.preferredBiometricsCenterId && (
+              {(watchedIsVip ? selectedCompany?.preferredBiometricsCenterVipId : selectedCompany?.preferredBiometricsCenterId) && (
                 <div className="flex items-center gap-2 col-span-2">
                   <Star className="h-4 w-4 text-amber-500" />
                   <span className="text-sm text-muted-foreground">
-                    Preferred Center: {centers?.find(c => c.id === selectedCompany.preferredBiometricsCenterId)?.name || "Not set"}
+                    Preferred Center: {centers?.find(c => c.id === (watchedIsVip ? selectedCompany?.preferredBiometricsCenterVipId : selectedCompany?.preferredBiometricsCenterId))?.name || "Not set"}
                   </span>
                 </div>
               )}
@@ -742,7 +746,7 @@ Thank you,
                       <SelectItem key={center.id} value={center.id}>
                         <div className="flex items-center gap-2">
                           {center.name}
-                          {center.id === selectedCompany?.preferredBiometricsCenterId && (
+                          {center.id === (watchedIsVip ? selectedCompany?.preferredBiometricsCenterVipId : selectedCompany?.preferredBiometricsCenterId) && (
                             <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
                           )}
                         </div>

@@ -187,7 +187,9 @@ export default function SchedulerBot() {
           ? company.preferredMedicalCenterVipId
           : company.preferredMedicalCenterId;
       }
-      return company.preferredBiometricsCenterId;
+      return wo.isVip
+        ? company.preferredBiometricsCenterVipId
+        : company.preferredBiometricsCenterId;
     },
     [getCompany]
   );
