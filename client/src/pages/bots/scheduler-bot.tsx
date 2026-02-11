@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { 
   FileText, User, Building2, Star, Loader2, MapPin, Clock, 
-  Calendar, Hash, AlertCircle 
+  Calendar, Hash, AlertCircle, AlertTriangle, Check 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,78 @@ function formatTime(timeStr: string): string {
   }
 }
 
+function CenterList({ centers, preferredCenterId, onSelect }: { 
+  centers: Center[]; 
+  preferredCenterId: string | null | undefined;
+  onSelect: (center: Center) => void;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(preferredCenterId || null);
+  useEffect(() => {
+    if (preferredCenterId) {
+      setSelectedId(preferredCenterId);
+    }
+  }, [preferredCenterId]);
+  return (
+    <div className="space-y-2 max-h-[250px] overflow-y-auto">
+      {centers.map((center) => {
+        const isPreferred = center.id === preferredCenterId;
+        const isSelected = center.id === selectedId;
+        return (
+          <div
+            key={center.id}
+            className={`rounded-lg border p-3 cursor-pointer hover-elevate ${
+              isSelected
+                ? "border-primary/40 bg-primary/5"
+                : "border-border/50"
+            }`}
+            onClick={() => {
+              setSelectedId(center.id);
+              onSelect(center);
+            }}
+            data-testid={`center-item-${center.id}`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                {isSelected && <Check className="h-4 w-4 text-primary shrink-0" />}
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium">{center.name}</p>
+                    {isPreferred && (
+                      <Star className="h-3.5 w-3.5 text-primary fill-primary" />
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                    <MapPin className="h-3 w-3" />
+                    {center.area || "N/A"}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {isPreferred && (
+                  <Badge variant="secondary" className="shrink-0 text-xs">
+                    Preferred
+                  </Badge>
+                )}
+                {center.authority && (
+                  <Badge variant="secondary" className="shrink-0">
+                    {center.authority}
+                  </Badge>
+                )}
+              </div>
+            </div>
+            {center.timingText && (
+              <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                {center.timingText}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function SchedulerBot() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -96,6 +168,28 @@ export default function SchedulerBot() {
       return serviceTypes.find((s) => s.id === id)?.name || "N/A";
     },
     [serviceTypes]
+  );
+
+  const getCompany = useCallback(
+    (id: string | null | undefined) => {
+      if (!id || !companies) return null;
+      return companies.find((c) => c.id === id) || null;
+    },
+    [companies]
+  );
+
+  const getPreferredCenterId = useCallback(
+    (wo: WorkOrder, type: "Medical" | "EID") => {
+      const company = getCompany(wo.companyId);
+      if (!company) return null;
+      if (type === "Medical") {
+        return wo.isVip
+          ? company.preferredMedicalCenterVipId
+          : company.preferredMedicalCenterId;
+      }
+      return company.preferredBiometricsCenterId;
+    },
+    [getCompany]
   );
 
   const addBotMessage = useCallback((content: string | React.ReactNode) => {
@@ -295,13 +389,9 @@ export default function SchedulerBot() {
   }, [step, addBotMessage, addUserMessage]);
 
   useEffect(() => {
-    if (step === "centerInfo" && appointmentType && selectedWO && processedStepRef.current !== `centerInfo-${appointmentType}`) {
+    if (step === "centerInfo" && appointmentType && selectedWO && centers && companies && processedStepRef.current !== `centerInfo-${appointmentType}`) {
       processedStepRef.current = `centerInfo-${appointmentType}`;
       const timer = setTimeout(() => {
-        if (!centers) {
-          addBotMessage("Loading centers...");
-          return;
-        }
 
         const filtered = centers.filter((c) => {
           const typeMatch =
@@ -314,6 +404,13 @@ export default function SchedulerBot() {
           return typeMatch && tierMatch && c.active;
         });
 
+        const preferredId = getPreferredCenterId(selectedWO, appointmentType);
+        const preferredCenter = preferredId ? filtered.find(c => c.id === preferredId) : null;
+
+        if (preferredCenter) {
+          setSelectedCenter(preferredCenter);
+        }
+
         if (filtered.length === 0) {
           addBotMessage(
             <div>
@@ -324,42 +421,52 @@ export default function SchedulerBot() {
             </div>
           );
         } else {
+          const companyObj = getCompany(selectedWO.companyId);
+          const sortedCenters = preferredId
+            ? [...filtered].sort((a, b) => {
+                if (a.id === preferredId) return -1;
+                if (b.id === preferredId) return 1;
+                return 0;
+              })
+            : filtered;
+
           addBotMessage(
             <div>
+              {preferredCenter && (
+                <div className="flex items-center gap-2 mb-3 p-2 rounded-lg bg-primary/5 border border-primary/10">
+                  <Star className="h-4 w-4 text-primary" />
+                  <span className="text-xs text-muted-foreground">
+                    {companyObj?.name || "Company"}'s preferred center auto-selected
+                  </span>
+                </div>
+              )}
               <p className="mb-3">Available centers:</p>
-              <div className="space-y-2 max-h-[250px] overflow-y-auto">
-                {filtered.map((center) => (
-                  <div
-                    key={center.id}
-                    className="rounded-lg border border-border/50 p-3 cursor-pointer hover-elevate"
-                    onClick={() => setSelectedCenter(center)}
-                    data-testid={`center-item-${center.id}`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-sm font-medium">{center.name}</p>
-                        <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          {center.area || "N/A"}
+              <CenterList
+                centers={sortedCenters}
+                preferredCenterId={preferredId}
+                onSelect={(center) => {
+                  if (preferredId && center.id !== preferredId && preferredCenter) {
+                    setSelectedCenter(center);
+                    addBotMessage(
+                      <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                        <div className="text-sm">
+                          <p className="font-medium text-amber-700 dark:text-amber-400">Not the preferred center</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            You selected <span className="font-medium">{center.name}</span> instead of the preferred <span className="font-medium">{preferredCenter.name}</span>.
+                          </p>
                         </div>
                       </div>
-                      {center.authority && (
-                        <Badge variant="secondary" className="shrink-0">
-                          {center.authority}
-                        </Badge>
-                      )}
-                    </div>
-                    {center.timingText && (
-                      <div className="flex items-center gap-1 mt-1.5 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {center.timingText}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                    );
+                  } else {
+                    setSelectedCenter(center);
+                  }
+                }}
+              />
               <p className="text-xs text-muted-foreground mt-3">
-                Select a center above (optional), then enter the details below.
+                {preferredCenter
+                  ? "Preferred center pre-selected. Tap another to change."
+                  : "Select a center above (optional), then enter the details below."}
               </p>
             </div>
           );
@@ -384,7 +491,7 @@ export default function SchedulerBot() {
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [step, appointmentType, selectedWO, centers, addBotMessage, addUserMessage]);
+  }, [step, appointmentType, selectedWO, centers, companies, addBotMessage, addUserMessage, getPreferredCenterId, getCompany]);
 
   useEffect(() => {
     if (step === "generateMessages" && selectedWO && appointmentType && appointmentDataRef.current && processedStepRef.current !== "generateMessages") {
