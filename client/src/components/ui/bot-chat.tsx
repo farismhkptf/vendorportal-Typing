@@ -114,7 +114,7 @@ export function ChatInput({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
-            className="flex-1 min-h-[80px] max-h-[200px] resize-none rounded-xl border border-border/60 bg-background px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex-1 min-h-[80px] max-h-[200px] resize-none rounded-xl border border-border/60 bg-white dark:bg-muted/50 px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             data-testid="chat-input-multiline"
           />
           <Button
