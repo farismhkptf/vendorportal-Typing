@@ -476,7 +476,7 @@ Thank you,
   const handleNextStep = () => {
     if (currentStep === 2) {
       const selectedCenter = form.getValues("centerId");
-      const preferredCenter = selectedWo?.isVip 
+      const preferredCenter = watchedIsVip 
         ? selectedCompany?.preferredMedicalCenterVipId 
         : selectedCompany?.preferredMedicalCenterId;
       
@@ -1550,22 +1550,56 @@ Thank you,
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Center Not Preferred
+              Different Center Selected
             </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            The selected medical center is not the company's preferred center. Continue anyway?
+            You selected <span className="font-medium text-foreground">{selectedCenter?.name}</span> instead of the company's preferred {watchedIsVip ? "VIP" : "normal"} medical center. Would you like to set this as the new default for <span className="font-medium text-foreground">{selectedCompany ? toProperCase(selectedCompany.name) : "this company"}</span>?
           </p>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCenterWarning(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowCenterWarning(false)} data-testid="button-center-warning-back">
               Go Back
             </Button>
-            <Button onClick={() => {
+            <Button variant="secondary" onClick={() => {
               setShowCenterWarning(false);
               generatePreviews();
               setCurrentStep(3);
-            }}>
-              Continue Anyway
+            }} data-testid="button-center-warning-continue">
+              Continue Without Changing
+            </Button>
+            <Button onClick={async () => {
+              const centerId = form.getValues("centerId");
+              if (selectedCompany && centerId) {
+                try {
+                  const updateField = watchedIsVip 
+                    ? { preferredMedicalCenterVipId: centerId }
+                    : { preferredMedicalCenterId: centerId };
+                  await apiRequest("PUT", `/api/companies/${selectedCompany.id}`, updateField);
+                  queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+                  if (selectedCompany) {
+                    if (watchedIsVip) {
+                      selectedCompany.preferredMedicalCenterVipId = centerId;
+                    } else {
+                      selectedCompany.preferredMedicalCenterId = centerId;
+                    }
+                  }
+                  toast({
+                    title: "Default updated",
+                    description: `${selectedCenter?.name} is now the preferred ${watchedIsVip ? "VIP" : "normal"} medical center for ${toProperCase(selectedCompany.name)}.`,
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Could not update default",
+                    description: "The appointment will continue but the company default was not changed.",
+                    variant: "destructive",
+                  });
+                }
+              }
+              setShowCenterWarning(false);
+              generatePreviews();
+              setCurrentStep(3);
+            }} data-testid="button-center-warning-set-default">
+              Set as Default & Continue
             </Button>
           </DialogFooter>
         </DialogContent>
