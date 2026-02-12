@@ -284,25 +284,28 @@ export default function VendorWallet() {
                 value={`AED ${(summary?.balance || 0).toLocaleString()}`}
                 icon={<Wallet className="h-4 w-4" />}
                 animationDelay={1}
+                onClick={() => document.getElementById("section-ledger")?.scrollIntoView({ behavior: "smooth" })}
               />
               <StatCard
                 title="Month Top-ups"
                 value={`AED ${(summary?.monthTopups || 0).toLocaleString()}`}
                 icon={<TrendingUp className="h-4 w-4" />}
                 animationDelay={2}
+                onClick={() => document.getElementById("section-ledger")?.scrollIntoView({ behavior: "smooth" })}
               />
               <StatCard
                 title="Month Spend"
                 value={`AED ${(summary?.monthSpend || 0).toLocaleString()}`}
                 icon={<TrendingDown className="h-4 w-4" />}
                 animationDelay={3}
+                onClick={() => document.getElementById("section-ledger")?.scrollIntoView({ behavior: "smooth" })}
               />
             </>
           )}
         </div>
 
         {/* Ledger */}
-        <div className="space-y-3">
+        <div id="section-ledger" className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-foreground">Transaction Ledger</h2>
             <Select value={viewBy} onValueChange={(v) => setViewBy(v as ViewByOption)}>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { 
   FileText, 
   Calendar, 
@@ -47,6 +47,7 @@ interface RecentWorkOrder {
 }
 
 export default function Dashboard() {
+  const [, navigate] = useLocation();
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -119,24 +120,28 @@ export default function Dashboard() {
                 value={stats?.totalWorkOrders || 0}
                 icon={<FileText className="h-4 w-4" />}
                 animationDelay={1}
+                onClick={() => navigate("/work-orders")}
               />
               <StatCard
                 title="Today's Appts"
                 value={stats?.todayAppointments || 0}
                 icon={<Calendar className="h-4 w-4" />}
                 animationDelay={2}
+                onClick={() => navigate("/appointments")}
               />
               <StatCard
                 title="Pending Jobs"
                 value={stats?.pendingTypingJobs || 0}
                 icon={<Clock className="h-4 w-4" />}
                 animationDelay={3}
+                onClick={() => navigate("/typing-jobs")}
               />
               <StatCard
                 title="Wallet"
                 value={`AED ${(stats?.walletBalance || 0).toLocaleString()}`}
                 icon={<Wallet className="h-4 w-4" />}
                 animationDelay={4}
+                onClick={() => navigate("/vendor-wallet")}
               />
             </>
           )}

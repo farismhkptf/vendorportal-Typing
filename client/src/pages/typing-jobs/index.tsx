@@ -35,8 +35,9 @@ export default function TypingJobsList() {
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
 
+  const apiStatus = statusFilter.startsWith("_") ? "all" : statusFilter;
   const { data: typingJobs, isLoading } = useQuery<TypingJobWithRelations[]>({
-    queryKey: ["/api/typing-jobs", { status: statusFilter }],
+    queryKey: ["/api/typing-jobs", { status: apiStatus }],
   });
 
   const stats = useMemo(() => {
@@ -57,7 +58,15 @@ export default function TypingJobsList() {
         job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
         job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase()) ||
         job.jobCode?.toLowerCase().includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "all" || job.status === statusFilter;
+      const pendingStatuses = ["Draft", "SentToVendor"];
+      const inProgressStatuses = ["InProgress", "WaitingForDocs"];
+      const completedStatuses = ["Returned", "SentToClient"];
+      const issueStatuses = ["VendorMistake", "Cancelled"];
+      const matchesStatus = statusFilter === "all" || job.status === statusFilter
+        || (statusFilter === "_pending" && pendingStatuses.includes(job.status))
+        || (statusFilter === "_inprogress" && inProgressStatuses.includes(job.status))
+        || (statusFilter === "_completed" && completedStatuses.includes(job.status))
+        || (statusFilter === "_issues" && issueStatuses.includes(job.status));
       const matchesCategory = categoryFilter === "all" || job.jobType?.category === categoryFilter;
       return matchesSearch && matchesStatus && matchesCategory;
     });
@@ -279,24 +288,28 @@ export default function TypingJobsList() {
             value={stats.pending}
             icon={<Send className="h-4 w-4 text-blue-600" />}
             animationDelay={1}
+            onClick={() => setStatusFilter("_pending")}
           />
           <StatCard
             title="In Progress"
             value={stats.inProgress}
             icon={<Clock className="h-4 w-4 text-amber-600" />}
             animationDelay={2}
+            onClick={() => setStatusFilter("_inprogress")}
           />
           <StatCard
             title="Completed"
             value={stats.completed}
             icon={<CheckCircle2 className="h-4 w-4 text-emerald-600" />}
             animationDelay={3}
+            onClick={() => setStatusFilter("_completed")}
           />
           <StatCard
             title="Issues"
             value={stats.issues}
             icon={<AlertTriangle className="h-4 w-4 text-red-600" />}
             animationDelay={4}
+            onClick={() => setStatusFilter("_issues")}
           />
         </div>
 
@@ -357,9 +370,13 @@ export default function TypingJobsList() {
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="_pending">Pending</SelectItem>
+              <SelectItem value="_inprogress">In Progress</SelectItem>
+              <SelectItem value="_completed">Completed</SelectItem>
+              <SelectItem value="_issues">Issues</SelectItem>
               <SelectItem value="Draft">Draft</SelectItem>
               <SelectItem value="SentToVendor">Sent to Vendor</SelectItem>
-              <SelectItem value="InProgress">In Progress</SelectItem>
+              <SelectItem value="InProgress">In Progress (Active)</SelectItem>
               <SelectItem value="WaitingForDocs">Waiting for Docs</SelectItem>
               <SelectItem value="Returned">Returned</SelectItem>
               <SelectItem value="SentToClient">Sent to Client</SelectItem>
