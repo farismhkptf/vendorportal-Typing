@@ -313,6 +313,7 @@ export default function SchedulerBot() {
       const preferredCenter = prefId ? filtered.find(c => c.id === prefId) : null;
       if (preferredCenter) {
         setSelectedCenter(preferredCenter);
+        setShowAllCenters(false);
       } else if (filtered.length > 0) {
         setShowAllCenters(true);
       }
@@ -345,6 +346,11 @@ export default function SchedulerBot() {
         } else {
           addBotMessage("No matching centers found for this configuration. Enter the appointment details below.");
         }
+
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        setAptDate(tomorrow.toISOString().split("T")[0]);
+        setAptTime("09:00");
 
         setStep("details");
       }, 500);
