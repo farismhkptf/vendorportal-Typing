@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { Link } from "wouter";
 import { Home } from "lucide-react";
 import {
@@ -31,23 +32,25 @@ export function PageBreadcrumb({ items }: PageBreadcrumbProps) {
         </BreadcrumbItem>
         
         {items.map((item, index) => (
-          <BreadcrumbItem key={index}>
+          <Fragment key={index}>
             <BreadcrumbSeparator />
-            {item.href ? (
-              <BreadcrumbLink asChild>
-                <Link 
-                  href={item.href}
-                  data-testid={`breadcrumb-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-                >
+            <BreadcrumbItem>
+              {item.href ? (
+                <BreadcrumbLink asChild>
+                  <Link 
+                    href={item.href}
+                    data-testid={`breadcrumb-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    {item.label}
+                  </Link>
+                </BreadcrumbLink>
+              ) : (
+                <BreadcrumbPage data-testid={`breadcrumb-${item.label.toLowerCase().replace(/\s+/g, '-')}`}>
                   {item.label}
-                </Link>
-              </BreadcrumbLink>
-            ) : (
-              <BreadcrumbPage data-testid={`breadcrumb-${item.label.toLowerCase().replace(/\s+/g, '-')}`}>
-                {item.label}
-              </BreadcrumbPage>
-            )}
-          </BreadcrumbItem>
+                </BreadcrumbPage>
+              )}
+            </BreadcrumbItem>
+          </Fragment>
         ))}
       </BreadcrumbList>
     </Breadcrumb>

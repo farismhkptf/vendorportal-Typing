@@ -7,7 +7,6 @@ import {
   TrendingDown, 
   AlertTriangle, 
   Plus,
-  Download,
   Calendar,
   ArrowUpRight,
   ArrowDownRight,
@@ -157,17 +156,15 @@ export default function VendorWallet() {
       {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Vendor Wallet
-          </h1>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5 rounded-lg" data-testid="button-export">
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Export</span>
-            </Button>
-            <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-foreground">
+              Vendor Wallet
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Vendor advance balance and transaction history</p>
+          </div>
+          <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="gap-1.5 rounded-lg" data-testid="button-topup">
+                <Button size="sm" className="gap-1.5" data-testid="button-topup">
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Top Up</span>
                 </Button>
@@ -238,7 +235,6 @@ export default function VendorWallet() {
                 </Form>
               </DialogContent>
             </Dialog>
-          </div>
         </div>
       </div>
 

@@ -269,11 +269,14 @@ export default function CompaniesList() {
       {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground">
-            Companies
-          </h1>
+          <div className="min-w-0">
+            <h1 className="text-xl font-semibold text-foreground">
+              Companies
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">Manage client companies and their preferences</p>
+          </div>
           <Link href="/companies/new">
-            <Button size="sm" className="gap-1.5 rounded-lg" data-testid="button-new-company">
+            <Button size="sm" className="gap-1.5" data-testid="button-new-company">
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Add Company</span>
             </Button>

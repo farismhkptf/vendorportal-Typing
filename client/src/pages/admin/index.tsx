@@ -961,9 +961,10 @@ export default function AdminPage() {
     <AppLayout>
       {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-xl font-semibold text-foreground">
           Admin Console
         </h1>
+        <p className="text-sm text-muted-foreground mt-1">System configuration and data management</p>
       </div>
 
       <div className="px-4 lg:px-6 pb-6">

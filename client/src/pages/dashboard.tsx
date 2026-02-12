@@ -67,7 +67,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
-            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+            <h1 className="text-xl font-semibold text-foreground">
               Dashboard
             </h1>
           </div>
