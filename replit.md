@@ -61,7 +61,12 @@ The design follows an Apple-inspired glassmorphism aesthetic with soft gradients
 
 ## Pending Tasks
 
-- **Excel Import/Export for Admin Console**: Build a downloadable template Excel sheet (.xlsx) with pre-formatted columns for Centers, Companies, Staff, Service Types, and Job Types. Add an import button in Admin that reads an uploaded .xlsx file and bulk-loads the data into the database. Template should include column headers matching the exact format expected by the import.
+None currently.
+
+## Recent Changes
+
+- **Excel Import/Export** (Feb 2026): Added "Import / Export" tab to Admin Console. Download a pre-formatted .xlsx template with 5 sheets (Centers, Companies, Staff, Service Types, Job Types) with example rows, fill it in, and upload to bulk-import. Uses `xlsx` library for generation/parsing and `multer` for file upload. Endpoints: GET /api/admin/template, POST /api/admin/import. Results show per-sheet success/failure counts with error details.
+- **Preferred Center Prompt** (Feb 2026): Enhanced Medical & EID appointment scheduling dialogs. When selecting a different center than the company's preferred, offers three options: Go Back, Continue Without Changing, or Set as Default & Continue (updates company profile via PUT /api/companies/:id).
 
 ## External Dependencies
 
