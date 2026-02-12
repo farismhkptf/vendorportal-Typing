@@ -12,10 +12,62 @@ import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toProperCase } from "@/lib/proper-case";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Company, Staff, Center, CompanyEmail } from "@shared/schema";
 
 type ViewMode = "compact" | "cards" | "table";
 type SortByOption = "name_asc" | "name_desc" | "most_used";
+
+interface ClientContact {
+  name?: string;
+  email?: string;
+  mobile?: string;
+}
+
+function hasValidContact(contact: ClientContact | null | undefined): boolean {
+  return !!(contact && contact.name && contact.name.trim() && contact.email && contact.email.trim());
+}
+
+function getCompanyCompleteness(company: CompanyWithRelations): { complete: boolean; missing: string[] } {
+  const missing: string[] = [];
+  if (!company.tradeLicenseNumber) missing.push("Trade License");
+  if (!hasValidContact(company.clientCoordinator as ClientContact)) missing.push("Coordinator");
+  if (!hasValidContact(company.clientManager as ClientContact)) missing.push("Manager");
+  if (!hasValidContact(company.clientAccountant as ClientContact)) missing.push("Accountant");
+  if (!company.preferredMedicalCenter) missing.push("Medical Center");
+  if (!company.preferredBiometricsCenter) missing.push("EID Center");
+  if (!company.rmStaff) missing.push("RM Staff");
+  if (!company.assistStaff) missing.push("Assist Staff");
+  return { complete: missing.length === 0, missing };
+}
+
+function CompletenessIndicator({ company }: { company: CompanyWithRelations }) {
+  const { complete, missing } = getCompanyCompleteness(company);
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={`inline-block h-2.5 w-2.5 rounded-full shrink-0 ${complete ? "bg-emerald-500" : "bg-red-500"}`}
+          data-testid={`completeness-dot-${company.id}`}
+        />
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[200px]">
+        {complete ? (
+          <p className="text-xs">All key fields filled</p>
+        ) : (
+          <div className="text-xs">
+            <p className="font-medium mb-1">Missing:</p>
+            <ul className="list-disc pl-3 space-y-0.5">
+              {missing.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -23,6 +75,7 @@ interface CompanyWithRelations extends Company {
   preferredMedicalCenter?: Center;
   preferredMedicalCenterVip?: Center;
   preferredBiometricsCenter?: Center;
+  preferredBiometricsCenterVip?: Center;
   emails?: CompanyEmail[];
   workOrderCount?: number;
 }
@@ -70,6 +123,7 @@ export default function CompaniesList() {
             data-testid={`company-compact-${company.id}`}
           >
             <div className="flex items-center gap-3 min-w-0">
+              <CompletenessIndicator company={company} />
               <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
               <span className="font-medium text-foreground truncate">{toProperCase(company.name)}</span>
               {company.rmStaff && (
@@ -100,8 +154,11 @@ export default function CompaniesList() {
           >
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="icon-container icon-container-md shrink-0">
+                <div className="relative icon-container icon-container-md shrink-0">
                   <Building2 className="h-5 w-5" />
+                  <span className="absolute -top-0.5 -right-0.5">
+                    <CompletenessIndicator company={company} />
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground truncate">{toProperCase(company.name)}</h3>
@@ -180,6 +237,7 @@ export default function CompaniesList() {
             >
               <TableCell>
                 <div className="flex items-center gap-2">
+                  <CompletenessIndicator company={company} />
                   <Building2 className="h-4 w-4 text-muted-foreground" />
                   <span className="font-medium text-primary">{toProperCase(company.name)}</span>
                 </div>
