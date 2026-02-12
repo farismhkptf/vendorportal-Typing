@@ -600,7 +600,7 @@ Thank you,
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">{toProperCase(selectedWo.applicantName)}</span>
@@ -791,7 +791,7 @@ Thank you,
             )}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="appointmentDate"
@@ -940,7 +940,7 @@ Thank you,
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div>
               <span className="text-muted-foreground">Work Order:</span>
               <span className="ml-2 font-medium">{selectedWo?.woNumber}</span>
@@ -1139,7 +1139,7 @@ Thank you,
                 </div>
                 <Badge variant="outline" className="text-xs">{selectedWo.status}</Badge>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <div className="flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5 text-muted-foreground" />
                   <span>{toProperCase(selectedWo.applicantName)}</span>
@@ -1187,7 +1187,7 @@ Thank you,
           </Card>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <FormField
             control={form.control}
             name="centerId"
@@ -1259,7 +1259,7 @@ Thank you,
                 <span>No team assigned to company</span>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
               <div className="p-2 bg-muted/50 rounded">
                 <p className="text-muted-foreground">Assist</p>
                 {companyAssist ? (

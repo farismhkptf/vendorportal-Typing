@@ -954,7 +954,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FormField
                           control={centerForm.control}
                           name="type"
@@ -1043,7 +1043,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FormField
                           control={centerForm.control}
                           name="address"
@@ -1084,7 +1084,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FormField
                           control={centerForm.control}
                           name="timingText"
@@ -1147,7 +1147,7 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={editCenterForm.control}
                         name="type"
@@ -1236,7 +1236,7 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={editCenterForm.control}
                         name="address"
@@ -1277,7 +1277,7 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <FormField
                         control={editCenterForm.control}
                         name="timingText"
@@ -1834,7 +1834,7 @@ export default function AdminPage() {
                     </DialogHeader>
                     <Form {...staffForm}>
                       <form onSubmit={staffForm.handleSubmit((data) => createStaffMutation.mutate(data))} className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FormField
                           control={staffForm.control}
                           name="name"
@@ -1894,7 +1894,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <FormField
                           control={staffForm.control}
                           name="phone"
@@ -3013,7 +3013,7 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         <FormField
                           control={jobTypeForm.control}
                           name="name"
@@ -3101,7 +3101,7 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       <FormField
                         control={editJobTypeForm.control}
                         name="name"

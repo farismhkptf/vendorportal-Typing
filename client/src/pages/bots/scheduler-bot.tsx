@@ -671,7 +671,7 @@ function AppointmentForm({
           data-testid="input-app-number"
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
             <Calendar className="h-3 w-3" />
