@@ -319,8 +319,8 @@ Thank you,
         toast({ title: "Appointment marked as rescheduled", description: "Redirecting to schedule a new appointment..." });
         setConfirmDialog({ open: false, type: "complete", appointment: null });
         const scheduleUrl = appointment.type === "Medical" 
-          ? `/appointments/schedule-medical?woId=${appointment.woId}`
-          : `/appointments/schedule-eid?woId=${appointment.woId}`;
+          ? `/appointments/schedule-medical?wo=${appointment.woId}`
+          : `/appointments/schedule-eid?wo=${appointment.woId}`;
         navigate(scheduleUrl);
         return;
       }

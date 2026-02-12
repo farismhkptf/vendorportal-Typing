@@ -24,7 +24,10 @@ import {
   Star,
   Loader2,
   ClipboardList,
-  Home
+  Home,
+  CheckCircle2,
+  RefreshCw,
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -230,6 +233,51 @@ export default function WorkOrderDetail() {
   const [showNewTypingJobForm, setShowNewTypingJobForm] = useState(false);
   const [typeMedical, setTypeMedical] = useState(true);
   const [typeEid, setTypeEid] = useState(true);
+  const [aptConfirmDialog, setAptConfirmDialog] = useState<{
+    open: boolean;
+    type: "complete" | "cancel" | "reschedule";
+    appointment: Appointment | null;
+  }>({ open: false, type: "complete", appointment: null });
+
+  const updateAptStatusMutation = useMutation({
+    mutationFn: async ({ aptId, status }: { aptId: string; status: string }) => {
+      return apiRequest("PATCH", `/api/appointments/${aptId}`, { status });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+    },
+  });
+
+  const handleAptConfirmAction = async () => {
+    const { type, appointment } = aptConfirmDialog;
+    if (!appointment) return;
+    try {
+      if (type === "reschedule") {
+        await updateAptStatusMutation.mutateAsync({ aptId: appointment.id, status: "Rescheduled" });
+        toast({ title: "Appointment marked as rescheduled", description: "Redirecting to schedule a new appointment..." });
+        setAptConfirmDialog({ open: false, type: "complete", appointment: null });
+        const scheduleUrl = appointment.type === "Medical"
+          ? `/appointments/schedule-medical?wo=${appointment.woId}`
+          : `/appointments/schedule-eid?wo=${appointment.woId}`;
+        setLocation(scheduleUrl);
+        return;
+      }
+      const status = type === "complete" ? "Completed" : "Cancelled";
+      await updateAptStatusMutation.mutateAsync({ aptId: appointment.id, status });
+      toast({
+        title: `Appointment ${status.toLowerCase()}`,
+        description: `The appointment has been marked as ${status.toLowerCase()}.`,
+      });
+      setAptConfirmDialog({ open: false, type: "complete", appointment: null });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update appointment",
+        variant: "destructive",
+      });
+    }
+  };
 
   const { data: workOrder, isLoading } = useQuery<WorkOrderDetail>({
     queryKey: ["/api/work-orders", id],
@@ -740,16 +788,50 @@ export default function WorkOrderDetail() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {apt.status === "Scheduled" && (
-                              <Link href={`/appointments?viewMessages=${apt.id}`}>
-                                <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-wo-view-messages-${apt.id}`}>
-                                  <Mail className="h-3.5 w-3.5" />
-                                  Messages
+                              <>
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  className="gap-1.5"
+                                  onClick={() => setAptConfirmDialog({ open: true, type: "complete", appointment: apt })}
+                                  data-testid={`button-wo-apt-done-${apt.id}`}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5" />
+                                  Done
                                 </Button>
-                              </Link>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5"
+                                  onClick={() => setAptConfirmDialog({ open: true, type: "reschedule", appointment: apt })}
+                                  data-testid={`button-wo-apt-reschedule-${apt.id}`}
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5" />
+                                  Reschedule
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5 text-destructive"
+                                  onClick={() => setAptConfirmDialog({ open: true, type: "cancel", appointment: apt })}
+                                  data-testid={`button-wo-apt-cancel-${apt.id}`}
+                                >
+                                  <XCircle className="h-3.5 w-3.5" />
+                                  Cancel
+                                </Button>
+                                <Link href={`/appointments?viewMessages=${apt.id}`}>
+                                  <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-wo-view-messages-${apt.id}`}>
+                                    <Mail className="h-3.5 w-3.5" />
+                                    Messages
+                                  </Button>
+                                </Link>
+                              </>
                             )}
-                            <StatusBadge status={apt.status} />
+                            {apt.status !== "Scheduled" && (
+                              <StatusBadge status={apt.status} />
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -1115,6 +1197,66 @@ export default function WorkOrderDetail() {
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={aptConfirmDialog.open} onOpenChange={(open) => !open && setAptConfirmDialog({ open: false, type: "complete", appointment: null })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {aptConfirmDialog.type === "complete" && "Mark as Completed"}
+              {aptConfirmDialog.type === "cancel" && "Cancel Appointment"}
+              {aptConfirmDialog.type === "reschedule" && "Reschedule Appointment"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            {aptConfirmDialog.appointment && (
+              <div className="space-y-2 text-sm">
+                <p>
+                  <span className="text-muted-foreground">Applicant:</span>{" "}
+                  <span className="font-medium">{toProperCase(workOrder?.applicantName || "")}</span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Type:</span>{" "}
+                  <span className="font-medium">{aptConfirmDialog.appointment.type}</span>
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Date:</span>{" "}
+                  <span className="font-medium">
+                    {formatDateWithWeekday(aptConfirmDialog.appointment.datetime)} at{" "}
+                    {new Date(aptConfirmDialog.appointment.datetime).toLocaleTimeString("en-US", {
+                      hour: "numeric", minute: "2-digit", hour12: true
+                    })}
+                  </span>
+                </p>
+              </div>
+            )}
+            <p className="text-sm text-muted-foreground mt-4">
+              {aptConfirmDialog.type === "complete" && "This will mark the appointment as completed."}
+              {aptConfirmDialog.type === "cancel" && "This will cancel the appointment. This action cannot be undone."}
+              {aptConfirmDialog.type === "reschedule" && "This will mark the current appointment as rescheduled and take you to schedule a new one for the same work order."}
+            </p>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setAptConfirmDialog({ open: false, type: "complete", appointment: null })}
+              data-testid="button-apt-dialog-cancel"
+            >
+              Go Back
+            </Button>
+            <Button
+              variant={aptConfirmDialog.type === "cancel" ? "destructive" : "default"}
+              onClick={handleAptConfirmAction}
+              disabled={updateAptStatusMutation.isPending}
+              data-testid="button-apt-dialog-confirm"
+            >
+              {updateAptStatusMutation.isPending ? "Processing..." :
+                aptConfirmDialog.type === "complete" ? "Mark Completed" :
+                aptConfirmDialog.type === "cancel" ? "Cancel Appointment" :
+                "Reschedule"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </AppLayout>
