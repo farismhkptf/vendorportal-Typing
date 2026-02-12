@@ -373,6 +373,15 @@ export const messages = pgTable("messages", {
   sentAt: timestamp("sent_at"),
 });
 
+// Work Order Internal Notes table
+export const woNotes = pgTable("wo_notes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  woId: varchar("wo_id").notNull(),
+  content: text("content").notNull(),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Vendor Wallet Ledger table
 export const vendorWalletLedger = pgTable("vendor_wallet_ledger", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -448,6 +457,7 @@ export const insertTypingJobSchema = createInsertSchema(typingJobs).omit({ id: t
 export const insertTypingJobResultSchema = createInsertSchema(typingJobResults);
 export const insertTypingJobCommentSchema = createInsertSchema(typingJobComments).omit({ id: true, createdAt: true });
 export const insertFileSchema = createInsertSchema(files).omit({ id: true, createdAt: true });
+export const insertWoNoteSchema = createInsertSchema(woNotes).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertVendorWalletLedgerSchema = createInsertSchema(vendorWalletLedger).omit({ id: true, createdAt: true });
 export const insertVendorStatementSchema = createInsertSchema(vendorStatements).omit({ id: true, generatedAt: true });
@@ -489,6 +499,8 @@ export type InsertTypingJobComment = z.infer<typeof insertTypingJobCommentSchema
 export type TypingJobComment = typeof typingJobComments.$inferSelect;
 export type InsertFile = z.infer<typeof insertFileSchema>;
 export type File = typeof files.$inferSelect;
+export type InsertWoNote = z.infer<typeof insertWoNoteSchema>;
+export type WoNote = typeof woNotes.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertVendorWalletLedger = z.infer<typeof insertVendorWalletLedgerSchema>;

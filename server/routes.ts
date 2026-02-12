@@ -6,7 +6,7 @@ import { z } from "zod";
 import { 
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
   insertCenterSchema, insertServiceTypeSchema, insertJobTypeSchema, loginSchema,
-  insertAppointmentSchema, insertTypingJobSchema,
+  insertAppointmentSchema, insertTypingJobSchema, insertWoNoteSchema,
   type CenterTimings
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
@@ -322,6 +322,42 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Last work order error:", error);
       res.status(500).json({ message: "Failed to fetch last work order" });
+    }
+  });
+
+  // ========== Work Order Notes ==========
+  app.get("/api/wo-notes/:woId", async (req, res) => {
+    try {
+      const notes = await storage.getWoNotes(req.params.woId);
+      res.json(notes);
+    } catch (error) {
+      console.error("WO notes error:", error);
+      res.status(500).json({ message: "Failed to fetch notes" });
+    }
+  });
+
+  app.post("/api/wo-notes", async (req, res) => {
+    try {
+      const validation = validateBody(insertWoNoteSchema, req.body);
+      if ("error" in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const note = await storage.createWoNote(validation.data);
+      res.json(note);
+    } catch (error) {
+      console.error("Create WO note error:", error);
+      res.status(500).json({ message: "Failed to create note" });
+    }
+  });
+
+  app.delete("/api/wo-notes/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteWoNote(req.params.id);
+      if (!deleted) return res.status(404).json({ message: "Note not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete WO note error:", error);
+      res.status(500).json({ message: "Failed to delete note" });
     }
   });
 

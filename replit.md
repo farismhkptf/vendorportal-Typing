@@ -51,7 +51,8 @@ The design follows an Apple-inspired glassmorphism aesthetic with soft gradients
 - **Vendor Management**: CRUD operations for vendors, vendor wallet ledger with advance top-ups, auto-deductions, and reversals.
 - **Document Management**: `woDocuments` and `documentRequirements` tables. Supports presigned URL upload flow to object storage, document status updates, and context-based filtering of requirements.
 - **Input Formatting**: `Proper Case` auto-formatting for textual inputs and phone number masking.
-- **Activity Timeline**: Audit trail display for work orders.
+- **Internal Notes**: `woNotes` table for team communication. Notes are attached to work orders with add/delete functionality, relative timestamps, and empty state. Accessible via the "Internal Notes" tab on WO detail page.
+- **Activity Timeline**: Audit trail display for work orders (shown as "Timeline" tab on WO detail page).
 - **Company Profile UX**: Always-editable form (no edit toggle), persistent Save button with dirty state tracking, Ctrl+S keyboard shortcut, unsaved changes warning on navigation/page unload.
 - **Bots System**: Two conversational bots accessible from sidebar:
   - **Bot 1 - Quick Paste WO** (`/bots/quick-paste`): Paste spreadsheet rows, auto-parse WO number/company/applicant/service type using fuzzy matching, create work orders in one click.

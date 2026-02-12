@@ -11,7 +11,9 @@ import {
   Building2, 
   Calendar, 
   FileText, 
-  MessageSquare,
+  StickyNote,
+  History,
+  Send,
   User,
   MapPin,
   Mail,
@@ -46,7 +48,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType } from "@shared/schema";
+import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType, WoNote } from "@shared/schema";
 import { DocumentPanel } from "@/components/documents/document-panel";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { CopyableText } from "@/components/ui/copy-button";
@@ -75,6 +77,119 @@ interface WorkOrderDetail extends WorkOrder {
   };
   appointments?: Appointment[];
   typingJobs?: TypingJob[];
+}
+
+function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
+  const [noteText, setNoteText] = useState("");
+  const { toast } = useToast();
+  const { data: notes, isLoading } = useQuery<WoNote[]>({
+    queryKey: ["/api/wo-notes", workOrderId],
+    enabled: !!workOrderId,
+  });
+
+  const addNoteMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/wo-notes", { woId: workOrderId, content: noteText }),
+    onSuccess: () => {
+      setNoteText("");
+      queryClient.invalidateQueries({ queryKey: ["/api/wo-notes", workOrderId] });
+    },
+    onError: () => {
+      toast({ title: "Failed to add note", variant: "destructive" });
+    },
+  });
+
+  const deleteNoteMutation = useMutation({
+    mutationFn: (noteId: string) => apiRequest("DELETE", `/api/wo-notes/${noteId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/wo-notes", workOrderId] });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete note", variant: "destructive" });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!noteText.trim()) return;
+    addNoteMutation.mutate();
+  };
+
+  const formatNoteDate = (date: string | Date) => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  return (
+    <div className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex gap-2" data-testid="form-add-note">
+        <Textarea
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          placeholder="Add an internal note..."
+          className="min-h-[80px] resize-none flex-1"
+          data-testid="input-note-text"
+        />
+        <Button
+          type="submit"
+          size="icon"
+          disabled={!noteText.trim() || addNoteMutation.isPending}
+          className="self-end shrink-0"
+          data-testid="button-add-note"
+        >
+          {addNoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        </Button>
+      </form>
+
+      {isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ) : notes && notes.length > 0 ? (
+        <div className="space-y-3">
+          {notes.map((note) => (
+            <div
+              key={note.id}
+              className="group relative p-3 rounded-lg bg-muted/50 border border-border/30"
+              data-testid={`note-item-${note.id}`}
+            >
+              <p className="text-sm text-foreground whitespace-pre-wrap pr-8">{note.content}</p>
+              <div className="flex items-center justify-between gap-2 mt-2">
+                <span className="text-xs text-muted-foreground" title={new Date(note.createdAt).toLocaleString()}>
+                  {formatNoteDate(note.createdAt)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-opacity text-muted-foreground"
+                  onClick={() => deleteNoteMutation.mutate(note.id)}
+                  data-testid={`button-delete-note-${note.id}`}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<StickyNote className="h-6 w-6" />}
+          title="No notes yet"
+          description="Add internal notes for team communication about this work order."
+        />
+      )}
+    </div>
+  );
 }
 
 function ActivityTimelineSection({ workOrderId }: { workOrderId: string }) {
@@ -550,7 +665,7 @@ export default function WorkOrderDetail() {
                 data-testid="tab-typing"
               >
                 <FileText className="h-4 w-4 mr-2" />
-                Type Medical & EID Application
+                Create Typing Job
               </TabsTrigger>
               <TabsTrigger 
                 value="appointments" 
@@ -558,23 +673,23 @@ export default function WorkOrderDetail() {
                 data-testid="tab-appointments"
               >
                 <Calendar className="h-4 w-4 mr-2" />
-                Schedule Medical
+                Schedule Appointment
               </TabsTrigger>
               <TabsTrigger 
-                value="messages" 
+                value="notes" 
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
-                data-testid="tab-messages"
+                data-testid="tab-notes"
               >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Messages
+                <StickyNote className="h-4 w-4 mr-2" />
+                Internal Notes
               </TabsTrigger>
               <TabsTrigger 
                 value="activity" 
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
                 data-testid="tab-activity"
               >
-                <FileText className="h-4 w-4 mr-2" />
-                Activity
+                <History className="h-4 w-4 mr-2" />
+                Timeline
               </TabsTrigger>
               <TabsTrigger 
                 value="documents" 
@@ -767,12 +882,8 @@ export default function WorkOrderDetail() {
               )}
             </TabsContent>
 
-            <TabsContent value="messages" className="p-6">
-              <EmptyState
-                icon={<MessageSquare className="h-6 w-6" />}
-                title="No messages yet"
-                description="Messages and drafts will appear here once you schedule appointments."
-              />
+            <TabsContent value="notes" className="p-6">
+              <InternalNotesSection workOrderId={id || ""} />
             </TabsContent>
 
             <TabsContent value="activity" className="p-6">

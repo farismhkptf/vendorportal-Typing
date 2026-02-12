@@ -1,7 +1,7 @@
 import { 
   users, staff, centers, companies, companyEmails, serviceTypes, 
   workOrders, appointments, rescheduleRequests, jobTypes, vendors,
-  typingJobs, typingJobResults, typingJobComments, files, messages,
+  typingJobs, typingJobResults, typingJobComments, files, messages, woNotes,
   vendorWalletLedger, vendorStatements, vendorInvoices, appSettings, auditLog,
   woDocuments, documentRequirements,
   type User, type InsertUser, type Staff, type InsertStaff,
@@ -13,7 +13,8 @@ import {
   type TypingJobResult, type InsertTypingJobResult, type TypingJobComment, type InsertTypingJobComment,
   type VendorWalletLedger, type InsertVendorWalletLedger, type AppSettings,
   type AuditLog, type InsertAuditLog, type InsertFile, type File,
-  type WoDocument, type InsertWoDocument, type DocumentRequirement, type InsertDocumentRequirement
+  type WoDocument, type InsertWoDocument, type DocumentRequirement, type InsertDocumentRequirement,
+  type WoNote, type InsertWoNote
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
@@ -127,6 +128,11 @@ export interface IStorage {
   getAppSettings(): Promise<AppSettings | undefined>;
   updateAppSettings(data: Partial<AppSettings>): Promise<AppSettings | undefined>;
   
+  // Work Order Notes
+  getWoNotes(woId: string): Promise<WoNote[]>;
+  createWoNote(data: InsertWoNote): Promise<WoNote>;
+  deleteWoNote(id: string): Promise<boolean>;
+
   // Audit Log
   getAuditLogsByEntity(entityType: string, entityId: string): Promise<AuditLog[]>;
   createAuditLog(data: InsertAuditLog): Promise<AuditLog>;
@@ -1173,6 +1179,24 @@ export class DatabaseStorage implements IStorage {
 
     console.log(`Staff seeded: ${added} added, ${skipped} skipped`);
     return { added, skipped };
+  }
+
+  // Work Order Notes
+  async getWoNotes(woId: string): Promise<WoNote[]> {
+    return db.select()
+      .from(woNotes)
+      .where(eq(woNotes.woId, woId))
+      .orderBy(desc(woNotes.createdAt));
+  }
+
+  async createWoNote(data: InsertWoNote): Promise<WoNote> {
+    const [note] = await db.insert(woNotes).values(data).returning();
+    return note;
+  }
+
+  async deleteWoNote(id: string): Promise<boolean> {
+    const result = await db.delete(woNotes).where(eq(woNotes.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Audit Log
