@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { randomUUID } from "crypto";
+import * as XLSX from 'xlsx';
+import multer from 'multer';
 import { z } from "zod";
 import { 
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
@@ -12,6 +14,8 @@ import {
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { toProperCase } from "./proper-case";
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const topupSchema = z.object({
   amount: z.number().positive(),
@@ -2122,6 +2126,235 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Reschedule submit error:", error);
       res.status(500).json({ message: "Failed to submit reschedule request" });
+    }
+  });
+
+  // ========== Admin Excel Template & Import ==========
+  app.get("/api/admin/template", async (req, res) => {
+    try {
+      const workbook = XLSX.utils.book_new();
+
+      const centersData = [
+        ["Name", "Type (Medical/EID/Both)", "Authority (DHA/EHS/ICP)", "Tier (Normal/VIP)", "Address", "Area", "Google Maps URL", "Timing Text", "Notes"],
+        ["Example Medical Center", "Medical", "DHA", "Normal", "123 Street, Dubai", "Deira", "", "Sun-Thu: 7AM-9PM", "Walk-in available"],
+      ];
+      const centersSheet = XLSX.utils.aoa_to_sheet(centersData);
+      centersSheet["!cols"] = [
+        { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 35 },
+        { wch: 15 }, { wch: 30 }, { wch: 25 }, { wch: 25 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, centersSheet, "Centers");
+
+      const companiesData = [
+        ["Name", "Trade License Number", "Delivery Address"],
+        ["Example Trading LLC", "TL-123456", "P.O. Box 12345, Dubai"],
+      ];
+      const companiesSheet = XLSX.utils.aoa_to_sheet(companiesData);
+      companiesSheet["!cols"] = [{ wch: 30 }, { wch: 25 }, { wch: 35 }];
+      XLSX.utils.book_append_sheet(workbook, companiesSheet, "Companies");
+
+      const staffData = [
+        ["Name", "Role Title", "Staff Type (Permanent/Temporary)", "Phone", "Email", "Status (Active/OnLeave/Cancelled/TempActive/TempInactive)"],
+        ["John Doe", "Relationship Manager", "Permanent", "050-123-4567", "john@example.com", "Active"],
+      ];
+      const staffSheet = XLSX.utils.aoa_to_sheet(staffData);
+      staffSheet["!cols"] = [
+        { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 25 }, { wch: 45 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, staffSheet, "Staff");
+
+      const serviceTypesData = [
+        ["Name", "Category (NewVisaInside/NewVisaOutside/GoldenVisa/RenewVisa/NewbornDependent/LostReplaceEid)", "Requires Medical Typing (Yes/No)", "Requires Medical Scheduling (Yes/No)", "Requires ID Typing 2 Years (Yes/No)", "Requires ID Typing 1 Year (Yes/No)", "Requires ID Typing 10 Years (Yes/No)", "Requires ID Biometrics (Yes/No)"],
+        ["New Employment Visa", "NewVisaInside", "Yes", "Yes", "Yes", "No", "No", "Yes"],
+      ];
+      const serviceTypesSheet = XLSX.utils.aoa_to_sheet(serviceTypesData);
+      serviceTypesSheet["!cols"] = [
+        { wch: 25 }, { wch: 60 }, { wch: 30 }, { wch: 35 },
+        { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 28 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, serviceTypesSheet, "Service Types");
+
+      const jobTypesData = [
+        ["Name", "Category (Medical/EID)", "Cost"],
+        ["Medical Typing", "Medical", "150"],
+      ];
+      const jobTypesSheet = XLSX.utils.aoa_to_sheet(jobTypesData);
+      jobTypesSheet["!cols"] = [{ wch: 25 }, { wch: 22 }, { wch: 10 }];
+      XLSX.utils.book_append_sheet(workbook, jobTypesSheet, "Job Types");
+
+      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="PRO_Company_Import_Template.xlsx"');
+      res.send(buffer);
+    } catch (error) {
+      console.error("Template download error:", error);
+      res.status(500).json({ message: "Failed to generate template" });
+    }
+  });
+
+  app.post("/api/admin/import", upload.single('file'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const results: Record<string, { imported: number; failed: number; errors: string[] }> = {};
+      let totalImported = 0;
+      let totalFailed = 0;
+
+      const yesNoToBool = (val: any): boolean => {
+        if (typeof val === 'string') return val.trim().toLowerCase() === 'yes';
+        return !!val;
+      };
+
+      if (workbook.SheetNames.includes("Centers")) {
+        const sheet = workbook.Sheets["Centers"];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+        const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const name = row["Name"]?.toString().trim();
+          if (!name) continue;
+          try {
+            const typeVal = row["Type (Medical/EID/Both)"]?.toString().trim();
+            const authorityVal = row["Authority (DHA/EHS/ICP)"]?.toString().trim();
+            const tierVal = row["Tier (Normal/VIP)"]?.toString().trim();
+            await storage.createCenter({
+              name,
+              type: typeVal as any || "Medical",
+              authority: authorityVal as any || undefined,
+              tier: tierVal as any || "Normal",
+              address: row["Address"]?.toString().trim() || undefined,
+              area: row["Area"]?.toString().trim() || undefined,
+              googleMapsUrl: row["Google Maps URL"]?.toString().trim() || undefined,
+              timingText: row["Timing Text"]?.toString().trim() || undefined,
+              notes: row["Notes"]?.toString().trim() || undefined,
+            });
+            sheetResult.imported++;
+          } catch (err: any) {
+            sheetResult.failed++;
+            sheetResult.errors.push(`Row ${i + 2}: ${err.message || 'Unknown error'}`);
+          }
+        }
+        results["Centers"] = sheetResult;
+        totalImported += sheetResult.imported;
+        totalFailed += sheetResult.failed;
+      }
+
+      if (workbook.SheetNames.includes("Companies")) {
+        const sheet = workbook.Sheets["Companies"];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+        const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const name = row["Name"]?.toString().trim();
+          if (!name) continue;
+          try {
+            await storage.createCompany({
+              name,
+              tradeLicenseNumber: row["Trade License Number"]?.toString().trim() || undefined,
+              deliveryAddress: row["Delivery Address"]?.toString().trim() || undefined,
+            });
+            sheetResult.imported++;
+          } catch (err: any) {
+            sheetResult.failed++;
+            sheetResult.errors.push(`Row ${i + 2}: ${err.message || 'Unknown error'}`);
+          }
+        }
+        results["Companies"] = sheetResult;
+        totalImported += sheetResult.imported;
+        totalFailed += sheetResult.failed;
+      }
+
+      if (workbook.SheetNames.includes("Staff")) {
+        const sheet = workbook.Sheets["Staff"];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+        const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const name = row["Name"]?.toString().trim();
+          if (!name) continue;
+          try {
+            await storage.createStaff({
+              name,
+              roleTitle: row["Role Title"]?.toString().trim() || "Staff",
+              staffType: (row["Staff Type (Permanent/Temporary)"]?.toString().trim() as any) || "Permanent",
+              phone: row["Phone"]?.toString().trim() || undefined,
+              email: row["Email"]?.toString().trim() || undefined,
+              status: (row["Status (Active/OnLeave/Cancelled/TempActive/TempInactive)"]?.toString().trim() as any) || "Active",
+            });
+            sheetResult.imported++;
+          } catch (err: any) {
+            sheetResult.failed++;
+            sheetResult.errors.push(`Row ${i + 2}: ${err.message || 'Unknown error'}`);
+          }
+        }
+        results["Staff"] = sheetResult;
+        totalImported += sheetResult.imported;
+        totalFailed += sheetResult.failed;
+      }
+
+      if (workbook.SheetNames.includes("Service Types")) {
+        const sheet = workbook.Sheets["Service Types"];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+        const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const name = row["Name"]?.toString().trim();
+          if (!name) continue;
+          try {
+            await storage.createServiceType({
+              name,
+              category: (row["Category (NewVisaInside/NewVisaOutside/GoldenVisa/RenewVisa/NewbornDependent/LostReplaceEid)"]?.toString().trim() as any) || undefined,
+              requiresMedicalTyping: yesNoToBool(row["Requires Medical Typing (Yes/No)"]),
+              requiresMedicalScheduling: yesNoToBool(row["Requires Medical Scheduling (Yes/No)"]),
+              requiresIdTyping2Years: yesNoToBool(row["Requires ID Typing 2 Years (Yes/No)"]),
+              requiresIdTyping1Year: yesNoToBool(row["Requires ID Typing 1 Year (Yes/No)"]),
+              requiresIdTyping10Years: yesNoToBool(row["Requires ID Typing 10 Years (Yes/No)"]),
+              requiresIdBiometrics: yesNoToBool(row["Requires ID Biometrics (Yes/No)"]),
+            });
+            sheetResult.imported++;
+          } catch (err: any) {
+            sheetResult.failed++;
+            sheetResult.errors.push(`Row ${i + 2}: ${err.message || 'Unknown error'}`);
+          }
+        }
+        results["Service Types"] = sheetResult;
+        totalImported += sheetResult.imported;
+        totalFailed += sheetResult.failed;
+      }
+
+      if (workbook.SheetNames.includes("Job Types")) {
+        const sheet = workbook.Sheets["Job Types"];
+        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+        const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const name = row["Name"]?.toString().trim();
+          if (!name) continue;
+          try {
+            const costVal = parseInt(row["Cost"]?.toString().trim() || "0", 10);
+            await storage.createJobType({
+              name,
+              category: (row["Category (Medical/EID)"]?.toString().trim() as any) || "Medical",
+              cost: isNaN(costVal) ? 0 : costVal,
+            });
+            sheetResult.imported++;
+          } catch (err: any) {
+            sheetResult.failed++;
+            sheetResult.errors.push(`Row ${i + 2}: ${err.message || 'Unknown error'}`);
+          }
+        }
+        results["Job Types"] = sheetResult;
+        totalImported += sheetResult.imported;
+        totalFailed += sheetResult.failed;
+      }
+
+      res.json({ results, totalImported, totalFailed });
+    } catch (error) {
+      console.error("Import error:", error);
+      res.status(500).json({ message: "Failed to import data" });
     }
   });
 
