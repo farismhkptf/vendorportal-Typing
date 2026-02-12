@@ -341,25 +341,31 @@ Thank you,
     }
   };
 
+  const formatShortDate = (datetime: string | Date) => {
+    const d = typeof datetime === "string" ? new Date(datetime) : datetime;
+    return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  };
+
   const renderAppointmentCard = (apt: AppointmentWithRelations, showDate: boolean, showActions: boolean) => (
     <div
       key={apt.id}
-      className="p-4 rounded-lg bg-muted/30 border border-border/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+      className="p-4 rounded-lg bg-muted/30 border border-border/30"
       data-testid={`appointment-card-${apt.id}`}
     >
-      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-        <div className="text-center min-w-[50px] sm:min-w-[60px] shrink-0">
+      <div className="flex items-start gap-4">
+        <div className="shrink-0 w-[110px] rounded-md bg-background border border-border/40 px-3 py-2 text-center">
           {showDate && (
-            <p className="text-xs text-muted-foreground">{formatDateDisplay(apt.datetime)}</p>
+            <p className="text-xs font-medium text-muted-foreground leading-tight">{formatShortDate(apt.datetime)}</p>
           )}
-          <p className="font-semibold text-foreground">{formatTime(apt.datetime)}</p>
+          <p className="text-lg font-bold text-foreground leading-snug tracking-tight">{formatTime(apt.datetime)}</p>
         </div>
-        <div className="min-w-0 flex-1">
+
+        <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <p className="font-medium text-foreground truncate">
+            <span className="font-medium text-sm text-foreground truncate">
               {apt.workOrder?.applicantName ? toProperCase(apt.workOrder.applicantName) : "Unknown"}
-            </p>
+            </span>
             <Badge variant="secondary" className="text-xs">
               {apt.type}
             </Badge>
@@ -368,36 +374,35 @@ Thank you,
                 VIP
               </Badge>
             )}
-          </div>
-          <div className="flex items-center gap-3 mt-1 flex-wrap">
-            <div className="flex items-center gap-1.5">
-              <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <p className="text-sm text-muted-foreground truncate">
-                {apt.workOrder?.company?.name ? toProperCase(apt.workOrder.company.name) : "Unknown Company"}
-              </p>
-            </div>
-            {apt.center?.name && (
-              <div className="flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <p className="text-sm text-muted-foreground truncate">
-                  {apt.center.name}
-                </p>
-              </div>
+            {!showActions && (
+              <Badge variant={
+                apt.status === "Completed" ? "secondary" :
+                apt.status === "Cancelled" ? "destructive" :
+                apt.status === "Rescheduled" ? "outline" :
+                "default"
+              }>
+                {apt.status}
+              </Badge>
             )}
           </div>
+          <div className="flex items-center gap-1.5">
+            <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-sm text-muted-foreground truncate">
+              {apt.workOrder?.company?.name ? toProperCase(apt.workOrder.company.name) : "Unknown Company"}
+            </span>
+          </div>
+          {apt.center?.name && (
+            <div className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground truncate">
+                {apt.center.name}
+              </span>
+            </div>
+          )}
         </div>
       </div>
-      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap">
-        {!showActions && (
-          <Badge variant={
-            apt.status === "Completed" ? "secondary" : 
-            apt.status === "Cancelled" ? "destructive" : 
-            apt.status === "Rescheduled" ? "outline" :
-            "default"
-          }>
-            {apt.status}
-          </Badge>
-        )}
+
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/20 justify-end flex-wrap">
         {showActions && (
           <>
             <Button
