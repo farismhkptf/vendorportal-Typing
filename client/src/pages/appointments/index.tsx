@@ -1,16 +1,18 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { 
   Calendar, Clock, Stethoscope, CreditCard,
   CheckCircle2, AlertCircle, Building2, User,
-  MoreHorizontal, RefreshCw, XCircle, MapPin
+  MoreHorizontal, RefreshCw, XCircle, MapPin,
+  Mail, MessageCircle, Copy, Check, Maximize2
 } from "lucide-react";
 import { formatDateWithWeekday } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -18,7 +20,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { toProperCase } from "@/lib/proper-case";
-import type { Appointment, WorkOrder, Center } from "@shared/schema";
+import { generateMedicalAppointmentEmailHtml, MedicalAppointmentEmail } from "@/components/email-templates/medical-appointment-email";
+import { generateEidAppointmentEmailHtml, EidAppointmentEmail } from "@/components/email-templates/eid-appointment-email";
+import type { Appointment, WorkOrder, Center, Staff, Company, ServiceType } from "@shared/schema";
 
 interface AppointmentWithRelations extends Appointment {
   workOrder?: WorkOrder & { company?: { name: string } };
@@ -32,18 +36,202 @@ interface AppointmentStats {
   cancelledCount: number;
 }
 
+const formatTime12h = (time24: string) => {
+  const [h, m] = time24.split(":");
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${m} ${ampm}`;
+};
+
 export default function AppointmentsIndex() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const searchParams = useSearch();
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     type: "complete" | "cancel" | "reschedule";
     appointment: AppointmentWithRelations | null;
   }>({ open: false, type: "complete", appointment: null });
+  const [viewMessagesApt, setViewMessagesApt] = useState<AppointmentWithRelations | null>(null);
+  const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
+  const [emailFullscreen, setEmailFullscreen] = useState(false);
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithRelations[]>({
     queryKey: ["/api/appointments"],
   });
+
+  const { data: staffList } = useQuery<Staff[]>({
+    queryKey: ["/api/staff"],
+  });
+
+  const { data: companies } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
+  });
+
+  const { data: serviceTypes } = useQuery<ServiceType[]>({
+    queryKey: ["/api/service-types"],
+  });
+
+  useEffect(() => {
+    if (!appointments || !searchParams) return;
+    const params = new URLSearchParams(searchParams);
+    const viewMessagesId = params.get("viewMessages");
+    if (viewMessagesId) {
+      const apt = appointments.find(a => a.id === viewMessagesId);
+      if (apt) {
+        setViewMessagesApt(apt);
+        setMessageCopied(null);
+      }
+    }
+  }, [appointments, searchParams]);
+
+  const viewMessagesData = useMemo(() => {
+    if (!viewMessagesApt) return null;
+    const apt = viewMessagesApt;
+    const wo = apt.workOrder;
+    const center = apt.center;
+    const company = wo?.companyId ? companies?.find(c => c.id === wo.companyId) : null;
+    const assist = company?.assistStaffId ? staffList?.find(s => s.id === company.assistStaffId) : null;
+    const crm = company?.rmStaffId ? staffList?.find(s => s.id === company.rmStaffId) : null;
+    const serviceType = wo?.serviceTypeId ? serviceTypes?.find(st => st.id === wo.serviceTypeId) : null;
+    const serviceName = serviceType?.name || (apt.type === "Medical" ? "Medical Examination" : "Emirates ID");
+    
+    const aptDate = new Date(apt.datetime);
+    const formattedDate = aptDate.toLocaleDateString("en-GB", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric"
+    });
+    const formattedTime = aptDate.toLocaleTimeString("en-US", {
+      hour: "numeric", minute: "2-digit", hour12: true
+    });
+
+    const contactLines = [];
+    if (assist) {
+      const label = apt.type === "Medical" ? "Medical Assistant" : "Field Assistant";
+      contactLines.push(`${label}: ${assist.name}${assist.phone ? ` - ${assist.phone}` : ""}`);
+    }
+    if (crm) {
+      contactLines.push(`Client Relations: ${crm.name}${crm.phone ? ` - ${crm.phone}` : ""}`);
+    }
+    const contactSection = contactLines.length > 0 ? `Your P.R.O. Team:\n${contactLines.join("\n")}` : "";
+
+    const centerLabel = apt.type === "Medical" ? "Medical Center" : "Emirates ID Center";
+    const locationLink = center?.address 
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(center.address)}`
+      : "";
+    const assistanceSection = assist 
+      ? `\u{1F464} Assistance: ${assist.name}\n\u{1F4DE} ${assist.phone || ""}` 
+      : "";
+
+    const emailBody = `Dear ${toProperCase(company?.name || wo?.company?.name || "")} Team,
+
+We have scheduled ${apt.type === "Medical" ? "a medical" : "an Emirates ID"} appointment for your employee:
+
+Applicant: ${toProperCase(wo?.applicantName || "")}
+${wo?.applicantPhone ? `Contact: ${wo.applicantPhone}` : ""}
+
+Appointment Details:
+- Date: ${formattedDate}
+- Time: ${formattedTime}
+- ${centerLabel}: ${center?.name || "TBD"}
+${center?.address ? `- Address: ${center.address}` : ""}
+${center?.googleMapsUrl ? `- Location: ${center.googleMapsUrl}` : ""}
+${apt.applicationNumber ? `- Application Number: ${apt.applicationNumber}` : ""}
+
+${contactSection}
+
+${apt.notes ? `Note: ${apt.notes}` : ""}
+
+Please ensure the applicant arrives 15 minutes before the scheduled time with all required documents.
+${apt.type === "EID" ? "\nOnce the Emirates ID process is completed, we will update you with the status.\n" : ""}
+Best regards,
+The P.R.O. Company\u2122`;
+
+    const whatsappBody = `Hello \u{1F44B}
+
+Your ${apt.type === "Medical" ? "medical" : "Emirates ID"} appointment has been scheduled successfully for the following work.
+
+\u{1F4C4} WO: ${wo?.woNumber || ""}
+\u{1F464} Applicant: ${toProperCase(wo?.applicantName || "")}
+\u{1F3E2} Company: ${toProperCase(company?.name || wo?.company?.name || "")}
+\u{1F9FE} Service: ${toProperCase(serviceName)}
+${apt.applicationNumber ? `\u{1F522} Application No: ${apt.applicationNumber}` : ""}
+
+${apt.type === "Medical" ? "\u{1F3E5}" : "\u{1FAAA}"} ${centerLabel}: ${center?.name || "TBD"}
+\u{1F4C5} Date: ${formattedDate}
+\u23F0 Time: ${formattedTime}
+${center?.address ? `\u{1F4CD} Location: ${center.address}` : ""}
+${locationLink ? `\u{1F5FA}\uFE0F Map: ${locationLink}` : ""}
+
+${assistanceSection}
+
+\u26A0\uFE0F *Important:*
+\u2022 Please arrive at least *10 minutes before* the scheduled time.
+\u2022 Please ensure the applicant brings their *original passport*.
+${apt.notes ? `\u2022 ${apt.notes}` : ""}
+${apt.type === "EID" ? "\nOnce the Emirates ID process is completed, we will update you with the status.\n" : ""}
+Thank you,
+*The P.R.O. Company\u2122*`;
+
+    const emailHtmlProps = {
+      woNumber: wo?.woNumber || "",
+      companyName: toProperCase(company?.name || wo?.company?.name || ""),
+      applicantName: toProperCase(wo?.applicantName || ""),
+      serviceType: toProperCase(serviceName),
+      centerName: center?.name || "TBD",
+      centerAddress: center?.address || undefined,
+      centerType: (center?.tier === "VIP" ? "VIP" : "Normal") as "Normal" | "VIP",
+      appointmentDate: aptDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+      appointmentTime: formattedTime,
+      applicationNumber: apt.applicationNumber || undefined,
+      crmName: crm?.name,
+      crmPhone: crm?.phone || undefined,
+      notes: apt.notes || undefined,
+    };
+
+    const medicalEmailProps = {
+      ...emailHtmlProps,
+      medicalAssistName: assist?.name,
+      medicalAssistPhone: assist?.phone || undefined,
+    };
+
+    const eidEmailProps = {
+      ...emailHtmlProps,
+      assistName: assist?.name,
+      assistPhone: assist?.phone || undefined,
+    };
+
+    return { emailBody, whatsappBody, medicalEmailProps, eidEmailProps, apt };
+  }, [viewMessagesApt, companies, staffList, serviceTypes]);
+
+  const handleCopyViewMessage = async (type: "email" | "whatsapp") => {
+    if (!viewMessagesData) return;
+    const { apt, emailBody, whatsappBody, medicalEmailProps, eidEmailProps } = viewMessagesData;
+
+    if (type === "whatsapp") {
+      await navigator.clipboard.writeText(whatsappBody);
+    } else {
+      const emailHtml = apt.type === "Medical"
+        ? generateMedicalAppointmentEmailHtml(medicalEmailProps)
+        : generateEidAppointmentEmailHtml(eidEmailProps);
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/html": new Blob([emailHtml], { type: "text/html" }),
+            "text/plain": new Blob([emailBody], { type: "text/plain" }),
+          }),
+        ]);
+      } catch {
+        await navigator.clipboard.writeText(emailBody);
+      }
+    }
+    setMessageCopied(type);
+    setTimeout(() => setMessageCopied(null), 2000);
+    toast({
+      title: "Copied!",
+      description: `${type === "email" ? "Email (with formatting)" : "WhatsApp"} message copied to clipboard.`,
+    });
+  };
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -244,6 +432,18 @@ export default function AppointmentsIndex() {
             </Button>
           </>
         )}
+        {(apt.status === "Scheduled") && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => { setViewMessagesApt(apt); setMessageCopied(null); }}
+            data-testid={`button-view-messages-${apt.id}`}
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Messages
+          </Button>
+        )}
         <Link href={`/work-orders/${apt.woId}`}>
           <Button variant="ghost" size="sm" data-testid={`button-view-wo-${apt.id}`}>
             View WO
@@ -429,6 +629,134 @@ export default function AppointmentsIndex() {
                 "Reschedule"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!viewMessagesApt} onOpenChange={(open) => { if (!open) { setViewMessagesApt(null); setEmailFullscreen(false); } }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {viewMessagesApt?.type === "Medical" ? (
+                <Stethoscope className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <CreditCard className="h-5 w-5 text-blue-600" />
+              )}
+              Appointment Messages
+            </DialogTitle>
+          </DialogHeader>
+
+          {viewMessagesData && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/30">
+                <div className="flex items-center gap-3 flex-wrap text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">{toProperCase(viewMessagesApt?.workOrder?.applicantName || "")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">{toProperCase(viewMessagesApt?.workOrder?.company?.name || "")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      {viewMessagesApt ? formatDateDisplay(viewMessagesApt.datetime) : ""} at {viewMessagesApt ? formatTime(viewMessagesApt.datetime) : ""}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <Tabs defaultValue="email">
+                <TabsList className="w-full">
+                  <TabsTrigger value="email" className="flex-1 gap-1.5" data-testid="tab-view-email">
+                    <Mail className="h-3.5 w-3.5" />
+                    Email
+                  </TabsTrigger>
+                  <TabsTrigger value="whatsapp" className="flex-1 gap-1.5" data-testid="tab-view-whatsapp">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    WhatsApp
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="email" className="space-y-3 mt-3">
+                  <div className="rounded-lg border border-border/50 overflow-hidden max-h-[40vh] overflow-y-auto">
+                    <div className="p-1 scale-[0.85] origin-top-left" style={{ width: "117.6%" }}>
+                      {viewMessagesApt?.type === "Medical" ? (
+                        <MedicalAppointmentEmail {...viewMessagesData.medicalEmailProps} />
+                      ) : (
+                        <EidAppointmentEmail {...viewMessagesData.eidEmailProps} />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => handleCopyViewMessage("email")}
+                      className="gap-2"
+                      data-testid="button-copy-email-message"
+                    >
+                      {messageCopied === "email" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      {messageCopied === "email" ? "Copied!" : "Copy Email"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setEmailFullscreen(true)}
+                      data-testid="button-email-fullscreen"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="whatsapp" className="space-y-3 mt-3">
+                  <div className="rounded-lg border border-border/50 bg-muted/20 p-4 max-h-[40vh] overflow-y-auto">
+                    <pre className="whitespace-pre-wrap text-sm font-sans leading-relaxed text-foreground">
+                      {viewMessagesData.whatsappBody}
+                    </pre>
+                  </div>
+                  <Button
+                    onClick={() => handleCopyViewMessage("whatsapp")}
+                    className="gap-2"
+                    data-testid="button-copy-whatsapp-message"
+                  >
+                    {messageCopied === "whatsapp" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {messageCopied === "whatsapp" ? "Copied!" : "Copy WhatsApp"}
+                  </Button>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emailFullscreen} onOpenChange={setEmailFullscreen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
+          <DialogHeader className={`px-6 py-4 border-b ${viewMessagesApt?.type === "Medical" ? "bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d]" : "bg-gradient-to-r from-[#2563eb] to-[#1e40af]"}`}>
+            <DialogTitle className="text-white flex items-center gap-2">
+              {viewMessagesApt?.type === "Medical" ? (
+                <Stethoscope className="h-5 w-5" />
+              ) : (
+                <CreditCard className="h-5 w-5" />
+              )}
+              Email Preview
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+            {viewMessagesData && viewMessagesApt?.type === "Medical" ? (
+              <MedicalAppointmentEmail {...viewMessagesData.medicalEmailProps} />
+            ) : viewMessagesData ? (
+              <EidAppointmentEmail {...viewMessagesData.eidEmailProps} />
+            ) : null}
+          </div>
+          <div className="px-6 py-4 border-t flex items-center justify-end gap-2">
+            <Button
+              onClick={() => handleCopyViewMessage("email")}
+              className="gap-2"
+              data-testid="button-fullscreen-copy-email"
+            >
+              {messageCopied === "email" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {messageCopied === "email" ? "Copied!" : "Copy Email"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </AppLayout>

@@ -725,7 +725,7 @@ export default function WorkOrderDetail() {
                   {workOrder.appointments.map((apt) => (
                     <Card key={apt.id} className="border border-border/50">
                       <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div className="flex items-center gap-3">
                             <StatusBadge status={apt.type} />
                             <div>
@@ -740,7 +740,17 @@ export default function WorkOrderDetail() {
                               </p>
                             </div>
                           </div>
-                          <StatusBadge status={apt.status} />
+                          <div className="flex items-center gap-2">
+                            {apt.status === "Scheduled" && (
+                              <Link href={`/appointments?viewMessages=${apt.id}`}>
+                                <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-wo-view-messages-${apt.id}`}>
+                                  <Mail className="h-3.5 w-3.5" />
+                                  Messages
+                                </Button>
+                              </Link>
+                            )}
+                            <StatusBadge status={apt.status} />
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
