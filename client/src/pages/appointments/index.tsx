@@ -507,7 +507,7 @@ Thank you,
                 <Skeleton className="h-16 w-full" />
               </div>
             ) : todayAppointments.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 stagger-children">
                 {todayAppointments.map((apt) => renderAppointmentCard(apt, false, true))}
               </div>
             ) : (
@@ -534,7 +534,7 @@ Thank you,
                 <Skeleton className="h-16 w-full" />
               </div>
             ) : upcomingAppointments.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 stagger-children">
                 {upcomingAppointments.map((apt) => renderAppointmentCard(apt, true, true))}
               </div>
             ) : (

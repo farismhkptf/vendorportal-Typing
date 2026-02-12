@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageTransition } from "@/components/ui/page-transition";
 import NotFound from "@/pages/not-found";
+import { CommandPalette } from "@/components/command-palette";
+import { MobileBottomNav } from "@/components/mobile-nav";
 
 import Dashboard from "@/pages/dashboard";
 import Login from "@/pages/login";
@@ -69,6 +71,8 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <CommandPalette />
+        <MobileBottomNav />
         <Toaster />
         <Router />
       </TooltipProvider>

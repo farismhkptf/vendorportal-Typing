@@ -105,7 +105,7 @@ export default function TypingJobsList() {
   }, [filteredAndSortedJobs]);
 
   const renderCompactList = (items: TypingJobWithRelations[]) => (
-    <div className="space-y-1">
+    <div className="space-y-1 stagger-children">
       {items.map((job, index) => (
         <Link key={job.id} href={`/typing-jobs/${job.id}`}>
           <div 
@@ -134,7 +134,7 @@ export default function TypingJobsList() {
   );
 
   const renderCards = (items: TypingJobWithRelations[]) => (
-    <div className="space-y-2">
+    <div className="space-y-2 stagger-children">
       {items.map((job, index) => (
         <Link key={job.id} href={`/typing-jobs/${job.id}`}>
           <div 

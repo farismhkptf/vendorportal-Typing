@@ -135,6 +135,7 @@ export interface IStorage {
 
   // Audit Log
   getAuditLogsByEntity(entityType: string, entityId: string): Promise<AuditLog[]>;
+  getRecentAuditLogs(limit?: number): Promise<AuditLog[]>;
   createAuditLog(data: InsertAuditLog): Promise<AuditLog>;
   
   // Work Order Documents
@@ -1208,6 +1209,13 @@ export class DatabaseStorage implements IStorage {
         eq(auditLog.entityId, entityId)
       ))
       .orderBy(desc(auditLog.createdAt));
+  }
+
+  async getRecentAuditLogs(limit: number = 20): Promise<AuditLog[]> {
+    return db.select()
+      .from(auditLog)
+      .orderBy(desc(auditLog.createdAt))
+      .limit(limit);
   }
 
   async createAuditLog(data: InsertAuditLog): Promise<AuditLog> {

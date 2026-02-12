@@ -131,6 +131,159 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/activity", async (req, res) => {
+    try {
+      const logs = await storage.getRecentAuditLogs(15);
+      res.json(logs);
+    } catch (error) {
+      console.error("Activity feed error:", error);
+      res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  app.get("/api/search", async (req, res) => {
+    try {
+      const q = ((req.query.q || req.query["0"] || "") as string).toLowerCase().trim();
+      if (q.length < 2) {
+        return res.json({ workOrders: [], companies: [], staff: [] });
+      }
+
+      const [workOrders, companies, staffList] = await Promise.all([
+        storage.getWorkOrders(q),
+        storage.getCompanies(),
+        storage.getStaff(),
+      ]);
+
+      const filteredCompanies = companies
+        .filter(c => c.name.toLowerCase().includes(q))
+        .slice(0, 5)
+        .map(c => ({ id: c.id, name: c.name }));
+
+      const filteredStaff = staffList
+        .filter(s => s.name.toLowerCase().includes(q))
+        .slice(0, 5)
+        .map(s => ({ id: s.id, name: s.name, role: s.roleTitle || "" }));
+
+      res.json({
+        workOrders: workOrders.slice(0, 5).map(wo => ({
+          id: wo.id,
+          woNumber: wo.woNumber,
+          applicantName: wo.applicantName,
+          status: wo.status,
+        })),
+        companies: filteredCompanies,
+        staff: filteredStaff,
+      });
+    } catch (error) {
+      console.error("Search error:", error);
+      res.status(500).json({ message: "Search failed" });
+    }
+  });
+
+  app.get("/api/dashboard/pipeline", async (req, res) => {
+    try {
+      const workOrders = await storage.getWorkOrders();
+      const pipeline = {
+        draft: 0,
+        scheduled: 0,
+        sent: 0,
+        completed: 0,
+        cancelled: 0,
+        total: workOrders.length,
+      };
+      for (const wo of workOrders) {
+        const key = wo.status.toLowerCase() as keyof typeof pipeline;
+        if (key in pipeline && key !== "total") {
+          pipeline[key]++;
+        }
+      }
+      res.json(pipeline);
+    } catch (error) {
+      console.error("Dashboard pipeline error:", error);
+      res.status(500).json({ message: "Failed to fetch pipeline" });
+    }
+  });
+
+  app.get("/api/dashboard/needs-attention", async (req, res) => {
+    try {
+      const workOrders = await storage.getWorkOrders();
+      const items: Array<{
+        id: string;
+        woNumber: string;
+        applicantName: string;
+        reason: string;
+        severity: "warning" | "urgent";
+        daysOld: number;
+      }> = [];
+
+      const jobTypes = await storage.getJobTypes();
+      const jobTypeMap = new Map(jobTypes.map(jt => [jt.id, jt]));
+
+      for (const wo of workOrders) {
+        if (wo.status === "Completed" || wo.status === "Cancelled") continue;
+        const daysOld = Math.floor((Date.now() - new Date(wo.createdAt).getTime()) / 86400000);
+        const typingJobs = await storage.getTypingJobsByWoId(wo.id);
+        const appointments = await storage.getAppointmentsByWoId(wo.id);
+
+        if (daysOld > 7 && wo.status === "Draft") {
+          items.push({
+            id: wo.id,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            reason: "Stale draft — no progress for over a week",
+            severity: "warning",
+            daysOld,
+          });
+          continue;
+        }
+
+        const activeAppointments = appointments.filter(a => a.status !== "Cancelled" && a.status !== "Rescheduled");
+        const hasMedAppt = activeAppointments.some(a => a.type === "Medical");
+        const hasEidAppt = activeAppointments.some(a => a.type === "EID");
+
+        const returnedMed = typingJobs.some(j => {
+          const jt = jobTypeMap.get(j.jobTypeId);
+          return jt?.category === "Medical" && (j.status === "Returned" || j.status === "SentToClient");
+        });
+        const returnedEid = typingJobs.some(j => {
+          const jt = jobTypeMap.get(j.jobTypeId);
+          return jt?.category === "EID" && (j.status === "Returned" || j.status === "SentToClient");
+        });
+
+        if (returnedMed && !hasMedAppt) {
+          items.push({
+            id: wo.id,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            reason: "Medical typing done — schedule appointment",
+            severity: "urgent",
+            daysOld,
+          });
+        } else if (returnedEid && !hasEidAppt) {
+          items.push({
+            id: wo.id,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            reason: "EID typing done — schedule appointment",
+            severity: "urgent",
+            daysOld,
+          });
+        }
+      }
+
+      items.sort((a, b) => {
+        if (a.severity === "urgent" && b.severity !== "urgent") return -1;
+        if (b.severity === "urgent" && a.severity !== "urgent") return 1;
+        return b.daysOld - a.daysOld;
+      });
+
+      res.json(items.slice(0, 8));
+    } catch (error) {
+      console.error("Dashboard needs-attention error:", error);
+      res.status(500).json({ message: "Failed to fetch needs-attention items" });
+    }
+  });
+
   // ========== Work Orders ==========
   app.get("/api/work-orders", async (req, res) => {
     try {

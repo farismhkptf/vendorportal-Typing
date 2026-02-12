@@ -114,7 +114,7 @@ export default function CompaniesList() {
   }, [companies, search, sortBy]);
 
   const renderCompactList = (items: CompanyWithRelations[]) => (
-    <div className="space-y-1">
+    <div className="space-y-1 stagger-children">
       {items.map((company, index) => (
         <Link key={company.id} href={`/companies/${company.id}`}>
           <div 
@@ -144,7 +144,7 @@ export default function CompaniesList() {
   );
 
   const renderCards = (items: CompanyWithRelations[]) => (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
       {items.map((company, index) => (
         <Link key={company.id} href={`/companies/${company.id}`}>
           <div 

@@ -478,13 +478,13 @@ export default function WorkOrdersList() {
   };
 
   const renderCards = (items: WorkOrderEnriched[]) => (
-    <div className="space-y-2">
+    <div className="space-y-2 stagger-children">
       {items.map((wo, index) => renderCardItem(wo, index))}
     </div>
   );
 
   const renderCompactList = (items: WorkOrderEnriched[]) => (
-    <div className="space-y-1">
+    <div className="space-y-1 stagger-children">
       {items.map((wo, index) => {
         const med = getMedicalStatus(wo);
         const eid = getEidStatus(wo);
@@ -804,9 +804,19 @@ export default function WorkOrdersList() {
         <div>
           {isLoading ? (
             <div className="space-y-2">
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="animate-pulse border border-border/50 rounded-xl p-4 border-l-[3px] border-l-muted" style={{ animationDelay: `${i * 0.05}s` }}>
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-muted/80 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-2/5 rounded bg-muted/80" />
+                      <div className="h-3 w-4/5 rounded bg-muted/60" />
+                      <div className="h-3 w-3/5 rounded bg-muted/50" />
+                    </div>
+                    <div className="h-5 w-16 rounded-full bg-muted/60" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredAndSortedWorkOrders && filteredAndSortedWorkOrders.length > 0 ? (
             <>
