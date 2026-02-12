@@ -138,8 +138,18 @@ export async function registerRoutes(
       
       const result = await Promise.all(
         workOrders.map(async (wo) => {
-          const company = await storage.getCompanyById(wo.companyId);
-          return { ...wo, company };
+          const [company, typingJobsRaw, appointmentsRaw] = await Promise.all([
+            storage.getCompanyById(wo.companyId),
+            storage.getTypingJobsByWoId(wo.id),
+            storage.getAppointmentsByWoId(wo.id),
+          ]);
+          const typingJobs = await Promise.all(
+            typingJobsRaw.map(async (job) => {
+              const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+              return { ...job, jobType };
+            })
+          );
+          return { ...wo, company, typingJobs, appointments: appointmentsRaw };
         })
       );
       
