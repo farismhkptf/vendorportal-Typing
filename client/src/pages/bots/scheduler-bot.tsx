@@ -350,7 +350,7 @@ export default function SchedulerBot() {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         setAptDate(tomorrow.toISOString().split("T")[0]);
-        setAptTime("09:00");
+        setAptTime("11:00");
 
         setStep("details");
       }, 500);

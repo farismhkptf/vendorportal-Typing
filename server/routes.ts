@@ -436,7 +436,7 @@ export async function registerRoutes(
       );
       if (existingActive) {
         return res.status(409).json({ 
-          message: `This work order already has an active ${validation.data.type} appointment scheduled.`,
+          message: `This work order already has a ${validation.data.type} appointment that is ${existingActive.status.toLowerCase()}.`,
           existingAppointmentId: existingActive.id
         });
       }

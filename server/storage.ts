@@ -451,7 +451,7 @@ export class DatabaseStorage implements IStorage {
       and(
         eq(appointments.woId, woId),
         eq(appointments.type, type as any),
-        eq(appointments.status, "Scheduled")
+        inArray(appointments.status, ["Scheduled", "Completed"])
       )
     );
     return apt || undefined;

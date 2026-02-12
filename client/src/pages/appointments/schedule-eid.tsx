@@ -174,7 +174,7 @@ export default function ScheduleEid() {
       centerId: "",
       applicationNumber: "",
       appointmentDate: getTomorrow(),
-      appointmentTime: "09:00",
+      appointmentTime: "11:00",
       assignedStaffId: "",
       notes: "",
     },
