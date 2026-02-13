@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard } from "lucide-react";
+import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,9 +16,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useDataTable } from "@/hooks/use-data-table";
 import { toProperCase } from "@/lib/proper-case";
-import type { TypingJob, WorkOrder, JobType } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { TypingJob, WorkOrder, JobType, Vendor } from "@shared/schema";
 
 interface TypingJobWithRelations extends TypingJob {
   workOrder?: WorkOrder;
@@ -36,11 +40,14 @@ export default function TypingJobsList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
+  const { toast } = useToast();
 
   const apiStatus = statusFilter.startsWith("_") ? "all" : statusFilter;
   const { data: typingJobs, isLoading } = useQuery<TypingJobWithRelations[]>({
     queryKey: ["/api/typing-jobs", { status: apiStatus }],
   });
+
+  const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
 
   const stats = useMemo(() => {
     if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0, medical: 0, eid: 0 };
@@ -100,6 +107,24 @@ export default function TypingJobsList() {
     defaultPageSize: 25,
     defaultViewMode: "cards",
     getId,
+  });
+
+  const bulkAssignVendorMutation = useMutation({
+    mutationFn: async ({ ids, vendorId }: { ids: string[], vendorId: string }) => {
+      const res = await apiRequest("POST", "/api/typing-jobs/bulk-assign-vendor", { ids, vendorId });
+      return res.json() as Promise<{ updated: number; failed: number; errors: string[] }>;
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
+      dt.clearSelection();
+      const desc = result.failed > 0
+        ? `${result.updated} submitted to vendor, ${result.failed} failed.`
+        : `${result.updated} jobs submitted to vendor.`;
+      toast({ title: "Vendor assigned", description: desc, variant: result.failed > 0 ? "destructive" : "default" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to assign vendor", variant: "destructive" });
+    },
   });
 
   const viewMode = dt.viewMode as ViewMode;
@@ -492,6 +517,50 @@ export default function TypingJobsList() {
           viewModeToggle={viewModeToggle}
           activeFilterCount={activeFilterCount}
           onClearFilters={clearAllFilters}
+          selectionActions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5" disabled={bulkAssignVendorMutation.isPending} data-testid="button-bulk-assign-vendor">
+                    {bulkAssignVendorMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                    Assign Vendor
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuLabel>Submit to Vendor</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {vendors && vendors.length > 0 ? vendors.map(v => (
+                    <DropdownMenuItem key={v.id} onClick={() => bulkAssignVendorMutation.mutate({ ids: Array.from(dt.selectedIds), vendorId: v.id })} data-testid={`menu-assign-vendor-${v.id}`}>
+                      {v.name}
+                    </DropdownMenuItem>
+                  )) : (
+                    <DropdownMenuItem disabled>No vendors available</DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                data-testid="button-export-csv"
+                onClick={() => {
+                  const selected = (filteredAndSortedJobs || []).filter(j => dt.selectedIds.has(j.id));
+                  exportToCsv(selected, [
+                    { header: "Job Code", accessor: (j: TypingJobWithRelations) => j.jobCode || "" },
+                    { header: "WO Number", accessor: (j: TypingJobWithRelations) => j.workOrder?.woNumber || "" },
+                    { header: "Applicant", accessor: (j: TypingJobWithRelations) => j.workOrder?.applicantName || "" },
+                    { header: "Job Type", accessor: (j: TypingJobWithRelations) => j.jobType?.name || "" },
+                    { header: "Status", accessor: (j: TypingJobWithRelations) => j.status },
+                    { header: "Vendor", accessor: (j: TypingJobWithRelations) => (j.vendorId && vendors ? vendors.find(v => v.id === j.vendorId)?.name : "") || "" },
+                    { header: "Cost", accessor: (j: TypingJobWithRelations) => j.costSnapshot || "" },
+                  ], "typing-jobs-export");
+                }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </Button>
+            </>
+          }
         />
 
         <div>

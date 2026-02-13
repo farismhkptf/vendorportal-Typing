@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Users, Mail, Phone, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Users, Mail, Phone, Pencil, Trash2, Loader2, Download } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -210,6 +211,27 @@ export default function StaffList() {
           totalItems={dt.totalItems}
           selectedCount={dt.selectedCount}
           onClearSelection={dt.clearSelection}
+          selectionActions={
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              data-testid="button-export-csv"
+              onClick={() => {
+                const selected = (filteredStaff || []).filter(s => dt.selectedIds.has(s.id));
+                exportToCsv(selected, [
+                  { header: "Name", accessor: (s: Staff) => s.name },
+                  { header: "Email", accessor: (s: Staff) => s.email || "" },
+                  { header: "Phone", accessor: (s: Staff) => s.phone || "" },
+                  { header: "Role/Department", accessor: (s: Staff) => s.roleTitle },
+                  { header: "Status", accessor: (s: Staff) => s.status || "" },
+                ], "staff-export");
+              }}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </Button>
+          }
         />
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

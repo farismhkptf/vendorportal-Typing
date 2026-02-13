@@ -403,6 +403,49 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/work-orders/bulk-status", async (req, res) => {
+    try {
+      const bulkStatusSchema = z.object({
+        ids: z.array(z.string()).min(1),
+        status: z.enum(["Draft", "Scheduled", "Sent", "Completed", "Cancelled"]),
+      });
+      const validation = validateBody(bulkStatusSchema, req.body);
+      if ("error" in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const { ids, status } = validation.data;
+      let updated = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (const id of ids) {
+        try {
+          const wo = await storage.updateWorkOrder(id, { status });
+          if (!wo) {
+            failed++;
+            errors.push(`Work order ${id} not found`);
+            continue;
+          }
+          await storage.createAuditLog({
+            entityType: "work_order",
+            entityId: id,
+            action: "status_changed",
+            details: { newStatus: status, bulkAction: true },
+          });
+          updated++;
+        } catch (err: any) {
+          failed++;
+          errors.push(`Failed to update ${id}: ${err.message || "Unknown error"}`);
+        }
+      }
+
+      res.json({ updated, failed, errors });
+    } catch (error) {
+      console.error("Bulk status update error:", error);
+      res.status(500).json({ message: "Failed to bulk update work order statuses" });
+    }
+  });
+
   app.get("/api/work-orders/:id", async (req, res) => {
     try {
       const wo = await storage.getWorkOrderById(req.params.id);
@@ -1388,6 +1431,89 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Typing jobs error:", error);
       res.status(500).json({ message: "Failed to fetch typing jobs" });
+    }
+  });
+
+  app.post("/api/typing-jobs/bulk-assign-vendor", async (req, res) => {
+    try {
+      const bulkAssignSchema = z.object({
+        ids: z.array(z.string()).min(1),
+        vendorId: z.string(),
+      });
+      const validation = validateBody(bulkAssignSchema, req.body);
+      if ("error" in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const { ids, vendorId } = validation.data;
+
+      const vendor = await storage.getVendorById(vendorId);
+      if (!vendor) {
+        return res.status(404).json({ message: "Vendor not found" });
+      }
+
+      let updated = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (const id of ids) {
+        try {
+          const job = await storage.getTypingJobById(id);
+          if (!job) {
+            failed++;
+            errors.push(`Typing job ${id} not found`);
+            continue;
+          }
+          if (job.status !== "Draft") {
+            failed++;
+            errors.push(`Typing job ${id} is not in Draft status`);
+            continue;
+          }
+
+          const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+          const cost = jobType?.cost || 0;
+
+          const balance = await storage.getWalletBalance(vendorId);
+          if (balance < cost) {
+            failed++;
+            errors.push(`Insufficient balance for job ${job.jobCode || id}. Required: AED ${cost}, Available: AED ${balance}`);
+            continue;
+          }
+
+          if (cost > 0) {
+            await storage.createWalletEntry({
+              vendorId,
+              entryType: "Debit",
+              typingJobId: id,
+              amount: -cost,
+              note: `Typing job: ${job.jobCode || id}`,
+            });
+          }
+
+          await storage.updateTypingJob(id, {
+            vendorId,
+            status: "SentToVendor",
+            costSnapshot: cost,
+            sentAt: new Date(),
+          });
+
+          await storage.createAuditLog({
+            entityType: "typing_job",
+            entityId: id,
+            action: "submitted_to_vendor",
+            details: { vendorId, cost, bulkAction: true },
+          });
+
+          updated++;
+        } catch (err: any) {
+          failed++;
+          errors.push(`Failed to assign job ${id}: ${err.message || "Unknown error"}`);
+        }
+      }
+
+      res.json({ updated, failed, errors });
+    } catch (error) {
+      console.error("Bulk assign vendor error:", error);
+      res.status(500).json({ message: "Failed to bulk assign vendor" });
     }
   });
 

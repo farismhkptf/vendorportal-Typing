@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Plus, Building2, Mail, MapPin, User, ArrowUpDown, List, LayoutGrid, Table2 } from "lucide-react";
+import { Plus, Building2, Mail, MapPin, User, ArrowUpDown, List, LayoutGrid, Table2, Download } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -397,6 +398,27 @@ export default function CompaniesList() {
           onClearSelection={dt.clearSelection}
           filters={sortFilter}
           viewModeToggle={viewModeToggle}
+          selectionActions={
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              data-testid="button-export-csv"
+              onClick={() => {
+                const selected = (filteredAndSortedCompanies || []).filter(c => dt.selectedIds.has(c.id));
+                exportToCsv(selected, [
+                  { header: "Name", accessor: (c: CompanyWithRelations) => c.name },
+                  { header: "Trade License", accessor: (c: CompanyWithRelations) => c.tradeLicenseNumber || "" },
+                  { header: "Email", accessor: (c: CompanyWithRelations) => c.emails?.filter(e => e.active).map(e => e.email).join("; ") || "" },
+                  { header: "Coordinator", accessor: (c: CompanyWithRelations) => c.clientCoordinator?.name || "" },
+                  { header: "RM Staff", accessor: (c: CompanyWithRelations) => c.rmStaff?.name || "" },
+                ], "companies-export");
+              }}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </Button>
+          }
         />
 
         <div>

@@ -1,13 +1,18 @@
 import { useState, useMemo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { 
   Plus, Search, FileText, Building2, Filter, ArrowUpDown, 
   List, LayoutGrid, Columns3, Table2, Star, Tag,
   Clock, AlertTriangle, CheckCircle2, CircleDot, 
-  Stethoscope, Fingerprint, CalendarCheck, Send as SendIcon
+  Stethoscope, Fingerprint, CalendarCheck, Send as SendIcon,
+  Loader2, Download
 } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { Input } from "@/components/ui/input";
@@ -213,6 +218,7 @@ export default function WorkOrdersList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
+  const { toast } = useToast();
 
   const { data: workOrders, isLoading } = useQuery<WorkOrderEnriched[]>({
     queryKey: ["/api/work-orders"],
@@ -331,6 +337,24 @@ export default function WorkOrdersList() {
     defaultPageSize: 25,
     defaultViewMode: "cards",
     getId,
+  });
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: async ({ ids, status }: { ids: string[], status: string }) => {
+      const res = await apiRequest("POST", "/api/work-orders/bulk-status", { ids, status });
+      return res.json() as Promise<{ updated: number; failed: number; errors: string[] }>;
+    },
+    onSuccess: (result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      dt.clearSelection();
+      const desc = result.failed > 0
+        ? `${result.updated} updated to ${variables.status}, ${result.failed} failed.`
+        : `${result.updated} work orders updated to ${variables.status}.`;
+      toast({ title: "Status updated", description: desc, variant: result.failed > 0 ? "destructive" : "default" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update work orders", variant: "destructive" });
+    },
   });
 
   const viewMode = dt.viewMode as ViewMode;
@@ -878,6 +902,45 @@ export default function WorkOrdersList() {
           totalItems={dt.totalItems}
           selectedCount={dt.selectedCount}
           onClearSelection={dt.clearSelection}
+          selectionActions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5" disabled={bulkStatusMutation.isPending} data-testid="button-bulk-status">
+                    {bulkStatusMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ArrowUpDown className="h-3.5 w-3.5" />}
+                    Change Status
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  {["Draft", "Scheduled", "Sent", "Completed", "Cancelled"].map(status => (
+                    <DropdownMenuItem key={status} onClick={() => bulkStatusMutation.mutate({ ids: Array.from(dt.selectedIds).map(String), status })} data-testid={`menu-bulk-status-${status.toLowerCase()}`}>
+                      {status}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                data-testid="button-export-csv"
+                onClick={() => {
+                  const selected = (filteredAndSortedWorkOrders || []).filter(wo => dt.selectedIds.has(wo.id));
+                  exportToCsv(selected, [
+                    { header: "WO Number", accessor: (wo: WorkOrderEnriched) => wo.woNumber },
+                    { header: "Applicant", accessor: (wo: WorkOrderEnriched) => wo.applicantName },
+                    { header: "Company", accessor: (wo: WorkOrderEnriched) => wo.company?.name || "" },
+                    { header: "Service Type", accessor: (wo: WorkOrderEnriched) => wo.serviceType?.name || "" },
+                    { header: "Status", accessor: (wo: WorkOrderEnriched) => wo.status },
+                    { header: "Created", accessor: (wo: WorkOrderEnriched) => wo.createdAt ? new Date(wo.createdAt).toLocaleDateString() : "" },
+                  ], "work-orders-export");
+                }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </Button>
+            </>
+          }
           filters={filterControls}
           viewModeToggle={viewModeToggle}
           activeFilterCount={activeFilterCount}

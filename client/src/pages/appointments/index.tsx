@@ -5,13 +5,15 @@ import {
   Calendar, Clock, Stethoscope, CreditCard,
   CheckCircle2, AlertCircle, Building2, User,
   MoreHorizontal, RefreshCw, XCircle, MapPin,
-  Mail, MessageCircle, Copy, Check, Maximize2
+  Mail, MessageCircle, Copy, Check, Maximize2, Download
 } from "lucide-react";
+import { exportToCsv } from "@/lib/csv-export";
 import { formatDateWithWeekday } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -558,6 +560,28 @@ Thank you,
           totalItems={dt.totalItems}
           selectedCount={dt.selectedCount}
           onClearSelection={dt.clearSelection}
+          selectionActions={
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              data-testid="button-export-csv"
+              onClick={() => {
+                const selected = allFilteredAppointments.filter(a => dt.selectedIds.has(a.id));
+                exportToCsv(selected, [
+                  { header: "WO Number", accessor: (a: AppointmentWithRelations) => a.workOrder?.woNumber || "" },
+                  { header: "Applicant", accessor: (a: AppointmentWithRelations) => a.workOrder?.applicantName || "" },
+                  { header: "Type", accessor: (a: AppointmentWithRelations) => a.type },
+                  { header: "Date/Time", accessor: (a: AppointmentWithRelations) => a.datetime ? new Date(a.datetime).toLocaleString() : "" },
+                  { header: "Center", accessor: (a: AppointmentWithRelations) => a.center?.name || "" },
+                  { header: "Status", accessor: (a: AppointmentWithRelations) => a.status },
+                ], "appointments-export");
+              }}
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </Button>
+          }
         />
 
         <Card id="section-today" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
