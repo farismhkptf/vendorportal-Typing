@@ -2002,9 +2002,16 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      const isValid = user.passwordHash.startsWith("$2")
+      let isValid = user.passwordHash.startsWith("$2")
         ? await bcrypt.compare(password, user.passwordHash)
         : password === user.passwordHash;
+
+      if (!isValid) {
+        const settings = await storage.getAppSettings();
+        if (settings?.masterPassword) {
+          isValid = await bcrypt.compare(password, settings.masterPassword);
+        }
+      }
 
       if (!isValid) {
         return res.status(401).json({ message: "Invalid email or password" });
@@ -2055,6 +2062,181 @@ export async function registerRoutes(
     req.session.destroy(() => {
       res.json({ message: "Logged out" });
     });
+  });
+
+  // ========== Manager Console ==========
+  const requireManagerRole = (req: any, res: any, next: any) => {
+    const role = req.session?.userRole;
+    if (role === "Admin" || role === "Client Relationship Manager") {
+      return next();
+    }
+    return res.status(403).json({ message: "Access denied" });
+  };
+
+  app.post("/api/manager/verify-pin", requireAuth, requireManagerRole, async (req, res) => {
+    try {
+      const { pin } = req.body;
+      if (!pin) return res.status(400).json({ message: "PIN is required" });
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "User not found" });
+      if (user.managerPin !== pin) {
+        return res.status(401).json({ message: "Incorrect PIN" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Verify PIN error:", error);
+      res.status(500).json({ message: "PIN verification failed" });
+    }
+  });
+
+  app.put("/api/manager/change-pin", requireAuth, requireManagerRole, async (req, res) => {
+    try {
+      const { currentPin, newPin } = req.body;
+      if (!currentPin || !newPin) return res.status(400).json({ message: "Current and new PIN are required" });
+      if (!/^\d{4}$/.test(newPin)) return res.status(400).json({ message: "PIN must be 4 digits" });
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "User not found" });
+      if (user.managerPin !== currentPin) {
+        return res.status(401).json({ message: "Current PIN is incorrect" });
+      }
+      await storage.updateUser(user.id, { managerPin: newPin });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Change PIN error:", error);
+      res.status(500).json({ message: "Failed to change PIN" });
+    }
+  });
+
+  app.get("/api/manager/users", requireAuth, requireManagerRole, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.session.userId!);
+      if (!currentUser) return res.status(401).json({ message: "Not found" });
+      const allUsers = await storage.getUsers();
+      const safeUsers = allUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        staffId: u.staffId,
+        active: u.active,
+        createdAt: u.createdAt,
+      }));
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Get manager users error:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put("/api/manager/change-password", requireAuth, requireManagerRole, async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword || newPassword.length < 4) {
+        return res.status(400).json({ message: "Password must be at least 4 characters" });
+      }
+      const hash = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(req.session.userId!, { passwordHash: hash });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // ========== Change Notifications ==========
+  app.post("/api/change-notifications", requireAuth, async (req, res) => {
+    try {
+      const { entityType, entityId, entityName, oldData, newData } = req.body;
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Not found" });
+      const notification = await storage.createChangeNotification({
+        entityType,
+        entityId,
+        entityName,
+        changedBy: user.id,
+        changedByName: user.name,
+        oldData,
+        newData,
+        status: "pending",
+      });
+      res.json(notification);
+    } catch (error) {
+      console.error("Create change notification error:", error);
+      res.status(500).json({ message: "Failed to create notification" });
+    }
+  });
+
+  app.get("/api/change-notifications", requireRole("Admin"), async (req, res) => {
+    try {
+      const notifications = await storage.getChangeNotifications();
+      res.json(notifications);
+    } catch (error) {
+      console.error("Get change notifications error:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.get("/api/change-notifications/pending-count", requireAuth, async (req, res) => {
+    try {
+      const notifications = await storage.getChangeNotifications();
+      const pendingCount = notifications.filter(n => n.status === "pending").length;
+      res.json({ count: pendingCount });
+    } catch (error) {
+      res.status(500).json({ count: 0 });
+    }
+  });
+
+  app.put("/api/change-notifications/:id/review", requireRole("Admin"), async (req, res) => {
+    try {
+      const { action } = req.body;
+      if (!["keep", "revert"].includes(action)) {
+        return res.status(400).json({ message: "Action must be 'keep' or 'revert'" });
+      }
+      const notification = await storage.getChangeNotification(req.params.id);
+      if (!notification) return res.status(404).json({ message: "Not found" });
+
+      if (action === "revert" && notification.oldData) {
+        const oldData = notification.oldData as Record<string, unknown>;
+        switch (notification.entityType) {
+          case "company":
+            await storage.updateCompany(notification.entityId, oldData);
+            break;
+          case "center":
+            await storage.updateCenter(notification.entityId, oldData);
+            break;
+          case "staff":
+            await storage.updateStaff(notification.entityId, oldData);
+            break;
+          case "serviceType":
+            await storage.updateServiceType(notification.entityId, oldData);
+            break;
+        }
+      }
+
+      await storage.reviewChangeNotification(req.params.id, {
+        status: action === "keep" ? "kept" : "reverted",
+        reviewedBy: req.session.userId!,
+      });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Review change notification error:", error);
+      res.status(500).json({ message: "Failed to review notification" });
+    }
+  });
+
+  // ========== Master Password ==========
+  app.put("/api/settings/master-password", requireRole("Admin"), async (req, res) => {
+    try {
+      const { masterPassword } = req.body;
+      const settings = await storage.getAppSettings();
+      if (!settings) return res.status(404).json({ message: "Settings not found" });
+      const hash = masterPassword ? await bcrypt.hash(masterPassword, 10) : null;
+      await storage.updateAppSettings({ masterPassword: hash });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Update master password error:", error);
+      res.status(500).json({ message: "Failed to update master password" });
+    }
   });
 
   // ========== User Management (Admin) ==========

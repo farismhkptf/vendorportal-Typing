@@ -3,7 +3,7 @@ import {
   workOrders, appointments, rescheduleRequests, jobTypes, vendors,
   typingJobs, typingJobResults, typingJobComments, files, messages, woNotes,
   vendorWalletLedger, vendorStatements, vendorInvoices, appSettings, auditLog,
-  woDocuments, documentRequirements,
+  woDocuments, documentRequirements, changeNotifications,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -14,7 +14,8 @@ import {
   type VendorWalletLedger, type InsertVendorWalletLedger, type AppSettings,
   type AuditLog, type InsertAuditLog, type InsertFile, type File,
   type WoDocument, type InsertWoDocument, type DocumentRequirement, type InsertDocumentRequirement,
-  type WoNote, type InsertWoNote
+  type WoNote, type InsertWoNote,
+  type ChangeNotification, type InsertChangeNotification
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
@@ -135,6 +136,12 @@ export interface IStorage {
   getWoNotes(woId: string): Promise<WoNote[]>;
   createWoNote(data: InsertWoNote): Promise<WoNote>;
   deleteWoNote(id: string): Promise<boolean>;
+
+  // Change Notifications
+  createChangeNotification(data: InsertChangeNotification): Promise<ChangeNotification>;
+  getChangeNotifications(): Promise<ChangeNotification[]>;
+  getChangeNotification(id: string): Promise<ChangeNotification | undefined>;
+  reviewChangeNotification(id: string, data: { status: string; reviewedBy: string }): Promise<ChangeNotification | undefined>;
 
   // Audit Log
   getAuditLogsByEntity(entityType: string, entityId: string): Promise<AuditLog[]>;
@@ -1234,6 +1241,29 @@ export class DatabaseStorage implements IStorage {
   async createAuditLog(data: InsertAuditLog): Promise<AuditLog> {
     const [log] = await db.insert(auditLog).values(data).returning();
     return log;
+  }
+
+  // Change Notifications
+  async createChangeNotification(data: InsertChangeNotification): Promise<ChangeNotification> {
+    const [notification] = await db.insert(changeNotifications).values(data).returning();
+    return notification;
+  }
+
+  async getChangeNotifications(): Promise<ChangeNotification[]> {
+    return db.select().from(changeNotifications).orderBy(desc(changeNotifications.createdAt));
+  }
+
+  async getChangeNotification(id: string): Promise<ChangeNotification | undefined> {
+    const [notification] = await db.select().from(changeNotifications).where(eq(changeNotifications.id, id));
+    return notification || undefined;
+  }
+
+  async reviewChangeNotification(id: string, data: { status: string; reviewedBy: string }): Promise<ChangeNotification | undefined> {
+    const [notification] = await db.update(changeNotifications)
+      .set({ status: data.status, reviewedBy: data.reviewedBy, reviewedAt: new Date() })
+      .where(eq(changeNotifications.id, id))
+      .returning();
+    return notification || undefined;
   }
 
   // Auto-fill helpers

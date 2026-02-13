@@ -12,7 +12,8 @@ import {
   Stethoscope,
   Bot,
   Building2,
-  Search
+  Search,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,10 +35,11 @@ const allNavigation = [
   { name: "Dashboard", href: "__dashboard__", icon: LayoutDashboard, roles: null },
   { name: "Work Orders", href: "/work-orders", icon: FileText, roles: null },
   { name: "Appointments", href: "/appointments", icon: Stethoscope, roles: null },
-  { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList, roles: null },
-  { name: "Companies", href: "/companies", icon: Building2, roles: null },
-  { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: null },
+  { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList, roles: ["Admin", "Client Relationship Manager"] as string[] },
+  { name: "Companies", href: "/companies", icon: Building2, roles: ["Admin", "Client Relationship Manager"] as string[] },
+  { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin"] as string[] },
   { name: "Bots", href: "/bots", icon: Bot, roles: null },
+  { name: "Manager Console", href: "/manager-console", icon: Shield, roles: ["Client Relationship Manager"] as string[] },
   { name: "Admin Console", href: "/admin", icon: Settings, roles: ["Admin"] as string[] },
 ];
 

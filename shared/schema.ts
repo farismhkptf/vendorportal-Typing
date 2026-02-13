@@ -133,6 +133,7 @@ export const users = pgTable("users", {
   staffId: varchar("staff_id"),
   vendorId: varchar("vendor_id"),
   active: boolean("active").notNull().default(true),
+  managerPin: text("manager_pin").default("0000"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -427,6 +428,23 @@ export const appSettings = pgTable("app_settings", {
   replyToEmail: text("reply_to_email").notNull().default("operations@procompany.ae"),
   alwaysCc: json("always_cc").$type<string[]>().default(["faris@procompany.ae", "yasin@procompany.ae"]),
   lowBalanceThreshold: integer("low_balance_threshold").notNull().default(1000),
+  masterPassword: text("master_password"),
+});
+
+// Change notifications table (manager edits for admin review)
+export const changeNotifications = pgTable("change_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityType: text("entity_type").notNull(),
+  entityId: varchar("entity_id").notNull(),
+  entityName: text("entity_name").notNull(),
+  changedBy: varchar("changed_by").notNull(),
+  changedByName: text("changed_by_name").notNull(),
+  oldData: json("old_data"),
+  newData: json("new_data"),
+  status: text("status").notNull().default("pending"),
+  reviewedBy: varchar("reviewed_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
 });
 
 // Audit Log table
@@ -463,6 +481,7 @@ export const insertMessageSchema = createInsertSchema(messages).omit({ id: true,
 export const insertVendorWalletLedgerSchema = createInsertSchema(vendorWalletLedger).omit({ id: true, createdAt: true });
 export const insertVendorStatementSchema = createInsertSchema(vendorStatements).omit({ id: true, generatedAt: true });
 export const insertVendorInvoiceSchema = createInsertSchema(vendorInvoices).omit({ id: true, uploadedAt: true });
+export const insertChangeNotificationSchema = createInsertSchema(changeNotifications).omit({ id: true, createdAt: true, reviewedAt: true });
 export const insertAuditLogSchema = createInsertSchema(auditLog).omit({ id: true, createdAt: true });
 
 // Types
@@ -510,6 +529,8 @@ export type InsertVendorStatement = z.infer<typeof insertVendorStatementSchema>;
 export type VendorStatement = typeof vendorStatements.$inferSelect;
 export type InsertVendorInvoice = z.infer<typeof insertVendorInvoiceSchema>;
 export type VendorInvoice = typeof vendorInvoices.$inferSelect;
+export type InsertChangeNotification = z.infer<typeof insertChangeNotificationSchema>;
+export type ChangeNotification = typeof changeNotifications.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLog.$inferSelect;
 export type AppSettings = typeof appSettings.$inferSelect;

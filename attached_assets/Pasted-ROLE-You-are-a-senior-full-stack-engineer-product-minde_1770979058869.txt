@@ -1,0 +1,95 @@
+ROLE
+You are a senior full-stack engineer + product-minded reviewer working inside this Replit project.
+
+GOAL
+Audit the ENTIRE app (all pages/routes/components + backend + DB layer). Identify how to implement a “baseline professional app” feature set across every module, and confirm feasibility for each item based on the existing code.
+
+NON-NEGOTIABLE BEHAVIOR
+1) You must scan the whole codebase first (routes/pages, components, API handlers, DB models, utilities).
+2) Then produce a structured audit. Do NOT jump to implementation before the audit.
+3) For every feature item below, you must answer:
+   - Feasibility: YES / PARTIAL / NO
+   - Where to implement: exact files + functions/components affected
+   - Dependencies: DB changes, API changes, UI changes, auth/roles, libraries
+   - Risks/edge cases
+   - Effort level: S / M / L
+   - Recommended approach: safest + simplest first
+
+OUTPUT FORMAT (STRICT)
+A) App Map
+   - List all modules/pages/routes found
+   - List main DB tables/collections and key fields
+   - List key shared UI components (tables, forms, modals)
+
+B) Feature Feasibility Matrix
+   - Table format: Feature | YES/PARTIAL/NO | Files/Pages | Backend changes | DB changes | UI changes | Risks | Effort (S/M/L)
+
+C) Implementation Plan (Phased)
+   - Phase 1: Safe foundations (no breaking changes)
+   - Phase 2: Productivity improvements
+   - Phase 3: Governance (roles, audit, restore)
+
+D) Additional Recommendations
+   - Suggest MORE “baseline features” of the same type (practical, universal, not fancy)
+   - Group them by: Usability / Ops Control / Data Integrity / Performance / Security
+
+FEATURE SET TO AUDIT (APPLY TO EVERY MODULE)
+1) Multi-select rows (checkbox per row + select all)
+2) Bulk actions:
+   - Bulk Archive (default)
+   - Bulk Delete (admin-only, with confirmation)
+   - Bulk Status Change (Open/In Progress/Completed/Cancelled or module-specific)
+   - Bulk Assign (handler/team)
+3) Per-module Search (scoped search box):
+   - partial match
+   - search by key fields (name, ref/ID, phone, email, WO number, invoice number)
+   - does not reset filters
+4) Filters (combinable + sticky per session):
+   - Status
+   - Date range (Created/Updated/Due)
+   - Assigned To
+   - Type/Category
+   - Authority/Jurisdiction (if applicable)
+5) Sorting on all tables (clickable column headers)
+6) Soft Delete + Archive system:
+   - archived items hidden by default
+   - restore option
+   - hard delete only for admin, logged
+7) Pagination + page size selector (10/25/50/100)
+8) Row density toggle (Compact/Comfortable) remembered per user
+9) Saved Views:
+   - save a filter+sort+columns preset
+   - “My Open”, “Overdue This Week”, etc.
+10) Inline actions from list view:
+   - quick status change
+   - quick assign
+   - quick note
+11) Notes + Activity log per record:
+   - internal notes (append-only)
+   - system events (created/updated/status changed/assigned)
+12) Export current view:
+   - CSV / Excel
+   - respects filters and columns
+   - role-based permission to export
+13) Role-based permissions per module:
+   - read-only vs edit
+   - restrict delete/export/financial fields
+14) Better empty states:
+   - explain “no results because of filters”
+   - provide actions (clear filters, create new)
+15) Cross-app consistency:
+   - create or confirm a reusable Table component
+   - consistent confirm dialogs + toasts
+   - consistent search/filter behavior everywhere
+16) Audit Trail (minimum viable):
+   - who / did what / when
+   - for edit, delete, restore, assignment, status changes
+
+IMPORTANT CONSTRAINTS
+- Prefer “archive” over delete everywhere.
+- Avoid large refactors unless necessary.
+- If the codebase already uses a table library or patterns, reuse it.
+- Propose the smallest set of shared components/utilities to standardize all modules.
+
+FINAL STEP
+After the audit, suggest additional baseline features (same category) that I missed, with reasons and rough effort.

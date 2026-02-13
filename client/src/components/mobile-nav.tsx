@@ -10,7 +10,8 @@ import {
   Bot,
   Settings,
   Users,
-  X
+  X,
+  Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -30,10 +31,11 @@ const MAIN_TABS = [
 ];
 
 const MORE_ITEMS = [
-  { name: "Companies", href: "/companies", icon: Building2, roles: null as string[] | null },
-  { name: "Staff", href: "/staff", icon: Users, roles: null as string[] | null },
-  { name: "Wallet", href: "/vendor-wallet", icon: Wallet, roles: null as string[] | null },
+  { name: "Companies", href: "/companies", icon: Building2, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
+  { name: "Staff", href: "/staff", icon: Users, roles: ["Admin"] as string[] | null },
+  { name: "Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin"] as string[] | null },
   { name: "Bots", href: "/bots", icon: Bot, roles: null as string[] | null },
+  { name: "Manager", href: "/manager-console", icon: Shield, roles: ["Client Relationship Manager"] as string[] | null },
   { name: "Admin", href: "/admin", icon: Settings, roles: ["Admin"] as string[] | null },
 ];
 
