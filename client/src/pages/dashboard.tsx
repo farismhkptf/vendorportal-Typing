@@ -28,6 +28,8 @@ import { getGreeting } from "@/lib/greeting";
 import { toProperCase } from "@/lib/proper-case";
 import { useCountUp } from "@/hooks/use-count-up";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { DashboardSwitcher } from "@/components/dashboard-switcher";
 
 function getStatusSummary(typing: string | null, appt: string | null): { label: string; color: string } {
   if (appt === "Completed" && (typing === "SentToClient" || typing === "Returned")) {
@@ -256,6 +258,7 @@ function NeedsAttention({ items }: { items: NeedsAttentionItem[] }) {
 
 export default function Dashboard() {
   const [, navigate] = useLocation();
+  const { user } = useAuth();
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
   });
@@ -279,19 +282,22 @@ export default function Dashboard() {
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-4 pb-3">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
             <h1 className="text-xl font-semibold text-foreground">
               Dashboard
             </h1>
           </div>
-          <Link href="/work-orders/new">
-            <Button size="sm" className="gap-1.5" data-testid="button-new-work-order">
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">New Work Order</span>
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {user?.role === "Admin" && <DashboardSwitcher active="admin" />}
+            <Link href="/work-orders/new">
+              <Button size="sm" className="gap-1.5" data-testid="button-new-work-order">
+                <Plus className="h-4 w-4" />
+                <span className="hidden sm:inline">New Work Order</span>
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 

@@ -23,6 +23,7 @@ import { getGreeting } from "@/lib/greeting";
 import { toProperCase } from "@/lib/proper-case";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { DashboardSwitcher } from "@/components/dashboard-switcher";
 import type { Company, Appointment } from "@shared/schema";
 
 interface AppointmentWithDetails extends Appointment {
@@ -134,33 +135,38 @@ function AppointmentItem({ apt, showDate, index }: { apt: AppointmentWithDetails
 export default function MedicalDashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const isAdmin = user?.role === "Admin";
 
   const { data: allAppointments, isLoading: appointmentsLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments"],
-    enabled: !!user?.staffId,
+    enabled: isAdmin || !!user?.staffId,
   });
 
   const { data: companies, isLoading: companiesLoading } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
-    enabled: !!user?.staffId,
+    enabled: isAdmin || !!user?.staffId,
   });
 
   const myCompanyIds = useMemo(() => {
-    if (!companies || !user?.staffId) return new Set<string>();
+    if (!companies) return new Set<string>();
+    if (isAdmin) return new Set(companies.map((c) => c.id));
+    if (!user?.staffId) return new Set<string>();
     return new Set(
       companies.filter((c) => c.assistStaffId === user.staffId).map((c) => c.id)
     );
-  }, [companies, user?.staffId]);
+  }, [companies, user?.staffId, isAdmin]);
 
   const myAppointments = useMemo(() => {
-    if (!allAppointments || !user?.staffId) return [];
+    if (!allAppointments) return [];
+    if (isAdmin) return allAppointments;
+    if (!user?.staffId) return [];
     return allAppointments.filter((apt) => {
       if (apt.assignedStaffId === user.staffId) return true;
       const companyId = apt.workOrder?.companyId;
       if (companyId && myCompanyIds.has(companyId)) return true;
       return false;
     });
-  }, [allAppointments, user?.staffId, myCompanyIds]);
+  }, [allAppointments, user?.staffId, myCompanyIds, isAdmin]);
 
   const todayAppointments = useMemo(() => {
     return myAppointments
@@ -193,7 +199,7 @@ export default function MedicalDashboard() {
     ).length;
   }, [myAppointments]);
 
-  if (!user?.staffId) {
+  if (!isAdmin && !user?.staffId) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh] px-4">
@@ -222,15 +228,18 @@ export default function MedicalDashboard() {
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
             <h1 className="text-xl font-semibold text-foreground" data-testid="text-user-greeting">
-              {user?.name || "Dashboard"}
+              {isAdmin ? "Medical Dashboard" : (user?.name || "Dashboard")}
             </h1>
           </div>
-          <Link href="/appointments">
-            <Button size="sm" className="gap-1.5" data-testid="button-view-appointments">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">All Appointments</span>
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {isAdmin && <DashboardSwitcher active="medical" />}
+            <Link href="/appointments">
+              <Button size="sm" className="gap-1.5" data-testid="button-view-appointments">
+                <Calendar className="h-4 w-4" />
+                <span className="hidden sm:inline">All Appointments</span>
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 

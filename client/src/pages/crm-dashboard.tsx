@@ -22,6 +22,7 @@ import { getGreeting } from "@/lib/greeting";
 import { toProperCase } from "@/lib/proper-case";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { DashboardSwitcher } from "@/components/dashboard-switcher";
 import type { Company, WorkOrder, Appointment } from "@shared/schema";
 
 interface AppointmentWithDetails extends Appointment {
@@ -51,26 +52,29 @@ function isToday(datetime: string | Date): boolean {
 export default function CrmDashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
+  const isAdmin = user?.role === "Admin";
 
   const { data: companies, isLoading: companiesLoading } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
-    enabled: !!user?.staffId,
+    enabled: isAdmin || !!user?.staffId,
   });
 
   const { data: workOrders, isLoading: workOrdersLoading } = useQuery<WorkOrder[]>({
     queryKey: ["/api/work-orders"],
-    enabled: !!user?.staffId,
+    enabled: isAdmin || !!user?.staffId,
   });
 
   const { data: allAppointments, isLoading: appointmentsLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments"],
-    enabled: !!user?.staffId,
+    enabled: isAdmin || !!user?.staffId,
   });
 
   const myCompanies = useMemo(() => {
-    if (!companies || !user?.staffId) return [];
+    if (!companies) return [];
+    if (isAdmin) return companies;
+    if (!user?.staffId) return [];
     return companies.filter((c) => c.rmStaffId === user.staffId);
-  }, [companies, user?.staffId]);
+  }, [companies, user?.staffId, isAdmin]);
 
   const myCompanyIds = useMemo(() => {
     return new Set(myCompanies.map((c) => c.id));
@@ -78,8 +82,9 @@ export default function CrmDashboard() {
 
   const myWorkOrders = useMemo(() => {
     if (!workOrders) return [];
+    if (isAdmin) return workOrders;
     return workOrders.filter((wo) => myCompanyIds.has(wo.companyId));
-  }, [workOrders, myCompanyIds]);
+  }, [workOrders, myCompanyIds, isAdmin]);
 
   const companyWoCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -95,10 +100,11 @@ export default function CrmDashboard() {
       .filter((apt) => {
         const wo = apt.workOrder;
         if (!wo) return false;
+        if (isAdmin) return isToday(apt.datetime) && apt.status !== "Cancelled";
         return myCompanyIds.has(wo.companyId) && isToday(apt.datetime) && apt.status !== "Cancelled";
       })
       .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
-  }, [allAppointments, myCompanyIds]);
+  }, [allAppointments, myCompanyIds, isAdmin]);
 
   const companyNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -108,7 +114,7 @@ export default function CrmDashboard() {
     return map;
   }, [myCompanies]);
 
-  if (!user?.staffId) {
+  if (!isAdmin && !user?.staffId) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh] px-4">
@@ -137,15 +143,18 @@ export default function CrmDashboard() {
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
             <h1 className="text-xl font-semibold text-foreground" data-testid="text-user-greeting">
-              {user?.name || "Dashboard"}
+              {isAdmin ? "CRM Dashboard" : (user?.name || "Dashboard")}
             </h1>
           </div>
-          <Link href="/work-orders/new">
-            <Button size="sm" className="gap-1.5" data-testid="button-new-work-order">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">New Work Order</span>
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            {isAdmin && <DashboardSwitcher active="crm" />}
+            <Link href="/work-orders/new">
+              <Button size="sm" className="gap-1.5" data-testid="button-new-work-order">
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">New Work Order</span>
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
