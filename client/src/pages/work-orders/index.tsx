@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { 
@@ -19,6 +19,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import { useDataTable } from "@/hooks/use-data-table";
 import { toProperCase } from "@/lib/proper-case";
 import type { WorkOrder, Company, Appointment, TypingJob, JobType, ServiceType } from "@shared/schema";
 
@@ -208,7 +212,6 @@ export default function WorkOrdersList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
 
   const { data: workOrders, isLoading } = useQuery<WorkOrderEnriched[]>({
@@ -321,6 +324,20 @@ export default function WorkOrdersList() {
     return result;
   }, [workOrders, search, statusFilter, specialFilter, sortBy]);
 
+  const getId = useCallback((wo: WorkOrderEnriched) => wo.id, []);
+
+  const dt = useDataTable(filteredAndSortedWorkOrders, {
+    storageKey: "wo_list",
+    defaultPageSize: 25,
+    defaultViewMode: "cards",
+    getId,
+  });
+
+  const viewMode = dt.viewMode as ViewMode;
+
+  const isKanban = viewMode === "kanban";
+  const displayItems = isKanban ? (filteredAndSortedWorkOrders || []) : dt.paginatedData;
+
   const kanbanGroups = useMemo(() => {
     if (!filteredAndSortedWorkOrders) return null;
     const groups: Record<string, WorkOrderEnriched[]> = {};
@@ -332,6 +349,14 @@ export default function WorkOrdersList() {
     });
     return groups;
   }, [filteredAndSortedWorkOrders]);
+
+  const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (specialFilter !== "all" ? 1 : 0);
+
+  const clearAllFilters = useCallback(() => {
+    setStatusFilter("all");
+    setSpecialFilter("all");
+    setSearch("");
+  }, []);
 
   const renderStatTiles = () => {
     if (!stats) return null;
@@ -410,7 +435,7 @@ export default function WorkOrdersList() {
     );
   };
 
-  const renderCardItem = (wo: WorkOrderEnriched, index: number, compact?: boolean) => {
+  const renderCardItem = (wo: WorkOrderEnriched, index: number) => {
     const med = getMedicalStatus(wo);
     const eid = getEidStatus(wo);
     const daysOld = getDaysOld(wo.createdAt);
@@ -429,82 +454,95 @@ export default function WorkOrdersList() {
       ? (eid.hasEid ? (eid.appointment === "Completed" ? "Done" : eid.appointment ? "Scheduled" : eid.typing ? (eid.typing === "SentToClient" || eid.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
       : null;
 
-    return (
-      <Link key={wo.id} href={`/work-orders/${wo.id}`}>
-        <div 
-          className={`premium-card p-4 border-l-[3px] ${borderColor} opacity-0 animate-fade-in`}
-          style={{ animationDelay: `${index * 0.03}s` }}
-          data-testid={`work-order-card-${wo.woNumber}`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-mono font-semibold text-sm text-foreground">{wo.woNumber}</span>
-                <StatusBadge status={wo.status} />
-                {wo.isVip && (
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 rounded-full px-1.5 py-0 text-[10px]">
-                    <Star className="h-2.5 w-2.5 mr-0.5 fill-current" />
-                    VIP
-                  </Badge>
-                )}
-                {attention && (
-                  <Badge variant="secondary" className="bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 rounded-full px-1.5 py-0 text-[10px]">
-                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
-                    Action needed
-                  </Badge>
-                )}
-              </div>
-              <p className="text-sm text-muted-foreground truncate mt-0.5">{toProperCase(wo.applicantName)}</p>
-              <div className="flex items-center gap-3 flex-wrap mt-0.5">
-                {wo.company && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground/70">
-                    <Building2 className="h-3 w-3" />
-                    <span className="truncate">{toProperCase(wo.company.name)}</span>
-                  </div>
-                )}
-                {st && (
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground/70" data-testid={`wo-service-type-${wo.woNumber}`}>
-                    <Tag className="h-3 w-3" />
-                    <span className="truncate">{st.name}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="text-right shrink-0 space-y-1">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
-                <Clock className="h-3 w-3" />
-                <span>{daysOld === 0 ? "Today" : `${daysOld}d`}</span>
-              </div>
-            </div>
-          </div>
+    const isSelected = dt.selectedIds.has(wo.id);
+    const isComfortable = dt.density === "comfortable";
 
-          {(showMed || showEid) && (
-            <div className="mt-3 pt-2.5 border-t border-border/30 space-y-1.5">
-              {showMed && (
-                <MedEidStatusRow
-                  icon={Stethoscope}
-                  label="Med"
-                  typing={med.typing}
-                  appointment={med.appointment}
-                  hasData={med.hasMedical}
-                  summaryLabel={medLabel}
-                />
-              )}
-              {showEid && (
-                <MedEidStatusRow
-                  icon={Fingerprint}
-                  label="EID"
-                  typing={eid.typing}
-                  appointment={eid.appointment}
-                  hasData={eid.hasEid}
-                  summaryLabel={eidLabel}
-                />
-              )}
-              <ProgressBar percent={progress} />
-            </div>
-          )}
+    return (
+      <div key={wo.id} className="flex items-start gap-2">
+        <div className="pt-4 shrink-0">
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => dt.toggleSelected(wo.id)}
+            aria-label={`Select ${wo.woNumber}`}
+            data-testid={`checkbox-wo-${wo.woNumber}`}
+          />
         </div>
-      </Link>
+        <Link href={`/work-orders/${wo.id}`} className="flex-1 min-w-0">
+          <div 
+            className={`premium-card ${isComfortable ? "p-4" : "p-2.5"} border-l-[3px] ${borderColor} opacity-0 animate-fade-in`}
+            style={{ animationDelay: `${index * 0.03}s` }}
+            data-testid={`work-order-card-${wo.woNumber}`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono font-semibold text-sm text-foreground">{wo.woNumber}</span>
+                  <StatusBadge status={wo.status} />
+                  {wo.isVip && (
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 rounded-full px-1.5 py-0 text-[10px]">
+                      <Star className="h-2.5 w-2.5 mr-0.5 fill-current" />
+                      VIP
+                    </Badge>
+                  )}
+                  {attention && (
+                    <Badge variant="secondary" className="bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 rounded-full px-1.5 py-0 text-[10px]">
+                      <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                      Action needed
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground truncate mt-0.5">{toProperCase(wo.applicantName)}</p>
+                <div className="flex items-center gap-3 flex-wrap mt-0.5">
+                  {wo.company && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground/70">
+                      <Building2 className="h-3 w-3" />
+                      <span className="truncate">{toProperCase(wo.company.name)}</span>
+                    </div>
+                  )}
+                  {st && (
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground/70" data-testid={`wo-service-type-${wo.woNumber}`}>
+                      <Tag className="h-3 w-3" />
+                      <span className="truncate">{st.name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="text-right shrink-0 space-y-1">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
+                  <Clock className="h-3 w-3" />
+                  <span>{daysOld === 0 ? "Today" : `${daysOld}d`}</span>
+                </div>
+              </div>
+            </div>
+
+            {isComfortable && (showMed || showEid) && (
+              <div className="mt-3 pt-2.5 border-t border-border/30 space-y-1.5">
+                {showMed && (
+                  <MedEidStatusRow
+                    icon={Stethoscope}
+                    label="Med"
+                    typing={med.typing}
+                    appointment={med.appointment}
+                    hasData={med.hasMedical}
+                    summaryLabel={medLabel}
+                  />
+                )}
+                {showEid && (
+                  <MedEidStatusRow
+                    icon={Fingerprint}
+                    label="EID"
+                    typing={eid.typing}
+                    appointment={eid.appointment}
+                    hasData={eid.hasEid}
+                    summaryLabel={eidLabel}
+                  />
+                )}
+                <ProgressBar percent={progress} />
+              </div>
+            )}
+          </div>
+        </Link>
+      </div>
     );
   };
 
@@ -521,38 +559,47 @@ export default function WorkOrdersList() {
         const eid = getEidStatus(wo);
         const attention = needsAttention(wo);
         const borderColor = getCardBorderColor(wo);
+        const isSelected = dt.selectedIds.has(wo.id);
         return (
-          <Link key={wo.id} href={`/work-orders/${wo.id}`}>
-            <div 
-              className={`flex items-center justify-between gap-3 py-2 px-3 rounded-lg hover-elevate border-l-[3px] ${borderColor} opacity-0 animate-fade-in`}
-              style={{ animationDelay: `${index * 0.02}s` }}
-              data-testid={`work-order-compact-${wo.woNumber}`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
-                <span className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</span>
-                {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
-                {attention && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}
+          <div key={wo.id} className="flex items-center gap-2">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => dt.toggleSelected(wo.id)}
+              aria-label={`Select ${wo.woNumber}`}
+              data-testid={`checkbox-wo-compact-${wo.woNumber}`}
+            />
+            <Link href={`/work-orders/${wo.id}`} className="flex-1 min-w-0">
+              <div 
+                className={`flex items-center justify-between gap-3 ${dt.density === "comfortable" ? "py-2 px-3" : "py-1.5 px-2"} rounded-lg hover-elevate border-l-[3px] ${borderColor} opacity-0 animate-fade-in`}
+                style={{ animationDelay: `${index * 0.02}s` }}
+                data-testid={`work-order-compact-${wo.woNumber}`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
+                  <span className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</span>
+                  {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
+                  {attention && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {med.hasMedical && (
+                    <div className="flex items-center gap-1">
+                      <Stethoscope className="h-3 w-3 text-muted-foreground" />
+                      <TypingStatusPill status={med.typing} />
+                      <AppointmentStatusPill status={med.appointment} />
+                    </div>
+                  )}
+                  {eid.hasEid && (
+                    <div className="flex items-center gap-1">
+                      <Fingerprint className="h-3 w-3 text-muted-foreground" />
+                      <TypingStatusPill status={eid.typing} />
+                      <AppointmentStatusPill status={eid.appointment} />
+                    </div>
+                  )}
+                  <StatusBadge status={wo.status} />
+                </div>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                {med.hasMedical && (
-                  <div className="flex items-center gap-1">
-                    <Stethoscope className="h-3 w-3 text-muted-foreground" />
-                    <TypingStatusPill status={med.typing} />
-                    <AppointmentStatusPill status={med.appointment} />
-                  </div>
-                )}
-                {eid.hasEid && (
-                  <div className="flex items-center gap-1">
-                    <Fingerprint className="h-3 w-3 text-muted-foreground" />
-                    <TypingStatusPill status={eid.typing} />
-                    <AppointmentStatusPill status={eid.appointment} />
-                  </div>
-                )}
-                <StatusBadge status={wo.status} />
-              </div>
-            </div>
-          </Link>
+            </Link>
+          </div>
         );
       })}
     </div>
@@ -563,6 +610,15 @@ export default function WorkOrdersList() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={dt.isAllSelected}
+                onCheckedChange={() => dt.toggleSelectAll()}
+                aria-label="Select all"
+                data-testid="checkbox-select-all"
+                {...(dt.isPartiallySelected ? { "data-state": "indeterminate" } : {})}
+              />
+            </TableHead>
             <TableHead className="w-28">WO #</TableHead>
             <TableHead>Applicant</TableHead>
             <TableHead className="hidden sm:table-cell">Company</TableHead>
@@ -579,31 +635,41 @@ export default function WorkOrdersList() {
             const eid = getEidStatus(wo);
             const daysOld = getDaysOld(wo.createdAt);
             const attention = needsAttention(wo);
+            const isSelected = dt.selectedIds.has(wo.id);
+            const cellPadding = dt.density === "compact" ? "py-1.5" : "";
             return (
               <TableRow 
                 key={wo.id} 
-                className="cursor-pointer hover-elevate" 
-                onClick={() => navigate(`/work-orders/${wo.id}`)}
+                className={`cursor-pointer hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
+                data-state={isSelected ? "selected" : undefined}
                 data-testid={`work-order-table-${wo.woNumber}`}
               >
-                <TableCell>
+                <TableCell className={cellPadding}>
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => dt.toggleSelected(wo.id)}
+                    aria-label={`Select ${wo.woNumber}`}
+                    data-testid={`checkbox-wo-table-${wo.woNumber}`}
+                  />
+                </TableCell>
+                <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   <div className="flex items-center gap-1.5">
                     <span className="font-mono font-medium text-primary">{wo.woNumber}</span>
                     {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                     {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                   </div>
                 </TableCell>
-                <TableCell>{toProperCase(wo.applicantName)}</TableCell>
-                <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
+                <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>{toProperCase(wo.applicantName)}</TableCell>
+                <TableCell className={`hidden sm:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {wo.company?.name ? toProperCase(wo.company.name) : "-"}
                 </TableCell>
-                <TableCell className="hidden lg:table-cell text-muted-foreground text-xs">
+                <TableCell className={`hidden lg:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {wo.serviceType?.name || "-"}
                 </TableCell>
-                <TableCell>
+                <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   <StatusBadge status={wo.status} />
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {med.hasMedical ? (
                     <div className="flex items-center gap-1">
                       <TypingStatusPill status={med.typing} />
@@ -613,7 +679,7 @@ export default function WorkOrdersList() {
                     <span className="text-xs text-muted-foreground/40">--</span>
                   )}
                 </TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {eid.hasEid ? (
                     <div className="flex items-center gap-1">
                       <TypingStatusPill status={eid.typing} />
@@ -623,7 +689,7 @@ export default function WorkOrdersList() {
                     <span className="text-xs text-muted-foreground/40">--</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right text-xs text-muted-foreground">
+                <TableCell className={`text-right text-xs text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {daysOld === 0 ? "Today" : `${daysOld}d`}
                 </TableCell>
               </TableRow>
@@ -693,6 +759,94 @@ export default function WorkOrdersList() {
     );
   };
 
+  const viewModeToggle = (
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
+      <Button
+        size="icon"
+        variant={viewMode === "compact" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("compact")}
+        data-testid="button-view-compact"
+      >
+        <List className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "cards" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("cards")}
+        data-testid="button-view-cards"
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "table" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("table")}
+        data-testid="button-view-table"
+      >
+        <Table2 className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "kanban" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("kanban")}
+        data-testid="button-view-kanban"
+      >
+        <Columns3 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const filterControls = (
+    <>
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-status-filter">
+          <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+          <SelectValue placeholder="All Status" />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl">
+          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="Draft">Draft</SelectItem>
+          <SelectItem value="Scheduled">Scheduled</SelectItem>
+          <SelectItem value="Sent">Sent</SelectItem>
+          <SelectItem value="Completed">Completed</SelectItem>
+          <SelectItem value="Cancelled">Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={specialFilter} onValueChange={(v) => setSpecialFilter(v as SpecialFilter)}>
+        <SelectTrigger className="w-44 h-9 rounded-lg" data-testid="select-special-filter">
+          <CircleDot className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+          <SelectValue placeholder="Quick Filter" />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl">
+          <SelectItem value="all">All Work Orders</SelectItem>
+          <SelectItem value="needs_attention">Needs Attention</SelectItem>
+          <SelectItem value="awaiting_typing">Awaiting Typing</SelectItem>
+          <SelectItem value="need_scheduling">Need Scheduling</SelectItem>
+          <SelectItem value="vip">VIP Cases</SelectItem>
+          <SelectItem value="med_not_scheduled">Medical Not Scheduled</SelectItem>
+          <SelectItem value="eid_not_scheduled">EID Not Scheduled</SelectItem>
+          <SelectItem value="med_typing_pending">Medical Typing Pending</SelectItem>
+          <SelectItem value="eid_typing_pending">EID Typing Pending</SelectItem>
+          <SelectItem value="completed">Completed</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+        <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
+          <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+          <SelectValue placeholder="Sort by" />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl">
+          <SelectItem value="newest">Newest First</SelectItem>
+          <SelectItem value="oldest">Oldest First</SelectItem>
+          <SelectItem value="wo_asc">WO # A-Z</SelectItem>
+          <SelectItem value="wo_desc">WO # Z-A</SelectItem>
+          <SelectItem value="applicant_asc">Applicant A-Z</SelectItem>
+          <SelectItem value="applicant_desc">Applicant Z-A</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+
   return (
     <AppLayout>
       <div className="px-4 lg:px-6 pt-4 pb-3">
@@ -715,126 +869,20 @@ export default function WorkOrdersList() {
       <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
         {!isLoading && renderStatTiles()}
 
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by work order number or applicant..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9"
-              data-testid="input-search-work-orders"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-status-filter">
-              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="Draft">Draft</SelectItem>
-              <SelectItem value="Scheduled">Scheduled</SelectItem>
-              <SelectItem value="Sent">Sent</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={specialFilter} onValueChange={(v) => setSpecialFilter(v as SpecialFilter)}>
-            <SelectTrigger className="w-44 h-9 rounded-lg" data-testid="select-special-filter">
-              <CircleDot className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Quick Filter" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">All Work Orders</SelectItem>
-              <SelectItem value="needs_attention">Needs Attention</SelectItem>
-              <SelectItem value="awaiting_typing">Awaiting Typing</SelectItem>
-              <SelectItem value="need_scheduling">Need Scheduling</SelectItem>
-              <SelectItem value="vip">VIP Cases</SelectItem>
-              <SelectItem value="med_not_scheduled">Medical Not Scheduled</SelectItem>
-              <SelectItem value="eid_not_scheduled">EID Not Scheduled</SelectItem>
-              <SelectItem value="med_typing_pending">Medical Typing Pending</SelectItem>
-              <SelectItem value="eid_typing_pending">EID Typing Pending</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
-            <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
-              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="wo_asc">WO # A-Z</SelectItem>
-              <SelectItem value="wo_desc">WO # Z-A</SelectItem>
-              <SelectItem value="applicant_asc">Applicant A-Z</SelectItem>
-              <SelectItem value="applicant_desc">Applicant Z-A</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
-            <Button
-              size="icon"
-              variant={viewMode === "compact" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("compact")}
-              data-testid="button-view-compact"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "cards" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("cards")}
-              data-testid="button-view-cards"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("table")}
-              data-testid="button-view-table"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "kanban" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("kanban")}
-              data-testid="button-view-kanban"
-            >
-              <Columns3 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {specialFilter !== "all" && (
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="rounded-full gap-1 text-xs">
-              <CircleDot className="h-3 w-3" />
-              {specialFilter === "needs_attention" && "Needs Attention"}
-              {specialFilter === "med_not_scheduled" && "Medical Not Scheduled"}
-              {specialFilter === "eid_not_scheduled" && "EID Not Scheduled"}
-              {specialFilter === "med_typing_pending" && "Medical Typing Pending"}
-              {specialFilter === "eid_typing_pending" && "EID Typing Pending"}
-              {specialFilter === "awaiting_typing" && "Awaiting Typing"}
-              {specialFilter === "need_scheduling" && "Need Scheduling"}
-              {specialFilter === "vip" && "VIP Cases"}
-              {specialFilter === "completed" && "Completed"}
-            </Badge>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSpecialFilter("all")}
-              className="text-xs text-muted-foreground"
-              data-testid="button-clear-special-filter"
-            >
-              Clear
-            </Button>
-          </div>
-        )}
+        <DataTableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by work order number or applicant..."
+          density={dt.density}
+          onDensityChange={dt.setDensity}
+          totalItems={dt.totalItems}
+          selectedCount={dt.selectedCount}
+          onClearSelection={dt.clearSelection}
+          filters={filterControls}
+          viewModeToggle={viewModeToggle}
+          activeFilterCount={activeFilterCount}
+          onClearFilters={clearAllFilters}
+        />
 
         <div>
           {isLoading ? (
@@ -853,20 +901,24 @@ export default function WorkOrdersList() {
                 </div>
               ))}
             </div>
-          ) : filteredAndSortedWorkOrders && filteredAndSortedWorkOrders.length > 0 ? (
+          ) : displayItems && displayItems.length > 0 ? (
             <>
-              {viewMode === "compact" && renderCompactList(filteredAndSortedWorkOrders)}
-              {viewMode === "cards" && renderCards(filteredAndSortedWorkOrders)}
-              {viewMode === "table" && renderTable(filteredAndSortedWorkOrders)}
+              {viewMode === "compact" && renderCompactList(displayItems)}
+              {viewMode === "cards" && renderCards(displayItems)}
+              {viewMode === "table" && renderTable(displayItems)}
               {viewMode === "kanban" && renderKanban()}
             </>
           ) : (
             <EmptyState
               icon={<FileText className="h-6 w-6" />}
               title="No work orders found"
-              description={search || specialFilter !== "all" ? "Try adjusting your search or filters" : "Create your first work order to get started."}
+              description={search || activeFilterCount > 0 ? "Try adjusting your search or filters" : "Create your first work order to get started."}
               action={
-                !search && specialFilter === "all" && (
+                search || activeFilterCount > 0 ? (
+                  <Button size="sm" variant="outline" className="gap-2 rounded-lg" onClick={clearAllFilters} data-testid="button-clear-all-filters">
+                    Clear filters
+                  </Button>
+                ) : (
                   <Link href="/work-orders/new">
                     <Button size="sm" className="gap-2 rounded-lg">
                       <Plus className="h-4 w-4" />
@@ -878,6 +930,18 @@ export default function WorkOrdersList() {
             />
           )}
         </div>
+
+        {!isKanban && !isLoading && dt.totalItems > 0 && (
+          <DataTablePagination
+            page={dt.page}
+            pageSize={dt.pageSize}
+            totalPages={dt.totalPages}
+            totalItems={dt.totalItems}
+            onPageChange={dt.setPage}
+            onPageSizeChange={dt.setPageSize}
+            selectedCount={dt.selectedCount}
+          />
+        )}
       </div>
       <FloatingActionButton href="/work-orders/new" label="New Work Order" testId="fab-new-work-order" />
     </AppLayout>

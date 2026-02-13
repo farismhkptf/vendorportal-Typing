@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Search, Users, Mail, Phone, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Users, Mail, Phone, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,10 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import { useDataTable } from "@/hooks/use-data-table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Staff } from "@shared/schema";
@@ -68,6 +72,14 @@ export default function StaffList() {
     member.name.toLowerCase().includes(search.toLowerCase()) ||
     member.roleTitle.toLowerCase().includes(search.toLowerCase())
   );
+
+  const getId = useCallback((member: Staff) => member.id, []);
+
+  const dt = useDataTable(filteredStaff, {
+    storageKey: "staff_list",
+    defaultPageSize: 25,
+    getId,
+  });
 
   const createMutation = useMutation({
     mutationFn: async (data: StaffFormData) => {
@@ -166,10 +178,10 @@ export default function StaffList() {
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const isComfortable = dt.density === "comfortable";
 
   return (
     <AppLayout>
-      {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -189,20 +201,17 @@ export default function StaffList() {
       </div>
 
       <div className="px-4 lg:px-6 pb-8 space-y-4">
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search staff..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-9 pl-9 rounded-lg"
-            data-testid="input-search-staff"
-          />
-        </div>
+        <DataTableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search staff..."
+          density={dt.density}
+          onDensityChange={dt.setDensity}
+          totalItems={dt.totalItems}
+          selectedCount={dt.selectedCount}
+          onClearSelection={dt.clearSelection}
+        />
 
-        {/* Staff List */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
           {isLoading ? (
             <>
@@ -210,73 +219,89 @@ export default function StaffList() {
               <Skeleton className="h-36 rounded-xl" />
               <Skeleton className="h-36 rounded-xl" />
             </>
-          ) : filteredStaff && filteredStaff.length > 0 ? (
-            filteredStaff.map((member, index) => (
-              <div
-                key={member.id}
-                className="premium-card p-4 opacity-0 animate-fade-in"
-                style={{ animationDelay: `${index * 0.05}s` }}
-                data-testid={`staff-card-${member.id}`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{member.name}</h3>
-                      <p className="text-sm text-muted-foreground">{member.roleTitle}</p>
-                    </div>
-                    <Badge variant={getStatusVariant(member.status || "Active")} className="text-xs rounded-full shrink-0">
-                      {getStatusLabel(member.status || "Active")}
-                    </Badge>
+          ) : dt.paginatedData.length > 0 ? (
+            dt.paginatedData.map((member, index) => {
+              const isSelected = dt.selectedIds.has(member.id);
+              return (
+                <div key={member.id} className="flex items-start gap-2">
+                  <div className="pt-4 shrink-0">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => dt.toggleSelected(member.id)}
+                      aria-label={`Select ${member.name}`}
+                      data-testid={`checkbox-staff-${member.id}`}
+                    />
                   </div>
-                  
-                  <div className="space-y-1.5">
-                    {member.email && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Mail className="h-3.5 w-3.5" />
-                        <span className="truncate">{member.email}</span>
+                  <div
+                    className={`premium-card ${isComfortable ? "p-4" : "p-2.5"} flex-1 min-w-0 opacity-0 animate-fade-in`}
+                    style={{ animationDelay: `${index * 0.05}s` }}
+                    data-testid={`staff-card-${member.id}`}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold text-foreground">{member.name}</h3>
+                          <p className="text-sm text-muted-foreground">{member.roleTitle}</p>
+                        </div>
+                        <Badge variant={getStatusVariant(member.status || "Active")} className="text-xs rounded-full shrink-0">
+                          {getStatusLabel(member.status || "Active")}
+                        </Badge>
                       </div>
-                    )}
-                    {member.phone && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Phone className="h-3.5 w-3.5" />
-                        <span>{member.phone}</span>
+                      
+                      <div className="space-y-1.5">
+                        {member.email && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Mail className="h-3.5 w-3.5" />
+                            <span className="truncate">{member.email}</span>
+                          </div>
+                        )}
+                        {member.phone && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Phone className="h-3.5 w-3.5" />
+                            <span>{member.phone}</span>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex gap-2 pt-2 border-t border-border/50">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1 gap-1.5 rounded-lg h-8"
-                      onClick={() => handleOpenDialog(member)}
-                      data-testid={`button-edit-staff-${member.id}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="flex-1 gap-1.5 rounded-lg h-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteClick(member)}
-                      data-testid={`button-delete-staff-${member.id}`}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
-                    </Button>
+                      <div className="flex gap-2 pt-2 border-t border-border/50">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 gap-1.5 rounded-lg"
+                          onClick={() => handleOpenDialog(member)}
+                          data-testid={`button-edit-staff-${member.id}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 gap-1.5 rounded-lg text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteClick(member)}
+                          data-testid={`button-delete-staff-${member.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="col-span-full">
               <EmptyState
                 icon={<Users className="h-6 w-6" />}
-                title="No staff members found"
-                description={search ? "Try adjusting your search" : "Add your first staff member to get started."}
+                title={search ? "No staff match your search" : "No staff members found"}
+                description={search ? "Try adjusting your search terms" : "Add your first staff member to get started."}
                 action={
-                  !search && (
+                  search ? (
+                    <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => setSearch("")}>
+                      Clear search
+                    </Button>
+                  ) : (
                     <Button size="sm" className="gap-1.5 rounded-lg" onClick={() => handleOpenDialog()}>
                       <Plus className="h-4 w-4" />
                       Add Staff
@@ -287,9 +312,18 @@ export default function StaffList() {
             </div>
           )}
         </div>
+
+        <DataTablePagination
+          page={dt.page}
+          pageSize={dt.pageSize}
+          totalPages={dt.totalPages}
+          totalItems={dt.totalItems}
+          onPageChange={dt.setPage}
+          onPageSizeChange={dt.setPageSize}
+          selectedCount={dt.selectedCount}
+        />
       </div>
 
-      {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="rounded-xl">
           <DialogHeader>
@@ -375,7 +409,6 @@ export default function StaffList() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent className="rounded-xl">
           <AlertDialogHeader>

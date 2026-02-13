@@ -1,10 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Search, FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard } from "lucide-react";
+import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -13,6 +12,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import { useDataTable } from "@/hooks/use-data-table";
 import { toProperCase } from "@/lib/proper-case";
 import type { TypingJob, WorkOrder, JobType } from "@shared/schema";
 
@@ -32,7 +35,6 @@ export default function TypingJobsList() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
 
   const apiStatus = statusFilter.startsWith("_") ? "all" : statusFilter;
@@ -89,9 +91,21 @@ export default function TypingJobsList() {
     }
     
     return result;
-  }, [typingJobs, search, statusFilter, sortBy]);
+  }, [typingJobs, search, statusFilter, categoryFilter, sortBy]);
 
-  // Group by status for Kanban view
+  const getId = useCallback((job: TypingJobWithRelations) => job.id, []);
+
+  const dt = useDataTable(filteredAndSortedJobs, {
+    storageKey: "tj_list",
+    defaultPageSize: 25,
+    defaultViewMode: "cards",
+    getId,
+  });
+
+  const viewMode = dt.viewMode as ViewMode;
+  const isKanban = viewMode === "kanban";
+  const displayItems = isKanban ? (filteredAndSortedJobs || []) : dt.paginatedData;
+
   const kanbanGroups = useMemo(() => {
     if (!filteredAndSortedJobs) return null;
     const groups: Record<string, TypingJobWithRelations[]> = {};
@@ -104,32 +118,51 @@ export default function TypingJobsList() {
     return groups;
   }, [filteredAndSortedJobs]);
 
+  const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (categoryFilter !== "all" ? 1 : 0);
+
+  const clearAllFilters = useCallback(() => {
+    setStatusFilter("all");
+    setCategoryFilter("all");
+    setSearch("");
+  }, []);
+
   const renderCompactList = (items: TypingJobWithRelations[]) => (
     <div className="space-y-1 stagger-children">
-      {items.map((job, index) => (
-        <Link key={job.id} href={`/typing-jobs/${job.id}`}>
-          <div 
-            className="flex items-center justify-between gap-3 py-2 px-3 rounded-lg hover-elevate opacity-0 animate-fade-in"
-            style={{ animationDelay: `${index * 0.02}s` }}
-            data-testid={`typing-job-compact-${job.id}`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
-              <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
-              <span className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : ""}</span>
-              {job.jobType && (
-                <span className="text-xs text-muted-foreground/70 hidden sm:inline">• {job.jobType.name}</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <StatusBadge status={job.status} />
-              {job.costSnapshot && (
-                <span className="text-xs font-medium text-foreground">AED {job.costSnapshot}</span>
-              )}
-            </div>
+      {items.map((job, index) => {
+        const isSelected = dt.selectedIds.has(job.id);
+        return (
+          <div key={job.id} className="flex items-center gap-2">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => dt.toggleSelected(job.id)}
+              aria-label={`Select ${job.jobCode || job.id}`}
+              data-testid={`checkbox-tj-compact-${job.id}`}
+            />
+            <Link href={`/typing-jobs/${job.id}`} className="flex-1 min-w-0">
+              <div 
+                className={`flex items-center justify-between gap-3 ${dt.density === "comfortable" ? "py-2 px-3" : "py-1.5 px-2"} rounded-lg hover-elevate opacity-0 animate-fade-in`}
+                style={{ animationDelay: `${index * 0.02}s` }}
+                data-testid={`typing-job-compact-${job.id}`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
+                  <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
+                  <span className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : ""}</span>
+                  {job.jobType && (
+                    <span className="text-xs text-muted-foreground/70 hidden sm:inline">{job.jobType.name}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <StatusBadge status={job.status} />
+                  {job.costSnapshot && (
+                    <span className="text-xs font-medium text-foreground">AED {job.costSnapshot}</span>
+                  )}
+                </div>
+              </div>
+            </Link>
           </div>
-        </Link>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -138,7 +171,7 @@ export default function TypingJobsList() {
       {items.map((job, index) => (
         <Link key={job.id} href={`/typing-jobs/${job.id}`}>
           <div 
-            className="premium-card p-4 opacity-0 animate-fade-in"
+            className={`premium-card ${dt.density === "comfortable" ? "p-4" : "p-2.5"} opacity-0 animate-fade-in`}
             style={{ animationDelay: `${index * 0.03}s` }}
             data-testid={`typing-job-card-${job.id}`}
           >
@@ -177,6 +210,15 @@ export default function TypingJobsList() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={dt.isAllSelected}
+                onCheckedChange={() => dt.toggleSelectAll()}
+                aria-label="Select all"
+                data-testid="checkbox-select-all"
+                {...(dt.isPartiallySelected ? { "data-state": "indeterminate" } : {})}
+              />
+            </TableHead>
             <TableHead className="w-24">Job Code</TableHead>
             <TableHead className="w-28">Work Order #</TableHead>
             <TableHead>Applicant</TableHead>
@@ -186,31 +228,43 @@ export default function TypingJobsList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((job) => (
-            <TableRow 
-              key={job.id} 
-              className="cursor-pointer hover-elevate" 
-              onClick={() => navigate(`/typing-jobs/${job.id}`)}
-              data-testid={`typing-job-table-${job.id}`}
-            >
-              <TableCell>
-                <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
-              </TableCell>
-              <TableCell>
-                <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
-              </TableCell>
-              <TableCell>{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</TableCell>
-              <TableCell className="hidden sm:table-cell text-muted-foreground">
-                {job.jobType?.name || "-"}
-              </TableCell>
-              <TableCell>
-                <StatusBadge status={job.status} />
-              </TableCell>
-              <TableCell className="text-right font-medium">
-                {job.costSnapshot ? `AED ${job.costSnapshot}` : "-"}
-              </TableCell>
-            </TableRow>
-          ))}
+          {items.map((job) => {
+            const isSelected = dt.selectedIds.has(job.id);
+            const cellPadding = dt.density === "compact" ? "py-1.5" : "";
+            return (
+              <TableRow 
+                key={job.id} 
+                className={`cursor-pointer hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
+                data-state={isSelected ? "selected" : undefined}
+                data-testid={`typing-job-table-${job.id}`}
+              >
+                <TableCell className={cellPadding}>
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => dt.toggleSelected(job.id)}
+                    aria-label={`Select ${job.jobCode || job.id}`}
+                    data-testid={`checkbox-tj-table-${job.id}`}
+                  />
+                </TableCell>
+                <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                  <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
+                </TableCell>
+                <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                  <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
+                </TableCell>
+                <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</TableCell>
+                <TableCell className={`hidden sm:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                  {job.jobType?.name || "-"}
+                </TableCell>
+                <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                  <StatusBadge status={job.status} />
+                </TableCell>
+                <TableCell className={`text-right font-medium ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                  {job.costSnapshot ? `AED ${job.costSnapshot}` : "-"}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
@@ -262,9 +316,84 @@ export default function TypingJobsList() {
     );
   };
 
+  const viewModeToggle = (
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
+      <Button
+        size="icon"
+        variant={viewMode === "compact" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("compact")}
+        data-testid="button-view-compact"
+      >
+        <List className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "cards" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("cards")}
+        data-testid="button-view-cards"
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "table" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("table")}
+        data-testid="button-view-table"
+      >
+        <Table2 className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "kanban" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("kanban")}
+        data-testid="button-view-kanban"
+      >
+        <Columns3 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const filterControls = (
+    <>
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-status-filter">
+          <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+          <SelectValue placeholder="All Status" />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl">
+          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="_pending">Pending</SelectItem>
+          <SelectItem value="_inprogress">In Progress</SelectItem>
+          <SelectItem value="_completed">Completed</SelectItem>
+          <SelectItem value="_issues">Issues</SelectItem>
+          <SelectItem value="Draft">Draft</SelectItem>
+          <SelectItem value="SentToVendor">Sent to Vendor</SelectItem>
+          <SelectItem value="InProgress">In Progress (Active)</SelectItem>
+          <SelectItem value="WaitingForDocs">Waiting for Docs</SelectItem>
+          <SelectItem value="Returned">Returned</SelectItem>
+          <SelectItem value="SentToClient">Sent to Client</SelectItem>
+          <SelectItem value="VendorMistake">Vendor Mistake</SelectItem>
+          <SelectItem value="Cancelled">Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+        <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
+          <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+          <SelectValue placeholder="Sort by" />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl">
+          <SelectItem value="newest">Newest First</SelectItem>
+          <SelectItem value="oldest">Oldest First</SelectItem>
+          <SelectItem value="wo_asc">Work Order # A-Z</SelectItem>
+          <SelectItem value="wo_desc">Work Order # Z-A</SelectItem>
+        </SelectContent>
+      </Select>
+    </>
+  );
+
   return (
     <AppLayout>
-      <div className="p-4 lg:p-6 pb-20 md:pb-6 space-y-6 max-w-6xl mx-auto">
+      <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-xl font-semibold text-foreground" data-testid="page-title">
@@ -281,7 +410,9 @@ export default function TypingJobsList() {
             </Button>
           </Link>
         </div>
+      </div>
 
+      <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
         <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
             title="Pending"
@@ -313,7 +444,6 @@ export default function TypingJobsList() {
           />
         </div>
 
-        {/* Category Filter Tabs */}
         <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg w-fit">
           <Button
             variant={categoryFilter === "all" ? "default" : "ghost"}
@@ -349,92 +479,21 @@ export default function TypingJobsList() {
           </Button>
         </div>
 
-      <div className="space-y-4">
-        {/* Search, Filters, and View Mode */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search by WO#, applicant, or job code..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9"
-              data-testid="input-search-typing-jobs"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-32 h-9 rounded-lg" data-testid="select-status-filter">
-              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="_pending">Pending</SelectItem>
-              <SelectItem value="_inprogress">In Progress</SelectItem>
-              <SelectItem value="_completed">Completed</SelectItem>
-              <SelectItem value="_issues">Issues</SelectItem>
-              <SelectItem value="Draft">Draft</SelectItem>
-              <SelectItem value="SentToVendor">Sent to Vendor</SelectItem>
-              <SelectItem value="InProgress">In Progress (Active)</SelectItem>
-              <SelectItem value="WaitingForDocs">Waiting for Docs</SelectItem>
-              <SelectItem value="Returned">Returned</SelectItem>
-              <SelectItem value="SentToClient">Sent to Client</SelectItem>
-              <SelectItem value="VendorMistake">Vendor Mistake</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
-            <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
-              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="newest">Newest First</SelectItem>
-              <SelectItem value="oldest">Oldest First</SelectItem>
-              <SelectItem value="wo_asc">Work Order # A-Z</SelectItem>
-              <SelectItem value="wo_desc">Work Order # Z-A</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
-            <Button
-              size="icon"
-              variant={viewMode === "compact" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("compact")}
-              data-testid="button-view-compact"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "cards" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("cards")}
-              data-testid="button-view-cards"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("table")}
-              data-testid="button-view-table"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "kanban" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("kanban")}
-              data-testid="button-view-kanban"
-            >
-              <Columns3 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <DataTableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by WO#, applicant, or job code..."
+          density={dt.density}
+          onDensityChange={dt.setDensity}
+          totalItems={dt.totalItems}
+          selectedCount={dt.selectedCount}
+          onClearSelection={dt.clearSelection}
+          filters={filterControls}
+          viewModeToggle={viewModeToggle}
+          activeFilterCount={activeFilterCount}
+          onClearFilters={clearAllFilters}
+        />
 
-        {/* Jobs Display */}
         <div>
           {isLoading ? (
             <div className="space-y-2">
@@ -442,22 +501,47 @@ export default function TypingJobsList() {
               <Skeleton className="h-16 rounded-xl" />
               <Skeleton className="h-16 rounded-xl" />
             </div>
-          ) : filteredAndSortedJobs && filteredAndSortedJobs.length > 0 ? (
+          ) : displayItems && displayItems.length > 0 ? (
             <>
-              {viewMode === "compact" && renderCompactList(filteredAndSortedJobs)}
-              {viewMode === "cards" && renderCards(filteredAndSortedJobs)}
-              {viewMode === "table" && renderTable(filteredAndSortedJobs)}
+              {viewMode === "compact" && renderCompactList(displayItems)}
+              {viewMode === "cards" && renderCards(displayItems)}
+              {viewMode === "table" && renderTable(displayItems)}
               {viewMode === "kanban" && renderKanban()}
             </>
           ) : (
             <EmptyState
               icon={<FileText className="h-6 w-6" />}
-              title="No typing jobs found"
-              description={search ? "Try adjusting your search or filters" : "Typing jobs will appear here once created from work orders."}
+              title={search || activeFilterCount > 0 ? "No results match your filters" : "No typing jobs found"}
+              description={search || activeFilterCount > 0 ? "Try adjusting your search or filters" : "Typing jobs will appear here once created from work orders."}
+              action={
+                search || activeFilterCount > 0 ? (
+                  <Button size="sm" variant="outline" className="gap-2 rounded-lg" onClick={clearAllFilters} data-testid="button-clear-all-filters">
+                    Clear filters
+                  </Button>
+                ) : (
+                  <Link href="/typing-jobs/new">
+                    <Button size="sm" className="gap-2 rounded-lg">
+                      <Plus className="h-4 w-4" />
+                      New Typing Job
+                    </Button>
+                  </Link>
+                )
+              }
             />
           )}
         </div>
-      </div>
+
+        {!isKanban && !isLoading && dt.totalItems > 0 && (
+          <DataTablePagination
+            page={dt.page}
+            pageSize={dt.pageSize}
+            totalPages={dt.totalPages}
+            totalItems={dt.totalItems}
+            onPageChange={dt.setPage}
+            onPageSizeChange={dt.setPageSize}
+            selectedCount={dt.selectedCount}
+          />
+        )}
       </div>
       <FloatingActionButton href="/typing-jobs/new" label="New Typing Job" testId="fab-new-typing-job" />
     </AppLayout>

@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import { useDataTable } from "@/hooks/use-data-table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { toProperCase } from "@/lib/proper-case";
@@ -56,6 +58,7 @@ export default function AppointmentsIndex() {
   const [viewMessagesApt, setViewMessagesApt] = useState<AppointmentWithRelations | null>(null);
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
+  const [search, setSearch] = useState("");
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithRelations[]>({
     queryKey: ["/api/appointments"],
@@ -260,21 +263,60 @@ Thank you,
     cancelledCount: appointments?.filter(a => a.status === "Cancelled" || a.status === "Rescheduled").length || 0,
   };
 
-  const todayAppointments = appointments?.filter(a => {
-    const aptDate = new Date(a.datetime);
-    return aptDate >= today && aptDate < tomorrow && a.status === "Scheduled";
-  }).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()) || [];
+  const filteredAppointments = useMemo(() => {
+    if (!appointments) return [];
+    if (!search.trim()) return appointments;
+    const q = search.toLowerCase();
+    return appointments.filter(a => {
+      const woNumber = a.workOrder?.woNumber?.toLowerCase() || "";
+      const applicant = a.workOrder?.applicantName?.toLowerCase() || "";
+      const centerName = a.center?.name?.toLowerCase() || "";
+      return woNumber.includes(q) || applicant.includes(q) || centerName.includes(q);
+    });
+  }, [appointments, search]);
 
-  const upcomingAppointments = appointments?.filter(a => {
-    const aptDate = new Date(a.datetime);
-    return aptDate >= tomorrow && a.status === "Scheduled";
-  }).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()).slice(0, 10) || [];
+  const todayAppointments = useMemo(() =>
+    filteredAppointments.filter(a => {
+      const aptDate = new Date(a.datetime);
+      return aptDate >= today && aptDate < tomorrow && a.status === "Scheduled";
+    }).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()),
+    [filteredAppointments, today, tomorrow]
+  );
 
-  const completedAppointments = appointments?.filter(a => a.status === "Completed")
-    .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()).slice(0, 10) || [];
+  const upcomingAppointments = useMemo(() =>
+    filteredAppointments.filter(a => {
+      const aptDate = new Date(a.datetime);
+      return aptDate >= tomorrow && a.status === "Scheduled";
+    }).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime()),
+    [filteredAppointments, tomorrow]
+  );
 
-  const cancelledAppointments = appointments?.filter(a => a.status === "Cancelled" || a.status === "Rescheduled")
-    .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()).slice(0, 10) || [];
+  const completedAppointments = useMemo(() =>
+    filteredAppointments.filter(a => a.status === "Completed")
+      .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()),
+    [filteredAppointments]
+  );
+
+  const cancelledAppointments = useMemo(() =>
+    filteredAppointments.filter(a => a.status === "Cancelled" || a.status === "Rescheduled")
+      .sort((a, b) => new Date(b.datetime).getTime() - new Date(a.datetime).getTime()),
+    [filteredAppointments]
+  );
+
+  const allFilteredAppointments = useMemo(() => [
+    ...todayAppointments,
+    ...upcomingAppointments,
+    ...completedAppointments,
+    ...cancelledAppointments,
+  ], [todayAppointments, upcomingAppointments, completedAppointments, cancelledAppointments]);
+
+  const getId = useCallback((apt: AppointmentWithRelations) => apt.id, []);
+
+  const dt = useDataTable(allFilteredAppointments, {
+    storageKey: "apt_list",
+    defaultPageSize: 25,
+    getId,
+  });
 
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scrollToSection = useCallback((sectionId: string) => {
@@ -346,12 +388,25 @@ Thank you,
     return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
   };
 
+  const isComfortable = dt.density === "comfortable";
+
   const renderAppointmentCard = (apt: AppointmentWithRelations, showDate: boolean, showActions: boolean) => (
     <div
       key={apt.id}
-      className="p-4 rounded-lg bg-muted/30 border border-border/30"
+      className="flex items-start gap-2"
       data-testid={`appointment-card-${apt.id}`}
     >
+      <div className={isComfortable ? "pt-4" : "pt-2.5"}>
+        <Checkbox
+          checked={dt.selectedIds.has(apt.id)}
+          onCheckedChange={() => dt.toggleSelected(apt.id)}
+          aria-label={`Select appointment ${apt.workOrder?.applicantName || apt.id}`}
+          data-testid={`checkbox-apt-${apt.id}`}
+        />
+      </div>
+      <div
+        className={`flex-1 min-w-0 ${isComfortable ? "p-4" : "p-2.5"} rounded-lg bg-muted/30 border border-border/30`}
+      >
       <div className="flex items-start gap-4">
         <div className="shrink-0 w-[110px] rounded-md bg-background border border-border/40 px-3 py-2 text-center">
           {showDate && (
@@ -455,6 +510,7 @@ Thank you,
           </Button>
         </Link>
       </div>
+      </div>
     </div>
   );
 
@@ -493,6 +549,17 @@ Thank you,
           <StatCard title="Cancelled" value={stats.cancelledCount} icon={<AlertCircle className="h-4 w-4" />} animationDelay={3} onClick={() => scrollToSection("section-cancelled")} />
         </div>
 
+        <DataTableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search by WO number, applicant, or center..."
+          density={dt.density}
+          onDensityChange={dt.setDensity}
+          totalItems={dt.totalItems}
+          selectedCount={dt.selectedCount}
+          onClearSelection={dt.clearSelection}
+        />
+
         <Card id="section-today" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -513,8 +580,8 @@ Thank you,
             ) : (
               <EmptyState
                 icon={<Calendar className="h-6 w-6" />}
-                title="No appointments today"
-                description="Schedule a new appointment to get started."
+                title={search ? "No matching appointments today" : "No appointments today"}
+                description={search ? "Try adjusting your search terms." : "Schedule a new appointment to get started."}
               />
             )}
           </CardContent>
@@ -540,43 +607,63 @@ Thank you,
             ) : (
               <EmptyState
                 icon={<Clock className="h-6 w-6" />}
-                title="No upcoming appointments"
-                description="All upcoming appointments will appear here."
+                title={search ? "No matching upcoming appointments" : "No upcoming appointments"}
+                description={search ? "Try adjusting your search terms." : "All upcoming appointments will appear here."}
               />
             )}
           </CardContent>
         </Card>
 
-        {completedAppointments.length > 0 && (
+        {(completedAppointments.length > 0 || search) && (
           <Card id="section-completed" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 Completed
-                <Badge variant="secondary" className="text-xs ml-1">{stats.completedCount}</Badge>
+                {completedAppointments.length > 0 && (
+                  <Badge variant="secondary" className="text-xs ml-1">{completedAppointments.length}</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {completedAppointments.map((apt) => renderAppointmentCard(apt, true, false))}
-              </div>
+              {completedAppointments.length > 0 ? (
+                <div className="space-y-3">
+                  {completedAppointments.map((apt) => renderAppointmentCard(apt, true, false))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={<CheckCircle2 className="h-6 w-6" />}
+                  title="No matching completed appointments"
+                  description="Try adjusting your search terms."
+                />
+              )}
             </CardContent>
           </Card>
         )}
 
-        {cancelledAppointments.length > 0 && (
+        {(cancelledAppointments.length > 0 || search) && (
           <Card id="section-cancelled" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <XCircle className="h-5 w-5 text-destructive" />
                 Cancelled / Rescheduled
-                <Badge variant="secondary" className="text-xs ml-1">{stats.cancelledCount}</Badge>
+                {cancelledAppointments.length > 0 && (
+                  <Badge variant="secondary" className="text-xs ml-1">{cancelledAppointments.length}</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {cancelledAppointments.map((apt) => renderAppointmentCard(apt, true, false))}
-              </div>
+              {cancelledAppointments.length > 0 ? (
+                <div className="space-y-3">
+                  {cancelledAppointments.map((apt) => renderAppointmentCard(apt, true, false))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={<XCircle className="h-6 w-6" />}
+                  title="No matching cancelled appointments"
+                  description="Try adjusting your search terms."
+                />
+              )}
             </CardContent>
           </Card>
         )}

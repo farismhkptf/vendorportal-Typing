@@ -1,9 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { Plus, Search, Building2, Mail, MapPin, User, ArrowUpDown, List, LayoutGrid, Table2 } from "lucide-react";
+import { Plus, Building2, Mail, MapPin, User, ArrowUpDown, List, LayoutGrid, Table2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -11,6 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
+import { useDataTable } from "@/hooks/use-data-table";
 import { toProperCase } from "@/lib/proper-case";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Company, Staff, Center, CompanyEmail } from "@shared/schema";
@@ -84,7 +87,6 @@ export default function CompaniesList() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortByOption>("name_asc");
-  const [viewMode, setViewMode] = useState<ViewMode>("cards");
 
   const { data: companies, isLoading } = useQuery<CompanyWithRelations[]>({
     queryKey: ["/api/companies"],
@@ -113,106 +115,142 @@ export default function CompaniesList() {
     return result;
   }, [companies, search, sortBy]);
 
+  const getId = useCallback((company: CompanyWithRelations) => company.id, []);
+
+  const dt = useDataTable(filteredAndSortedCompanies, {
+    storageKey: "co_list",
+    defaultPageSize: 25,
+    defaultViewMode: "cards",
+    getId,
+  });
+
+  const viewMode = dt.viewMode as ViewMode;
+  const isComfortable = dt.density === "comfortable";
+
   const renderCompactList = (items: CompanyWithRelations[]) => (
     <div className="space-y-1 stagger-children">
-      {items.map((company, index) => (
-        <Link key={company.id} href={`/companies/${company.id}`}>
-          <div 
-            className="flex items-center justify-between py-2.5 px-3 rounded-lg hover-elevate opacity-0 animate-fade-in"
-            style={{ animationDelay: `${index * 0.02}s` }}
-            data-testid={`company-compact-${company.id}`}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <CompletenessIndicator company={company} />
-              <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-              <span className="font-medium text-foreground truncate">{toProperCase(company.name)}</span>
-              {company.rmStaff && (
-                <span className="text-xs text-muted-foreground hidden sm:inline">• RM: {company.rmStaff.name}</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              {company.emails && company.emails.filter(e => e.active).length > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {company.emails.filter(e => e.active).length} email(s)
-                </Badge>
-              )}
-            </div>
+      {items.map((company, index) => {
+        const isSelected = dt.selectedIds.has(company.id);
+        return (
+          <div key={company.id} className="flex items-center gap-2">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => dt.toggleSelected(company.id)}
+              aria-label={`Select ${company.name}`}
+              data-testid={`checkbox-company-${company.id}`}
+            />
+            <Link href={`/companies/${company.id}`} className="flex-1 min-w-0">
+              <div 
+                className={`flex items-center justify-between ${isComfortable ? "py-2.5 px-3" : "py-1.5 px-2"} rounded-lg hover-elevate opacity-0 animate-fade-in`}
+                style={{ animationDelay: `${index * 0.02}s` }}
+                data-testid={`company-compact-${company.id}`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <CompletenessIndicator company={company} />
+                  <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="font-medium text-foreground truncate">{toProperCase(company.name)}</span>
+                  {company.rmStaff && (
+                    <span className="text-xs text-muted-foreground hidden sm:inline">• RM: {company.rmStaff.name}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {company.emails && company.emails.filter(e => e.active).length > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {company.emails.filter(e => e.active).length} email(s)
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            </Link>
           </div>
-        </Link>
-      ))}
+        );
+      })}
     </div>
   );
 
   const renderCards = (items: CompanyWithRelations[]) => (
     <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
-      {items.map((company, index) => (
-        <Link key={company.id} href={`/companies/${company.id}`}>
-          <div 
-            className="premium-card p-5 h-full opacity-0 animate-fade-in"
-            style={{ animationDelay: `${index * 0.05}s` }}
-            data-testid={`company-card-${company.id}`}
-          >
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="relative icon-container icon-container-md shrink-0">
-                  <Building2 className="h-5 w-5" />
-                  <span className="absolute -top-0.5 -right-0.5">
-                    <CompletenessIndicator company={company} />
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">{toProperCase(company.name)}</h3>
-                  {company.emails && company.emails.filter(e => e.active).length > 0 && (
-                    <div className="flex items-center gap-1.5 mt-1.5 text-sm text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5" />
-                      {company.emails.filter(e => e.active).length} email(s)
+      {items.map((company, index) => {
+        const isSelected = dt.selectedIds.has(company.id);
+        return (
+          <div key={company.id} className="relative">
+            <div className="absolute top-3 left-3 z-10">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => dt.toggleSelected(company.id)}
+                aria-label={`Select ${company.name}`}
+                data-testid={`checkbox-company-${company.id}`}
+              />
+            </div>
+            <Link href={`/companies/${company.id}`}>
+              <div 
+                className={`premium-card ${isComfortable ? "p-5" : "p-3"} h-full opacity-0 animate-fade-in`}
+                style={{ animationDelay: `${index * 0.05}s` }}
+                data-testid={`company-card-${company.id}`}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="relative icon-container icon-container-md shrink-0 ml-6">
+                      <Building2 className="h-5 w-5" />
+                      <span className="absolute -top-0.5 -right-0.5">
+                        <CompletenessIndicator company={company} />
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">{toProperCase(company.name)}</h3>
+                      {company.emails && company.emails.filter(e => e.active).length > 0 && (
+                        <div className="flex items-center gap-1.5 mt-1.5 text-sm text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5" />
+                          {company.emails.filter(e => e.active).length} email(s)
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {company.preferredMedicalCenter && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate">Medical: {company.preferredMedicalCenter.name}</span>
+                      </div>
+                    )}
+                    {company.preferredMedicalCenterVip && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate">VIP Medical: {company.preferredMedicalCenterVip.name}</span>
+                      </div>
+                    )}
+                    {company.preferredBiometricsCenter && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span className="truncate">Biometrics: {company.preferredBiometricsCenter.name}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {(company.rmStaff || company.assistStaff) && (
+                    <div className="flex items-center gap-2 pt-3 border-t border-border/50">
+                      <User className="h-3.5 w-3.5 text-muted-foreground" />
+                      <div className="flex gap-1.5 flex-wrap">
+                        {company.rmStaff && (
+                          <Badge variant="secondary" className="text-xs rounded-full">
+                            {company.rmStaff.name}
+                          </Badge>
+                        )}
+                        {company.assistStaff && (
+                          <Badge variant="secondary" className="text-xs rounded-full">
+                            {company.assistStaff.name}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
               </div>
-
-              <div className="space-y-1.5">
-                {company.preferredMedicalCenter && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    <span className="truncate">Medical: {company.preferredMedicalCenter.name}</span>
-                  </div>
-                )}
-                {company.preferredMedicalCenterVip && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    <span className="truncate">VIP Medical: {company.preferredMedicalCenterVip.name}</span>
-                  </div>
-                )}
-                {company.preferredBiometricsCenter && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" />
-                    <span className="truncate">Biometrics: {company.preferredBiometricsCenter.name}</span>
-                  </div>
-                )}
-              </div>
-
-              {(company.rmStaff || company.assistStaff) && (
-                <div className="flex items-center gap-2 pt-3 border-t border-border/50">
-                  <User className="h-3.5 w-3.5 text-muted-foreground" />
-                  <div className="flex gap-1.5 flex-wrap">
-                    {company.rmStaff && (
-                      <Badge variant="secondary" className="text-xs rounded-full">
-                        {company.rmStaff.name}
-                      </Badge>
-                    )}
-                    {company.assistStaff && (
-                      <Badge variant="secondary" className="text-xs rounded-full">
-                        {company.assistStaff.name}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            </Link>
           </div>
-        </Link>
-      ))}
+        );
+      })}
     </div>
   );
 
@@ -221,6 +259,17 @@ export default function CompaniesList() {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="w-10">
+              <Checkbox
+                checked={dt.isAllSelected}
+                ref={(el) => {
+                  if (el) (el as any).indeterminate = dt.isPartiallySelected;
+                }}
+                onCheckedChange={() => dt.toggleSelectAll()}
+                aria-label="Select all"
+                data-testid="checkbox-select-all"
+              />
+            </TableHead>
             <TableHead>Company Name</TableHead>
             <TableHead className="hidden md:table-cell">RM</TableHead>
             <TableHead className="hidden lg:table-cell">Medical Center</TableHead>
@@ -228,45 +277,97 @@ export default function CompaniesList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((company) => (
-            <TableRow 
-              key={company.id} 
-              className="cursor-pointer hover-elevate" 
-              onClick={() => navigate(`/companies/${company.id}`)}
-              data-testid={`company-table-${company.id}`}
-            >
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <CompletenessIndicator company={company} />
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium text-primary">{toProperCase(company.name)}</span>
-                </div>
-              </TableCell>
-              <TableCell className="hidden md:table-cell text-muted-foreground">
-                {company.rmStaff?.name || "-"}
-              </TableCell>
-              <TableCell className="hidden lg:table-cell text-muted-foreground">
-                {company.preferredMedicalCenter?.name || "-"}
-              </TableCell>
-              <TableCell className="text-right">
-                {company.emails && company.emails.filter(e => e.active).length > 0 ? (
-                  <Badge variant="secondary" className="text-xs">
-                    {company.emails.filter(e => e.active).length}
-                  </Badge>
-                ) : (
-                  <span className="text-muted-foreground">-</span>
-                )}
-              </TableCell>
-            </TableRow>
-          ))}
+          {items.map((company) => {
+            const isSelected = dt.selectedIds.has(company.id);
+            return (
+              <TableRow 
+                key={company.id} 
+                className={`cursor-pointer hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
+                data-testid={`company-table-${company.id}`}
+              >
+                <TableCell className={isComfortable ? "" : "py-1.5"} onClick={(e) => e.stopPropagation()}>
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => dt.toggleSelected(company.id)}
+                    aria-label={`Select ${company.name}`}
+                    data-testid={`checkbox-company-${company.id}`}
+                  />
+                </TableCell>
+                <TableCell className={isComfortable ? "" : "py-1.5"} onClick={() => navigate(`/companies/${company.id}`)}>
+                  <div className="flex items-center gap-2">
+                    <CompletenessIndicator company={company} />
+                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium text-primary">{toProperCase(company.name)}</span>
+                  </div>
+                </TableCell>
+                <TableCell className={`hidden md:table-cell text-muted-foreground ${isComfortable ? "" : "py-1.5"}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                  {company.rmStaff?.name || "-"}
+                </TableCell>
+                <TableCell className={`hidden lg:table-cell text-muted-foreground ${isComfortable ? "" : "py-1.5"}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                  {company.preferredMedicalCenter?.name || "-"}
+                </TableCell>
+                <TableCell className={`text-right ${isComfortable ? "" : "py-1.5"}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                  {company.emails && company.emails.filter(e => e.active).length > 0 ? (
+                    <Badge variant="secondary" className="text-xs">
+                      {company.emails.filter(e => e.active).length}
+                    </Badge>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>
   );
 
+  const viewModeToggle = (
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
+      <Button
+        size="icon"
+        variant={viewMode === "compact" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("compact")}
+        data-testid="button-view-compact"
+      >
+        <List className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "cards" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("cards")}
+        data-testid="button-view-cards"
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "table" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("table")}
+        data-testid="button-view-table"
+      >
+        <Table2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const sortFilter = (
+    <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
+      <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
+        <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+        <SelectValue placeholder="Sort by" />
+      </SelectTrigger>
+      <SelectContent className="rounded-xl">
+        <SelectItem value="most_used">Most Used</SelectItem>
+        <SelectItem value="name_asc">Name A-Z</SelectItem>
+        <SelectItem value="name_desc">Name Z-A</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+
   return (
     <AppLayout>
-      {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -285,61 +386,19 @@ export default function CompaniesList() {
       </div>
 
       <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
-        {/* Search, Sort, and View Mode */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search companies..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9"
-              data-testid="input-search-companies"
-            />
-          </div>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>
-            <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-sort-by">
-              <ArrowUpDown className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              <SelectItem value="most_used">Most Used</SelectItem>
-              <SelectItem value="name_asc">Name A-Z</SelectItem>
-              <SelectItem value="name_desc">Name Z-A</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
-            <Button
-              size="icon"
-              variant={viewMode === "compact" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("compact")}
-              data-testid="button-view-compact"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "cards" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("cards")}
-              data-testid="button-view-cards"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              onClick={() => setViewMode("table")}
-              data-testid="button-view-table"
-            >
-              <Table2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <DataTableToolbar
+          search={search}
+          onSearchChange={setSearch}
+          searchPlaceholder="Search companies..."
+          density={dt.density}
+          onDensityChange={dt.setDensity}
+          totalItems={dt.totalItems}
+          selectedCount={dt.selectedCount}
+          onClearSelection={dt.clearSelection}
+          filters={sortFilter}
+          viewModeToggle={viewModeToggle}
+        />
 
-        {/* Companies Display */}
         <div>
           {isLoading ? (
             <div className="space-y-2">
@@ -347,19 +406,23 @@ export default function CompaniesList() {
               <Skeleton className="h-16 rounded-xl" />
               <Skeleton className="h-16 rounded-xl" />
             </div>
-          ) : filteredAndSortedCompanies && filteredAndSortedCompanies.length > 0 ? (
+          ) : dt.paginatedData.length > 0 ? (
             <>
-              {viewMode === "compact" && renderCompactList(filteredAndSortedCompanies)}
-              {viewMode === "cards" && renderCards(filteredAndSortedCompanies)}
-              {viewMode === "table" && renderTable(filteredAndSortedCompanies)}
+              {viewMode === "compact" && renderCompactList(dt.paginatedData)}
+              {viewMode === "cards" && renderCards(dt.paginatedData)}
+              {viewMode === "table" && renderTable(dt.paginatedData)}
             </>
           ) : (
             <EmptyState
               icon={<Building2 className="h-6 w-6" />}
-              title="No companies found"
-              description={search ? "Try adjusting your search" : "Add your first company to get started."}
+              title={search ? "No results match your search" : "No companies found"}
+              description={search ? "Try adjusting your search terms" : "Add your first company to get started."}
               action={
-                !search && (
+                search ? (
+                  <Button size="sm" variant="outline" className="gap-2 rounded-lg" onClick={() => setSearch("")} data-testid="button-clear-search">
+                    Clear search
+                  </Button>
+                ) : (
                   <Link href="/companies/new">
                     <Button size="sm" className="gap-2 rounded-lg">
                       <Plus className="h-4 w-4" />
@@ -371,6 +434,16 @@ export default function CompaniesList() {
             />
           )}
         </div>
+
+        <DataTablePagination
+          page={dt.page}
+          pageSize={dt.pageSize}
+          totalPages={dt.totalPages}
+          totalItems={dt.totalItems}
+          onPageChange={dt.setPage}
+          onPageSizeChange={dt.setPageSize}
+          selectedCount={dt.selectedCount}
+        />
       </div>
       <FloatingActionButton href="/companies/new" label="Add Company" testId="fab-add-company" />
     </AppLayout>
