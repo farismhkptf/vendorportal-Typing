@@ -108,7 +108,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                       "flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 cursor-pointer",
                       isActive
                         ? "bg-primary text-white shadow-sm"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        : "text-muted-foreground hover-elevate"
                     )}
                     data-testid={`nav-${item.name.toLowerCase().replace(" ", "-")}`}
                   >
@@ -132,7 +132,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+                className="rounded-xl text-muted-foreground"
                 onClick={logout}
                 data-testid="button-logout"
               >

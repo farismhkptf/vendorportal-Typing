@@ -458,9 +458,14 @@ function CentersTab() {
 
   const { data: centersList = [], isLoading } = useQuery<Center[]>({ queryKey: ["/api/centers"] });
 
-  const filtered = centersList.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = centersList.filter(c => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return c.name.toLowerCase().includes(q) ||
+      (c.area || "").toLowerCase().includes(q) ||
+      (c.type || "").toLowerCase().includes(q) ||
+      (c.authority || "").toLowerCase().includes(q);
+  });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data, oldData }: { id: string; data: any; oldData: Center }) => {
@@ -645,9 +650,14 @@ function StaffTab() {
 
   const { data: staffList = [], isLoading } = useQuery<Staff[]>({ queryKey: ["/api/staff"] });
 
-  const filtered = staffList.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = staffList.filter(s => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return s.name.toLowerCase().includes(q) ||
+      (s.roleTitle || "").toLowerCase().includes(q) ||
+      (s.email || "").toLowerCase().includes(q) ||
+      (s.phone || "").toLowerCase().includes(q);
+  });
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data, oldData }: { id: string; data: any; oldData: Staff }) => {
@@ -916,10 +926,19 @@ function EditServiceDialog({ service, onClose, onSave, isPending }: {
 
 function UsersTab() {
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
 
   const { data: usersData = [], isLoading } = useQuery<any[]>({ queryKey: ["/api/manager/users"] });
   const { data: authUser } = useQuery<any>({ queryKey: ["/api/auth/me"] });
+
+  const filtered = usersData.filter((u: any) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (u.name || "").toLowerCase().includes(q) ||
+      (u.email || "").toLowerCase().includes(q) ||
+      (u.role || "").toLowerCase().includes(q);
+  });
 
   const passwordForm = useForm<z.infer<typeof changePasswordSchema>>({
     resolver: zodResolver(changePasswordSchema),
@@ -945,8 +964,12 @@ function UsersTab() {
 
   return (
     <div className="space-y-3">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Search users..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" data-testid="input-search-users" />
+      </div>
       <div className="space-y-2">
-        {usersData.map((user: any) => {
+        {filtered.map((user: any) => {
           const isCurrentUser = authUser?.id === user.id;
           return (
             <Card key={user.id} className="p-3 flex items-center justify-between gap-2">

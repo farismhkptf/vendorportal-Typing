@@ -82,7 +82,7 @@ export function MobileBottomNav() {
                   "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   isActive(item.href)
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    : "text-muted-foreground hover-elevate"
                 )}
                 data-testid={`mobile-more-${item.name.toLowerCase()}`}
               >
