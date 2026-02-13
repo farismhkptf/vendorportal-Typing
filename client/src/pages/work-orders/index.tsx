@@ -23,11 +23,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
-import { useDataTable } from "@/hooks/use-data-table";
+import { useDataTable, type SortState, type ColumnDef } from "@/hooks/use-data-table";
+import { ColumnVisibilityDropdown } from "@/components/ui/column-visibility";
 import { toProperCase } from "@/lib/proper-case";
 import type { WorkOrder, Company, Appointment, TypingJob, JobType, ServiceType } from "@shared/schema";
 
@@ -218,6 +220,16 @@ export default function WorkOrdersList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
+  const [columnSort, setColumnSort] = useState<SortState>({ key: null, direction: null });
+  const toggleColumnSort = useCallback((key: string) => {
+    setColumnSort(prev => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" as const };
+        if (prev.direction === "desc") return { key: null, direction: null };
+      }
+      return { key, direction: "asc" as const };
+    });
+  }, []);
   const { toast } = useToast();
 
   const { data: workOrders, isLoading } = useQuery<WorkOrderEnriched[]>({
@@ -308,6 +320,21 @@ export default function WorkOrdersList() {
     
     if (result) {
       result = [...result].sort((a, b) => {
+        if (columnSort.key) {
+          const dir = columnSort.direction === "desc" ? -1 : 1;
+          switch (columnSort.key) {
+            case "woNumber":
+              return dir * a.woNumber.localeCompare(b.woNumber);
+            case "applicant":
+              return dir * a.applicantName.localeCompare(b.applicantName);
+            case "company":
+              return dir * ((a as any).company?.name || "").localeCompare((b as any).company?.name || "");
+            case "status":
+              return dir * a.status.localeCompare(b.status);
+            case "age":
+              return dir * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+          }
+        }
         switch (sortBy) {
           case "newest":
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -328,15 +355,27 @@ export default function WorkOrdersList() {
     }
     
     return result;
-  }, [workOrders, search, statusFilter, specialFilter, sortBy]);
+  }, [workOrders, search, statusFilter, specialFilter, sortBy, columnSort]);
 
   const getId = useCallback((wo: WorkOrderEnriched) => wo.id, []);
+
+  const woColumns: ColumnDef[] = useMemo(() => [
+    { id: "woNumber", label: "WO #" },
+    { id: "applicant", label: "Applicant" },
+    { id: "company", label: "Company" },
+    { id: "service", label: "Service" },
+    { id: "status", label: "Status" },
+    { id: "medical", label: "Medical" },
+    { id: "eid", label: "EID" },
+    { id: "age", label: "Age" },
+  ], []);
 
   const dt = useDataTable(filteredAndSortedWorkOrders, {
     storageKey: "wo_list",
     defaultPageSize: 25,
     defaultViewMode: "cards",
     getId,
+    columns: woColumns,
   });
 
   const bulkStatusMutation = useMutation({
@@ -629,10 +668,12 @@ export default function WorkOrdersList() {
     </div>
   );
 
+  const cv = dt.isColumnVisible;
+
   const renderTable = (items: WorkOrderEnriched[]) => (
     <div className="premium-card overflow-hidden">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-[9999] bg-background">
           <TableRow>
             <TableHead className="w-10">
               <Checkbox
@@ -643,14 +684,14 @@ export default function WorkOrdersList() {
                 {...(dt.isPartiallySelected ? { "data-state": "indeterminate" } : {})}
               />
             </TableHead>
-            <TableHead className="w-28">WO #</TableHead>
-            <TableHead>Applicant</TableHead>
-            <TableHead className="hidden sm:table-cell">Company</TableHead>
-            <TableHead className="hidden lg:table-cell">Service</TableHead>
-            <TableHead className="w-20">Status</TableHead>
-            <TableHead className="hidden md:table-cell w-40">Medical</TableHead>
-            <TableHead className="hidden md:table-cell w-40">EID</TableHead>
-            <TableHead className="w-16 text-right">Age</TableHead>
+            {cv("woNumber") && <SortableHeader sortKey="woNumber" sort={columnSort} onToggle={toggleColumnSort} className="w-28">WO #</SortableHeader>}
+            {cv("applicant") && <SortableHeader sortKey="applicant" sort={columnSort} onToggle={toggleColumnSort}>Applicant</SortableHeader>}
+            {cv("company") && <SortableHeader sortKey="company" sort={columnSort} onToggle={toggleColumnSort} className="hidden sm:table-cell">Company</SortableHeader>}
+            {cv("service") && <TableHead className="hidden lg:table-cell">Service</TableHead>}
+            {cv("status") && <SortableHeader sortKey="status" sort={columnSort} onToggle={toggleColumnSort} className="w-20">Status</SortableHeader>}
+            {cv("medical") && <TableHead className="hidden md:table-cell w-40">Medical</TableHead>}
+            {cv("eid") && <TableHead className="hidden md:table-cell w-40">EID</TableHead>}
+            {cv("age") && <SortableHeader sortKey="age" sort={columnSort} onToggle={toggleColumnSort} className="w-16 text-right">Age</SortableHeader>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -676,24 +717,24 @@ export default function WorkOrdersList() {
                     data-testid={`checkbox-wo-table-${wo.woNumber}`}
                   />
                 </TableCell>
-                <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                {cv("woNumber") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   <div className="flex items-center gap-1.5">
                     <span className="font-mono font-medium text-primary">{wo.woNumber}</span>
                     {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                     {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                   </div>
-                </TableCell>
-                <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>{toProperCase(wo.applicantName)}</TableCell>
-                <TableCell className={`hidden sm:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                </TableCell>}
+                {cv("applicant") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>{toProperCase(wo.applicantName)}</TableCell>}
+                {cv("company") && <TableCell className={`hidden sm:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {wo.company?.name ? toProperCase(wo.company.name) : "-"}
-                </TableCell>
-                <TableCell className={`hidden lg:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                </TableCell>}
+                {cv("service") && <TableCell className={`hidden lg:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {wo.serviceType?.name || "-"}
-                </TableCell>
-                <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                </TableCell>}
+                {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   <StatusBadge status={wo.status} />
-                </TableCell>
-                <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                </TableCell>}
+                {cv("medical") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {med.hasMedical ? (
                     <div className="flex items-center gap-1">
                       <TypingStatusPill status={med.typing} />
@@ -702,8 +743,8 @@ export default function WorkOrdersList() {
                   ) : (
                     <span className="text-xs text-muted-foreground/40">--</span>
                   )}
-                </TableCell>
-                <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                </TableCell>}
+                {cv("eid") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {eid.hasEid ? (
                     <div className="flex items-center gap-1">
                       <TypingStatusPill status={eid.typing} />
@@ -712,10 +753,10 @@ export default function WorkOrdersList() {
                   ) : (
                     <span className="text-xs text-muted-foreground/40">--</span>
                   )}
-                </TableCell>
-                <TableCell className={`text-right text-xs text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                </TableCell>}
+                {cv("age") && <TableCell className={`text-right text-xs text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {daysOld === 0 ? "Today" : `${daysOld}d`}
-                </TableCell>
+                </TableCell>}
               </TableRow>
             );
           })}
@@ -943,6 +984,14 @@ export default function WorkOrdersList() {
           }
           filters={filterControls}
           viewModeToggle={viewModeToggle}
+          actions={
+            <ColumnVisibilityDropdown
+              columns={dt.columns}
+              isColumnVisible={dt.isColumnVisible}
+              toggleColumn={dt.toggleColumn}
+              resetColumns={dt.resetColumns}
+            />
+          }
           activeFilterCount={activeFilterCount}
           onClearFilters={clearAllFilters}
         />

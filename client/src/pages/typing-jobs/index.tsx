@@ -13,11 +13,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableHeader } from "@/components/ui/sortable-header";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useDataTable } from "@/hooks/use-data-table";
+import { useDataTable, type SortState, type ColumnDef } from "@/hooks/use-data-table";
+import { ColumnVisibilityDropdown } from "@/components/ui/column-visibility";
 import { toProperCase } from "@/lib/proper-case";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +42,16 @@ export default function TypingJobsList() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
+  const [columnSort, setColumnSort] = useState<SortState>({ key: null, direction: null });
+  const toggleColumnSort = useCallback((key: string) => {
+    setColumnSort(prev => {
+      if (prev.key === key) {
+        if (prev.direction === "asc") return { key, direction: "desc" as const };
+        if (prev.direction === "desc") return { key: null, direction: null };
+      }
+      return { key, direction: "asc" as const };
+    });
+  }, []);
   const { toast } = useToast();
 
   const apiStatus = statusFilter.startsWith("_") ? "all" : statusFilter;
@@ -82,6 +94,21 @@ export default function TypingJobsList() {
     
     if (result) {
       result = [...result].sort((a, b) => {
+        if (columnSort.key) {
+          const dir = columnSort.direction === "desc" ? -1 : 1;
+          switch (columnSort.key) {
+            case "jobCode":
+              return dir * (a.jobCode || "").localeCompare(b.jobCode || "");
+            case "woNumber":
+              return dir * (a.workOrder?.woNumber || "").localeCompare(b.workOrder?.woNumber || "");
+            case "applicant":
+              return dir * (a.workOrder?.applicantName || "").localeCompare(b.workOrder?.applicantName || "");
+            case "status":
+              return dir * a.status.localeCompare(b.status);
+            case "cost":
+              return dir * (Number(a.costSnapshot || 0) - Number(b.costSnapshot || 0));
+          }
+        }
         switch (sortBy) {
           case "newest":
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -98,15 +125,25 @@ export default function TypingJobsList() {
     }
     
     return result;
-  }, [typingJobs, search, statusFilter, categoryFilter, sortBy]);
+  }, [typingJobs, search, statusFilter, categoryFilter, sortBy, columnSort]);
 
   const getId = useCallback((job: TypingJobWithRelations) => job.id, []);
+
+  const tjColumns: ColumnDef[] = useMemo(() => [
+    { id: "jobCode", label: "Job Code" },
+    { id: "woNumber", label: "Work Order #" },
+    { id: "applicant", label: "Applicant" },
+    { id: "jobType", label: "Job Type" },
+    { id: "status", label: "Status" },
+    { id: "cost", label: "Cost" },
+  ], []);
 
   const dt = useDataTable(filteredAndSortedJobs, {
     storageKey: "tj_list",
     defaultPageSize: 25,
     defaultViewMode: "cards",
     getId,
+    columns: tjColumns,
   });
 
   const bulkAssignVendorMutation = useMutation({
@@ -230,10 +267,12 @@ export default function TypingJobsList() {
     </div>
   );
 
+  const cv = dt.isColumnVisible;
+
   const renderTable = (items: TypingJobWithRelations[]) => (
     <div className="premium-card overflow-hidden">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-[9999] bg-background">
           <TableRow>
             <TableHead className="w-10">
               <Checkbox
@@ -244,12 +283,12 @@ export default function TypingJobsList() {
                 {...(dt.isPartiallySelected ? { "data-state": "indeterminate" } : {})}
               />
             </TableHead>
-            <TableHead className="w-24">Job Code</TableHead>
-            <TableHead className="w-28">Work Order #</TableHead>
-            <TableHead>Applicant</TableHead>
-            <TableHead className="hidden sm:table-cell">Job Type</TableHead>
-            <TableHead className="w-32">Status</TableHead>
-            <TableHead className="w-24 text-right">Cost</TableHead>
+            {cv("jobCode") && <SortableHeader sortKey="jobCode" sort={columnSort} onToggle={toggleColumnSort} className="w-24">Job Code</SortableHeader>}
+            {cv("woNumber") && <SortableHeader sortKey="woNumber" sort={columnSort} onToggle={toggleColumnSort} className="w-28">Work Order #</SortableHeader>}
+            {cv("applicant") && <SortableHeader sortKey="applicant" sort={columnSort} onToggle={toggleColumnSort}>Applicant</SortableHeader>}
+            {cv("jobType") && <TableHead className="hidden sm:table-cell">Job Type</TableHead>}
+            {cv("status") && <SortableHeader sortKey="status" sort={columnSort} onToggle={toggleColumnSort} className="w-32">Status</SortableHeader>}
+            {cv("cost") && <SortableHeader sortKey="cost" sort={columnSort} onToggle={toggleColumnSort} className="w-24 text-right">Cost</SortableHeader>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -271,22 +310,22 @@ export default function TypingJobsList() {
                     data-testid={`checkbox-tj-table-${job.id}`}
                   />
                 </TableCell>
-                <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                {cv("jobCode") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
-                </TableCell>
-                <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                </TableCell>}
+                {cv("woNumber") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
-                </TableCell>
-                <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</TableCell>
-                <TableCell className={`hidden sm:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                </TableCell>}
+                {cv("applicant") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</TableCell>}
+                {cv("jobType") && <TableCell className={`hidden sm:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   {job.jobType?.name || "-"}
-                </TableCell>
-                <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                </TableCell>}
+                {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   <StatusBadge status={job.status} />
-                </TableCell>
-                <TableCell className={`text-right font-medium ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                </TableCell>}
+                {cv("cost") && <TableCell className={`text-right font-medium ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   {job.costSnapshot ? `AED ${job.costSnapshot}` : "-"}
-                </TableCell>
+                </TableCell>}
               </TableRow>
             );
           })}
@@ -515,6 +554,14 @@ export default function TypingJobsList() {
           onClearSelection={dt.clearSelection}
           filters={filterControls}
           viewModeToggle={viewModeToggle}
+          actions={
+            <ColumnVisibilityDropdown
+              columns={dt.columns}
+              isColumnVisible={dt.isColumnVisible}
+              toggleColumn={dt.toggleColumn}
+              resetColumns={dt.resetColumns}
+            />
+          }
           activeFilterCount={activeFilterCount}
           onClearFilters={clearAllFilters}
           selectionActions={

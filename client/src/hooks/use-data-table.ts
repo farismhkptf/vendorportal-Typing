@@ -1,10 +1,22 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 
 export type Density = "compact" | "comfortable";
+export type SortDirection = "asc" | "desc" | null;
+
+export interface SortState {
+  key: string | null;
+  direction: SortDirection;
+}
 
 const PAGE_SIZES = [10, 25, 50, 100] as const;
 export type PageSize = (typeof PAGE_SIZES)[number];
 export { PAGE_SIZES };
+
+export interface ColumnDef {
+  id: string;
+  label: string;
+  defaultVisible?: boolean;
+}
 
 interface UseDataTableOptions {
   storageKey: string;
@@ -12,6 +24,7 @@ interface UseDataTableOptions {
   defaultDensity?: Density;
   defaultViewMode?: string;
   getId: (item: any) => string;
+  columns?: ColumnDef[];
 }
 
 function loadFromStorage<T>(key: string, fallback: T): T {
@@ -38,6 +51,7 @@ export function useDataTable<T>(
     defaultDensity = "comfortable",
     defaultViewMode = "cards",
     getId,
+    columns,
   } = options;
 
   const [page, setPage] = useState(1);
@@ -51,6 +65,20 @@ export function useDataTable<T>(
     () => loadFromStorage(`${storageKey}_viewMode`, defaultViewMode)
   );
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [sort, setSortState] = useState<SortState>(
+    () => loadFromStorage(`${storageKey}_sort`, { key: null, direction: null })
+  );
+  const [hiddenColumns, setHiddenColumnsState] = useState<Set<string>>(
+    () => {
+      const stored = loadFromStorage<string[]>(`${storageKey}_hiddenCols`, []);
+      if (stored.length > 0) return new Set(stored);
+      if (columns) {
+        const hidden = columns.filter(c => c.defaultVisible === false).map(c => c.id);
+        return new Set(hidden);
+      }
+      return new Set<string>();
+    }
+  );
 
   const totalItems = data?.length ?? 0;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
@@ -134,6 +162,75 @@ export function useDataTable<T>(
   const isPartiallySelected = !isAllSelected && Array.from(currentPageIds).some((id) => selectedIds.has(id));
   const selectedCount = selectedIds.size;
 
+  const toggleSort = useCallback(
+    (key: string) => {
+      setSortState((prev) => {
+        let next: SortState;
+        if (prev.key === key) {
+          if (prev.direction === "asc") next = { key, direction: "desc" };
+          else if (prev.direction === "desc") next = { key: null, direction: null };
+          else next = { key, direction: "asc" };
+        } else {
+          next = { key, direction: "asc" };
+        }
+        saveToStorage(`${storageKey}_sort`, next);
+        return next;
+      });
+      setPage(1);
+    },
+    [storageKey]
+  );
+
+  const isColumnVisible = useCallback(
+    (colId: string) => !hiddenColumns.has(colId),
+    [hiddenColumns]
+  );
+
+  const toggleColumn = useCallback(
+    (colId: string) => {
+      setHiddenColumnsState((prev) => {
+        const next = new Set(prev);
+        if (next.has(colId)) next.delete(colId);
+        else next.add(colId);
+        saveToStorage(`${storageKey}_hiddenCols`, Array.from(next));
+        return next;
+      });
+    },
+    [storageKey]
+  );
+
+  const resetColumns = useCallback(() => {
+    const defaults = columns
+      ? new Set(columns.filter(c => c.defaultVisible === false).map(c => c.id))
+      : new Set<string>();
+    setHiddenColumnsState(defaults);
+    saveToStorage(`${storageKey}_hiddenCols`, Array.from(defaults));
+  }, [storageKey, columns]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLSelectElement) return;
+      if (e.key === "Escape") {
+        if (selectedCount > 0) {
+          e.preventDefault();
+          clearSelection();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === "a" && currentPageIds.size > 0) {
+        e.preventDefault();
+        if (!isAllSelected) {
+          setSelectedIds((prev) => {
+            const next = new Set(prev);
+            currentPageIds.forEach((id) => next.add(id));
+            return next;
+          });
+        }
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [selectedCount, clearSelection, currentPageIds, isAllSelected]);
+
   return {
     page,
     pageSize,
@@ -158,5 +255,14 @@ export function useDataTable<T>(
     setViewMode,
 
     currentPageIds,
+
+    sort,
+    toggleSort,
+
+    columns: columns || [],
+    isColumnVisible,
+    toggleColumn,
+    resetColumns,
+    hiddenColumns,
   };
 }
