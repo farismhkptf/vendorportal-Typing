@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { 
   Plus, Search, FileText, Building2, Filter, ArrowUpDown, 
-  List, LayoutGrid, Columns3, Table2, Star,
+  List, LayoutGrid, Columns3, Table2, Star, Tag,
   Clock, AlertTriangle, CheckCircle2, CircleDot, 
   Stethoscope, Fingerprint, CalendarCheck, Send as SendIcon
 } from "lucide-react";
@@ -20,7 +20,7 @@ import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
 import { toProperCase } from "@/lib/proper-case";
-import type { WorkOrder, Company, Appointment, TypingJob, JobType } from "@shared/schema";
+import type { WorkOrder, Company, Appointment, TypingJob, JobType, ServiceType } from "@shared/schema";
 
 interface TypingJobWithType extends TypingJob {
   jobType?: JobType | null;
@@ -28,6 +28,7 @@ interface TypingJobWithType extends TypingJob {
 
 interface WorkOrderEnriched extends WorkOrder {
   company?: Company;
+  serviceType?: ServiceType;
   typingJobs?: TypingJobWithType[];
   appointments?: Appointment[];
 }
@@ -161,24 +162,29 @@ function AppointmentStatusPill({ status }: { status: string | null }) {
   );
 }
 
-function MedEidStatusRow({ icon: Icon, label, typing, appointment, hasData }: {
+function MedEidStatusRow({ icon: Icon, label, typing, appointment, hasData, summaryLabel }: {
   icon: typeof Stethoscope;
   label: string;
   typing: string | null;
   appointment: string | null;
   hasData: boolean;
+  summaryLabel?: string | null;
 }) {
-  if (!hasData) return null;
+  if (!hasData && !summaryLabel) return null;
   return (
     <div className="flex items-center gap-2 text-[11px]">
       <Icon className="h-3 w-3 text-muted-foreground shrink-0" />
       <span className="text-muted-foreground w-10 shrink-0">{label}</span>
-      <div className="flex items-center gap-1.5">
-        <span className="text-muted-foreground/60 text-[9px]">T:</span>
-        <TypingStatusPill status={typing} />
-        <span className="text-muted-foreground/60 text-[9px] ml-1">A:</span>
-        <AppointmentStatusPill status={appointment} />
-      </div>
+      {hasData ? (
+        <div className="flex items-center gap-1.5">
+          <span className="text-muted-foreground/60 text-[9px]">T:</span>
+          <TypingStatusPill status={typing} />
+          <span className="text-muted-foreground/60 text-[9px] ml-1">A:</span>
+          <AppointmentStatusPill status={appointment} />
+        </div>
+      ) : summaryLabel ? (
+        <span className="text-muted-foreground/60 italic">{summaryLabel}</span>
+      ) : null}
     </div>
   );
 }
@@ -412,6 +418,17 @@ export default function WorkOrdersList() {
     const progress = getProgressPercent(wo);
     const borderColor = getCardBorderColor(wo);
 
+    const st = wo.serviceType;
+    const showMed = med.hasMedical || (st && (st.requiresMedicalTyping || st.requiresMedicalScheduling));
+    const showEid = eid.hasEid || (st && (st.requiresIdTyping2Years || st.requiresIdTyping1Year || st.requiresIdTyping10Years || st.requiresIdBiometrics));
+
+    const medLabel = showMed
+      ? (med.hasMedical ? (med.appointment === "Completed" ? "Done" : med.appointment ? "Scheduled" : med.typing ? (med.typing === "SentToClient" || med.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
+      : null;
+    const eidLabel = showEid
+      ? (eid.hasEid ? (eid.appointment === "Completed" ? "Done" : eid.appointment ? "Scheduled" : eid.typing ? (eid.typing === "SentToClient" || eid.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
+      : null;
+
     return (
       <Link key={wo.id} href={`/work-orders/${wo.id}`}>
         <div 
@@ -438,12 +455,20 @@ export default function WorkOrdersList() {
                 )}
               </div>
               <p className="text-sm text-muted-foreground truncate mt-0.5">{toProperCase(wo.applicantName)}</p>
-              {wo.company && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground/70 mt-0.5">
-                  <Building2 className="h-3 w-3" />
-                  <span className="truncate">{toProperCase(wo.company.name)}</span>
-                </div>
-              )}
+              <div className="flex items-center gap-3 flex-wrap mt-0.5">
+                {wo.company && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground/70">
+                    <Building2 className="h-3 w-3" />
+                    <span className="truncate">{toProperCase(wo.company.name)}</span>
+                  </div>
+                )}
+                {st && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground/70" data-testid={`wo-service-type-${wo.woNumber}`}>
+                    <Tag className="h-3 w-3" />
+                    <span className="truncate">{st.name}</span>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="text-right shrink-0 space-y-1">
               <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
@@ -453,22 +478,28 @@ export default function WorkOrdersList() {
             </div>
           </div>
 
-          {(med.hasMedical || eid.hasEid) && (
+          {(showMed || showEid) && (
             <div className="mt-3 pt-2.5 border-t border-border/30 space-y-1.5">
-              <MedEidStatusRow
-                icon={Stethoscope}
-                label="Med"
-                typing={med.typing}
-                appointment={med.appointment}
-                hasData={med.hasMedical}
-              />
-              <MedEidStatusRow
-                icon={Fingerprint}
-                label="EID"
-                typing={eid.typing}
-                appointment={eid.appointment}
-                hasData={eid.hasEid}
-              />
+              {showMed && (
+                <MedEidStatusRow
+                  icon={Stethoscope}
+                  label="Med"
+                  typing={med.typing}
+                  appointment={med.appointment}
+                  hasData={med.hasMedical}
+                  summaryLabel={medLabel}
+                />
+              )}
+              {showEid && (
+                <MedEidStatusRow
+                  icon={Fingerprint}
+                  label="EID"
+                  typing={eid.typing}
+                  appointment={eid.appointment}
+                  hasData={eid.hasEid}
+                  summaryLabel={eidLabel}
+                />
+              )}
               <ProgressBar percent={progress} />
             </div>
           )}
@@ -535,6 +566,7 @@ export default function WorkOrdersList() {
             <TableHead className="w-28">WO #</TableHead>
             <TableHead>Applicant</TableHead>
             <TableHead className="hidden sm:table-cell">Company</TableHead>
+            <TableHead className="hidden lg:table-cell">Service</TableHead>
             <TableHead className="w-20">Status</TableHead>
             <TableHead className="hidden md:table-cell w-40">Medical</TableHead>
             <TableHead className="hidden md:table-cell w-40">EID</TableHead>
@@ -564,6 +596,9 @@ export default function WorkOrdersList() {
                 <TableCell>{toProperCase(wo.applicantName)}</TableCell>
                 <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
                   {wo.company?.name ? toProperCase(wo.company.name) : "-"}
+                </TableCell>
+                <TableCell className="hidden lg:table-cell text-muted-foreground text-xs">
+                  {wo.serviceType?.name || "-"}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={wo.status} />

@@ -359,10 +359,11 @@ export async function registerRoutes(
       
       const result = await Promise.all(
         workOrders.map(async (wo) => {
-          const [company, typingJobsRaw, appointmentsRaw] = await Promise.all([
+          const [company, typingJobsRaw, appointmentsRaw, serviceType] = await Promise.all([
             storage.getCompanyById(wo.companyId),
             storage.getTypingJobsByWoId(wo.id),
             storage.getAppointmentsByWoId(wo.id),
+            wo.serviceTypeId ? storage.getServiceTypeById(wo.serviceTypeId) : Promise.resolve(undefined),
           ]);
           const typingJobs = await Promise.all(
             typingJobsRaw.map(async (job) => {
@@ -370,7 +371,7 @@ export async function registerRoutes(
               return { ...job, jobType };
             })
           );
-          return { ...wo, company, typingJobs, appointments: appointmentsRaw };
+          return { ...wo, company, serviceType, typingJobs, appointments: appointmentsRaw };
         })
       );
       
