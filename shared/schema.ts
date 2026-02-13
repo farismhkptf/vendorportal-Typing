@@ -130,6 +130,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("Medical Assistance Support"),
+  staffId: varchar("staff_id"),
   vendorId: varchar("vendor_id"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),

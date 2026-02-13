@@ -26,9 +26,20 @@ The PostgreSQL database includes core entities such as Users (with roles: Admin,
 
 `tsx` is used for development, while `esbuild` and Vite handle production builds. Drizzle Kit is used for database migrations.
 
-### Role-Based Access Control
+### Role-Based Access Control & Authentication
 
-Four distinct roles (`Admin`, `Ops`, `Viewer`, `Vendor`) provide granular access control to different features and data within the application.
+Session-based authentication using `express-session` + `connect-pg-simple` for PostgreSQL session storage. Passwords hashed with `bcryptjs` (10 rounds). Sessions persist for 7 days.
+
+Three primary staff roles:
+- **Admin**: Full access to all features including Admin Console, User Management
+- **Client Relationship Manager (CRM)**: Dashboard shows assigned companies (via `rmStaffId`), their work orders, and related appointments
+- **Medical Assistance Support**: Dashboard shows assigned medical/EID appointments (via `assistStaffId` or `assignedStaffId`)
+
+Server-side authorization: `requireRole()` middleware protects admin-only endpoints (`/api/users`). Client-side: AuthGuard redirects non-admins from `/admin`, navigation filtered by role.
+
+Default admin: `admin@procompany.ae` / `admin123` (seeded on first run with bcrypt hash).
+
+User accounts managed in Admin Console "User Accounts" tab. Each user links to a staff member via `staffId`.
 
 ### UI/UX Decisions
 
@@ -65,6 +76,7 @@ None currently.
 
 ## Recent Changes
 
+- **Authentication & Role-Based Dashboards** (Feb 2026): Session-based auth system with bcrypt password hashing. Login page with role-based redirects. Admin Console "User Accounts" tab for managing staff accounts. CRM Dashboard (`/crm`) shows assigned companies, work orders, and appointments. Medical Dashboard (`/medical`) shows assigned medical/EID appointments. Server-side `requireRole()` middleware protects admin endpoints. AuthGuard protects client-side routes. Navigation filtered by role in both sidebar and mobile nav.
 - **Google Sheet Import** (Feb 2026): Import work orders from a Google Sheet URL. Paste a public Google Sheet link in Admin Console Import/Export tab, system fetches CSV, auto-detects columns (Work Order, Company Name, Staff Name, Work/service type), fuzzy-matches service types and companies against existing records, shows preview table with match status (exact/fuzzy/none), then imports matched rows as Draft work orders. Server-side validation enforces WO uniqueness, company existence, and service type validity. Endpoints: POST /api/admin/preview-gsheet, POST /api/admin/import-gsheet. BOM-safe CSV parsing.
 - **Excel Import/Export** (Feb 2026): Added "Import / Export" tab to Admin Console. Download a pre-formatted .xlsx template with 5 sheets (Centers, Companies, Staff, Service Types, Job Types) with example rows, fill it in, and upload to bulk-import. Uses `xlsx` library for generation/parsing and `multer` for file upload. Endpoints: GET /api/admin/template, POST /api/admin/import. Results show per-sheet success/failure counts with error details.
 - **Preferred Center Prompt** (Feb 2026): Enhanced Medical & EID appointment scheduling dialogs. When selecting a different center than the company's preferred, offers three options: Go Back, Continue Without Changing, or Set as Default & Continue (updates company profile via PUT /api/companies/:id).

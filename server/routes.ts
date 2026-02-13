@@ -1,9 +1,10 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { randomUUID } from "crypto";
 import * as XLSX from 'xlsx';
 import multer from 'multer';
+import bcrypt from 'bcryptjs';
 import { z } from "zod";
 import { 
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
@@ -81,6 +82,26 @@ function validateBody<T>(schema: z.ZodSchema<T>, body: unknown): { data: T } | {
     return { error: result.error.errors.map(e => e.message).join(", ") };
   }
   return { data: result.data };
+}
+
+function requireAuth(req: any, res: any, next: any) {
+  if (!req.session?.userId) {
+    return res.status(401).json({ message: "Not authenticated" });
+  }
+  next();
+}
+
+function requireRole(...roles: string[]) {
+  return async (req: any, res: any, next: any) => {
+    if (!req.session?.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || !roles.includes(user.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    next();
+  };
 }
 
 export async function registerRoutes(
@@ -1933,7 +1954,15 @@ export async function registerRoutes(
       const { email, password } = validation.data;
       const user = await storage.getUserByEmail(email);
       
-      if (!user || user.passwordHash !== password) {
+      if (!user || !user.active) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      const isValid = user.passwordHash.startsWith("$2")
+        ? await bcrypt.compare(password, user.passwordHash)
+        : password === user.passwordHash;
+
+      if (!isValid) {
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
@@ -1942,15 +1971,146 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Please use the vendor portal" });
       }
 
+      req.session.userId = user.id;
+      req.session.userRole = user.role;
+      req.session.userName = user.name;
+      req.session.staffId = user.staffId || null;
+
       res.json({ 
         id: user.id, 
         name: user.name, 
         email: user.email, 
-        role: user.role 
+        role: user.role,
+        staffId: user.staffId,
       });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    const user = await storage.getUser(req.session.userId);
+    if (!user || !user.active) {
+      req.session.destroy(() => {});
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    res.json({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      staffId: user.staffId,
+    });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy(() => {
+      res.json({ message: "Logged out" });
+    });
+  });
+
+  // ========== User Management (Admin) ==========
+  app.get("/api/users", requireRole("Admin"), async (req, res) => {
+    try {
+      const allUsers = await storage.getUsers();
+      const safeUsers = allUsers.map(u => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        role: u.role,
+        staffId: u.staffId,
+        vendorId: u.vendorId,
+        active: u.active,
+        createdAt: u.createdAt,
+      }));
+      res.json(safeUsers);
+    } catch (error) {
+      console.error("Get users error:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  const createUserSchema = z.object({
+    name: z.string().min(1),
+    email: z.string().email(),
+    password: z.string().min(4),
+    role: z.string(),
+    staffId: z.string().optional(),
+  });
+
+  app.post("/api/users", requireRole("Admin"), async (req, res) => {
+    try {
+      const validation = validateBody(createUserSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+
+      const { name, email, password, role, staffId } = validation.data;
+      
+      const existing = await storage.getUserByEmail(email);
+      if (existing) {
+        return res.status(400).json({ message: "A user with this email already exists" });
+      }
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({
+        name,
+        email,
+        passwordHash,
+        role: role as any,
+        staffId: staffId || null,
+        active: true,
+      });
+
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        staffId: user.staffId,
+        active: user.active,
+      });
+    } catch (error) {
+      console.error("Create user error:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.patch("/api/users/:id", requireRole("Admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, email, password, role, staffId, active } = req.body;
+
+      const updateData: any = {};
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+      if (role !== undefined) updateData.role = role;
+      if (staffId !== undefined) updateData.staffId = staffId;
+      if (active !== undefined) updateData.active = active;
+      if (password) {
+        updateData.passwordHash = await bcrypt.hash(password, 10);
+      }
+
+      const user = await storage.updateUser(id, updateData);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        staffId: user.staffId,
+        active: user.active,
+      });
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ message: "Failed to update user" });
     }
   });
 

@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -19,10 +18,32 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+function getRedirectForRole(role: string): string {
+  switch (role) {
+    case "Admin":
+      return "/";
+    case "Client Relationship Manager":
+      return "/crm";
+    case "Medical Assistance Support":
+    case "Medical Assistance Support - Temporary Staff":
+      return "/medical";
+    default:
+      return "/";
+  }
+}
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const { user, isLoading, login } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      setLocation(getRedirectForRole(user.role));
+    }
+  }, [user, isLoading, setLocation]);
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -32,46 +53,52 @@ export default function Login() {
     },
   });
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginForm) => {
-      return apiRequest("POST", "/api/auth/login", data);
-    },
-    onSuccess: () => {
+  const onSubmit = async (data: LoginForm) => {
+    setIsSubmitting(true);
+    try {
+      const loggedInUser = await login(data.email, data.password);
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
-      setLocation("/");
-    },
-    onError: (error: Error) => {
+      setLocation(getRedirectForRole(loggedInUser.role));
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Invalid email or password";
       toast({
         title: "Login failed",
-        description: error.message || "Invalid email or password",
+        description: message,
         variant: "destructive",
       });
-    },
-  });
-
-  const onSubmit = (data: LoginForm) => {
-    loginMutation.mutate(data);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      {/* Background gradient */}
       <div className="fixed inset-0 gradient-header opacity-50" />
       
       <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mb-4 shadow-lg">
             <span className="text-2xl font-bold text-white">P</span>
           </div>
-          <h1 className="text-2xl font-semibold text-foreground">The P.R.O. Company™</h1>
+          <h1 className="text-2xl font-semibold text-foreground">The P.R.O. Company</h1>
           <p className="text-sm text-muted-foreground mt-1">Internal Portal</p>
         </div>
 
-        {/* Login Card */}
         <Card className="glass-strong border-0 shadow-xl" data-testid="login-card">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-xl font-semibold">Welcome back</CardTitle>
@@ -145,25 +172,24 @@ export default function Login() {
                 <Button
                   type="submit"
                   className="w-full h-12 rounded-xl text-base font-medium"
-                  disabled={loginMutation.isPending}
+                  disabled={isSubmitting}
                   data-testid="button-login"
                 >
-                  {loginMutation.isPending ? "Signing in..." : "Sign in"}
+                  {isSubmitting ? "Signing in..." : "Sign in"}
                 </Button>
               </form>
             </Form>
 
             <div className="mt-6 text-center">
               <p className="text-xs text-muted-foreground">
-                Vendor access? <a href="/vendor/login" className="text-primary hover:underline">Sign in here</a>
+                Vendor access? <a href="/vendor/login" className="text-primary hover:underline" data-testid="link-vendor-login">Sign in here</a>
               </p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Footer */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} The P.R.O. Company™. All rights reserved.
+          &copy; {new Date().getFullYear()} The P.R.O. Company. All rights reserved.
         </p>
       </div>
     </div>

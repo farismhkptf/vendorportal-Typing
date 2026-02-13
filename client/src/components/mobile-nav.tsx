@@ -14,32 +14,48 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
+
+function getDashboardHref(role?: string): string {
+  if (role === "Client Relationship Manager") return "/crm";
+  if (role === "Medical Assistance Support" || role === "Medical Assistance Support - Temporary Staff") return "/medical";
+  return "/";
+}
 
 const MAIN_TABS = [
-  { name: "Home", href: "/", icon: LayoutDashboard },
+  { name: "Home", href: "__dashboard__", icon: LayoutDashboard },
   { name: "WOs", href: "/work-orders", icon: FileText },
   { name: "Appts", href: "/appointments", icon: Stethoscope },
   { name: "Jobs", href: "/typing-jobs", icon: ClipboardList },
 ];
 
 const MORE_ITEMS = [
-  { name: "Companies", href: "/companies", icon: Building2 },
-  { name: "Staff", href: "/staff", icon: Users },
-  { name: "Wallet", href: "/vendor-wallet", icon: Wallet },
-  { name: "Bots", href: "/bots", icon: Bot },
-  { name: "Admin", href: "/admin", icon: Settings },
+  { name: "Companies", href: "/companies", icon: Building2, roles: null as string[] | null },
+  { name: "Staff", href: "/staff", icon: Users, roles: null as string[] | null },
+  { name: "Wallet", href: "/vendor-wallet", icon: Wallet, roles: null as string[] | null },
+  { name: "Bots", href: "/bots", icon: Bot, roles: null as string[] | null },
+  { name: "Admin", href: "/admin", icon: Settings, roles: ["Admin"] as string[] | null },
 ];
 
 export function MobileBottomNav() {
   const [location, navigate] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const { user } = useAuth();
+  const dashboardHref = getDashboardHref(user?.role);
+
+  const resolvedTabs = MAIN_TABS.map(tab => 
+    tab.href === "__dashboard__" ? { ...tab, href: dashboardHref } : tab
+  );
 
   const isActive = (href: string) => {
-    if (href === "/") return location === "/";
+    if (href === "/" || href === "/crm" || href === "/medical") return location === href;
     return location.startsWith(href);
   };
 
-  const isMoreActive = MORE_ITEMS.some(item => isActive(item.href));
+  const filteredMoreItems = MORE_ITEMS.filter(
+    item => item.roles === null || (user && item.roles.includes(user.role))
+  );
+  const isMoreActive = filteredMoreItems.some(item => isActive(item.href));
 
   return (
     <>
@@ -53,7 +69,7 @@ export function MobileBottomNav() {
       {moreOpen && (
         <div className="fixed bottom-[72px] right-3 z-[100] lg:hidden opacity-0 animate-fade-in">
           <div className="bg-card border border-border/60 rounded-xl shadow-xl p-2 space-y-0.5 min-w-[180px]">
-            {MORE_ITEMS.map((item) => (
+            {filteredMoreItems.map((item) => (
               <button
                 key={item.href}
                 onClick={() => {
@@ -81,7 +97,7 @@ export function MobileBottomNav() {
         data-testid="mobile-bottom-nav"
       >
         <div className="flex items-center justify-around h-[64px] px-2">
-          {MAIN_TABS.map((tab) => {
+          {resolvedTabs.map((tab) => {
             const active = isActive(tab.href);
             return (
               <button

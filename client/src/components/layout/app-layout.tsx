@@ -18,32 +18,46 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
+import { useAuth } from "@/hooks/use-auth";
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Work Orders", href: "/work-orders", icon: FileText },
-  { name: "Appointments", href: "/appointments", icon: Stethoscope },
-  { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList },
-  { name: "Companies", href: "/companies", icon: Building2 },
-  { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet },
-  { name: "Bots", href: "/bots", icon: Bot },
-  { name: "Admin Console", href: "/admin", icon: Settings },
+function getDashboardHref(role?: string): string {
+  if (role === "Client Relationship Manager") return "/crm";
+  if (role === "Medical Assistance Support" || role === "Medical Assistance Support - Temporary Staff") return "/medical";
+  return "/";
+}
+
+const allNavigation = [
+  { name: "Dashboard", href: "__dashboard__", icon: LayoutDashboard, roles: null },
+  { name: "Work Orders", href: "/work-orders", icon: FileText, roles: null },
+  { name: "Appointments", href: "/appointments", icon: Stethoscope, roles: null },
+  { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList, roles: null },
+  { name: "Companies", href: "/companies", icon: Building2, roles: null },
+  { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: null },
+  { name: "Bots", href: "/bots", icon: Bot, roles: null },
+  { name: "Admin Console", href: "/admin", icon: Settings, roles: ["Admin"] as string[] },
 ];
 
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   useSwipeBack();
 
+  const dashboardHref = getDashboardHref(user?.role);
+  const navigation = allNavigation
+    .filter((item) => item.roles === null || (user && item.roles.includes(user.role)))
+    .map((item) => item.href === "__dashboard__" ? { ...item, href: dashboardHref } : item);
+
+  const userInitial = user?.name?.charAt(0)?.toUpperCase() || "U";
+
   return (
     <div className="min-h-screen bg-background" data-testid="app-layout">
-      {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[2px] lg:hidden transition-opacity duration-300"
@@ -52,7 +66,6 @@ export function AppLayout({ children }: AppLayoutProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-[280px] transform transition-all duration-300 ease-out lg:translate-x-0",
@@ -61,14 +74,13 @@ export function AppLayout({ children }: AppLayoutProps) {
         data-testid="sidebar"
       >
         <div className="flex h-full flex-col bg-card/95 backdrop-blur-xl border-r border-border/40">
-          {/* Logo */}
           <div className="flex h-[72px] items-center justify-between px-6">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 flex items-center justify-center shadow-sm">
                 <span className="text-base font-semibold text-white">P</span>
               </div>
               <div>
-                <h1 className="text-[15px] font-semibold text-foreground tracking-tight">The P.R.O. Company™</h1>
+                <h1 className="text-[15px] font-semibold text-foreground tracking-tight">The P.R.O. Company</h1>
                 <p className="text-xs text-muted-foreground">Portal</p>
               </div>
             </div>
@@ -83,7 +95,6 @@ export function AppLayout({ children }: AppLayoutProps) {
             </Button>
           </div>
 
-          {/* Navigation */}
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
               const isActive = location === item.href || 
@@ -107,29 +118,30 @@ export function AppLayout({ children }: AppLayoutProps) {
             })}
           </nav>
 
-          {/* User section */}
           <div className="p-4">
             <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-muted/30">
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
-                <span className="text-sm font-semibold text-primary">A</span>
+                <span className="text-sm font-semibold text-primary" data-testid="text-user-initial">{userInitial}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">Admin User</p>
-                <p className="text-xs text-muted-foreground">Admin</p>
+                <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-name">{user?.name || "User"}</p>
+                <p className="text-xs text-muted-foreground" data-testid="text-user-role">{user?.role || "Unknown"}</p>
               </div>
-              <Link href="/login">
-                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground" data-testid="button-logout">
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
+                onClick={logout}
+                data-testid="button-logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="lg:pl-[280px]">
-        {/* Top header */}
         <header className="sticky top-0 z-30 h-[72px] bg-background/80 backdrop-blur-xl border-b border-border/40">
           <div className="flex h-full items-center gap-4 px-6 lg:px-10">
             <Button
@@ -161,7 +173,6 @@ export function AppLayout({ children }: AppLayoutProps) {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="min-h-[calc(100vh-72px)] pb-20 lg:pb-0">
           {children}
         </main>

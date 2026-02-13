@@ -18,12 +18,15 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // Users
   getUser(id: string): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
   
   // Staff
   getStaff(): Promise<Staff[]>;
@@ -177,6 +180,10 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
+  async getUsers(): Promise<User[]> {
+    return db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
@@ -185,6 +192,11 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return user || undefined;
   }
 
   // Staff
@@ -704,10 +716,11 @@ export class DatabaseStorage implements IStorage {
     if (existingUsers.length > 0) return;
 
     // Seed admin user (required for login)
+    const hashedPassword = await bcrypt.hash("admin123", 10);
     await db.insert(users).values({
       name: "Admin",
       email: "admin@procompany.ae",
-      passwordHash: "admin123", // In production, this should be hashed
+      passwordHash: hashedPassword,
       role: "Admin",
     });
 
