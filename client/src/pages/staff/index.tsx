@@ -1,13 +1,16 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Users, Mail, Phone, Pencil, Trash2, Loader2, Download } from "lucide-react";
+import { Plus, Users, Mail, Phone, Pencil, Trash2, Loader2, Download, LayoutGrid, Table2 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
+import { SortableHeader } from "@/components/ui/sortable-header";
+import { ColumnVisibilityDropdown } from "@/components/ui/column-visibility";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AppLayout } from "@/components/layout/app-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,9 +19,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
+import type { ColumnDef, SortState } from "@/hooks/use-data-table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Staff } from "@shared/schema";
+
+type ViewMode = "cards" | "table";
 
 const statusOptions = [
   { value: "Active", label: "Active Staff" },
@@ -68,18 +74,52 @@ export default function StaffList() {
     queryKey: ["/api/staff"],
   });
 
-  const filteredStaff = staffList?.filter((member) =>
-    !search || 
-    member.name.toLowerCase().includes(search.toLowerCase()) ||
-    member.roleTitle.toLowerCase().includes(search.toLowerCase())
-  );
+  const [columnSort, setColumnSort] = useState<SortState>({ key: null, direction: null });
+  const toggleColumnSort = useCallback((key: string) => {
+    setColumnSort(prev => {
+      if (prev.key !== key) return { key, direction: "asc" };
+      if (prev.direction === "asc") return { key, direction: "desc" };
+      return { key: null, direction: null };
+    });
+  }, []);
+
+  const filteredStaff = useMemo(() => {
+    let result = staffList?.filter((member) =>
+      !search || 
+      member.name.toLowerCase().includes(search.toLowerCase()) ||
+      member.roleTitle.toLowerCase().includes(search.toLowerCase())
+    );
+    if (result && columnSort.key) {
+      result = [...result].sort((a, b) => {
+        const dir = columnSort.direction === "desc" ? -1 : 1;
+        switch (columnSort.key) {
+          case "name": return dir * a.name.localeCompare(b.name);
+          case "role": return dir * a.roleTitle.localeCompare(b.roleTitle);
+          case "status": return dir * (a.status || "").localeCompare(b.status || "");
+          case "email": return dir * (a.email || "").localeCompare(b.email || "");
+          default: return 0;
+        }
+      });
+    }
+    return result;
+  }, [staffList, search, columnSort]);
 
   const getId = useCallback((member: Staff) => member.id, []);
+
+  const columns: ColumnDef[] = [
+    { id: "name", label: "Name", defaultVisible: true },
+    { id: "role", label: "Role", defaultVisible: true },
+    { id: "status", label: "Status", defaultVisible: true },
+    { id: "email", label: "Email", defaultVisible: true },
+    { id: "phone", label: "Phone", defaultVisible: true },
+  ];
 
   const dt = useDataTable(filteredStaff, {
     storageKey: "staff_list",
     defaultPageSize: 25,
+    defaultViewMode: "cards",
     getId,
+    columns,
   });
 
   const createMutation = useMutation({
@@ -180,6 +220,175 @@ export default function StaffList() {
 
   const isPending = createMutation.isPending || updateMutation.isPending;
   const isComfortable = dt.density === "comfortable";
+  const viewMode = dt.viewMode as ViewMode;
+  const cv = dt.isColumnVisible;
+
+  const viewModeToggle = (
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50">
+      <Button
+        size="icon"
+        variant={viewMode === "cards" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("cards")}
+        data-testid="button-view-cards"
+      >
+        <LayoutGrid className="h-4 w-4" />
+      </Button>
+      <Button
+        size="icon"
+        variant={viewMode === "table" ? "secondary" : "ghost"}
+        onClick={() => dt.setViewMode("table")}
+        data-testid="button-view-table"
+      >
+        <Table2 className="h-4 w-4" />
+      </Button>
+    </div>
+  );
+
+  const renderCards = (items: Staff[]) => (
+    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {items.map((member, index) => {
+        const isSelected = dt.selectedIds.has(member.id);
+        return (
+          <div key={member.id} className="flex items-start gap-2">
+            <div className="pt-4 shrink-0">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => dt.toggleSelected(member.id)}
+                aria-label={`Select ${member.name}`}
+                data-testid={`checkbox-staff-${member.id}`}
+              />
+            </div>
+            <div
+              className={`premium-card ${isComfortable ? "p-4" : "p-2.5"} flex-1 min-w-0 opacity-0 animate-fade-in`}
+              style={{ animationDelay: `${index * 0.05}s` }}
+              data-testid={`staff-card-${member.id}`}
+            >
+              <div className="space-y-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-foreground">{member.name}</h3>
+                    <p className="text-sm text-muted-foreground">{member.roleTitle}</p>
+                  </div>
+                  <Badge variant={getStatusVariant(member.status || "Active")} className="text-xs rounded-full shrink-0">
+                    {getStatusLabel(member.status || "Active")}
+                  </Badge>
+                </div>
+                
+                <div className="space-y-1.5">
+                  {member.email && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5" />
+                      <span className="truncate">{member.email}</span>
+                    </div>
+                  )}
+                  {member.phone && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-3.5 w-3.5" />
+                      <span>{member.phone}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2 pt-2 border-t border-border/50">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 gap-1.5 rounded-lg"
+                    onClick={() => handleOpenDialog(member)}
+                    data-testid={`button-edit-staff-${member.id}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="flex-1 gap-1.5 rounded-lg text-destructive"
+                    onClick={() => handleDeleteClick(member)}
+                    data-testid={`button-delete-staff-${member.id}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const renderTable = (items: Staff[]) => {
+    const cellPadding = isComfortable ? "" : "py-1.5";
+    return (
+      <div className="premium-card overflow-hidden">
+        <Table>
+          <TableHeader className="sticky top-0 z-[9999] bg-background">
+            <TableRow>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={dt.isAllSelected}
+                  ref={(el) => {
+                    if (el) (el as any).indeterminate = dt.isPartiallySelected;
+                  }}
+                  onCheckedChange={() => dt.toggleSelectAll()}
+                  aria-label="Select all"
+                  data-testid="checkbox-select-all"
+                />
+              </TableHead>
+              {cv("name") && <SortableHeader sortKey="name" sort={columnSort} onToggle={toggleColumnSort}>Name</SortableHeader>}
+              {cv("role") && <SortableHeader sortKey="role" sort={columnSort} onToggle={toggleColumnSort}>Role</SortableHeader>}
+              {cv("status") && <SortableHeader sortKey="status" sort={columnSort} onToggle={toggleColumnSort}>Status</SortableHeader>}
+              {cv("email") && <SortableHeader sortKey="email" sort={columnSort} onToggle={toggleColumnSort} className="hidden sm:table-cell">Email</SortableHeader>}
+              {cv("phone") && <TableHead className="hidden md:table-cell">Phone</TableHead>}
+              <TableHead className="w-24 text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((member) => {
+              const isSelected = dt.selectedIds.has(member.id);
+              return (
+                <TableRow
+                  key={member.id}
+                  className={`hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
+                  data-testid={`staff-table-${member.id}`}
+                >
+                  <TableCell className={cellPadding} onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => dt.toggleSelected(member.id)}
+                      aria-label={`Select ${member.name}`}
+                      data-testid={`checkbox-staff-${member.id}`}
+                    />
+                  </TableCell>
+                  {cv("name") && <TableCell className={`font-medium ${cellPadding}`}>{member.name}</TableCell>}
+                  {cv("role") && <TableCell className={`text-muted-foreground ${cellPadding}`}>{member.roleTitle}</TableCell>}
+                  {cv("status") && <TableCell className={cellPadding}>
+                    <Badge variant={getStatusVariant(member.status || "Active")} className="text-xs rounded-full">
+                      {getStatusLabel(member.status || "Active")}
+                    </Badge>
+                  </TableCell>}
+                  {cv("email") && <TableCell className={`hidden sm:table-cell text-muted-foreground ${cellPadding}`}>{member.email || "-"}</TableCell>}
+                  {cv("phone") && <TableCell className={`hidden md:table-cell text-muted-foreground ${cellPadding}`}>{member.phone || "-"}</TableCell>}
+                  <TableCell className={`text-right ${cellPadding}`}>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(member)} data-testid={`button-edit-staff-${member.id}`}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDeleteClick(member)} data-testid={`button-delete-staff-${member.id}`}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
 
   return (
     <AppLayout>
@@ -211,6 +420,15 @@ export default function StaffList() {
           totalItems={dt.totalItems}
           selectedCount={dt.selectedCount}
           onClearSelection={dt.clearSelection}
+          viewModeToggle={viewModeToggle}
+          actions={
+            <ColumnVisibilityDropdown
+              columns={dt.columns}
+              isColumnVisible={dt.isColumnVisible}
+              toggleColumn={dt.toggleColumn}
+              resetColumns={dt.resetColumns}
+            />
+          }
           selectionActions={
             <Button
               variant="outline"
@@ -234,104 +452,36 @@ export default function StaffList() {
           }
         />
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div>
           {isLoading ? (
-            <>
-              <Skeleton className="h-36 rounded-xl" />
-              <Skeleton className="h-36 rounded-xl" />
-              <Skeleton className="h-36 rounded-xl" />
-            </>
-          ) : dt.paginatedData.length > 0 ? (
-            dt.paginatedData.map((member, index) => {
-              const isSelected = dt.selectedIds.has(member.id);
-              return (
-                <div key={member.id} className="flex items-start gap-2">
-                  <div className="pt-4 shrink-0">
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => dt.toggleSelected(member.id)}
-                      aria-label={`Select ${member.name}`}
-                      data-testid={`checkbox-staff-${member.id}`}
-                    />
-                  </div>
-                  <div
-                    className={`premium-card ${isComfortable ? "p-4" : "p-2.5"} flex-1 min-w-0 opacity-0 animate-fade-in`}
-                    style={{ animationDelay: `${index * 0.05}s` }}
-                    data-testid={`staff-card-${member.id}`}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="font-semibold text-foreground">{member.name}</h3>
-                          <p className="text-sm text-muted-foreground">{member.roleTitle}</p>
-                        </div>
-                        <Badge variant={getStatusVariant(member.status || "Active")} className="text-xs rounded-full shrink-0">
-                          {getStatusLabel(member.status || "Active")}
-                        </Badge>
-                      </div>
-                      
-                      <div className="space-y-1.5">
-                        {member.email && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="h-3.5 w-3.5" />
-                            <span className="truncate">{member.email}</span>
-                          </div>
-                        )}
-                        {member.phone && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone className="h-3.5 w-3.5" />
-                            <span>{member.phone}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex gap-2 pt-2 border-t border-border/50">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex-1 gap-1.5 rounded-lg"
-                          onClick={() => handleOpenDialog(member)}
-                          data-testid={`button-edit-staff-${member.id}`}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex-1 gap-1.5 rounded-lg text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteClick(member)}
-                          data-testid={`button-delete-staff-${member.id}`}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="col-span-full">
-              <EmptyState
-                icon={<Users className="h-6 w-6" />}
-                title={search ? "No staff match your search" : "No staff members found"}
-                description={search ? "Try adjusting your search terms" : "Add your first staff member to get started."}
-                action={
-                  search ? (
-                    <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => setSearch("")}>
-                      Clear search
-                    </Button>
-                  ) : (
-                    <Button size="sm" className="gap-1.5 rounded-lg" onClick={() => handleOpenDialog()}>
-                      <Plus className="h-4 w-4" />
-                      Add Staff
-                    </Button>
-                  )
-                }
-              />
+            <div className="space-y-2">
+              <Skeleton className="h-16 rounded-xl" />
+              <Skeleton className="h-16 rounded-xl" />
+              <Skeleton className="h-16 rounded-xl" />
             </div>
+          ) : dt.paginatedData.length > 0 ? (
+            <>
+              {viewMode === "cards" && renderCards(dt.paginatedData)}
+              {viewMode === "table" && renderTable(dt.paginatedData)}
+            </>
+          ) : (
+            <EmptyState
+              icon={<Users className="h-6 w-6" />}
+              title={search ? "No staff match your search" : "No staff members found"}
+              description={search ? "Try adjusting your search terms" : "Add your first staff member to get started."}
+              action={
+                search ? (
+                  <Button size="sm" variant="outline" className="gap-1.5 rounded-lg" onClick={() => setSearch("")}>
+                    Clear search
+                  </Button>
+                ) : (
+                  <Button size="sm" className="gap-1.5 rounded-lg" onClick={() => handleOpenDialog()}>
+                    <Plus className="h-4 w-4" />
+                    Add Staff
+                  </Button>
+                )
+              }
+            />
           )}
         </div>
 

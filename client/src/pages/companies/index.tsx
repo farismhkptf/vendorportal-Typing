@@ -2,6 +2,9 @@ import { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { Plus, Building2, Mail, MapPin, User, ArrowUpDown, List, LayoutGrid, Table2, Download } from "lucide-react";
+import { SortableHeader } from "@/components/ui/sortable-header";
+import { ColumnVisibilityDropdown } from "@/components/ui/column-visibility";
+import type { ColumnDef, SortState } from "@/hooks/use-data-table";
 import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -88,6 +91,14 @@ export default function CompaniesList() {
   const [, navigate] = useLocation();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortByOption>("name_asc");
+  const [columnSort, setColumnSort] = useState<SortState>({ key: null, direction: null });
+  const toggleColumnSort = useCallback((key: string) => {
+    setColumnSort(prev => {
+      if (prev.key !== key) return { key, direction: "asc" };
+      if (prev.direction === "asc") return { key, direction: "desc" };
+      return { key: null, direction: null };
+    });
+  }, []);
 
   const { data: companies, isLoading } = useQuery<CompanyWithRelations[]>({
     queryKey: ["/api/companies"],
@@ -100,6 +111,17 @@ export default function CompaniesList() {
     
     if (result) {
       result = [...result].sort((a, b) => {
+        if (columnSort.key) {
+          const dir = columnSort.direction === "desc" ? -1 : 1;
+          switch (columnSort.key) {
+            case "name":
+              return dir * a.name.localeCompare(b.name);
+            case "rm":
+              return dir * (a.rmStaff?.name || "").localeCompare(b.rmStaff?.name || "");
+            case "medicalCenter":
+              return dir * (a.preferredMedicalCenter?.name || "").localeCompare(b.preferredMedicalCenter?.name || "");
+          }
+        }
         switch (sortBy) {
           case "name_asc":
             return a.name.localeCompare(b.name);
@@ -114,15 +136,23 @@ export default function CompaniesList() {
     }
     
     return result;
-  }, [companies, search, sortBy]);
+  }, [companies, search, sortBy, columnSort]);
 
   const getId = useCallback((company: CompanyWithRelations) => company.id, []);
+
+  const columns: ColumnDef[] = [
+    { id: "name", label: "Company Name", defaultVisible: true },
+    { id: "rm", label: "RM", defaultVisible: true },
+    { id: "medicalCenter", label: "Medical Center", defaultVisible: true },
+    { id: "emails", label: "Emails", defaultVisible: true },
+  ];
 
   const dt = useDataTable(filteredAndSortedCompanies, {
     storageKey: "co_list",
     defaultPageSize: 25,
     defaultViewMode: "cards",
     getId,
+    columns,
   });
 
   const viewMode = dt.viewMode as ViewMode;
@@ -255,10 +285,12 @@ export default function CompaniesList() {
     </div>
   );
 
+  const cv = dt.isColumnVisible;
+
   const renderTable = (items: CompanyWithRelations[]) => (
     <div className="premium-card overflow-hidden">
       <Table>
-        <TableHeader>
+        <TableHeader className="sticky top-0 z-[9999] bg-background">
           <TableRow>
             <TableHead className="w-10">
               <Checkbox
@@ -271,22 +303,23 @@ export default function CompaniesList() {
                 data-testid="checkbox-select-all"
               />
             </TableHead>
-            <TableHead>Company Name</TableHead>
-            <TableHead className="hidden md:table-cell">RM</TableHead>
-            <TableHead className="hidden lg:table-cell">Medical Center</TableHead>
-            <TableHead className="text-right">Emails</TableHead>
+            {cv("name") && <SortableHeader sortKey="name" sort={columnSort} onToggle={toggleColumnSort}>Company Name</SortableHeader>}
+            {cv("rm") && <SortableHeader sortKey="rm" sort={columnSort} onToggle={toggleColumnSort} className="hidden md:table-cell">RM</SortableHeader>}
+            {cv("medicalCenter") && <SortableHeader sortKey="medicalCenter" sort={columnSort} onToggle={toggleColumnSort} className="hidden lg:table-cell">Medical Center</SortableHeader>}
+            {cv("emails") && <TableHead className="text-right">Emails</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.map((company) => {
             const isSelected = dt.selectedIds.has(company.id);
+            const cellPadding = isComfortable ? "" : "py-1.5";
             return (
               <TableRow 
                 key={company.id} 
                 className={`cursor-pointer hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
                 data-testid={`company-table-${company.id}`}
               >
-                <TableCell className={isComfortable ? "" : "py-1.5"} onClick={(e) => e.stopPropagation()}>
+                <TableCell className={cellPadding} onClick={(e) => e.stopPropagation()}>
                   <Checkbox
                     checked={isSelected}
                     onCheckedChange={() => dt.toggleSelected(company.id)}
@@ -294,20 +327,20 @@ export default function CompaniesList() {
                     data-testid={`checkbox-company-${company.id}`}
                   />
                 </TableCell>
-                <TableCell className={isComfortable ? "" : "py-1.5"} onClick={() => navigate(`/companies/${company.id}`)}>
+                {cv("name") && <TableCell className={cellPadding} onClick={() => navigate(`/companies/${company.id}`)}>
                   <div className="flex items-center gap-2">
                     <CompletenessIndicator company={company} />
                     <Building2 className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium text-primary">{toProperCase(company.name)}</span>
                   </div>
-                </TableCell>
-                <TableCell className={`hidden md:table-cell text-muted-foreground ${isComfortable ? "" : "py-1.5"}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                </TableCell>}
+                {cv("rm") && <TableCell className={`hidden md:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
                   {company.rmStaff?.name || "-"}
-                </TableCell>
-                <TableCell className={`hidden lg:table-cell text-muted-foreground ${isComfortable ? "" : "py-1.5"}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                </TableCell>}
+                {cv("medicalCenter") && <TableCell className={`hidden lg:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
                   {company.preferredMedicalCenter?.name || "-"}
-                </TableCell>
-                <TableCell className={`text-right ${isComfortable ? "" : "py-1.5"}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                </TableCell>}
+                {cv("emails") && <TableCell className={`text-right ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
                   {company.emails && company.emails.filter(e => e.active).length > 0 ? (
                     <Badge variant="secondary" className="text-xs">
                       {company.emails.filter(e => e.active).length}
@@ -315,7 +348,7 @@ export default function CompaniesList() {
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
-                </TableCell>
+                </TableCell>}
               </TableRow>
             );
           })}
@@ -398,6 +431,14 @@ export default function CompaniesList() {
           onClearSelection={dt.clearSelection}
           filters={sortFilter}
           viewModeToggle={viewModeToggle}
+          actions={
+            <ColumnVisibilityDropdown
+              columns={dt.columns}
+              isColumnVisible={dt.isColumnVisible}
+              toggleColumn={dt.toggleColumn}
+              resetColumns={dt.resetColumns}
+            />
+          }
           selectionActions={
             <Button
               variant="outline"

@@ -5,8 +5,9 @@ import {
   Calendar, Clock, Stethoscope, CreditCard,
   CheckCircle2, AlertCircle, Building2, User,
   MoreHorizontal, RefreshCw, XCircle, MapPin,
-  Mail, MessageCircle, Copy, Check, Maximize2, Download
+  Mail, MessageCircle, Copy, Check, Maximize2, Download, Filter
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToCsv } from "@/lib/csv-export";
 import { formatDateWithWeekday } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,8 @@ export default function AppointmentsIndex() {
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithRelations[]>({
     queryKey: ["/api/appointments"],
@@ -267,15 +270,19 @@ Thank you,
 
   const filteredAppointments = useMemo(() => {
     if (!appointments) return [];
-    if (!search.trim()) return appointments;
-    const q = search.toLowerCase();
     return appointments.filter(a => {
-      const woNumber = a.workOrder?.woNumber?.toLowerCase() || "";
-      const applicant = a.workOrder?.applicantName?.toLowerCase() || "";
-      const centerName = a.center?.name?.toLowerCase() || "";
-      return woNumber.includes(q) || applicant.includes(q) || centerName.includes(q);
+      if (typeFilter !== "all" && a.type !== typeFilter) return false;
+      if (statusFilter !== "all" && a.status !== statusFilter) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const woNumber = a.workOrder?.woNumber?.toLowerCase() || "";
+        const applicant = a.workOrder?.applicantName?.toLowerCase() || "";
+        const centerName = a.center?.name?.toLowerCase() || "";
+        if (!woNumber.includes(q) && !applicant.includes(q) && !centerName.includes(q)) return false;
+      }
+      return true;
     });
-  }, [appointments, search]);
+  }, [appointments, search, typeFilter, statusFilter]);
 
   const todayAppointments = useMemo(() =>
     filteredAppointments.filter(a => {
@@ -560,6 +567,35 @@ Thank you,
           totalItems={dt.totalItems}
           selectedCount={dt.selectedCount}
           onClearSelection={dt.clearSelection}
+          filters={
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-32 rounded-lg" data-testid="select-type-filter">
+                  <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Medical">Medical</SelectItem>
+                  <SelectItem value="EID">Emirates ID</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-36 rounded-lg" data-testid="select-status-filter">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Scheduled">Scheduled</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                  <SelectItem value="Rescheduled">Rescheduled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          }
+          activeFilterCount={(typeFilter !== "all" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0)}
+          onClearFilters={() => { setTypeFilter("all"); setStatusFilter("all"); }}
           selectionActions={
             <Button
               variant="outline"
