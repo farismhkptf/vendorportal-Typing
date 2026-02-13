@@ -4292,7 +4292,7 @@ export default function AdminPage() {
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                                 <AlertDialogAction
                                   onClick={() => deleteVendorMutation.mutate(vendor.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  className="bg-destructive text-destructive-foreground"
                                 >
                                   Delete
                                 </AlertDialogAction>

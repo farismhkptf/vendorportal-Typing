@@ -593,7 +593,7 @@ export default function StaffList() {
             <AlertDialogCancel className="rounded-lg">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
-              className="rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="rounded-lg bg-destructive text-destructive-foreground"
               data-testid="button-confirm-delete"
             >
               {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}

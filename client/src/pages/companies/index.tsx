@@ -172,7 +172,7 @@ export default function CompaniesList() {
             />
             <Link href={`/companies/${company.id}`} className="flex-1 min-w-0">
               <div 
-                className={`flex items-center justify-between ${isComfortable ? "py-2.5 px-3" : "py-1.5 px-2"} rounded-lg hover-elevate opacity-0 animate-fade-in`}
+                className={`flex items-center justify-between gap-2 ${isComfortable ? "py-2.5 px-3" : "py-1.5 px-2"} rounded-lg hover-elevate opacity-0 animate-fade-in`}
                 style={{ animationDelay: `${index * 0.02}s` }}
                 data-testid={`company-compact-${company.id}`}
               >

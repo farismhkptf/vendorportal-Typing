@@ -406,7 +406,7 @@ The P.R.O. Company™`;
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
         <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/50">
           <div className="max-w-4xl mx-auto px-4 lg:px-6 pt-4 pb-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1">
                   <Button 

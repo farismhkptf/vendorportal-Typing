@@ -200,7 +200,7 @@ export default function Login() {
                 <div className="pt-3 border-t border-border/40 mt-3">
                   <button
                     onClick={() => setShowManualLogin(true)}
-                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                    className="w-full text-sm text-muted-foreground hover-elevate transition-colors py-2 rounded-lg"
                     data-testid="button-manual-login"
                   >
                     Sign in with email & password instead
@@ -285,7 +285,7 @@ export default function Login() {
                 <div className="pt-3 border-t border-border/40 mt-4">
                   <button
                     onClick={() => setShowManualLogin(false)}
-                    className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                    className="w-full text-sm text-muted-foreground hover-elevate transition-colors py-2 rounded-lg"
                     data-testid="button-back-to-accounts"
                   >
                     Back to account list

@@ -622,7 +622,7 @@ export default function TypingJobDetail() {
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="text-sm truncate">{file.fileName}</span>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <Button variant="ghost" size="icon" className="shrink-0">
                             <Download className="h-3.5 w-3.5" />
                           </Button>
                         </div>
@@ -657,7 +657,7 @@ export default function TypingJobDetail() {
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="text-sm truncate">{file.fileName}</span>
                           </div>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <Button variant="ghost" size="icon" className="shrink-0">
                             <Download className="h-3.5 w-3.5" />
                           </Button>
                         </div>
