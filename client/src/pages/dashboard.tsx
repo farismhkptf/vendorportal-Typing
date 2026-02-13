@@ -13,7 +13,9 @@ import {
   CircleDot,
   CheckCircle2,
   Send,
-  XCircle
+  XCircle,
+  Stethoscope,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -26,6 +28,57 @@ import { getGreeting } from "@/lib/greeting";
 import { toProperCase } from "@/lib/proper-case";
 import { useCountUp } from "@/hooks/use-count-up";
 import { cn } from "@/lib/utils";
+
+function getStatusSummary(typing: string | null, appt: string | null): { label: string; color: string } {
+  if (appt === "Completed" && (typing === "SentToClient" || typing === "Returned")) {
+    return { label: "Done", color: "text-emerald-600 dark:text-emerald-400" };
+  }
+  if (appt === "Scheduled") {
+    return { label: "Appt. Scheduled", color: "text-blue-600 dark:text-blue-400" };
+  }
+  if (typing === "SentToClient") {
+    return { label: "Sent to Client", color: "text-emerald-600 dark:text-emerald-400" };
+  }
+  if (typing === "Returned") {
+    return { label: "Returned", color: "text-violet-600 dark:text-violet-400" };
+  }
+  if (typing === "SentToVendor") {
+    return { label: "At Vendor", color: "text-indigo-600 dark:text-indigo-400" };
+  }
+  if (typing === "Draft") {
+    return { label: "Typing", color: "text-slate-500 dark:text-slate-400" };
+  }
+  return { label: "--", color: "text-muted-foreground/50" };
+}
+
+function WoStatusPills({ wo }: { wo: RecentWorkOrder }) {
+  const hasMed = wo.medicalTyping || wo.medicalAppt;
+  const hasEid = wo.eidTyping || wo.eidAppt;
+
+  if (!hasMed && !hasEid) {
+    return <span className="text-[11px] text-muted-foreground/50">Draft</span>;
+  }
+
+  const med = hasMed ? getStatusSummary(wo.medicalTyping, wo.medicalAppt) : null;
+  const eid = hasEid ? getStatusSummary(wo.eidTyping, wo.eidAppt) : null;
+
+  return (
+    <div className="flex flex-col gap-1 items-end">
+      {med && (
+        <div className="flex items-center gap-1.5" data-testid={`status-medical-${wo.id}`}>
+          <Stethoscope className="h-3 w-3 text-rose-500 dark:text-rose-400 shrink-0" />
+          <span className={cn("text-[11px] font-medium", med.color)}>{med.label}</span>
+        </div>
+      )}
+      {eid && (
+        <div className="flex items-center gap-1.5" data-testid={`status-eid-${wo.id}`}>
+          <CreditCard className="h-3 w-3 text-cyan-500 dark:text-cyan-400 shrink-0" />
+          <span className={cn("text-[11px] font-medium", eid.color)}>{eid.label}</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface DashboardStats {
   totalWorkOrders: number;
@@ -51,6 +104,10 @@ interface RecentWorkOrder {
   companyName: string;
   status: "Draft" | "Scheduled" | "Sent" | "Completed" | "Cancelled";
   createdAt: string;
+  medicalTyping: string | null;
+  medicalAppt: string | null;
+  eidTyping: string | null;
+  eidAppt: string | null;
 }
 
 interface PipelineData {
@@ -395,17 +452,17 @@ export default function Dashboard() {
                       <DataTableRow>
                         <div className="flex items-center justify-between gap-3">
                           <div className="space-y-1.5 min-w-0">
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-2.5 flex-wrap">
                               <span className="font-medium text-foreground">{wo.woNumber}</span>
-                              <StatusBadge status={wo.status} />
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                <Building2 className="h-3 w-3" />
+                                <span className="truncate max-w-[100px]">{toProperCase(wo.companyName)}</span>
+                              </div>
                             </div>
                             <p className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</p>
                           </div>
-                          <div className="text-right shrink-0">
-                            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                              <Building2 className="h-3.5 w-3.5" />
-                              <span className="truncate max-w-[120px]">{toProperCase(wo.companyName)}</span>
-                            </div>
+                          <div className="shrink-0">
+                            <WoStatusPills wo={wo} />
                           </div>
                         </div>
                       </DataTableRow>

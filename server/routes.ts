@@ -110,10 +110,27 @@ export async function registerRoutes(
     try {
       const workOrders = await storage.getWorkOrders();
       const recent = workOrders.slice(0, 5);
-      
+      const allJobTypes = await storage.getJobTypes();
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+
       const result = await Promise.all(
         recent.map(async (wo) => {
-          const company = await storage.getCompanyById(wo.companyId);
+          const [company, typingJobs, appointments] = await Promise.all([
+            storage.getCompanyById(wo.companyId),
+            storage.getTypingJobsByWoId(wo.id),
+            storage.getAppointmentsByWoId(wo.id),
+          ]);
+
+          const medTypingJobs = typingJobs.filter(j => jobTypeMap.get(j.jobTypeId)?.category === "Medical");
+          const eidTypingJobs = typingJobs.filter(j => jobTypeMap.get(j.jobTypeId)?.category === "EID");
+          const medAppts = appointments.filter(a => a.type === "Medical" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+          const eidAppts = appointments.filter(a => a.type === "EID" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+
+          const latestMedTyping = medTypingJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          const latestEidTyping = eidTypingJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          const latestMedAppt = medAppts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+          const latestEidAppt = eidAppts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
           return {
             id: wo.id,
             woNumber: wo.woNumber,
@@ -121,6 +138,10 @@ export async function registerRoutes(
             companyName: company?.name || "N/A",
             status: wo.status,
             createdAt: wo.createdAt,
+            medicalTyping: latestMedTyping?.status || null,
+            medicalAppt: latestMedAppt?.status || null,
+            eidTyping: latestEidTyping?.status || null,
+            eidAppt: latestEidAppt?.status || null,
           };
         })
       );
