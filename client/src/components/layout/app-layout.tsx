@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NotificationsBell } from "@/components/notifications-bell";
+import { useSwipeBack } from "@/hooks/use-swipe-back";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -37,6 +38,8 @@ const navigation = [
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useSwipeBack();
 
   return (
     <div className="min-h-screen bg-background" data-testid="app-layout">
