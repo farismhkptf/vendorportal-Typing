@@ -150,7 +150,7 @@ export default function VendorJobDetail() {
     return (
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-30 glass border-b border-border/50">
-          <div className="flex h-16 items-center justify-between px-4 lg:px-8">
+          <div className="flex h-16 items-center justify-between gap-2 px-4 lg:px-8">
             <Skeleton className="h-9 w-32" />
             <Skeleton className="h-9 w-24" />
           </div>
@@ -178,7 +178,7 @@ export default function VendorJobDetail() {
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-30 glass border-b border-border/50">
-        <div className="flex h-16 items-center justify-between px-4 lg:px-8">
+        <div className="flex h-16 items-center justify-between gap-2 px-4 lg:px-8">
           <div className="flex items-center gap-3">
             <Link href="/vendor/jobs">
               <Button variant="ghost" size="icon" data-testid="button-back">
@@ -353,7 +353,7 @@ export default function VendorJobDetail() {
                     {outputFiles.map(file => (
                       <div 
                         key={file.id} 
-                        className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20"
+                        className="flex items-center justify-between gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20"
                         data-testid={`output-file-${file.id}`}
                       >
                         <div className="flex items-center gap-3">

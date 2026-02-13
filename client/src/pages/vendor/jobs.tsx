@@ -41,7 +41,7 @@ export default function VendorJobs() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-30 glass border-b border-border/50">
-        <div className="flex h-16 items-center justify-between px-4 lg:px-8">
+        <div className="flex h-16 items-center justify-between gap-2 px-4 lg:px-8">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
               <span className="text-sm font-semibold text-white">V</span>
@@ -148,7 +148,7 @@ export default function VendorJobs() {
               <Link key={job.id} href={`/vendor/jobs/${job.id}`}>
                 <DataTableRow className="mb-0" data-testid={`vendor-job-row-${job.id}`}>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
                           <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
@@ -171,7 +171,7 @@ export default function VendorJobs() {
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-border/50">
+                    <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/50">
                       <div className="flex items-center gap-3">
                         {job.jobType && (
                           <>

@@ -610,7 +610,7 @@ function ImportExportSection() {
           </div>
 
           {gsheetPreview.importableCount > 0 && !gsheetResults && (
-            <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center justify-between gap-2 pt-2">
               <p className="text-sm text-muted-foreground">
                 {gsheetPreview.importableCount} work orders will be created as Draft.
               </p>
@@ -1569,7 +1569,7 @@ export default function AdminPage() {
 
             {/* Companies Tab */}
             <TabsContent value="companies" className="p-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <div className="relative max-w-xs">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -1657,7 +1657,7 @@ export default function AdminPage() {
 
             {/* Centers Tab */}
             <TabsContent value="centers" className="p-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <div className="flex items-center gap-3">
                   <h3 className="font-medium text-foreground text-sm">Medical & EID Centers</h3>
                   {selectedCenters.length > 0 && (
@@ -2133,7 +2133,7 @@ export default function AdminPage() {
                           {medicalVipCenters.map((center: Center, index: number) => (
                             <div
                               key={center.id}
-                              className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-amber-500/5 to-amber-400/10 border-2 border-amber-400/40 opacity-0 animate-fade-in"
+                              className="flex items-center justify-between gap-2 p-3 rounded-lg bg-gradient-to-r from-amber-500/5 to-amber-400/10 border-2 border-amber-400/40 opacity-0 animate-fade-in"
                               style={{ animationDelay: `${index * 0.03}s` }}
                             >
                               <div className="flex items-center gap-2.5">
@@ -2245,7 +2245,7 @@ export default function AdminPage() {
                           {medicalNormalCenters.map((center: Center, index: number) => (
                             <div
                               key={center.id}
-                              className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                              className="flex items-center justify-between gap-2 p-3 rounded-lg bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
                               style={{ animationDelay: `${index * 0.03}s` }}
                             >
                               <div className="flex items-center gap-2.5">
@@ -2360,7 +2360,7 @@ export default function AdminPage() {
                           {eidVipCenters.map((center: Center, index: number) => (
                             <div
                               key={center.id}
-                              className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-amber-500/5 to-amber-400/10 border-2 border-amber-400/40 opacity-0 animate-fade-in"
+                              className="flex items-center justify-between gap-2 p-3 rounded-lg bg-gradient-to-r from-amber-500/5 to-amber-400/10 border-2 border-amber-400/40 opacity-0 animate-fade-in"
                               style={{ animationDelay: `${index * 0.03}s` }}
                             >
                               <div className="flex items-center gap-2.5">
@@ -2472,7 +2472,7 @@ export default function AdminPage() {
                           {eidNormalCenters.map((center: Center, index: number) => (
                             <div
                               key={center.id}
-                              className="flex items-center justify-between p-3 rounded-lg bg-blue-500/5 border border-blue-400/20 opacity-0 animate-fade-in"
+                              className="flex items-center justify-between gap-2 p-3 rounded-lg bg-blue-500/5 border border-blue-400/20 opacity-0 animate-fade-in"
                               style={{ animationDelay: `${index * 0.03}s` }}
                             >
                               <div className="flex items-center gap-2.5">
@@ -2562,7 +2562,7 @@ export default function AdminPage() {
 
             {/* Staff Tab */}
             <TabsContent value="staff" className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between gap-2 mb-6">
                 <div className="flex items-center gap-3">
                   <h3 className="font-medium text-foreground">Staff Members</h3>
                   {selectedStaff.length > 0 && (
@@ -2904,7 +2904,7 @@ export default function AdminPage() {
                           {permanentStaff.length > 0 ? permanentStaff.map((member, index) => (
                             <div
                               key={member.id}
-                              className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                              className="flex items-center justify-between gap-2 p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
                               style={{ animationDelay: `${index * 0.05}s` }}
                             >
                       <div className="flex items-center gap-3">
@@ -3139,7 +3139,7 @@ export default function AdminPage() {
                           {temporaryStaff.length > 0 ? temporaryStaff.map((member, index) => (
                             <div
                               key={member.id}
-                              className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                              className="flex items-center justify-between gap-2 p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
                               style={{ animationDelay: `${index * 0.05}s` }}
                             >
                       <div className="flex items-center gap-3">
@@ -3314,7 +3314,7 @@ export default function AdminPage() {
 
             {/* Service Types Tab */}
             <TabsContent value="services" className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between gap-2 mb-6">
                 <div className="flex items-center gap-3">
                   <h3 className="font-medium text-foreground">Service Types</h3>
                   {selectedServices.length > 0 && (
@@ -3637,7 +3637,7 @@ export default function AdminPage() {
                   filteredAdminServices.map((service, index) => (
                     <div
                       key={service.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                      className="flex items-center justify-between gap-2 p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
@@ -3733,7 +3733,7 @@ export default function AdminPage() {
 
             {/* Vendor Jobs Tab */}
             <TabsContent value="jobtypes" className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between gap-2 mb-6">
                 <div className="flex items-center gap-3">
                   <h3 className="font-medium text-foreground">Vendor Jobs & Pricing</h3>
                   {selectedJobTypes.length > 0 && (
@@ -3954,7 +3954,7 @@ export default function AdminPage() {
                   jobTypes.map((job, index) => (
                     <div
                       key={job.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
+                      className="flex items-center justify-between gap-2 p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
                       <div className="flex items-center gap-3">
@@ -4036,7 +4036,7 @@ export default function AdminPage() {
 
             {/* Vendors Tab */}
             <TabsContent value="vendors" className="p-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <h3 className="font-medium text-foreground">Typing Vendors</h3>
                 <Dialog open={vendorDialogOpen} onOpenChange={setVendorDialogOpen}>
                   <DialogTrigger asChild>
@@ -4315,7 +4315,7 @@ export default function AdminPage() {
 
             {/* User Accounts Tab */}
             <TabsContent value="accounts" className="p-4">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <h3 className="font-medium text-foreground" data-testid="text-user-accounts-title">User Accounts</h3>
                 <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
                   <DialogTrigger asChild>
@@ -4635,7 +4635,7 @@ export default function AdminPage() {
                   <h3 className="font-medium text-foreground mb-4">Email Configuration</h3>
                   <div className="space-y-4">
                     <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <div>
                           <p className="font-medium text-foreground">Always CC Recipients</p>
                           <p className="text-sm text-muted-foreground mt-1">
@@ -4654,7 +4654,7 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <div>
                           <p className="font-medium text-foreground">Low Balance Threshold</p>
                           <p className="text-sm text-muted-foreground mt-1">

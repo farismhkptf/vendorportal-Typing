@@ -907,7 +907,7 @@ function EditServiceDialog({ service, onClose, onSave, isPending }: {
             )} />
             {(["requiresMedicalTyping", "requiresMedicalScheduling", "requiresIdTyping2Years", "requiresIdTyping1Year", "requiresIdTyping10Years", "requiresIdBiometrics"] as const).map(key => (
               <FormField key={key} control={form.control} name={key} render={({ field }) => (
-                <FormItem className="flex items-center justify-between">
+                <FormItem className="flex items-center justify-between gap-2">
                   <FormLabel className="text-sm">{key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).replace('Requires ', '')}</FormLabel>
                   <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid={`switch-${key}`} /></FormControl>
                 </FormItem>

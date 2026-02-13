@@ -750,7 +750,7 @@ export default function WorkOrderDetail() {
             </TabsList>
 
             <TabsContent value="appointments" className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center justify-between gap-2 mb-4">
                 <h3 className="font-medium text-foreground">Scheduled Appointments</h3>
                 <div className="flex gap-2">
                   <Link href={`/appointments/schedule-medical?wo=${id}`}>
