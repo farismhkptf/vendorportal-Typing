@@ -1380,7 +1380,7 @@ Thank you,
                 {currentStep === 2 && renderStep2()}
                 {currentStep === 3 && renderStep3()}
 
-                <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t mt-6 -mx-6 px-6 py-4 flex justify-between z-10">
+                <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t mt-6 -mx-6 px-6 py-4 flex justify-between gap-2 z-[9999]">
                   {currentStep > 1 ? (
                     <Button
                       variant="outline"
@@ -1593,7 +1593,7 @@ Thank you,
       <Dialog open={emailFullscreen} onOpenChange={setEmailFullscreen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
           <DialogHeader className="px-6 py-4 border-b bg-gradient-to-r from-[#2563eb] to-[#1e40af]">
-            <DialogTitle className="flex items-center justify-between text-white">
+            <DialogTitle className="flex items-center justify-between gap-2 text-white">
               <div className="flex items-center gap-2">
                 <Mail className="h-5 w-5" />
                 Email Preview

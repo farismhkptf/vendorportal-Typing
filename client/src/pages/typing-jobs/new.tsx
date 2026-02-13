@@ -404,7 +404,7 @@ The P.R.O. Company™`;
   return (
     <AppLayout>
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="sticky top-0 z-[9999] bg-background/80 backdrop-blur-md border-b border-border/50">
           <div className="max-w-4xl mx-auto px-4 lg:px-6 pt-4 pb-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-3">
@@ -492,7 +492,7 @@ The P.R.O. Company™`;
                   <CardContent className="space-y-4">
                     {selectedWo ? (
                       <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                               <User className="h-5 w-5 text-primary" />
@@ -541,7 +541,7 @@ The P.R.O. Company™`;
                               <div
                                 key={wo.id}
                                 onClick={() => handleSelectWo(wo)}
-                                className="flex items-center justify-between p-3 rounded-lg hover-elevate cursor-pointer"
+                                className="flex items-center justify-between gap-2 p-3 rounded-lg hover-elevate cursor-pointer"
                                 data-testid={`wo-option-${wo.id}`}
                               >
                                 <div className="flex items-center gap-3">
@@ -899,8 +899,8 @@ The P.R.O. Company™`;
               )}
 
               {mode === "wizard" && (
-                <div className="sticky bottom-0 bg-background/80 backdrop-blur-md border-t border-border/50 -mx-4 lg:-mx-6 px-4 lg:px-6 py-3 mt-6">
-                  <div className="flex items-center justify-between max-w-4xl mx-auto">
+                <div className="sticky bottom-0 z-[9999] bg-background/80 backdrop-blur-md border-t border-border/50 -mx-4 lg:-mx-6 px-4 lg:px-6 py-3 mt-6">
+                  <div className="flex items-center justify-between gap-2 max-w-4xl mx-auto">
                     <Button
                       type="button"
                       variant="outline"
