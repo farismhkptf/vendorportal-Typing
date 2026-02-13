@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from "react";
+import { useState, useMemo, type ChangeEvent } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
@@ -741,6 +741,10 @@ export default function AdminPage() {
   const [editCcDialogOpen, setEditCcDialogOpen] = useState(false);
   const [editThresholdDialogOpen, setEditThresholdDialogOpen] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
+  const [centerSearch, setCenterSearch] = useState("");
+  const [adminStaffSearch, setAdminStaffSearch] = useState("");
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [accountSearch, setAccountSearch] = useState("");
   const [bulkServiceDialogOpen, setBulkServiceDialogOpen] = useState(false);
   const [bulkServiceNames, setBulkServiceNames] = useState("");
   const [selectedCenters, setSelectedCenters] = useState<string[]>([]);
@@ -796,6 +800,49 @@ export default function AdminPage() {
   const filteredCompanies = companies?.filter((company) =>
     !companySearch || company.name.toLowerCase().includes(companySearch.toLowerCase())
   );
+
+  const filteredAdminCenters = useMemo(() => {
+    if (!centers) return [];
+    if (!centerSearch.trim()) return centers;
+    const q = centerSearch.toLowerCase();
+    return centers.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      (c.area || "").toLowerCase().includes(q) ||
+      (c.address || "").toLowerCase().includes(q)
+    );
+  }, [centers, centerSearch]);
+
+  const filteredAdminStaff = useMemo(() => {
+    if (!staffList) return [];
+    if (!adminStaffSearch.trim()) return staffList;
+    const q = adminStaffSearch.toLowerCase();
+    return staffList.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      (s.roleTitle || "").toLowerCase().includes(q) ||
+      (s.email || "").toLowerCase().includes(q) ||
+      (s.phone || "").toLowerCase().includes(q)
+    );
+  }, [staffList, adminStaffSearch]);
+
+  const filteredAdminServices = useMemo(() => {
+    if (!serviceTypes) return [];
+    if (!serviceSearch.trim()) return serviceTypes;
+    const q = serviceSearch.toLowerCase();
+    return serviceTypes.filter(s =>
+      s.name.toLowerCase().includes(q)
+    );
+  }, [serviceTypes, serviceSearch]);
+
+  const filteredAdminAccounts = useMemo(() => {
+    if (!userAccounts) return [];
+    if (!accountSearch.trim()) return userAccounts;
+    const q = accountSearch.toLowerCase();
+    return userAccounts.filter((u: any) =>
+      (u.name || "").toLowerCase().includes(q) ||
+      (u.email || "").toLowerCase().includes(q) ||
+      (u.role || "").toLowerCase().includes(q)
+    );
+  }, [userAccounts, accountSearch]);
 
   const centerForm = useForm({
     resolver: zodResolver(centerSchema),
@@ -1553,7 +1600,7 @@ export default function AdminPage() {
                   filteredCompanies.map((company, index) => (
                     <Link key={company.id} href={`/companies/${company.id}`}>
                       <div 
-                        className="p-4 rounded-lg bg-muted/30 border border-border/30 opacity-0 animate-fade-in cursor-pointer hover:bg-muted/50 transition-colors"
+                        className="p-4 rounded-lg bg-muted/30 border border-border/30 opacity-0 animate-fade-in cursor-pointer hover-elevate transition-colors"
                         style={{ animationDelay: `${index * 0.03}s` }}
                         data-testid={`company-card-${company.id}`}
                       >
@@ -2031,12 +2078,24 @@ export default function AdminPage() {
                 </DialogContent>
               </Dialog>
 
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search centers..."
+                  value={centerSearch}
+                  onChange={(e) => setCenterSearch(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search-admin-centers"
+                />
+              </div>
+
               {centersLoading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-20 rounded-xl" />
                   <Skeleton className="h-20 rounded-xl" />
                 </div>
-              ) : centers && centers.length > 0 ? (
+              ) : filteredAdminCenters && filteredAdminCenters.length > 0 ? (
                 <div className="space-y-4">
                   {/* Medical Centers Group */}
                   <div className="flex items-center gap-2 mb-2">
@@ -2048,7 +2107,7 @@ export default function AdminPage() {
 
                   {/* Medical Centers (VIP) */}
                   {(() => {
-                    const medicalVipCenters = centers.filter((c: Center) => (c.type === "Medical" || c.type === "Both") && c.tier === "VIP");
+                    const medicalVipCenters = filteredAdminCenters.filter((c: Center) => (c.type === "Medical" || c.type === "Both") && c.tier === "VIP");
                     if (medicalVipCenters.length === 0) return null;
                     return (
                       <Collapsible 
@@ -2160,7 +2219,7 @@ export default function AdminPage() {
 
                   {/* Medical Centers (Normal) */}
                   {(() => {
-                    const medicalNormalCenters = centers.filter((c: Center) => (c.type === "Medical" || c.type === "Both") && c.tier !== "VIP");
+                    const medicalNormalCenters = filteredAdminCenters.filter((c: Center) => (c.type === "Medical" || c.type === "Both") && c.tier !== "VIP");
                     if (medicalNormalCenters.length === 0) return null;
                     return (
                       <Collapsible 
@@ -2275,7 +2334,7 @@ export default function AdminPage() {
 
                   {/* ID Centers (VIP) */}
                   {(() => {
-                    const eidVipCenters = centers.filter((c: Center) => (c.type === "EID" || c.type === "Both") && c.tier === "VIP");
+                    const eidVipCenters = filteredAdminCenters.filter((c: Center) => (c.type === "EID" || c.type === "Both") && c.tier === "VIP");
                     if (eidVipCenters.length === 0) return null;
                     return (
                       <Collapsible 
@@ -2387,7 +2446,7 @@ export default function AdminPage() {
 
                   {/* ID Centers (Normal) */}
                   {(() => {
-                    const eidNormalCenters = centers.filter((c: Center) => (c.type === "EID" || c.type === "Both") && c.tier !== "VIP");
+                    const eidNormalCenters = filteredAdminCenters.filter((c: Center) => (c.type === "EID" || c.type === "Both") && c.tier !== "VIP");
                     if (eidNormalCenters.length === 0) return null;
                     return (
                       <Collapsible 
@@ -2809,17 +2868,29 @@ export default function AdminPage() {
                 </DialogContent>
               </Dialog>
 
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search staff..."
+                  value={adminStaffSearch}
+                  onChange={(e) => setAdminStaffSearch(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search-admin-staff"
+                />
+              </div>
+
               <div className="space-y-4">
                 {staffLoading ? (
                   <>
                     <Skeleton className="h-20 rounded-xl" />
                     <Skeleton className="h-20 rounded-xl" />
                   </>
-                ) : staffList && staffList.length > 0 ? (
+                ) : filteredAdminStaff && filteredAdminStaff.length > 0 ? (
                   <>
                   {/* Permanent Staff Section */}
                   {(() => {
-                    const permanentStaff = staffList.filter((s: Staff) => s.staffType === "Permanent");
+                    const permanentStaff = filteredAdminStaff.filter((s: Staff) => s.staffType === "Permanent");
                     return (
                       <div>
                         <div className="flex items-center gap-2 mb-2">
@@ -3054,7 +3125,7 @@ export default function AdminPage() {
 
                   {/* Temporary Staff Section */}
                   {(() => {
-                    const temporaryStaff = staffList.filter((s: Staff) => s.staffType === "Temporary");
+                    const temporaryStaff = filteredAdminStaff.filter((s: Staff) => s.staffType === "Temporary");
                     return (
                       <div className="mt-4">
                         <div className="flex items-center gap-2 mb-2">
@@ -3547,11 +3618,23 @@ export default function AdminPage() {
                 </DialogContent>
               </Dialog>
 
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search services..."
+                  value={serviceSearch}
+                  onChange={(e) => setServiceSearch(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search-admin-services"
+                />
+              </div>
+
               <div className="space-y-3">
                 {servicesLoading ? (
                   <Skeleton className="h-16 rounded-xl" />
-                ) : serviceTypes && serviceTypes.length > 0 ? (
-                  serviceTypes.map((service, index) => (
+                ) : filteredAdminServices && filteredAdminServices.length > 0 ? (
+                  filteredAdminServices.map((service, index) => (
                     <div
                       key={service.id}
                       className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30 opacity-0 animate-fade-in"
@@ -4192,7 +4275,7 @@ export default function AdminPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                                className="text-destructive"
                                 data-testid={`button-delete-vendor-${vendor.id}`}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -4347,15 +4430,27 @@ export default function AdminPage() {
                 </Dialog>
               </div>
 
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search accounts..."
+                  value={accountSearch}
+                  onChange={(e) => setAccountSearch(e.target.value)}
+                  className="pl-9"
+                  data-testid="input-search-admin-accounts"
+                />
+              </div>
+
               {usersLoading ? (
                 <div className="space-y-3">
                   {[1, 2, 3].map((i) => (
                     <Skeleton key={i} className="h-16 w-full rounded-xl" />
                   ))}
                 </div>
-              ) : userAccounts && userAccounts.length > 0 ? (
+              ) : filteredAdminAccounts && filteredAdminAccounts.length > 0 ? (
                 <div className="space-y-3">
-                  {userAccounts.map((user: any) => (
+                  {filteredAdminAccounts.map((user: any) => (
                     <div
                       key={user.id}
                       className="p-4 rounded-xl bg-muted/30 border border-border/30 flex items-center justify-between gap-4 flex-wrap"

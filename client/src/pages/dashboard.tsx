@@ -309,7 +309,7 @@ export default function Dashboard() {
                 <p className="font-medium text-sm text-amber-800 dark:text-amber-200">Low Wallet Balance</p>
               </div>
               <Link href="/vendor-wallet">
-                <Button variant="outline" size="sm" className="gap-1.5 h-8" data-testid="button-top-up">
+                <Button variant="outline" size="sm" className="gap-1.5" data-testid="button-top-up">
                   Top Up
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Button>

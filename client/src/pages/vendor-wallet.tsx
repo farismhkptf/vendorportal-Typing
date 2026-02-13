@@ -12,7 +12,10 @@ import {
   ArrowDownRight,
   RefreshCw,
   ArrowRight,
-  LayoutGrid
+  LayoutGrid,
+  Search,
+  Filter,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
@@ -59,6 +62,8 @@ type ViewByOption = "none" | "type" | "date";
 export default function VendorWallet() {
   const [topupOpen, setTopupOpen] = useState(false);
   const [viewBy, setViewBy] = useState<ViewByOption>("none");
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [ledgerTypeFilter, setLedgerTypeFilter] = useState<string>("all");
   const { toast } = useToast();
 
   const { data: summary, isLoading: summaryLoading } = useQuery<WalletSummary>({
@@ -129,12 +134,29 @@ export default function VendorWallet() {
     }
   };
 
+  const filteredLedger = useMemo(() => {
+    if (!ledger) return [];
+    return ledger.filter(entry => {
+      if (ledgerTypeFilter !== "all" && entry.entryType !== ledgerTypeFilter) return false;
+      if (ledgerSearch.trim()) {
+        const q = ledgerSearch.toLowerCase();
+        const note = (entry.note || "").toLowerCase();
+        const woNumber = (entry.typingJob?.woNumber || "").toLowerCase();
+        const applicant = (entry.typingJob?.applicantName || "").toLowerCase();
+        if (!note.includes(q) && !woNumber.includes(q) && !applicant.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [ledger, ledgerSearch, ledgerTypeFilter]);
+
+  const activeFilterCount = (ledgerTypeFilter !== "all" ? 1 : 0) + (ledgerSearch.trim() ? 1 : 0);
+
   const groupedLedger = useMemo(() => {
-    if (!ledger || ledger.length === 0 || viewBy === "none") return null;
+    if (!filteredLedger || filteredLedger.length === 0 || viewBy === "none") return null;
     
     const groups: Record<string, LedgerEntryWithDetails[]> = {};
     
-    ledger.forEach((entry) => {
+    filteredLedger.forEach((entry) => {
       let key: string;
       if (viewBy === "type") {
         key = entry.entryType;
@@ -149,7 +171,7 @@ export default function VendorWallet() {
     });
     
     return Object.keys(groups).length > 0 ? groups : null;
-  }, [ledger, viewBy]);
+  }, [filteredLedger, viewBy]);
 
   return (
     <AppLayout>
@@ -187,7 +209,7 @@ export default function VendorWallet() {
                               placeholder="5000"
                               {...field}
                               onChange={(e) => field.onChange(Number(e.target.value))}
-                              className="h-12 rounded-xl"
+                              className="rounded-xl"
                               data-testid="input-topup-amount"
                             />
                           </FormControl>
@@ -205,7 +227,7 @@ export default function VendorWallet() {
                             <Input
                               placeholder="Reference or note"
                               {...field}
-                              className="h-12 rounded-xl"
+                              className="rounded-xl"
                               data-testid="input-topup-note"
                             />
                           </FormControl>
@@ -255,7 +277,7 @@ export default function VendorWallet() {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-1.5 rounded-lg h-8"
+                className="gap-1.5 rounded-lg"
                 onClick={() => setTopupOpen(true)}
               >
                 Top Up
@@ -303,9 +325,16 @@ export default function VendorWallet() {
         {/* Ledger */}
         <div id="section-ledger" className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-foreground">Transaction Ledger</h2>
+            <h2 className="text-sm font-semibold text-foreground">
+              Transaction Ledger
+              {filteredLedger.length !== (ledger?.length || 0) && (
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                  ({filteredLedger.length} of {ledger?.length || 0})
+                </span>
+              )}
+            </h2>
             <Select value={viewBy} onValueChange={(v) => setViewBy(v as ViewByOption)}>
-              <SelectTrigger className="w-32 h-8 rounded-lg text-xs" data-testid="select-view-by">
+              <SelectTrigger className="w-32 rounded-lg text-xs" data-testid="select-view-by">
                 <LayoutGrid className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                 <SelectValue placeholder="View by" />
               </SelectTrigger>
@@ -315,6 +344,45 @@ export default function VendorWallet() {
                 <SelectItem value="date">By Month</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search by WO number, applicant, or note..."
+                value={ledgerSearch}
+                onChange={(e) => setLedgerSearch(e.target.value)}
+                className="pl-9"
+                data-testid="input-ledger-search"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Select value={ledgerTypeFilter} onValueChange={setLedgerTypeFilter}>
+                <SelectTrigger className="w-32 rounded-lg" data-testid="select-ledger-type-filter">
+                  <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="Topup">Top-ups</SelectItem>
+                  <SelectItem value="Debit">Debits</SelectItem>
+                  <SelectItem value="Reversal">Reversals</SelectItem>
+                </SelectContent>
+              </Select>
+              {activeFilterCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1 text-xs text-muted-foreground"
+                  onClick={() => { setLedgerSearch(""); setLedgerTypeFilter("all"); }}
+                  data-testid="button-clear-ledger-filters"
+                >
+                  <X className="h-3 w-3" />
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-4">
             {ledgerLoading ? (
@@ -367,9 +435,9 @@ export default function VendorWallet() {
                   </div>
                 </div>
               ))
-            ) : ledger && ledger.length > 0 ? (
+            ) : filteredLedger && filteredLedger.length > 0 ? (
               <div className="space-y-2">
-                {ledger.map((entry, index) => (
+                {filteredLedger.map((entry, index) => (
                   <div
                     key={entry.id}
                     className="premium-card p-3 opacity-0 animate-fade-in"
@@ -405,9 +473,9 @@ export default function VendorWallet() {
               </div>
             ) : (
               <EmptyState
-                icon={<Wallet className="h-6 w-6" />}
-                title="No transactions yet"
-                description="Add a top-up to get started with the vendor wallet."
+                icon={activeFilterCount > 0 ? <Search className="h-6 w-6" /> : <Wallet className="h-6 w-6" />}
+                title={activeFilterCount > 0 ? "No matching transactions" : "No transactions yet"}
+                description={activeFilterCount > 0 ? "Try adjusting your search or filters." : "Add a top-up to get started with the vendor wallet."}
               />
             )}
           </div>
