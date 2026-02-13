@@ -76,7 +76,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         data-testid="sidebar"
       >
         <div className="flex h-full flex-col bg-card/95 backdrop-blur-xl border-r border-border/40">
-          <div className="flex h-[72px] items-center justify-between px-6">
+          <div className="flex h-[72px] items-center justify-between gap-2 px-6">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 flex items-center justify-center shadow-sm">
                 <span className="text-base font-semibold text-white">P</span>

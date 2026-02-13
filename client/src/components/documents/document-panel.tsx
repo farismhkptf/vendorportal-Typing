@@ -154,7 +154,7 @@ export function DocumentPanel({
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <FileText className="h-5 w-5" />
             {title}
@@ -215,7 +215,7 @@ export function DocumentPanel({
             {documents
               .filter((d) => !documentTypesToShow.includes(d.documentType as DocumentType))
               .map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between py-2 text-sm">
+                <div key={doc.id} className="flex items-center justify-between gap-2 py-2 text-sm">
                   <span>{doc.fileName}</span>
                   <Badge variant="secondary">{doc.documentType}</Badge>
                 </div>

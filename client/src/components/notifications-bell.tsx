@@ -119,7 +119,7 @@ export function NotificationsBell() {
           className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-card border border-border/60 rounded-xl shadow-xl z-50 opacity-0 animate-fade-in overflow-hidden"
           data-testid="panel-notifications"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
+          <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-border/40">
             <h3 className="text-sm font-semibold text-foreground" data-testid="text-notifications-title">Recent Activity</h3>
             {hasItems && (
               <span className="text-xs text-muted-foreground" data-testid="text-notifications-count">{activity.length} items</span>

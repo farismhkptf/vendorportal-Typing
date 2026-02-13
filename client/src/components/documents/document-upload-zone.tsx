@@ -97,7 +97,7 @@ export function DocumentUploadZone({
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium">
           {label}
           {isRequired && <span className="text-destructive ml-1">*</span>}
