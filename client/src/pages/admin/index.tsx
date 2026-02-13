@@ -25,7 +25,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -224,6 +225,74 @@ function ImportExportSection() {
       setGsheetImporting(false);
     }
   };
+
+  const [quickAddingCompany, setQuickAddingCompany] = useState<string | null>(null);
+  const [linkPopoverRow, setLinkPopoverRow] = useState<number | null>(null);
+  const [linkSearch, setLinkSearch] = useState('');
+
+  const { data: allCompanies } = useQuery<Company[]>({ queryKey: ["/api/companies"] });
+
+  const updateRowsForCompany = (companyName: string, companyId: string, matchedName: string) => {
+    if (!gsheetPreview) return;
+    const normalizeStr = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const normTarget = normalizeStr(companyName);
+    if (!normTarget) return;
+    const updatedRows = gsheetPreview.rows.map(row => {
+      const rowNorm = normalizeStr(row.companyName);
+      if (rowNorm === normTarget && (row.skipReason === 'Company not found' || row.companyMatch.confidence === 'none')) {
+        const canImport = !!row.woNumber && !!row.staffName;
+        return {
+          ...row,
+          companyMatch: { id: companyId, name: matchedName, confidence: 'exact' as const },
+          canImport,
+          skipReason: canImport ? undefined : (row.skipReason === 'Company not found' ? undefined : row.skipReason),
+        };
+      }
+      return row;
+    });
+    const importableCount = updatedRows.filter(r => r.canImport).length;
+    setGsheetPreview({
+      ...gsheetPreview,
+      rows: updatedRows,
+      importableCount,
+      skippedCount: updatedRows.length - importableCount,
+    });
+  };
+
+  const handleQuickAddCompany = async (companyName: string) => {
+    setQuickAddingCompany(companyName);
+    try {
+      const response = await fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: companyName }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: "Failed" }));
+        throw new Error(err.message || "Failed to create company");
+      }
+      const newCompany = await response.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      updateRowsForCompany(companyName, newCompany.id, newCompany.name);
+      toast({ title: "Company created", description: `"${newCompany.name}" added and linked to matching rows.` });
+    } catch (error: any) {
+      toast({ title: "Failed to add company", description: error.message, variant: "destructive" });
+    } finally {
+      setQuickAddingCompany(null);
+    }
+  };
+
+  const handleLinkCompany = (rowCompanyName: string, company: { id: string; name: string }) => {
+    updateRowsForCompany(rowCompanyName, company.id, company.name);
+    setLinkPopoverRow(null);
+    setLinkSearch('');
+    toast({ title: "Company linked", description: `Rows linked to "${company.name}".` });
+  };
+
+  const filteredLinkCompanies = allCompanies?.filter(c =>
+    !linkSearch || c.name.toLowerCase().includes(linkSearch.toLowerCase())
+  ) || [];
+
   const handleDownloadTemplate = async () => {
     setIsDownloading(true);
     try {
@@ -419,12 +488,12 @@ function ImportExportSection() {
               </thead>
               <tbody>
                 {gsheetPreview.rows.map((row) => (
-                  <tr key={row.rowNum} className={`border-b border-border/20 ${!row.canImport ? 'opacity-50' : ''}`} data-testid={`row-gsheet-${row.rowNum}`}>
+                  <tr key={row.rowNum} className={`border-b border-border/20 ${!row.canImport && row.skipReason !== 'Company not found' ? 'opacity-50' : ''}`} data-testid={`row-gsheet-${row.rowNum}`}>
                     <td className="py-2 px-3 text-muted-foreground text-xs">{row.rowNum}</td>
                     <td className="py-2 px-3 font-mono text-xs">{row.woNumber || '—'}</td>
                     <td className="py-2 px-3">{row.staffName || '—'}</td>
                     <td className="py-2 px-3">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span>{row.companyName || '—'}</span>
                         {row.companyMatch.confidence === 'exact' && (
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
@@ -435,6 +504,64 @@ function ImportExportSection() {
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/50 text-amber-600 dark:text-amber-400">
                             ~{row.companyMatch.name}
                           </Badge>
+                        )}
+                        {(row.skipReason === 'Company not found' || row.companyMatch.confidence === 'none') && row.companyName && (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={quickAddingCompany === row.companyName}
+                              onClick={() => handleQuickAddCompany(row.companyName)}
+                              data-testid={`button-quick-add-${row.rowNum}`}
+                            >
+                              {quickAddingCompany === row.companyName ? (
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Plus className="h-3 w-3 mr-1" />
+                              )}
+                              Add
+                            </Button>
+                            <Popover open={linkPopoverRow === row.rowNum} onOpenChange={(open) => { setLinkPopoverRow(open ? row.rowNum : null); if (!open) setLinkSearch(''); }}>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  data-testid={`button-link-${row.rowNum}`}
+                                >
+                                  <Link2 className="h-3 w-3 mr-1" />
+                                  Link
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64 p-2" align="start">
+                                <Input
+                                  placeholder="Search companies..."
+                                  value={linkSearch}
+                                  onChange={(e) => setLinkSearch(e.target.value)}
+                                  className="text-xs mb-2"
+                                  autoFocus
+                                  data-testid={`input-link-search-${row.rowNum}`}
+                                />
+                                <div className="max-h-48 overflow-y-auto space-y-0.5">
+                                  {filteredLinkCompanies.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground p-2 text-center">No companies found</p>
+                                  ) : (
+                                    filteredLinkCompanies.map(c => (
+                                      <Button
+                                        key={c.id}
+                                        variant="ghost"
+                                        size="sm"
+                                        className="w-full justify-start text-xs"
+                                        onClick={() => handleLinkCompany(row.companyName, { id: c.id, name: c.name })}
+                                        data-testid={`link-option-${c.id}`}
+                                      >
+                                        {c.name}
+                                      </Button>
+                                    ))
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          </div>
                         )}
                       </div>
                     </td>
