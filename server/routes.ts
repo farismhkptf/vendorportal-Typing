@@ -1944,6 +1944,50 @@ export async function registerRoutes(
   });
 
   // ========== Authentication ==========
+  app.get("/api/auth/accounts", async (_req, res) => {
+    try {
+      const allUsers = await storage.getUsers();
+      const accounts = allUsers
+        .filter(u => u.active)
+        .map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role }));
+      res.json(accounts);
+    } catch (error) {
+      console.error("Fetch accounts error:", error);
+      res.status(500).json({ message: "Failed to fetch accounts" });
+    }
+  });
+
+  app.post("/api/auth/quick-login", async (req, res) => {
+    try {
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
+      }
+      const user = await storage.getUser(userId);
+      if (!user || !user.active) {
+        return res.status(401).json({ message: "Account not found or inactive" });
+      }
+      const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
+      if (vendorRoles.includes(user.role)) {
+        return res.status(403).json({ message: "Please use the vendor portal" });
+      }
+      req.session.userId = user.id;
+      req.session.userRole = user.role;
+      req.session.userName = user.name;
+      req.session.staffId = user.staffId || null;
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        staffId: user.staffId,
+      });
+    } catch (error) {
+      console.error("Quick login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const validation = validateBody(loginSchema, req.body);
