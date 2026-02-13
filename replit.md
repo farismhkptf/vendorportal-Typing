@@ -65,6 +65,7 @@ None currently.
 
 ## Recent Changes
 
+- **Google Sheet Import** (Feb 2026): Import work orders from a Google Sheet URL. Paste a public Google Sheet link in Admin Console Import/Export tab, system fetches CSV, auto-detects columns (Work Order, Company Name, Staff Name, Work/service type), fuzzy-matches service types and companies against existing records, shows preview table with match status (exact/fuzzy/none), then imports matched rows as Draft work orders. Server-side validation enforces WO uniqueness, company existence, and service type validity. Endpoints: POST /api/admin/preview-gsheet, POST /api/admin/import-gsheet. BOM-safe CSV parsing.
 - **Excel Import/Export** (Feb 2026): Added "Import / Export" tab to Admin Console. Download a pre-formatted .xlsx template with 5 sheets (Centers, Companies, Staff, Service Types, Job Types) with example rows, fill it in, and upload to bulk-import. Uses `xlsx` library for generation/parsing and `multer` for file upload. Endpoints: GET /api/admin/template, POST /api/admin/import. Results show per-sheet success/failure counts with error details.
 - **Preferred Center Prompt** (Feb 2026): Enhanced Medical & EID appointment scheduling dialogs. When selecting a different center than the company's preferred, offers three options: Go Back, Continue Without Changing, or Set as Default & Continue (updates company profile via PUT /api/companies/:id).
 

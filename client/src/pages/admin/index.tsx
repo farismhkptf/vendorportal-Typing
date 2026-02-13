@@ -128,11 +128,102 @@ type ImportResponse = {
   totalFailed: number;
 };
 
+type GSheetPreviewRow = {
+  rowNum: number;
+  woNumber: string;
+  companyName: string;
+  staffName: string;
+  workValue: string;
+  date: string;
+  designation: string;
+  serviceTypeMatch: { id: string; name: string; confidence: 'exact' | 'fuzzy' | 'none' };
+  companyMatch: { id: string; name: string; confidence: 'exact' | 'fuzzy' | 'none' };
+  canImport: boolean;
+  skipReason?: string;
+};
+
+type GSheetPreview = {
+  totalRows: number;
+  importableCount: number;
+  skippedCount: number;
+  headers: string[];
+  rows: GSheetPreviewRow[];
+};
+
 function ImportExportSection() {
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importResults, setImportResults] = useState<ImportResponse | null>(null);
+  const [gsheetUrl, setGsheetUrl] = useState('');
+  const [gsheetLoading, setGsheetLoading] = useState(false);
+  const [gsheetPreview, setGsheetPreview] = useState<GSheetPreview | null>(null);
+  const [gsheetImporting, setGsheetImporting] = useState(false);
+  const [gsheetResults, setGsheetResults] = useState<{ imported: number; failed: number; errors: string[] } | null>(null);
+
+  const handleGsheetPreview = async () => {
+    if (!gsheetUrl.trim()) {
+      toast({ title: "URL required", description: "Please paste a Google Sheet URL.", variant: "destructive" });
+      return;
+    }
+    setGsheetLoading(true);
+    setGsheetPreview(null);
+    setGsheetResults(null);
+    try {
+      const response = await fetch("/api/admin/preview-gsheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: gsheetUrl.trim() }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: "Preview failed" }));
+        throw new Error(err.message || "Preview failed");
+      }
+      const data: GSheetPreview = await response.json();
+      setGsheetPreview(data);
+      if (data.totalRows === 0) {
+        toast({ title: "No data found", description: "The sheet has no data rows to import." });
+      }
+    } catch (error: any) {
+      toast({ title: "Preview failed", description: error.message || "Could not preview the Google Sheet.", variant: "destructive" });
+    } finally {
+      setGsheetLoading(false);
+    }
+  };
+
+  const handleGsheetImport = async () => {
+    if (!gsheetPreview) return;
+    const importableRows = gsheetPreview.rows.filter(r => r.canImport);
+    if (importableRows.length === 0) {
+      toast({ title: "Nothing to import", description: "No rows are ready for import.", variant: "destructive" });
+      return;
+    }
+    setGsheetImporting(true);
+    try {
+      const response = await fetch("/api/admin/import-gsheet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: importableRows }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: "Import failed" }));
+        throw new Error(err.message || "Import failed");
+      }
+      const data = await response.json();
+      setGsheetResults(data);
+      if (data.imported > 0) {
+        queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+        toast({ title: "Import successful", description: `${data.imported} work orders created.` });
+      }
+      if (data.failed > 0) {
+        toast({ title: data.imported > 0 ? "Partial import" : "Import failed", description: `${data.failed} rows failed.`, variant: "destructive" });
+      }
+    } catch (error: any) {
+      toast({ title: "Import error", description: error.message || "Something went wrong.", variant: "destructive" });
+    } finally {
+      setGsheetImporting(false);
+    }
+  };
   const handleDownloadTemplate = async () => {
     setIsDownloading(true);
     try {
@@ -262,6 +353,167 @@ function ImportExportSection() {
           </div>
         </div>
       </div>
+
+      <div className="p-6 rounded-xl bg-muted/30 border border-border/30 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 rounded-lg bg-green-500/10">
+            <FileSpreadsheet className="h-5 w-5 text-green-600 dark:text-green-400" />
+          </div>
+          <div>
+            <h3 className="font-medium text-foreground" data-testid="text-gsheet-title">Import from Google Sheet</h3>
+            <p className="text-sm text-muted-foreground">Paste a Google Sheet URL to import work orders. The sheet must be shared publicly.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Input
+            placeholder="https://docs.google.com/spreadsheets/d/..."
+            value={gsheetUrl}
+            onChange={(e) => setGsheetUrl(e.target.value)}
+            className="flex-1"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleGsheetPreview(); }}
+            data-testid="input-gsheet-url"
+          />
+          <Button onClick={handleGsheetPreview} disabled={gsheetLoading || !gsheetUrl.trim()} data-testid="button-gsheet-preview">
+            {gsheetLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
+            {gsheetLoading ? "Loading..." : "Preview"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Expected columns: Work Order, Company Name, Staff Name, Work (service type). The system will match the "Work" column against your existing service types.
+        </p>
+      </div>
+
+      {gsheetPreview && (
+        <div className="p-6 rounded-xl bg-muted/30 border border-border/30 space-y-4">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div className="flex items-center gap-3">
+              <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
+              <h3 className="font-medium text-foreground" data-testid="text-gsheet-preview-title">Sheet Preview</h3>
+            </div>
+            <div className="flex items-center gap-4 text-sm flex-wrap">
+              <span className="text-muted-foreground">{gsheetPreview.totalRows} rows found</span>
+              <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                <CheckCircle2 className="h-4 w-4" />
+                {gsheetPreview.importableCount} ready
+              </span>
+              {gsheetPreview.skippedCount > 0 && (
+                <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="h-4 w-4" />
+                  {gsheetPreview.skippedCount} skipped
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="overflow-x-auto -mx-2 px-2">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/40">
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium text-xs">Row</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium text-xs">WO Number</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium text-xs">Applicant</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium text-xs">Company</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium text-xs">Service Type</th>
+                  <th className="text-left py-2 px-3 text-muted-foreground font-medium text-xs">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gsheetPreview.rows.map((row) => (
+                  <tr key={row.rowNum} className={`border-b border-border/20 ${!row.canImport ? 'opacity-50' : ''}`} data-testid={`row-gsheet-${row.rowNum}`}>
+                    <td className="py-2 px-3 text-muted-foreground text-xs">{row.rowNum}</td>
+                    <td className="py-2 px-3 font-mono text-xs">{row.woNumber || '—'}</td>
+                    <td className="py-2 px-3">{row.staffName || '—'}</td>
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-1.5">
+                        <span>{row.companyName || '—'}</span>
+                        {row.companyMatch.confidence === 'exact' && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {row.companyMatch.name}
+                          </Badge>
+                        )}
+                        {row.companyMatch.confidence === 'fuzzy' && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/50 text-amber-600 dark:text-amber-400">
+                            ~{row.companyMatch.name}
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-2 px-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">{row.workValue || '—'}</span>
+                        {row.serviceTypeMatch.confidence === 'exact' && (
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {row.serviceTypeMatch.name}
+                          </Badge>
+                        )}
+                        {row.serviceTypeMatch.confidence === 'fuzzy' && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/50 text-amber-600 dark:text-amber-400">
+                            ~{row.serviceTypeMatch.name}
+                          </Badge>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-2 px-3">
+                      {row.canImport ? (
+                        <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Ready
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
+                          <AlertCircle className="h-3.5 w-3.5" />
+                          {row.skipReason}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {gsheetPreview.importableCount > 0 && !gsheetResults && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-sm text-muted-foreground">
+                {gsheetPreview.importableCount} work orders will be created as Draft.
+              </p>
+              <Button onClick={handleGsheetImport} disabled={gsheetImporting} data-testid="button-gsheet-import">
+                {gsheetImporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                {gsheetImporting ? "Importing..." : `Import ${gsheetPreview.importableCount} Work Orders`}
+              </Button>
+            </div>
+          )}
+
+          {gsheetResults && (
+            <div className="p-4 rounded-lg border border-border/30 bg-background/50 space-y-2">
+              <div className="flex items-center gap-4 text-sm flex-wrap">
+                {gsheetResults.imported > 0 && (
+                  <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    {gsheetResults.imported} imported
+                  </span>
+                )}
+                {gsheetResults.failed > 0 && (
+                  <span className="flex items-center gap-1.5 text-red-600 dark:text-red-400">
+                    <XCircle className="h-4 w-4" />
+                    {gsheetResults.failed} failed
+                  </span>
+                )}
+              </div>
+              {gsheetResults.errors.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {gsheetResults.errors.map((err, i) => (
+                    <div key={i} className="flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
+                      <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                      <span>{err}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {importResults && (
         <div className="p-6 rounded-xl bg-muted/30 border border-border/30 space-y-4">
