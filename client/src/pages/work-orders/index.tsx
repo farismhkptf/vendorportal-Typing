@@ -94,6 +94,24 @@ function getEidStatus(wo: WorkOrderEnriched): { typing: string | null; appointme
   return { typing, appointment, hasEid };
 }
 
+function getScheduledDisplayStatus(wo: WorkOrderEnriched): string {
+  if (wo.status !== "Scheduled") return wo.status;
+  const med = getMedicalStatus(wo);
+  const eid = getEidStatus(wo);
+  const medScheduled = med.hasMedical && (med.appointment === "Scheduled" || med.appointment === "Completed");
+  const eidScheduled = eid.hasEid && (eid.appointment === "Scheduled" || eid.appointment === "Completed");
+  if (medScheduled && eidScheduled) return "BothScheduled";
+  if (medScheduled) return "MedScheduled";
+  if (eidScheduled) return "EIDScheduled";
+  const st = wo.serviceType;
+  const hasMedService = st && (st.requiresMedicalTyping || st.requiresMedicalScheduling);
+  const hasEidService = st && (st.requiresIdTyping2Years || st.requiresIdTyping1Year || st.requiresIdTyping10Years || st.requiresIdBiometrics);
+  if (hasMedService && hasEidService) return "BothScheduled";
+  if (hasMedService) return "MedScheduled";
+  if (hasEidService) return "EIDScheduled";
+  return "Scheduled";
+}
+
 function needsAttention(wo: WorkOrderEnriched): boolean {
   if (wo.status === "Completed" || wo.status === "Cancelled") return false;
   const med = getMedicalStatus(wo);
@@ -540,7 +558,7 @@ export default function WorkOrdersList() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono font-semibold text-sm text-foreground">{wo.woNumber}</span>
-                  <StatusBadge status={wo.status} />
+                  <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
                   {wo.isVip && (
                     <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 rounded-full px-1.5 py-0 text-[10px]">
                       <Star className="h-2.5 w-2.5 mr-0.5 fill-current" />
@@ -658,7 +676,7 @@ export default function WorkOrdersList() {
                       <AppointmentStatusPill status={eid.appointment} />
                     </div>
                   )}
-                  <StatusBadge status={wo.status} />
+                  <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
                 </div>
               </div>
             </Link>
@@ -732,7 +750,7 @@ export default function WorkOrdersList() {
                   {wo.serviceType?.name || "-"}
                 </TableCell>}
                 {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  <StatusBadge status={wo.status} />
+                  <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
                 </TableCell>}
                 {cv("medical") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {med.hasMedical ? (

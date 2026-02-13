@@ -6,7 +6,8 @@ type StatusType =
   | "SentToVendor" | "InProgress" | "WaitingForDocs" | "Returned"
   | "SentToClient" | "VendorMistake"
   | "New" | "Accepted" | "Closed"
-  | "Medical" | "EID";
+  | "Medical" | "EID"
+  | "MedScheduled" | "EIDScheduled" | "BothScheduled";
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -31,6 +32,9 @@ const statusStyles: Record<StatusType, string> = {
   Closed: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
   Medical: "bg-rose-50 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300",
   EID: "bg-cyan-50 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-300",
+  MedScheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
+  EIDScheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
+  BothScheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
 };
 
 const statusLabels: Record<StatusType, string> = {
@@ -51,6 +55,9 @@ const statusLabels: Record<StatusType, string> = {
   Closed: "Closed",
   Medical: "Medical",
   EID: "Emirates ID",
+  MedScheduled: "Med Scheduled",
+  EIDScheduled: "EID Scheduled",
+  BothScheduled: "Med+EID Scheduled",
 };
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
