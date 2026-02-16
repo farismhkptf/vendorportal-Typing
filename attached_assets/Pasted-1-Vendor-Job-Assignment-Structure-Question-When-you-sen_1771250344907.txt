@@ -1,0 +1,86 @@
+1️⃣ Vendor Job Assignment — Structure
+Question:
+When you send typing work to vendors, do you want Medical Typing and Emirates ID Typing from the same Work Order to be sent together or separately?
+Your Reply:
+
+Both options allowed depending on case
+
+
+2️⃣ Document Resubmission Notification — Vendor Alerts
+Question:
+When a vendor rejects documents and your team uploads corrected documents, should the vendor receive an automatic notification?
+Your Reply:
+
+Yes. Vendor can check and accept it or ask for Resubmission again. Either way, notification should always be there come on
+
+
+3️⃣ Typing Job Pricing — Wallet Deduction Logic
+Question:
+How should vendor pricing work?
+Your Reply:
+
+Fixed price as per 'vendor jobs'. Price already updated in system
+
+
+4️⃣ Vendor Portal Branding
+Question:
+How should the vendor portal appear?
+Your Reply:
+
+Same app design and branding (The P.R.O. Company visible)
+
+
+5️⃣ Work Order Details Visible to Vendor
+Question:
+How much information should the vendor see from the Work Order?
+Your Reply:
+
+Full work order visibility
+
+
+6️⃣ Golden Visa Handling
+Question:
+How should Golden Visa be treated in the system?
+Your Reply:
+
+Already it's a separate service type
+
+
+7️⃣ Emirates ID Delivery Address Source
+Question:
+Where should the delivery address come from?
+Your Reply:
+
+Pulled from company profile by default
+
+
+8️⃣ SOA Auto-Generation Format
+Question:
+What format should the system generate for Statement of Account (SOA)?
+Your Reply:
+
+Both PDF and Excel
+
+
+9️⃣ Vendor Seeing Our SOA vs Their SOA
+Question:
+Should vendors upload their SOA and also view our system SOA?
+Your Reply:
+
+Yes, both (for reconciliation)
+
+
+🔟 Multiple Typing Jobs per Work Order
+Question:
+Can one Work Order contain multiple typing jobs of the same type?
+Your Reply:
+
+A work order can have request for medical alone, id application alone, both medical and ID application.
+
+
+This version is now fully aligned with your instruction.
+Next logical artifact to define (critical for build stability):
+
+Vendor Job Status Flow (Pending → Accepted → Rejected → Completed etc.)
+
+That decision controls 40% of the module behavior.
