@@ -2,7 +2,7 @@ import {
   users, staff, centers, companies, companyEmails, serviceTypes, 
   workOrders, appointments, rescheduleRequests, jobTypes, vendors,
   typingJobs, typingJobResults, typingJobComments, files, messages, woNotes,
-  vendorWalletLedger, vendorStatements, vendorInvoices, appSettings, auditLog,
+  vendorWalletLedger, vendorStatements, vendorInvoices, vendorApprovals, vendorNotifications, appSettings, auditLog,
   woDocuments, documentRequirements, changeNotifications,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
@@ -15,7 +15,9 @@ import {
   type AuditLog, type InsertAuditLog, type InsertFile, type File,
   type WoDocument, type InsertWoDocument, type DocumentRequirement, type InsertDocumentRequirement,
   type WoNote, type InsertWoNote,
-  type ChangeNotification, type InsertChangeNotification
+  type ChangeNotification, type InsertChangeNotification,
+  type VendorApproval, type InsertVendorApproval,
+  type VendorNotification, type InsertVendorNotification
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
@@ -110,6 +112,7 @@ export interface IStorage {
   
   // Typing Job Results
   getTypingJobResult(typingJobId: string): Promise<TypingJobResult | undefined>;
+  getTypingJobResults(typingJobId: string): Promise<TypingJobResult | undefined>;
   createTypingJobResult(data: InsertTypingJobResult): Promise<TypingJobResult>;
   updateTypingJobResult(typingJobId: string, data: Partial<InsertTypingJobResult>): Promise<TypingJobResult | undefined>;
   
@@ -165,6 +168,20 @@ export interface IStorage {
   // Auto-fill helpers
   getLastWorkOrderByCompany(companyId: string): Promise<WorkOrder | undefined>;
   
+  // Vendor Approvals
+  createVendorApproval(data: InsertVendorApproval): Promise<VendorApproval>;
+  getVendorApprovalById(id: string): Promise<VendorApproval | undefined>;
+  getVendorApprovalByJobId(typingJobId: string): Promise<VendorApproval | undefined>;
+  getPendingVendorApprovals(): Promise<VendorApproval[]>;
+  updateVendorApproval(id: string, data: Partial<VendorApproval>): Promise<VendorApproval>;
+  
+  // Vendor Notifications
+  createVendorNotification(data: InsertVendorNotification): Promise<VendorNotification>;
+  getVendorNotifications(vendorUserId: string, limit?: number): Promise<VendorNotification[]>;
+  getUnreadNotificationCount(vendorUserId: string): Promise<number>;
+  markNotificationRead(id: string): Promise<void>;
+  markAllNotificationsRead(vendorUserId: string): Promise<void>;
+
   // Seed data
   seedData(): Promise<void>;
   
@@ -600,6 +617,11 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getTypingJobResults(typingJobId: string): Promise<TypingJobResult | undefined> {
+    const [result] = await db.select().from(typingJobResults).where(eq(typingJobResults.typingJobId, typingJobId));
+    return result;
+  }
+
   async createTypingJobResult(data: InsertTypingJobResult): Promise<TypingJobResult> {
     const [result] = await db.insert(typingJobResults).values(data).returning();
     return result;
@@ -701,6 +723,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Seed data (only in development) - minimal bootstrap only
+  async createVendorApproval(data: InsertVendorApproval): Promise<VendorApproval> {
+    const [result] = await db.insert(vendorApprovals).values(data).returning();
+    return result;
+  }
+
+  async getVendorApprovalById(id: string): Promise<VendorApproval | undefined> {
+    const [result] = await db.select().from(vendorApprovals).where(eq(vendorApprovals.id, id));
+    return result;
+  }
+
+  async getVendorApprovalByJobId(typingJobId: string): Promise<VendorApproval | undefined> {
+    const [result] = await db.select().from(vendorApprovals).where(eq(vendorApprovals.typingJobId, typingJobId));
+    return result;
+  }
+
+  async getPendingVendorApprovals(): Promise<VendorApproval[]> {
+    return db.select().from(vendorApprovals).where(eq(vendorApprovals.status, "Pending")).orderBy(vendorApprovals.createdAt);
+  }
+
+  async updateVendorApproval(id: string, data: Partial<VendorApproval>): Promise<VendorApproval> {
+    const [result] = await db.update(vendorApprovals).set(data).where(eq(vendorApprovals.id, id)).returning();
+    return result;
+  }
+
   async seedData(): Promise<void> {
     // Only seed in development
     if (process.env.NODE_ENV === 'production') return;
@@ -1313,6 +1359,39 @@ export class DatabaseStorage implements IStorage {
   async createDocumentRequirement(data: InsertDocumentRequirement): Promise<DocumentRequirement> {
     const [req] = await db.insert(documentRequirements).values(data).returning();
     return req;
+  }
+
+  // Vendor Notifications
+  async createVendorNotification(data: InsertVendorNotification): Promise<VendorNotification> {
+    const [result] = await db.insert(vendorNotifications).values(data).returning();
+    return result;
+  }
+
+  async getVendorNotifications(vendorUserId: string, limit = 50): Promise<VendorNotification[]> {
+    return db.select().from(vendorNotifications)
+      .where(eq(vendorNotifications.vendorUserId, vendorUserId))
+      .orderBy(desc(vendorNotifications.createdAt))
+      .limit(limit);
+  }
+
+  async getUnreadNotificationCount(vendorUserId: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(vendorNotifications)
+      .where(and(
+        eq(vendorNotifications.vendorUserId, vendorUserId),
+        eq(vendorNotifications.isRead, false)
+      ));
+    return result[0]?.count || 0;
+  }
+
+  async markNotificationRead(id: string): Promise<void> {
+    await db.update(vendorNotifications).set({ isRead: true }).where(eq(vendorNotifications.id, id));
+  }
+
+  async markAllNotificationsRead(vendorUserId: string): Promise<void> {
+    await db.update(vendorNotifications)
+      .set({ isRead: true })
+      .where(eq(vendorNotifications.vendorUserId, vendorUserId));
   }
 
   async seedDocumentRequirements(): Promise<{ added: number; skipped: number }> {

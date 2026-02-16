@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -37,11 +38,12 @@ export default function VendorLogin() {
       return apiRequest("POST", "/api/vendor/auth/login", data);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/auth/me"] });
       toast({
         title: "Welcome!",
         description: "You have successfully logged in.",
       });
-      setLocation("/vendor/jobs");
+      setLocation("/vendor/dashboard");
     },
     onError: (error: Error) => {
       toast({

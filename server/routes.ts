@@ -10,7 +10,7 @@ import {
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
   insertCenterSchema, insertServiceTypeSchema, insertJobTypeSchema, loginSchema,
   insertAppointmentSchema, insertTypingJobSchema, insertWoNoteSchema,
-  type CenterTimings
+  type CenterTimings, type InsertVendorNotification
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -91,6 +91,13 @@ function requireAuth(req: any, res: any, next: any) {
   next();
 }
 
+function requireVendorAuth(req: any, res: any, next: any) {
+  if (!req.session?.vendorUserId) {
+    return res.status(401).json({ message: "Vendor authentication required" });
+  }
+  next();
+}
+
 function requireRole(...roles: string[]) {
   return async (req: any, res: any, next: any) => {
     if (!req.session?.userId) {
@@ -114,6 +121,22 @@ export async function registerRoutes(
   
   // Seed database on startup
   await storage.seedData();
+
+  async function notifyVendorUsers(vendorId: string, notification: Omit<InsertVendorNotification, 'vendorUserId' | 'vendorId'>) {
+    try {
+      const allUsers = await storage.getUsers();
+      const vendorUsers = allUsers.filter(u => u.vendorId === vendorId && u.active);
+      for (const user of vendorUsers) {
+        await storage.createVendorNotification({
+          ...notification,
+          vendorUserId: user.id,
+          vendorId: vendorId,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to create notification:", error);
+    }
+  }
 
   // ========== Dashboard ==========
   app.get("/api/dashboard/stats", async (req, res) => {
@@ -1503,6 +1526,14 @@ export async function registerRoutes(
             details: { vendorId, cost, bulkAction: true },
           });
 
+          await notifyVendorUsers(vendorId, {
+            type: "new_job",
+            title: "New Job Assigned",
+            message: `New typing job ${job.jobCode || ''} has been assigned to you.`,
+            relatedJobId: id,
+            isRead: false,
+          });
+
           updated++;
         } catch (err: any) {
           failed++;
@@ -1533,6 +1564,7 @@ export async function registerRoutes(
       const result = await storage.getTypingJobResult(id);
       const comments = await storage.getTypingJobComments(id);
       const jobFiles = await storage.getFilesByRelated("TypingJob", id);
+      const approval = await storage.getVendorApprovalByJobId(id);
       
       res.json({ 
         ...job, 
@@ -1541,11 +1573,72 @@ export async function registerRoutes(
         vendor,
         result,
         comments,
-        files: jobFiles
+        files: jobFiles,
+        approval,
       });
     } catch (error) {
       console.error("Typing job detail error:", error);
       res.status(500).json({ message: "Failed to fetch typing job" });
+    }
+  });
+
+  app.post("/api/typing-jobs/:id/reassign", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { vendorId } = req.body;
+      
+      if (!vendorId) {
+        return res.status(400).json({ message: "Vendor ID is required" });
+      }
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      
+      if (job.status !== "Cancelled" && job.status !== "VendorMistake") {
+        return res.status(400).json({ message: "Can only re-assign cancelled or returned jobs" });
+      }
+      
+      const updated = await storage.updateTypingJob(id, {
+        vendorId,
+        status: "SentToVendor",
+        sentAt: new Date(),
+        returnedAt: null,
+        vendorMistakeAt: null,
+        vendorMistakeReason: null,
+      });
+      
+      try {
+        const allUsers = await storage.getUsers();
+        const vendorUsers = allUsers.filter(u => u.vendorId === vendorId && u.active);
+        for (const user of vendorUsers) {
+          await storage.createVendorNotification({
+            vendorUserId: user.id,
+            vendorId: vendorId,
+            type: "new_job",
+            title: "New Job Assigned",
+            message: `Job ${job.jobCode || ''} has been reassigned to you.`,
+            relatedJobId: id,
+            isRead: false,
+          });
+        }
+      } catch (e) {
+        console.error("Failed to notify vendor:", e);
+      }
+      
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "reassigned",
+        userId: req.session?.userId,
+        details: { vendorId, previousStatus: job.status },
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Reassign error:", error);
+      res.status(500).json({ message: "Failed to reassign job" });
     }
   });
 
@@ -1594,6 +1687,19 @@ export async function registerRoutes(
           message: req.body.message?.substring(0, 100) 
         },
       });
+
+      if ((req.body.authorType || "Internal") === "Internal") {
+        const relatedJob = await storage.getTypingJobById(id);
+        if (relatedJob?.vendorId) {
+          await notifyVendorUsers(relatedJob.vendorId, {
+            type: "new_comment",
+            title: "New Comment",
+            message: `New message on job ${relatedJob.jobCode || ''}`,
+            relatedJobId: id,
+            isRead: false,
+          });
+        }
+      }
       
       res.status(201).json(comment);
     } catch (error) {
@@ -1663,6 +1769,14 @@ export async function registerRoutes(
         entityId: id,
         action: "submitted_to_vendor",
         details: { vendorId, vendorName: vendor.name, cost },
+      });
+
+      await notifyVendorUsers(vendorId, {
+        type: "new_job",
+        title: "New Job Assigned",
+        message: `New typing job ${job.jobCode || ''} has been assigned to you.`,
+        relatedJobId: id,
+        isRead: false,
       });
       
       res.json(updatedJob);
@@ -2478,13 +2592,25 @@ export async function registerRoutes(
       const user = await storage.getUserByEmail(username);
       
       const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
-      if (!user || user.passwordHash !== password || !vendorRoles.includes(user.role)) {
+      if (!user || !vendorRoles.includes(user.role)) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      const validPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!validPassword) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      req.session.vendorUserId = user.id;
+      req.session.vendorId = user.vendorId;
+      req.session.userRole = user.role;
+      req.session.userName = user.name;
 
       res.json({ 
         id: user.id, 
         name: user.name, 
+        email: user.email,
+        role: user.role,
         vendorId: user.vendorId 
       });
     } catch (error) {
@@ -2493,14 +2619,179 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendor/jobs", async (req, res) => {
+  app.get("/api/vendor/auth/me", async (req, res) => {
     try {
-      const vendors = await storage.getVendors();
-      if (vendors.length === 0) {
+      if (!req.session?.vendorUserId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const user = await storage.getUser(req.session.vendorUserId);
+      if (!user) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        vendorId: user.vendorId,
+      });
+    } catch (error) {
+      console.error("Vendor auth me error:", error);
+      res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  app.post("/api/vendor/auth/logout", async (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.json({ message: "Logged out" });
+    });
+  });
+
+  // ========== Vendor Notifications ==========
+  app.get("/api/vendor/notifications", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorUserId = req.session.vendorUserId;
+      if (!vendorUserId) return res.json([]);
+      const notifications = await storage.getVendorNotifications(vendorUserId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Get notifications error:", error);
+      res.status(500).json({ message: "Failed to get notifications" });
+    }
+  });
+
+  app.get("/api/vendor/notifications/unread-count", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorUserId = req.session.vendorUserId;
+      if (!vendorUserId) return res.json({ count: 0 });
+      const count = await storage.getUnreadNotificationCount(vendorUserId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Unread count error:", error);
+      res.status(500).json({ message: "Failed to get count" });
+    }
+  });
+
+  app.put("/api/vendor/notifications/read-all", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorUserId = req.session.vendorUserId;
+      if (!vendorUserId) return res.json({ message: "Done" });
+      await storage.markAllNotificationsRead(vendorUserId);
+      res.json({ message: "All marked as read" });
+    } catch (error) {
+      console.error("Mark all read error:", error);
+      res.status(500).json({ message: "Failed to mark all as read" });
+    }
+  });
+
+  app.put("/api/vendor/notifications/:id/read", requireVendorAuth, async (req, res) => {
+    try {
+      await storage.markNotificationRead(req.params.id);
+      res.json({ message: "Marked as read" });
+    } catch (error) {
+      console.error("Mark read error:", error);
+      res.status(500).json({ message: "Failed to mark as read" });
+    }
+  });
+
+  app.get("/api/vendor/wallet/balance", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorId = req.session.vendorId;
+      if (!vendorId) return res.json({ balance: 0 });
+      const balance = await storage.getWalletBalance(vendorId);
+      res.json({ balance });
+    } catch (error) {
+      console.error("Vendor wallet balance error:", error);
+      res.status(500).json({ message: "Failed to get balance" });
+    }
+  });
+
+  app.get("/api/vendor/wallet/transactions", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorId = req.session.vendorId;
+      if (!vendorId) return res.json([]);
+      const ledger = await storage.getWalletLedger(vendorId);
+
+      const enriched = await Promise.all(ledger.map(async (entry) => {
+        let jobInfo = null;
+        if (entry.typingJobId) {
+          const job = await storage.getTypingJobById(entry.typingJobId);
+          if (job) {
+            const wo = await storage.getWorkOrderById(job.woId);
+            jobInfo = {
+              jobCode: job.jobCode,
+              woNumber: wo?.woNumber,
+              applicantName: wo?.applicantName,
+            };
+          }
+        }
+        return { ...entry, jobInfo };
+      }));
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Vendor wallet transactions error:", error);
+      res.status(500).json({ message: "Failed to get transactions" });
+    }
+  });
+
+  app.get("/api/vendor/dashboard", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorId = req.session.vendorId;
+      if (!vendorId) {
+        return res.json({ stats: { total: 0, pending: 0, inProgress: 0, completed: 0, urgent: 0, todayPending: 0 }, recentJobs: [] });
+      }
+      
+      const jobs = await storage.getTypingJobsByVendorId(vendorId);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const stats = {
+        total: jobs.length,
+        pending: jobs.filter(j => j.status === "SentToVendor").length,
+        inProgress: jobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
+        completed: jobs.filter(j => j.status === "Returned" || j.status === "SentToClient").length,
+        urgent: jobs.filter(j => (j as any).urgent).length,
+        todayPending: jobs.filter(j => j.status === "SentToVendor" && j.sentAt && new Date(j.sentAt) >= today).length,
+      };
+      
+      const recentJobsRaw = [...jobs]
+        .sort((a, b) => {
+          if ((a as any).urgent && !(b as any).urgent) return -1;
+          if (!(a as any).urgent && (b as any).urgent) return 1;
+          const aDate = a.sentAt ? new Date(a.sentAt).getTime() : 0;
+          const bDate = b.sentAt ? new Date(b.sentAt).getTime() : 0;
+          return bDate - aDate;
+        })
+        .slice(0, 10);
+      
+      const recentJobs = await Promise.all(
+        recentJobsRaw.map(async (job) => {
+          const wo = await storage.getWorkOrderById(job.woId);
+          const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+          return { ...job, workOrder: wo, jobType };
+        })
+      );
+      
+      res.json({ stats, recentJobs });
+    } catch (error) {
+      console.error("Vendor dashboard error:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard" });
+    }
+  });
+
+  app.get("/api/vendor/jobs", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorId = req.session.vendorId;
+      if (!vendorId) {
         return res.json([]);
       }
 
-      const jobs = await storage.getTypingJobsByVendorId(vendors[0].id);
+      const jobs = await storage.getTypingJobsByVendorId(vendorId);
       
       const result = await Promise.all(
         jobs.map(async (job) => {
@@ -2526,7 +2817,7 @@ export async function registerRoutes(
   });
 
   // Get single vendor job with full details
-  app.get("/api/vendor/jobs/:id", async (req, res) => {
+  app.get("/api/vendor/jobs/:id", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
@@ -2535,10 +2826,41 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Job not found" });
       }
 
+      const vendorId = req.session.vendorId;
+      if (job.vendorId !== vendorId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
       const wo = await storage.getWorkOrderById(job.woId);
       const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
       const files = await storage.getFilesByRelated("TypingJob", job.id);
       const comments = await storage.getTypingJobComments(job.id);
+      
+      const results = await storage.getTypingJobResults(job.id);
+
+      let company = null;
+      let serviceType = null;
+      let documentRequirements: any[] = [];
+      let woDocuments: any[] = [];
+      
+      if (wo) {
+        company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
+        serviceType = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId) : null;
+        woDocuments = await storage.getWoDocuments(wo.id);
+        
+        if (serviceType?.category) {
+          documentRequirements = await storage.getDocumentRequirementsByCategory(serviceType.category);
+          if (jobType?.category) {
+            documentRequirements = documentRequirements.filter(req => {
+              if (jobType.category === "Medical") return req.appliesToMedical;
+              if (jobType.category === "EID") return req.appliesToEid;
+              return true;
+            });
+          }
+        }
+      }
+
+      const approval = await storage.getVendorApprovalByJobId(jobId);
 
       res.json({
         ...job,
@@ -2546,7 +2868,12 @@ export async function registerRoutes(
         jobType,
         files,
         comments,
-        instructions: (job as any).vendorNotes || null,
+        results,
+        approval,
+        company: company ? { id: company.id, name: company.name, deliveryAddress: company.deliveryAddress } : null,
+        serviceType: serviceType ? { id: serviceType.id, name: serviceType.name, category: serviceType.category } : null,
+        documentRequirements,
+        woDocuments,
       });
     } catch (error) {
       console.error("Vendor job detail error:", error);
@@ -2560,7 +2887,7 @@ export async function registerRoutes(
     objectPath: z.string().min(1),
   });
 
-  app.post("/api/vendor/jobs/:id/files", async (req, res) => {
+  app.post("/api/vendor/jobs/:id/files", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
       const validation = validateBody(vendorFileSchema, req.body);
@@ -2597,7 +2924,7 @@ export async function registerRoutes(
     message: z.string().min(1).max(2000),
   });
 
-  app.post("/api/vendor/jobs/:id/comments", async (req, res) => {
+  app.post("/api/vendor/jobs/:id/comments", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
       const validation = validateBody(vendorCommentSchema, req.body);
@@ -2626,41 +2953,198 @@ export async function registerRoutes(
     }
   });
 
-  // Vendor update job status
-  const vendorStatusSchema = z.object({
-    status: z.enum(["InProgress", "WaitingForDocs", "Returned"]),
-  });
-
-  app.put("/api/vendor/jobs/:id/status", async (req, res) => {
+  // Vendor accept job (SentToVendor or WaitingForDocs → InProgress)
+  app.post("/api/vendor/jobs/:id/accept", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
-      const validation = validateBody(vendorStatusSchema, req.body);
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== req.session.vendorId) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      if (job.status !== "SentToVendor" && job.status !== "WaitingForDocs") {
+        return res.status(400).json({ message: "Cannot accept job in current status" });
+      }
+      const updated = await storage.updateTypingJob(jobId, { status: "InProgress" });
+      await storage.createAuditLog({
+        entityType: "typing_job", entityId: jobId,
+        action: "vendor_accepted", details: { vendorUserId: req.session.vendorUserId },
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error("Vendor accept error:", error);
+      res.status(500).json({ message: "Failed to accept job" });
+    }
+  });
+
+  // Vendor request doc resubmission (InProgress or SentToVendor → WaitingForDocs)
+  const resubmissionSchema = z.object({
+    documentTypes: z.array(z.string()).min(1, "Select at least one document"),
+    remarks: z.string().min(1, "Remarks are required"),
+  });
+
+  app.post("/api/vendor/jobs/:id/resubmission", requireVendorAuth, async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== req.session.vendorId) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      if (job.status !== "InProgress" && job.status !== "SentToVendor") {
+        return res.status(400).json({ message: "Cannot request resubmission in current status" });
+      }
+      const validation = validateBody(resubmissionSchema, req.body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const { status } = validation.data;
+      const { documentTypes, remarks } = validation.data;
 
-      const job = await storage.getTypingJobById(jobId);
-      const previousStatus = job?.status;
+      await storage.updateTypingJob(jobId, { status: "WaitingForDocs" });
 
-      const updateData: Record<string, any> = { status };
-      if (status === "Returned") {
-        updateData.returnedAt = new Date();
-      }
-
-      const updated = await storage.updateTypingJob(jobId, updateData);
+      const docLabels = documentTypes.join(", ");
+      await storage.createTypingJobComment({
+        typingJobId: jobId,
+        authorType: "Vendor",
+        message: `Resubmission Required - Documents: ${docLabels}\nRemarks: ${remarks}`,
+      });
 
       await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: jobId,
-        action: "status_changed",
-        details: { previousStatus, newStatus: status, changedBy: "Vendor" },
+        entityType: "typing_job", entityId: jobId,
+        action: "vendor_resubmission_requested",
+        details: { documentTypes, remarks, vendorUserId: req.session.vendorUserId },
+      });
+
+      res.json({ message: "Resubmission request sent" });
+    } catch (error) {
+      console.error("Vendor resubmission error:", error);
+      res.status(500).json({ message: "Failed to request resubmission" });
+    }
+  });
+
+  // Vendor mark job completed (InProgress → Returned)
+  app.post("/api/vendor/jobs/:id/complete", requireVendorAuth, async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== req.session.vendorId) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      if (job.status !== "InProgress") {
+        return res.status(400).json({ message: "Can only complete jobs that are in progress" });
+      }
+      const updated = await storage.updateTypingJob(jobId, {
+        status: "Returned",
+        returnedAt: new Date(),
+      });
+
+      const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+      const calculatedAmount = job.costSnapshot || jobType?.cost || 0;
+
+      await storage.createVendorApproval({
+        typingJobId: jobId,
+        vendorId: job.vendorId!,
+        calculatedAmount,
+        status: "Pending",
+      });
+
+      await storage.createAuditLog({
+        entityType: "typing_job", entityId: jobId,
+        action: "vendor_completed", details: { vendorUserId: req.session.vendorUserId },
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error("Vendor complete error:", error);
+      res.status(500).json({ message: "Failed to complete job" });
+    }
+  });
+
+  // Vendor abort job (any active status → Cancelled)
+  const abortSchema = z.object({
+    reason: z.string().min(1, "Reason is required"),
+  });
+
+  app.post("/api/vendor/jobs/:id/abort", requireVendorAuth, async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== req.session.vendorId) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      const activeStatuses = ["SentToVendor", "InProgress", "WaitingForDocs"];
+      if (!activeStatuses.includes(job.status)) {
+        return res.status(400).json({ message: "Cannot abort job in current status" });
+      }
+      const validation = validateBody(abortSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const { reason } = validation.data;
+
+      const updated = await storage.updateTypingJob(jobId, {
+        status: "Cancelled",
+        vendorMistakeReason: reason,
+        vendorMistakeAt: new Date(),
+      });
+
+      await storage.createAuditLog({
+        entityType: "typing_job", entityId: jobId,
+        action: "vendor_aborted", details: { reason, vendorUserId: req.session.vendorUserId },
       });
 
       res.json(updated);
     } catch (error) {
-      console.error("Vendor status update error:", error);
-      res.status(500).json({ message: "Failed to update status" });
+      console.error("Vendor abort error:", error);
+      res.status(500).json({ message: "Failed to abort job" });
+    }
+  });
+
+  // Vendor save biometrics data
+  const biometricsSchema = z.object({
+    biometricsRequired: z.boolean(),
+    biometricsDatetime: z.string().nullable().optional(),
+    biometricsCenter: z.string().nullable().optional(),
+    vendorNotes: z.string().nullable().optional(),
+    applicationRefNo: z.string().nullable().optional(),
+  });
+
+  app.put("/api/vendor/jobs/:id/biometrics", requireVendorAuth, async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== req.session.vendorId) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      const validation = validateBody(biometricsSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const data = validation.data;
+
+      const existing = await storage.getTypingJobResults(jobId);
+      const resultData = {
+        typingJobId: jobId,
+        biometricsRequired: data.biometricsRequired,
+        biometricsDatetime: data.biometricsDatetime ? new Date(data.biometricsDatetime) : null,
+        biometricsCenter: data.biometricsCenter || null,
+        vendorNotes: data.vendorNotes || null,
+        applicationRefNo: data.applicationRefNo || null,
+      };
+
+      if (existing) {
+        await storage.updateTypingJobResult(jobId, resultData);
+      } else {
+        await storage.createTypingJobResult(resultData);
+      }
+
+      await storage.createAuditLog({
+        entityType: "typing_job", entityId: jobId,
+        action: "vendor_biometrics_updated",
+        details: { biometricsRequired: data.biometricsRequired, vendorUserId: req.session.vendorUserId },
+      });
+
+      res.json({ message: "Biometrics data saved" });
+    } catch (error) {
+      console.error("Vendor biometrics error:", error);
+      res.status(500).json({ message: "Failed to save biometrics data" });
     }
   });
 
@@ -3325,6 +3809,157 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Google Sheet import error:", error);
       res.status(500).json({ message: error.message || "Failed to import from Google Sheet" });
+    }
+  });
+
+  // ========== Admin Approvals ==========
+  app.get("/api/admin/approvals", requireAuth, async (req, res) => {
+    try {
+      const approvals = await storage.getPendingVendorApprovals();
+      
+      const enriched = await Promise.all(approvals.map(async (approval) => {
+        const job = await storage.getTypingJobById(approval.typingJobId);
+        const wo = job ? await storage.getWorkOrderById(job.woId) : null;
+        const vendor = approval.vendorId ? await storage.getVendorById(approval.vendorId) : null;
+        const jobType = job?.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+        return {
+          ...approval,
+          job: job ? { id: job.id, jobCode: job.jobCode, status: job.status } : null,
+          workOrder: wo ? { woNumber: wo.woNumber, applicantName: wo.applicantName } : null,
+          vendor: vendor ? { id: vendor.id, name: vendor.name } : null,
+          jobType: jobType ? { name: jobType.name, category: jobType.category } : null,
+        };
+      }));
+      
+      res.json(enriched);
+    } catch (error) {
+      console.error("Get approvals error:", error);
+      res.status(500).json({ message: "Failed to get approvals" });
+    }
+  });
+
+  const approveSchema = z.object({
+    adjustedAmount: z.number().optional(),
+  });
+
+  app.post("/api/admin/approvals/:id/approve", requireAuth, async (req, res) => {
+    try {
+      const approvalId = req.params.id;
+      const approvalRecord = await storage.getVendorApprovalById(approvalId);
+      if (!approvalRecord) {
+        return res.status(404).json({ message: "Approval not found" });
+      }
+      if (approvalRecord.status !== "Pending") {
+        return res.status(400).json({ message: "Approval already processed" });
+      }
+      
+      const validation = validateBody(approveSchema, req.body);
+      const adjustedAmount = ('data' in validation && validation.data.adjustedAmount !== undefined) 
+        ? validation.data.adjustedAmount 
+        : undefined;
+      
+      const finalAmount = adjustedAmount ?? approvalRecord.calculatedAmount;
+      
+      await storage.updateVendorApproval(approvalId, {
+        status: "Approved",
+        adjustedAmount: adjustedAmount !== undefined ? adjustedAmount : null,
+        approvedBy: (req as any).session.userId,
+        resolvedAt: new Date(),
+      });
+      
+      await storage.updateTypingJob(approvalRecord.typingJobId, {
+        status: "SentToClient",
+        sentToClientAt: new Date(),
+      });
+      
+      if (finalAmount > 0) {
+        await storage.createWalletEntry({
+          vendorId: approvalRecord.vendorId,
+          entryType: "Debit",
+          typingJobId: approvalRecord.typingJobId,
+          amount: finalAmount,
+          note: `Job completed - auto deduction`,
+          createdBy: (req as any).session.userId,
+        });
+      }
+      
+      await storage.createAuditLog({
+        entityType: "vendor_approval", entityId: approvalId,
+        action: "approved", userId: (req as any).session.userId,
+        details: { finalAmount, typingJobId: approvalRecord.typingJobId },
+      });
+
+      await notifyVendorUsers(approvalRecord.vendorId, {
+        type: "approval_approved",
+        title: "Job Approved",
+        message: `Your submission has been approved. AED ${finalAmount} has been deducted.`,
+        relatedJobId: approvalRecord.typingJobId,
+        isRead: false,
+      });
+      
+      res.json({ message: "Approved successfully" });
+    } catch (error) {
+      console.error("Approve error:", error);
+      res.status(500).json({ message: "Failed to approve" });
+    }
+  });
+
+  const approvalRejectSchema = z.object({
+    reason: z.string().min(1, "Reason required"),
+  });
+
+  app.post("/api/admin/approvals/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const approvalId = req.params.id;
+      const approvalRecord = await storage.getVendorApprovalById(approvalId);
+      if (!approvalRecord) {
+        return res.status(404).json({ message: "Approval not found" });
+      }
+      if (approvalRecord.status !== "Pending") {
+        return res.status(400).json({ message: "Approval already processed" });
+      }
+      
+      const validation = validateBody(approvalRejectSchema, req.body);
+      if ('error' in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const { reason } = validation.data;
+      
+      await storage.updateVendorApproval(approvalId, {
+        status: "Rejected",
+        rejectedReason: reason,
+        resolvedAt: new Date(),
+      });
+      
+      await storage.updateTypingJob(approvalRecord.typingJobId, {
+        status: "InProgress",
+        returnedAt: null,
+      });
+      
+      await storage.createTypingJobComment({
+        typingJobId: approvalRecord.typingJobId,
+        authorType: "Internal",
+        message: `Submission rejected: ${reason}`,
+      });
+      
+      await storage.createAuditLog({
+        entityType: "vendor_approval", entityId: approvalId,
+        action: "rejected", userId: (req as any).session.userId,
+        details: { reason, typingJobId: approvalRecord.typingJobId },
+      });
+
+      await notifyVendorUsers(approvalRecord.vendorId, {
+        type: "approval_rejected",
+        title: "Submission Rejected",
+        message: `Your submission was rejected: ${reason}`,
+        relatedJobId: approvalRecord.typingJobId,
+        isRead: false,
+      });
+      
+      res.json({ message: "Rejected successfully" });
+    } catch (error) {
+      console.error("Reject error:", error);
+      res.status(500).json({ message: "Failed to reject" });
     }
   });
 

@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import { CommandPalette } from "@/components/command-palette";
 import { MobileBottomNav } from "@/components/mobile-nav";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
+import { VendorAuthProvider, useVendorAuth } from "@/hooks/use-vendor-auth";
 
 import Dashboard from "@/pages/dashboard";
 import CrmDashboard from "@/pages/crm-dashboard";
@@ -26,8 +27,10 @@ import StaffList from "@/pages/staff/index";
 import VendorWallet from "@/pages/vendor-wallet";
 import AdminPage from "@/pages/admin/index";
 import VendorLogin from "@/pages/vendor/login";
+import VendorDashboard from "@/pages/vendor/dashboard";
 import VendorJobs from "@/pages/vendor/jobs";
 import VendorJobDetail from "@/pages/vendor/job-detail";
+import VendorWalletPage from "@/pages/vendor/wallet";
 import ReschedulePage from "@/pages/reschedule";
 import AppointmentsIndex from "@/pages/appointments/index";
 import ScheduleMedical from "@/pages/appointments/schedule-medical";
@@ -65,6 +68,43 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function VendorAuthGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useVendorAuth();
+  const [location] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!user && location !== "/vendor/login") {
+    return <Redirect to="/vendor/login" />;
+  }
+
+  return <>{children}</>;
+}
+
+function VendorLayout() {
+  return (
+    <VendorAuthProvider>
+      <VendorAuthGuard>
+        <PageTransition>
+          <Switch>
+            <Route path="/vendor/dashboard" component={VendorDashboard} />
+            <Route path="/vendor/jobs" component={VendorJobs} />
+            <Route path="/vendor/jobs/:id" component={VendorJobDetail} />
+            <Route path="/vendor/wallet" component={VendorWalletPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </PageTransition>
+      </VendorAuthGuard>
+    </VendorAuthProvider>
+  );
+}
+
 function Router() {
   return (
     <AuthGuard>
@@ -88,8 +128,10 @@ function Router() {
           <Route path="/admin" component={AdminPage} />
           <Route path="/manager-console" component={ManagerConsole} />
           <Route path="/vendor/login" component={VendorLogin} />
-          <Route path="/vendor/jobs" component={VendorJobs} />
-          <Route path="/vendor/jobs/:id" component={VendorJobDetail} />
+          <Route path="/vendor/dashboard" component={VendorLayout} />
+          <Route path="/vendor/jobs/:rest*" component={VendorLayout} />
+          <Route path="/vendor/jobs" component={VendorLayout} />
+          <Route path="/vendor/wallet" component={VendorLayout} />
           <Route path="/reschedule/:token" component={ReschedulePage} />
           <Route path="/appointments" component={AppointmentsIndex} />
           <Route path="/appointments/schedule-medical" component={ScheduleMedical} />

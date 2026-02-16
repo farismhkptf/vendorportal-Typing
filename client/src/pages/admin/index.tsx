@@ -56,6 +56,7 @@ import { z } from "zod";
 import type { Center, Staff, ServiceType, JobType, AppSettings, Company, CompanyEmail, Vendor } from "@shared/schema";
 import { toProperCase } from "@/lib/proper-case";
 import { formatDate } from "@/lib/format-date";
+import AdminApprovals from "@/pages/admin/approvals";
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -1532,6 +1533,14 @@ export default function AdminPage() {
               >
                 <Building2 className="h-4 w-4 mr-2" />
                 Vendors
+              </TabsTrigger>
+              <TabsTrigger 
+                value="approvals" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
+                data-testid="tab-approvals"
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Approvals
               </TabsTrigger>
               <TabsTrigger 
                 value="accounts" 
@@ -4314,6 +4323,10 @@ export default function AdminPage() {
             </TabsContent>
 
             {/* User Accounts Tab */}
+            <TabsContent value="approvals" className="p-4">
+              <AdminApprovals />
+            </TabsContent>
+
             <TabsContent value="accounts" className="p-4">
               <div className="flex items-center justify-between gap-2 mb-4">
                 <h3 className="font-medium text-foreground" data-testid="text-user-accounts-title">User Accounts</h3>

@@ -21,6 +21,8 @@ declare module "express-session" {
     userRole: string;
     userName: string;
     staffId: string | null;
+    vendorId: string | null;
+    vendorUserId: string | null;
   }
 }
 

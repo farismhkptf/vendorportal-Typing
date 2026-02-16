@@ -96,6 +96,7 @@ export const messageStatusEnum = pgEnum("message_status", ["Draft", "MarkedSent"
 export const walletEntryTypeEnum = pgEnum("wallet_entry_type", ["Topup", "Debit", "Reversal", "Adjustment"]);
 export const staffStatusEnum = pgEnum("staff_status", ["Active", "OnLeave", "Cancelled", "TempActive", "TempInactive"]);
 export const staffTypeEnum = pgEnum("staff_type", ["Permanent", "Temporary"]);
+export const approvalStatusEnum = pgEnum("approval_status", ["Pending", "Approved", "Rejected"]);
 
 // Client contact type for companies
 export type ClientContact = {
@@ -316,6 +317,7 @@ export const typingJobs = pgTable("typing_jobs", {
   vendorMistakeAt: timestamp("vendor_mistake_at"),
   vendorMistakeReason: text("vendor_mistake_reason"),
   createdBy: varchar("created_by"),
+  urgent: boolean("urgent").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -420,6 +422,33 @@ export const vendorInvoices = pgTable("vendor_invoices", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
 
+// Vendor Approvals table
+export const vendorApprovals = pgTable("vendor_approvals", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  typingJobId: varchar("typing_job_id").notNull(),
+  vendorId: varchar("vendor_id").notNull(),
+  calculatedAmount: integer("calculated_amount").notNull().default(0),
+  adjustedAmount: integer("adjusted_amount"),
+  status: approvalStatusEnum("status").notNull().default("Pending"),
+  rejectedReason: text("rejected_reason"),
+  approvedBy: varchar("approved_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+// Vendor Notifications table
+export const vendorNotifications = pgTable("vendor_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorUserId: varchar("vendor_user_id").notNull(),
+  vendorId: varchar("vendor_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  relatedJobId: varchar("related_job_id"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // App Settings table (single row)
 export const appSettings = pgTable("app_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -483,6 +512,8 @@ export const insertVendorStatementSchema = createInsertSchema(vendorStatements).
 export const insertVendorInvoiceSchema = createInsertSchema(vendorInvoices).omit({ id: true, uploadedAt: true });
 export const insertChangeNotificationSchema = createInsertSchema(changeNotifications).omit({ id: true, createdAt: true, reviewedAt: true });
 export const insertAuditLogSchema = createInsertSchema(auditLog).omit({ id: true, createdAt: true });
+export const insertVendorApprovalSchema = createInsertSchema(vendorApprovals).omit({ id: true, createdAt: true, resolvedAt: true });
+export const insertVendorNotificationSchema = createInsertSchema(vendorNotifications).omit({ id: true, createdAt: true });
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -534,6 +565,10 @@ export type ChangeNotification = typeof changeNotifications.$inferSelect;
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLog.$inferSelect;
 export type AppSettings = typeof appSettings.$inferSelect;
+export type InsertVendorApproval = z.infer<typeof insertVendorApprovalSchema>;
+export type VendorApproval = typeof vendorApprovals.$inferSelect;
+export type InsertVendorNotification = z.infer<typeof insertVendorNotificationSchema>;
+export type VendorNotification = typeof vendorNotifications.$inferSelect;
 
 // Login schema
 export const loginSchema = z.object({

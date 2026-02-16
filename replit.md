@@ -74,6 +74,28 @@ The design follows an Apple-inspired glassmorphism aesthetic with soft gradients
 
 None currently.
 
+## Vendor Portal
+
+Complete vendor-facing portal at `/vendor/*` routes with separate session-based auth.
+
+### Architecture
+- **Separate Auth**: `vendorUserId`/`vendorId` session fields, `requireVendorAuth` middleware, `VendorAuthProvider`/`useVendorAuth` hook, `VendorAuthGuard`
+- **Routes**: `/vendor/login`, `/vendor/dashboard`, `/vendor/jobs`, `/vendor/jobs/:id`, `/vendor/wallet`
+- **Shared**: `VendorHeader` component with nav (Dashboard, Jobs, Wallet) and notification bell
+
+### Features
+- **Dashboard**: Time-based greeting, stats cards (pending, in-progress, completed, urgent, today's count), recent jobs list sorted by urgency
+- **Job Detail**: Full WO info (company, service type, applicant), document requirements with upload status (green check/amber clock), biometrics form for EID jobs
+- **Job Actions**: Accept (SentToVendor→InProgress), Request Resubmission (select docs + remarks, →WaitingForDocs), Mark Completed (→Returned, creates approval), Abort (→Cancelled with reason), Resume Work (WaitingForDocs→InProgress)
+- **Approval Workflow**: Vendor completion creates `vendorApprovals` record with auto-calculated amount from job type cost. Admin reviews in "Approvals" tab (Admin Console): approve (deducts from wallet, →SentToClient) or reject (sends back to InProgress with reason comment). Approval status visible on vendor job detail.
+- **Notifications**: Bell icon with unread count (auto-refresh 30s), Popover dropdown with notification list. Triggers: new job assigned, approval approved/rejected, team comments. `vendorNotifications` table.
+- **Wallet**: Balance display, transaction history with job info enrichment, color-coded entry types (Topup=green, Debit=red, Reversal=blue, Adjustment=amber)
+- **Team Side**: Typing job detail shows vendor approval status card, re-assign button for Cancelled/VendorMistake jobs to reassign to a different vendor
+
+### Database Tables
+- `vendor_approvals`: id, typingJobId, vendorId, calculatedAmount, adjustedAmount, status (Pending/Approved/Rejected), rejectedReason, approvedBy, createdAt, resolvedAt
+- `vendor_notifications`: id, vendorUserId, vendorId, type, title, message, relatedJobId, isRead, createdAt
+
 ## Recent Changes
 
 - **Manager Console & Change Tracking** (Feb 2026): Manager Console (`/manager-console`) for CRM users with PIN-protected access (default PIN: 0000). Tabs: Companies, Centers, Staff, Services (view + edit), User Accounts (view all, change own password), Import (Google Sheet). All edits logged in `changeNotifications` table with old/new data. Admin Console "Change Log" tab shows pending manager changes with Keep/Revert actions. Revert restores original data. Manager PIN change feature. Master password support (admin sets via settings; works as fallback login for any account). Role-restricted endpoints via `requireManagerRole` middleware.

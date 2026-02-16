@@ -53,6 +53,16 @@ interface TypingJobWithDetails extends TypingJob {
   result?: TypingJobResult;
   comments?: TypingJobComment[];
   files?: FileType[];
+  approval?: {
+    id: string;
+    status: string;
+    calculatedAmount: number;
+    adjustedAmount: number | null;
+    rejectedReason: string | null;
+    approvedBy: string | null;
+    createdAt: string;
+    resolvedAt: string | null;
+  };
 }
 
 export default function TypingJobDetail() {
@@ -83,6 +93,10 @@ export default function TypingJobDetail() {
   
   // Return reason
   const [returnReason, setReturnReason] = useState("");
+  
+  // Reassign state
+  const [showReassignDialog, setShowReassignDialog] = useState(false);
+  const [reassignVendorId, setReassignVendorId] = useState("");
 
   const { data: job, isLoading } = useQuery<TypingJobWithDetails>({
     queryKey: ["/api/typing-jobs", id],
@@ -185,6 +199,21 @@ export default function TypingJobDetail() {
     },
     onError: (error: Error) => {
       toast({ title: "Failed to deliver", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const reassignMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/typing-jobs/${id}/reassign`, { vendorId: reassignVendorId });
+    },
+    onSuccess: () => {
+      invalidateTypingJobQueries();
+      setShowReassignDialog(false);
+      setReassignVendorId("");
+      toast({ title: "Job reassigned to new vendor" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to reassign", description: error.message, variant: "destructive" });
     },
   });
 
@@ -434,16 +463,40 @@ export default function TypingJobDetail() {
               )}
               
               {job.status === "Cancelled" && (
-                <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
-                  Job Cancelled
-                </Badge>
+                <>
+                  <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
+                    Job Cancelled
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowReassignDialog(true)}
+                    className="gap-2"
+                    data-testid="button-reassign-job"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Re-assign to Vendor
+                  </Button>
+                </>
               )}
               
               {job.status === "VendorMistake" && (
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                  <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-                  Vendor Mistake
-                </Badge>
+                <>
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                    <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Vendor Mistake
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowReassignDialog(true)}
+                    className="gap-2"
+                    data-testid="button-reassign-job"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Re-assign to Vendor
+                  </Button>
+                </>
               )}
             </div>
           </CardContent>
@@ -570,6 +623,50 @@ export default function TypingJobDetail() {
                   <p className="text-sm">{job.result.vendorNotes}</p>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {job.approval && (
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Vendor Approval
+                </CardTitle>
+                <StatusBadge status={job.approval.status as any} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Calculated Amount:</span>{" "}
+                  <span className="font-medium">AED {job.approval.calculatedAmount.toLocaleString()}</span>
+                </div>
+                {job.approval.adjustedAmount !== null && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Adjusted Amount:</span>{" "}
+                    <span className="font-medium">AED {job.approval.adjustedAmount.toLocaleString()}</span>
+                  </div>
+                )}
+                {job.approval.rejectedReason && (
+                  <div className="text-sm sm:col-span-2">
+                    <span className="text-muted-foreground">Rejection Reason:</span>{" "}
+                    <span className="font-medium text-destructive">{job.approval.rejectedReason}</span>
+                  </div>
+                )}
+                <div className="text-sm">
+                  <span className="text-muted-foreground">Submitted:</span>{" "}
+                  <span className="font-medium">{job.approval.createdAt ? formatDateTime(job.approval.createdAt) : ""}</span>
+                </div>
+                {job.approval.resolvedAt && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Resolved:</span>{" "}
+                    <span className="font-medium">{formatDateTime(job.approval.resolvedAt)}</span>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         )}
@@ -907,6 +1004,39 @@ export default function TypingJobDetail() {
               ) : (
                 "Mark as Received"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Re-assign Dialog */}
+      <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Re-assign Job to Vendor</DialogTitle>
+            <DialogDescription>Select a vendor to re-assign this job to.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Select Vendor</label>
+            <Select value={reassignVendorId} onValueChange={setReassignVendorId}>
+              <SelectTrigger data-testid="select-reassign-vendor">
+                <SelectValue placeholder="Choose a vendor" />
+              </SelectTrigger>
+              <SelectContent>
+                {vendors.filter(v => v.active).map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReassignDialog(false)}>Cancel</Button>
+            <Button
+              onClick={() => reassignMutation.mutate()}
+              disabled={!reassignVendorId || reassignMutation.isPending}
+              data-testid="button-confirm-reassign"
+            >
+              {reassignMutation.isPending ? "Reassigning..." : "Re-assign"}
             </Button>
           </DialogFooter>
         </DialogContent>

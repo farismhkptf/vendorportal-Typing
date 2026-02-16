@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, FileText, Filter, Calendar, Upload, MessageSquare, LogOut } from "lucide-react";
+import { Search, FileText, Filter, Calendar, Upload, MessageSquare } from "lucide-react";
+import { VendorHeader } from "@/components/vendor-header";
 import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,26 +40,7 @@ export default function VendorJobs() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-30 glass border-b border-border/50">
-        <div className="flex h-16 items-center justify-between gap-2 px-4 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
-              <span className="text-sm font-semibold text-white">V</span>
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold text-foreground">Vendor Portal</h1>
-              <p className="text-xs text-muted-foreground">The P.R.O. Company™</p>
-            </div>
-          </div>
-          <Link href="/vendor/login">
-            <Button variant="ghost" size="sm" className="gap-2" data-testid="button-vendor-logout">
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <VendorHeader />
 
       {/* Page Header */}
       <div className="gradient-header border-b border-border/50">
