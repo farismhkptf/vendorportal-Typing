@@ -444,7 +444,7 @@ function ImportExportSection() {
           </div>
           <div>
             <h3 className="font-medium text-foreground" data-testid="text-gsheet-title">Import from Google Sheet</h3>
-            <p className="text-sm text-muted-foreground">Paste a Google Sheet URL to import work orders. The sheet must be shared publicly.</p>
+            <p className="text-sm text-muted-foreground">Paste a Google Sheet URL to import work orders. The sheet must be shared publicly. Uploaded Excel files must first be converted: open in Google Sheets, then File &rarr; Save as Google Sheets.</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

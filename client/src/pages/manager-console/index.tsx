@@ -1063,7 +1063,7 @@ function ImportTab() {
     <div className="space-y-4">
       <Card className="p-4 space-y-3">
         <h3 className="font-medium">Google Sheet Import</h3>
-        <p className="text-sm text-muted-foreground">Paste a public Google Sheet URL to import work orders</p>
+        <p className="text-sm text-muted-foreground">Paste a public Google Sheet URL to import work orders. Uploaded Excel files must first be converted: open in Google Sheets, then File &rarr; Save as Google Sheets.</p>
         <div className="flex gap-2">
           <Input
             placeholder="https://docs.google.com/spreadsheets/d/..."

@@ -4081,6 +4081,8 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Google Sheet URL is required" });
       }
 
+      const isUploadedExcel = url.includes('rtpof=true') || url.includes('sd=true');
+
       const sheetMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
       if (!sheetMatch) {
         return res.status(400).json({ message: "Invalid Google Sheet URL. Please paste a valid Google Sheets link." });
@@ -4094,11 +4096,17 @@ export async function registerRoutes(
       const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
       const csvResponse = await fetch(csvUrl);
       if (!csvResponse.ok) {
+        if (isUploadedExcel) {
+          return res.status(400).json({ message: "This looks like an uploaded Excel file on Google Drive, not a native Google Sheet. Please open it in Google Sheets, then go to File → Save as Google Sheets, and use the new link instead." });
+        }
         return res.status(400).json({ message: "Could not fetch the Google Sheet. Make sure it is shared as 'Anyone with the link can view'." });
       }
       const csvText = await csvResponse.text();
 
       if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html')) {
+        if (isUploadedExcel) {
+          return res.status(400).json({ message: "This looks like an uploaded Excel file on Google Drive, not a native Google Sheet. Please open it in Google Sheets, then go to File → Save as Google Sheets, and use the new link instead." });
+        }
         return res.status(400).json({ message: "Could not access the sheet. Make sure it is shared as 'Anyone with the link can view'." });
       }
 
