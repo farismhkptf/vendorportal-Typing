@@ -4082,10 +4082,12 @@ export async function registerRoutes(
 
   app.post("/api/admin/preview-gsheet", async (req, res) => {
     try {
-      const { url } = req.body;
+      let { url } = req.body;
       if (!url || typeof url !== 'string') {
         return res.status(400).json({ message: "Google Sheet URL is required" });
       }
+
+      url = url.trim().replace(/\/+$/, '');
 
       const isUploadedExcel = url.includes('rtpof=true') || url.includes('sd=true');
 
@@ -4100,12 +4102,32 @@ export async function registerRoutes(
       if (gidMatch) gid = gidMatch[1];
 
       const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-      const csvResponse = await fetch(csvUrl);
+      console.log(`[gsheet] Fetching CSV from: ${csvUrl}`);
+      const csvResponse = await fetch(csvUrl, { redirect: 'follow' });
+      console.log(`[gsheet] Response status: ${csvResponse.status}, URL: ${csvResponse.url}`);
       if (!csvResponse.ok) {
         if (isUploadedExcel) {
           return res.status(400).json({ message: "This looks like an uploaded Excel file on Google Drive, not a native Google Sheet. Please open it in Google Sheets, then go to File → Save as Google Sheets, and use the new link instead." });
         }
-        return res.status(400).json({ message: "Could not fetch the Google Sheet. Make sure it is shared as 'Anyone with the link can view'." });
+        if (csvResponse.status === 400) {
+          return res.status(400).json({ message: "Google blocked the export. This usually means downloading is disabled on this sheet. Please ask the sheet owner to enable downloading: Share → Advanced → uncheck 'Disable options to download, print and copy for commenters and viewers'." });
+        }
+        if (csvResponse.status === 404) {
+          return res.status(400).json({ message: "Google Sheet not found. Please check the URL is correct and the sheet has not been deleted." });
+        }
+        if (csvResponse.status === 401 || csvResponse.status === 403) {
+          return res.status(400).json({ message: "This sheet requires sign-in or is restricted. Please change the sharing settings to 'Anyone with the link can view'." });
+        }
+        try {
+          const errorBody = await csvResponse.text();
+          if (errorBody.includes('Page not found') || errorBody.includes('not found')) {
+            return res.status(400).json({ message: "Google Sheet not found. Please check the URL is correct and the sheet has not been deleted." });
+          }
+          if (errorBody.includes('accounts.google.com') || errorBody.includes('ServiceLogin')) {
+            return res.status(400).json({ message: "This sheet requires sign-in. Please change the sharing settings to 'Anyone with the link can view'." });
+          }
+        } catch {}
+        return res.status(400).json({ message: "Could not fetch the Google Sheet. Make sure it is shared as 'Anyone with the link can view' and the URL is correct." });
       }
       const csvText = await csvResponse.text();
 
@@ -4113,7 +4135,15 @@ export async function registerRoutes(
         if (isUploadedExcel) {
           return res.status(400).json({ message: "This looks like an uploaded Excel file on Google Drive, not a native Google Sheet. Please open it in Google Sheets, then go to File → Save as Google Sheets, and use the new link instead." });
         }
-        return res.status(400).json({ message: "Could not access the sheet. Make sure it is shared as 'Anyone with the link can view'." });
+        const isNotFound = csvText.includes('Page not found') || csvText.includes('not found');
+        const isSignIn = csvText.includes('accounts.google.com') || csvText.includes('ServiceLogin');
+        if (isNotFound) {
+          return res.status(400).json({ message: "Google Sheet not found. Please check the URL is correct and the sheet has not been deleted." });
+        }
+        if (isSignIn) {
+          return res.status(400).json({ message: "This sheet requires sign-in. Please change the sharing settings to 'Anyone with the link can view'." });
+        }
+        return res.status(400).json({ message: "Could not access the sheet. Make sure it is shared as 'Anyone with the link can view' and the URL is correct." });
       }
 
       const cleanCsvText = csvText.replace(/^\uFEFF/, '');
