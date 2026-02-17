@@ -2228,6 +2228,30 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/auth/enter-vendor-portal", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const adminUser = await storage.getUser(req.session.userId);
+      if (!adminUser || adminUser.role !== "Admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const allUsers = await storage.getUsers();
+      const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
+      const vendorUser = allUsers.find(u => vendorRoles.includes(u.role) && u.active && u.vendorId);
+      if (!vendorUser) {
+        return res.status(404).json({ message: "No vendor accounts found" });
+      }
+      req.session.vendorUserId = vendorUser.id;
+      req.session.vendorId = vendorUser.vendorId;
+      res.json({ success: true, vendorName: vendorUser.name });
+    } catch (error) {
+      console.error("Enter vendor portal error:", error);
+      res.status(500).json({ message: "Failed to enter vendor portal" });
+    }
+  });
+
   app.post("/api/auth/login", async (req, res) => {
     try {
       const validation = validateBody(loginSchema, req.body);
