@@ -1883,6 +1883,7 @@ export async function registerRoutes(
       
       const wo = await storage.getWorkOrderById(job.woId);
       const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+      const serviceType = wo?.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId) : null;
       const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
       const vendor = job.vendorId ? await storage.getVendorById(job.vendorId) : null;
       const result = await storage.getTypingJobResult(id);
@@ -1892,7 +1893,7 @@ export async function registerRoutes(
       
       res.json({ 
         ...job, 
-        workOrder: wo ? { ...wo, company } : null, 
+        workOrder: wo ? { ...wo, company, serviceType } : null, 
         jobType, 
         vendor,
         result,

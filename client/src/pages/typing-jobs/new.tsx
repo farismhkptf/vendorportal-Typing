@@ -20,6 +20,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AppLayout } from "@/components/layout/app-layout";
+import { DocumentPanel } from "@/components/documents/document-panel";
+import type { ServiceCategory } from "@/components/documents/document-types";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { toProperCase } from "@/lib/proper-case";
@@ -125,6 +127,12 @@ export default function NewTypingJob() {
     return serviceType?.name || "Service";
   }, [selectedWo, serviceTypes]);
 
+  const woServiceCategory = useMemo(() => {
+    if (!selectedWo?.serviceTypeId || !serviceTypes) return null;
+    const serviceType = serviceTypes.find(st => st.id === selectedWo.serviceTypeId);
+    return (serviceType?.category as ServiceCategory) || null;
+  }, [selectedWo, serviceTypes]);
+
   const medicalCenters = useMemo(() => {
     if (!centers) return [];
     return centers.filter(c => c.type === "Medical" || c.type === "Both");
@@ -175,6 +183,13 @@ export default function NewTypingJob() {
   const typeEid = useWatch({ control: form.control, name: "typeEid" });
   const isVip = useWatch({ control: form.control, name: "isVip" });
   const centerAuthority = useWatch({ control: form.control, name: "centerAuthority" });
+
+  const docContext = useMemo((): "medical" | "eid" | "all" => {
+    if (typeMedical && typeEid) return "all";
+    if (typeMedical) return "medical";
+    if (typeEid) return "eid";
+    return "all";
+  }, [typeMedical, typeEid]);
 
   const filteredMedicalCenters = useMemo(() => {
     let filtered = medicalCenters;
@@ -855,6 +870,21 @@ The P.R.O. Company™`;
                       </FormItem>
                     )}
                   />
+
+                  {selectedWo && (typeMedical || typeEid) && (
+                    <DocumentPanel
+                      woId={selectedWo.id}
+                      serviceCategory={woServiceCategory}
+                      context={docContext}
+                      title={
+                        typeMedical && typeEid
+                          ? "Documents (Medical & EIDA)"
+                          : typeMedical
+                            ? "Documents (Medical)"
+                            : "Documents (EIDA)"
+                      }
+                    />
+                  )}
                 </div>
               )}
 

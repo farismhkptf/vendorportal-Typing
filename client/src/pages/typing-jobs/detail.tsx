@@ -22,6 +22,8 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { DocumentPanel } from "@/components/documents/document-panel";
+import type { ServiceCategory } from "@/components/documents/document-types";
 import { toProperCase } from "@/lib/proper-case";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import {
@@ -47,7 +49,7 @@ import type {
 } from "@shared/schema";
 
 interface TypingJobWithDetails extends TypingJob {
-  workOrder?: WorkOrder & { company?: Company };
+  workOrder?: WorkOrder & { company?: Company; serviceType?: { id: string; name: string; category?: string | null } };
   jobType?: JobType;
   vendor?: Vendor;
   result?: TypingJobResult;
@@ -687,7 +689,16 @@ export default function TypingJobDetail() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="files" className="mt-4">
+          <TabsContent value="files" className="mt-4 space-y-4">
+            {job.workOrder && (
+              <DocumentPanel
+                woId={job.woId}
+                serviceCategory={(job.workOrder.serviceType?.category as ServiceCategory) || null}
+                context={job.jobType?.category === "Medical" ? "medical" : job.jobType?.category === "EID" ? "eid" : "all"}
+                title="Work Order Documents"
+              />
+            )}
+
             <div className="grid md:grid-cols-2 gap-4">
               <Card className="border border-border/50">
                 <CardHeader className="pb-2">
