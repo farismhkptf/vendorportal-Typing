@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { Upload, X, File, Image, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Upload, X, File, FileText, Image, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "./document-types";
@@ -93,6 +93,8 @@ export function DocumentUploadZone({
   }, [existingDoc, disabled, onDelete]);
 
   const isImage = existingDoc?.mimeType?.startsWith("image/");
+  const isPdf = existingDoc?.mimeType === "application/pdf";
+  const fileProxyUrl = existingDoc?.fileUrl ? `/api/objects/${encodeURIComponent(existingDoc.fileUrl)}` : "";
   const label = DOCUMENT_TYPE_LABELS[documentType] || documentType;
 
   return (
@@ -113,11 +115,15 @@ export function DocumentUploadZone({
             {isImage ? (
               <div className="h-16 w-16 rounded border overflow-hidden flex-shrink-0 bg-muted">
                 <img
-                  src={existingDoc.fileUrl}
+                  src={fileProxyUrl}
                   alt={existingDoc.fileName}
                   className="h-full w-full object-cover"
                 />
               </div>
+            ) : isPdf ? (
+              <a href={fileProxyUrl} target="_blank" rel="noopener noreferrer" className="h-16 w-16 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
+                <FileText className="h-6 w-6 text-red-500" />
+              </a>
             ) : (
               <div className="h-16 w-16 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
                 <File className="h-6 w-6 text-muted-foreground" />

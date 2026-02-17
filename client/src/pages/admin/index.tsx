@@ -121,6 +121,7 @@ const userFormSchema = z.object({
   password: z.string().min(4, "Min 4 characters").optional().or(z.literal("")),
   role: z.string().min(1, "Role is required"),
   staffId: z.string().optional().or(z.literal("")),
+  vendorId: z.string().optional().or(z.literal("")),
 });
 
 const vendorSchema = z.object({
@@ -980,6 +981,7 @@ export default function AdminPage() {
       password: "",
       role: "",
       staffId: "",
+      vendorId: "",
     },
   });
 
@@ -991,6 +993,7 @@ export default function AdminPage() {
       password: "",
       role: "",
       staffId: "",
+      vendorId: "",
     },
   });
 
@@ -998,6 +1001,7 @@ export default function AdminPage() {
     mutationFn: async (data: z.infer<typeof userFormSchema>) => {
       const payload: any = { ...data };
       if (payload.staffId === "") delete payload.staffId;
+      if (payload.vendorId === "") delete payload.vendorId;
       if (payload.password === "") delete payload.password;
       return apiRequest("POST", "/api/users", payload);
     },
@@ -1017,6 +1021,7 @@ export default function AdminPage() {
       const { id, ...rest } = data;
       const payload: any = { ...rest };
       if (payload.staffId === "") delete payload.staffId;
+      if (payload.vendorId === "") delete payload.vendorId;
       if (payload.password === "") delete payload.password;
       return apiRequest("PATCH", `/api/users/${id}`, payload);
     },
@@ -4536,12 +4541,41 @@ export default function AdminPage() {
                                   <SelectItem value="Admin">Admin</SelectItem>
                                   <SelectItem value="Client Relationship Manager">Client Relationship Manager</SelectItem>
                                   <SelectItem value="Medical Assistance Support">Medical Assistance Support</SelectItem>
+                                  <SelectItem value="Vendor">Vendor</SelectItem>
+                                  <SelectItem value="Vendor Accountant">Vendor Accountant</SelectItem>
+                                  <SelectItem value="Vendor Manager">Vendor Manager</SelectItem>
                                 </SelectContent>
                               </Select>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                        {["Vendor", "Vendor Accountant", "Vendor Manager"].includes(userForm.watch("role")) && (
+                          <FormField
+                            control={userForm.control}
+                            name="vendorId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Linked Vendor</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value || ""}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-user-vendor">
+                                      <SelectValue placeholder="Select vendor" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {vendors?.map((v: Vendor) => (
+                                      <SelectItem key={v.id} value={v.id}>
+                                        {v.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                         <FormField
                           control={userForm.control}
                           name="staffId"
@@ -4645,6 +4679,7 @@ export default function AdminPage() {
                               password: "",
                               role: user.role || "",
                               staffId: user.staffId || "",
+                              vendorId: user.vendorId || "",
                             });
                           }}
                           data-testid={`button-edit-user-${user.id}`}
@@ -4725,12 +4760,41 @@ export default function AdminPage() {
                                 <SelectItem value="Admin">Admin</SelectItem>
                                 <SelectItem value="Client Relationship Manager">Client Relationship Manager</SelectItem>
                                 <SelectItem value="Medical Assistance Support">Medical Assistance Support</SelectItem>
+                                <SelectItem value="Vendor">Vendor</SelectItem>
+                                <SelectItem value="Vendor Accountant">Vendor Accountant</SelectItem>
+                                <SelectItem value="Vendor Manager">Vendor Manager</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      {["Vendor", "Vendor Accountant", "Vendor Manager"].includes(editUserForm.watch("role")) && (
+                        <FormField
+                          control={editUserForm.control}
+                          name="vendorId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Linked Vendor</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value || ""}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-edit-user-vendor">
+                                    <SelectValue placeholder="Select vendor" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {vendors?.map((v: Vendor) => (
+                                    <SelectItem key={v.id} value={v.id}>
+                                      {v.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <FormField
                         control={editUserForm.control}
                         name="staffId"

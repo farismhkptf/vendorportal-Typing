@@ -668,7 +668,7 @@ export async function registerRoutes(
   });
 
   // ========== Work Orders ==========
-  app.get("/api/work-orders", async (req, res) => {
+  app.get("/api/work-orders", requireAuth, async (req, res) => {
     try {
       const { search, status } = req.query;
       const workOrders = await storage.getWorkOrders(
@@ -701,7 +701,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/work-orders/bulk-status", async (req, res) => {
+  app.post("/api/work-orders/bulk-status", requireAuth, async (req, res) => {
     try {
       const bulkStatusSchema = z.object({
         ids: z.array(z.string()).min(1),
@@ -744,7 +744,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/work-orders/check-duplicate", async (req, res) => {
+  app.get("/api/work-orders/check-duplicate", requireAuth, async (req, res) => {
     try {
       const applicantName = (req.query.applicantName as string || "").trim();
       if (!applicantName) {
@@ -777,7 +777,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/work-orders/:id", async (req, res) => {
+  app.get("/api/work-orders/:id", requireAuth, async (req, res) => {
     try {
       const wo = await storage.getWorkOrderById(req.params.id);
       if (!wo) {
@@ -839,7 +839,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/work-orders", async (req, res) => {
+  app.post("/api/work-orders", requireAuth, async (req, res) => {
     try {
       const validation = validateBody(insertWorkOrderSchema.omit({ status: true }), req.body);
       if ('error' in validation) {
@@ -912,7 +912,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/work-orders/:id", async (req, res) => {
+  app.put("/api/work-orders/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const validation = validateBody(insertWorkOrderSchema.partial(), req.body);
@@ -943,7 +943,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/work-orders/:id", async (req, res) => {
+  app.delete("/api/work-orders/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteWorkOrder(id);
@@ -970,7 +970,7 @@ export async function registerRoutes(
   });
 
   // ========== Work Order Notes ==========
-  app.get("/api/wo-notes/:woId", async (req, res) => {
+  app.get("/api/wo-notes/:woId", requireAuth, async (req, res) => {
     try {
       const notes = await storage.getWoNotes(req.params.woId);
       res.json(notes);
@@ -980,7 +980,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/wo-notes", async (req, res) => {
+  app.post("/api/wo-notes", requireAuth, async (req, res) => {
     try {
       const validation = validateBody(insertWoNoteSchema, req.body);
       if ("error" in validation) {
@@ -994,7 +994,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/wo-notes/:id", async (req, res) => {
+  app.delete("/api/wo-notes/:id", requireAuth, async (req, res) => {
     try {
       const deleted = await storage.deleteWoNote(req.params.id);
       if (!deleted) return res.status(404).json({ message: "Note not found" });
@@ -1110,7 +1110,7 @@ export async function registerRoutes(
   });
 
   // ========== Companies ==========
-  app.get("/api/companies", async (req, res) => {
+  app.get("/api/companies", requireAuth, async (req, res) => {
     try {
       const companies = await storage.getCompanies();
       const workOrderCounts = await storage.getWorkOrderCountsByCompany();
@@ -1152,7 +1152,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/companies", async (req, res) => {
+  app.post("/api/companies", requireAuth, async (req, res) => {
     try {
       const validation = validateBody(insertCompanySchema, req.body);
       if ('error' in validation) {
@@ -1179,7 +1179,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/companies/:id", async (req, res) => {
+  app.get("/api/companies/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const company = await storage.getCompanyById(id);
@@ -1219,7 +1219,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/companies/:id", async (req, res) => {
+  app.put("/api/companies/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const validation = validateBody(insertCompanySchema.partial(), req.body);
@@ -1490,7 +1490,7 @@ export async function registerRoutes(
   });
 
   // ========== Vendors ==========
-  app.get("/api/vendors", async (req, res) => {
+  app.get("/api/vendors", requireAuth, async (req, res) => {
     try {
       const vendorsList = await storage.getVendors();
       res.json(vendorsList);
@@ -1500,7 +1500,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendors/:id", async (req, res) => {
+  app.get("/api/vendors/:id", requireAuth, async (req, res) => {
     try {
       const vendor = await storage.getVendorById(req.params.id);
       if (!vendor) {
@@ -1513,7 +1513,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vendors", async (req, res) => {
+  app.post("/api/vendors", requireAuth, async (req, res) => {
     try {
       const { name, contactPerson, phone, email } = req.body;
       if (!name) {
@@ -1532,7 +1532,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/vendors/:id", async (req, res) => {
+  app.put("/api/vendors/:id", requireAuth, async (req, res) => {
     try {
       const { name, contactPerson, phone, email, active } = req.body;
       const updateData: any = {};
@@ -1553,7 +1553,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/vendors/:id", async (req, res) => {
+  app.delete("/api/vendors/:id", requireAuth, async (req, res) => {
     try {
       await storage.deleteVendor(req.params.id);
       res.json({ success: true });
@@ -1728,7 +1728,7 @@ export async function registerRoutes(
   });
 
   // ========== Typing Jobs ==========
-  app.post("/api/typing-jobs", async (req, res) => {
+  app.post("/api/typing-jobs", requireAuth, async (req, res) => {
     try {
       const validation = validateBody(insertTypingJobSchema.omit({ jobCode: true }), req.body);
       if ("error" in validation) {
@@ -1762,7 +1762,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/typing-jobs", async (req, res) => {
+  app.get("/api/typing-jobs", requireAuth, async (req, res) => {
     try {
       const { status } = req.query;
       const jobs = await storage.getTypingJobs(status as string | undefined);
@@ -1782,7 +1782,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/typing-jobs/bulk-assign-vendor", async (req, res) => {
+  app.post("/api/typing-jobs/bulk-assign-vendor", requireAuth, async (req, res) => {
     try {
       const bulkAssignSchema = z.object({
         ids: z.array(z.string()).min(1),
@@ -1827,16 +1827,7 @@ export async function registerRoutes(
             continue;
           }
 
-          if (cost > 0) {
-            await storage.createWalletEntry({
-              vendorId,
-              entryType: "Debit",
-              typingJobId: id,
-              amount: -cost,
-              note: `Typing job: ${job.jobCode || id}`,
-            });
-          }
-
+          // Wallet deduction happens at approval after vendor completes
           await storage.updateTypingJob(id, {
             vendorId,
             status: "SentToVendor",
@@ -1873,7 +1864,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/typing-jobs/:id", async (req, res) => {
+  app.get("/api/typing-jobs/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const job = await storage.getTypingJobById(id);
@@ -1968,7 +1959,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/typing-jobs/:id", async (req, res) => {
+  app.put("/api/typing-jobs/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const existingJob = await storage.getTypingJobById(id);
@@ -1996,7 +1987,7 @@ export async function registerRoutes(
   });
 
   // Typing Job Comments
-  app.post("/api/typing-jobs/:id/comments", async (req, res) => {
+  app.post("/api/typing-jobs/:id/comments", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const comment = await storage.createTypingJobComment({
@@ -2035,7 +2026,7 @@ export async function registerRoutes(
   });
 
   // Submit typing job to vendor
-  app.post("/api/typing-jobs/:id/submit-to-vendor", async (req, res) => {
+  app.post("/api/typing-jobs/:id/submit-to-vendor", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { vendorId } = req.body;
@@ -2070,18 +2061,7 @@ export async function registerRoutes(
         });
       }
       
-      // Deduct from vendor wallet
-      if (cost > 0) {
-        await storage.createWalletEntry({
-          vendorId,
-          entryType: "Debit",
-          typingJobId: id,
-          amount: -cost,
-          note: `Job submission: ${job.id}`,
-        });
-      }
-      
-      // Update job with vendor assignment and status
+      // Update job with vendor assignment and status (wallet deduction happens at approval after vendor completes)
       const updatedJob = await storage.updateTypingJob(id, {
         vendorId,
         status: "SentToVendor",
@@ -2113,7 +2093,7 @@ export async function registerRoutes(
   });
 
   // Resubmit typing job to vendor
-  app.post("/api/typing-jobs/:id/resubmit", async (req, res) => {
+  app.post("/api/typing-jobs/:id/resubmit", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       
@@ -2145,7 +2125,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/typing-jobs/:id/on-hold", async (req, res) => {
+  app.post("/api/typing-jobs/:id/on-hold", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { reason } = req.body;
@@ -2187,7 +2167,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/typing-jobs/:id/resume", async (req, res) => {
+  app.post("/api/typing-jobs/:id/resume", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       
@@ -2227,7 +2207,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/typing-jobs/:id/abort", async (req, res) => {
+  app.post("/api/typing-jobs/:id/abort", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { reason } = req.body;
@@ -2269,13 +2249,17 @@ export async function registerRoutes(
   });
 
   // Deliver typing job to client
-  app.post("/api/typing-jobs/:id/deliver-to-client", async (req, res) => {
+  app.post("/api/typing-jobs/:id/deliver-to-client", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       
       const job = await storage.getTypingJobById(id);
       if (!job) {
         return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      if (job.status !== "Returned") {
+        return res.status(400).json({ message: "Only returned jobs can be delivered to client" });
       }
       
       // Update job status
@@ -2311,7 +2295,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/files", async (req, res) => {
+  app.post("/api/files", requireAuth, async (req, res) => {
     try {
       const file = await storage.createFile(req.body);
       
@@ -2335,7 +2319,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/files/:id", async (req, res) => {
+  app.delete("/api/files/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteFile(id);
@@ -2347,7 +2331,7 @@ export async function registerRoutes(
   });
 
   // ========== Vendor Wallet ==========
-  app.get("/api/vendor-wallet/summary", async (req, res) => {
+  app.get("/api/vendor-wallet/summary", requireAuth, async (req, res) => {
     try {
       const vendorId = req.query.vendorId as string;
       if (!vendorId) {
@@ -2375,7 +2359,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendor-wallet/ledger", async (req, res) => {
+  app.get("/api/vendor-wallet/ledger", requireAuth, async (req, res) => {
     try {
       const vendorId = req.query.vendorId as string;
       if (!vendorId) {
@@ -2390,7 +2374,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vendor-wallet/topup", async (req, res) => {
+  app.post("/api/vendor-wallet/topup", requireAuth, async (req, res) => {
     try {
       const validation = validateBody(topupSchema, req.body);
       if ('error' in validation) {
@@ -2882,6 +2866,7 @@ export async function registerRoutes(
     password: z.string().min(4),
     role: z.string(),
     staffId: z.string().optional(),
+    vendorId: z.string().optional(),
   });
 
   app.post("/api/users", requireRole("Admin"), async (req, res) => {
@@ -2891,7 +2876,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: validation.error });
       }
 
-      const { name, email, password, role, staffId } = validation.data;
+      const { name, email, password, role, staffId, vendorId } = validation.data;
       
       const existing = await storage.getUserByEmail(email);
       if (existing) {
@@ -2905,6 +2890,7 @@ export async function registerRoutes(
         passwordHash,
         role: role as any,
         staffId: staffId || null,
+        vendorId: vendorId || null,
         active: true,
       });
 
@@ -2925,13 +2911,14 @@ export async function registerRoutes(
   app.patch("/api/users/:id", requireRole("Admin"), async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, email, password, role, staffId, active } = req.body;
+      const { name, email, password, role, staffId, vendorId, active } = req.body;
 
       const updateData: any = {};
       if (name !== undefined) updateData.name = name;
       if (email !== undefined) updateData.email = email;
       if (role !== undefined) updateData.role = role;
       if (staffId !== undefined) updateData.staffId = staffId;
+      if (vendorId !== undefined) updateData.vendorId = vendorId;
       if (active !== undefined) updateData.active = active;
       if (password) {
         updateData.passwordHash = await bcrypt.hash(password, 10);
@@ -3661,7 +3648,7 @@ export async function registerRoutes(
   });
 
   // ========== Work Order Documents ==========
-  app.get("/api/work-orders/:id/documents", async (req, res) => {
+  app.get("/api/work-orders/:id/documents", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const documents = await storage.getWoDocuments(id);
@@ -3672,7 +3659,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/work-orders/:id/documents", async (req, res) => {
+  app.post("/api/work-orders/:id/documents", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { documentType, fileName, fileUrl, mimeType, fileSize } = req.body;
@@ -3705,7 +3692,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/documents/:id/status", async (req, res) => {
+  app.put("/api/documents/:id/status", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -3733,7 +3720,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/documents/:id", async (req, res) => {
+  app.delete("/api/documents/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const document = await storage.getWoDocumentById(id);
@@ -4389,8 +4376,8 @@ export async function registerRoutes(
           vendorId: approvalRecord.vendorId,
           entryType: "Debit",
           typingJobId: approvalRecord.typingJobId,
-          amount: finalAmount,
-          note: `Job completed - auto deduction`,
+          amount: -finalAmount,
+          note: `Job completed - deduction for ${approvalRecord.typingJobId}`,
           createdBy: (req as any).session.userId,
         });
       }

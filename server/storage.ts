@@ -660,15 +660,7 @@ export class DatabaseStorage implements IStorage {
   // Vendor Wallet
   async getWalletBalance(vendorId: string): Promise<number> {
     const entries = await db.select().from(vendorWalletLedger).where(eq(vendorWalletLedger.vendorId, vendorId));
-    
-    return entries.reduce((balance, entry) => {
-      if (entry.entryType === "Topup" || entry.entryType === "Reversal") {
-        return balance + entry.amount;
-      } else if (entry.entryType === "Debit") {
-        return balance - entry.amount;
-      }
-      return balance;
-    }, 0);
+    return entries.reduce((balance, entry) => balance + entry.amount, 0);
   }
 
   async getWalletLedger(vendorId: string): Promise<VendorWalletLedger[]> {

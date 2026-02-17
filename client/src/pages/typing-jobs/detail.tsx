@@ -744,9 +744,13 @@ export default function TypingJobDetail() {
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="text-sm truncate">{file.fileName}</span>
                           </div>
-                          <Button variant="ghost" size="icon" className="shrink-0">
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
+                          {file.workdriveLink && (
+                            <a href={`/api/objects/${encodeURIComponent(file.workdriveLink)}`} target="_blank" rel="noopener noreferrer">
+                              <Button variant="ghost" size="icon" className="shrink-0" data-testid={`button-download-input-${file.id}`}>
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                            </a>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -779,9 +783,13 @@ export default function TypingJobDetail() {
                             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
                             <span className="text-sm truncate">{file.fileName}</span>
                           </div>
-                          <Button variant="ghost" size="icon" className="shrink-0">
-                            <Download className="h-3.5 w-3.5" />
-                          </Button>
+                          {file.workdriveLink && (
+                            <a href={`/api/objects/${encodeURIComponent(file.workdriveLink)}`} target="_blank" rel="noopener noreferrer">
+                              <Button variant="ghost" size="icon" className="shrink-0" data-testid={`button-download-output-${file.id}`}>
+                                <Download className="h-3.5 w-3.5" />
+                              </Button>
+                            </a>
+                          )}
                         </div>
                       ))}
                     </div>
