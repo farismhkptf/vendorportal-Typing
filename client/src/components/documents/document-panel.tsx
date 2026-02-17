@@ -215,7 +215,7 @@ export function DocumentPanel({
             {documents
               .filter((d) => !documentTypesToShow.includes(d.documentType as DocumentType))
               .map((doc) => {
-                const fileUrl = doc.fileUrl ? `/api/objects/${encodeURIComponent(doc.fileUrl)}` : "";
+                const fileUrl = doc.fileUrl || "";
                 const isImage = doc.mimeType?.startsWith("image/") || doc.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
                 const isPdf = doc.mimeType === "application/pdf" || doc.fileName?.match(/\.pdf$/i);
                 return (

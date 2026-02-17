@@ -736,7 +736,7 @@ export default function TypingJobDetail() {
                   {inputFiles.length > 0 ? (
                     <div className="space-y-2">
                       {inputFiles.map((file) => {
-                        const fileUrl = file.workdriveLink ? `/api/objects/${encodeURIComponent(file.workdriveLink)}` : "";
+                        const fileUrl = file.workdriveLink || "";
                         const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
                         const isPdf = file.fileName?.match(/\.pdf$/i);
                         return (
@@ -792,7 +792,7 @@ export default function TypingJobDetail() {
                   {outputFiles.length > 0 ? (
                     <div className="space-y-2">
                       {outputFiles.map((file) => {
-                        const fileUrl = file.workdriveLink ? `/api/objects/${encodeURIComponent(file.workdriveLink)}` : "";
+                        const fileUrl = file.workdriveLink || "";
                         const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
                         const isPdf = file.fileName?.match(/\.pdf$/i);
                         return (

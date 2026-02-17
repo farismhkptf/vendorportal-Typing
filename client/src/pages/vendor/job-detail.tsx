@@ -70,6 +70,9 @@ export default function VendorJobDetail() {
   const [showResubmissionDialog, setShowResubmissionDialog] = useState(false);
   const [resubmissionDocs, setResubmissionDocs] = useState<string[]>([]);
   const [resubmissionRemarks, setResubmissionRemarks] = useState("");
+  const [resubmissionScreenshotUrl, setResubmissionScreenshotUrl] = useState("");
+  const [resubmissionScreenshotName, setResubmissionScreenshotName] = useState("");
+  const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [bioRequired, setBioRequired] = useState(false);
@@ -195,7 +198,7 @@ export default function VendorJobDetail() {
   });
 
   const resubmissionMutation = useMutation({
-    mutationFn: async (data: { documentTypes: string[]; remarks: string }) => {
+    mutationFn: async (data: { documentTypes: string[]; remarks: string; screenshotUrl?: string; screenshotName?: string }) => {
       return apiRequest("POST", `/api/vendor/jobs/${id}/resubmission`, data);
     },
     onSuccess: () => {
@@ -204,12 +207,39 @@ export default function VendorJobDetail() {
       setShowResubmissionDialog(false);
       setResubmissionDocs([]);
       setResubmissionRemarks("");
+      setResubmissionScreenshotUrl("");
+      setResubmissionScreenshotName("");
       toast({ title: "Resubmission request sent" });
     },
     onError: (error: Error) => {
       toast({ title: error.message || "Failed to send resubmission request", variant: "destructive" });
     },
   });
+
+  const handleScreenshotUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingScreenshot(true);
+    try {
+      const res = await fetch("/api/uploads/request-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      });
+      const data = await res.json();
+      await fetch(data.uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      setResubmissionScreenshotUrl(data.objectPath);
+      setResubmissionScreenshotName(file.name);
+    } catch {
+      toast({ title: "Failed to upload screenshot", variant: "destructive" });
+    } finally {
+      setUploadingScreenshot(false);
+    }
+  };
 
   const rejectMutation = useMutation({
     mutationFn: async (reason: string) => {
@@ -485,7 +515,7 @@ export default function VendorJobDetail() {
               <div className="space-y-2">
                 {job.documentRequirements.map((req) => {
                   const uploaded = job.woDocuments?.find(d => d.documentType === req.documentType);
-                  const docUrl = uploaded?.fileUrl ? `/api/objects/${encodeURIComponent(uploaded.fileUrl)}` : "";
+                  const docUrl = uploaded?.fileUrl || "";
                   const isImage = uploaded?.mimeType?.startsWith("image/");
                   return (
                     <div key={req.id} className="p-3 rounded-lg bg-muted/50" data-testid={`doc-req-${req.documentType}`}>
@@ -631,7 +661,7 @@ export default function VendorJobDetail() {
                 {inputFiles.length > 0 ? (
                   <div className="space-y-2">
                     {inputFiles.map(file => {
-                      const fileUrl = file.workdriveLink ? `/api/objects/${encodeURIComponent(file.workdriveLink)}` : "";
+                      const fileUrl = file.workdriveLink || "";
                       const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
                       const isPdf = file.fileName?.match(/\.pdf$/i);
                       return (
@@ -693,7 +723,7 @@ export default function VendorJobDetail() {
                 {outputFiles.length > 0 && (
                   <div className="space-y-2 mb-4">
                     {outputFiles.map(file => {
-                      const fileUrl = file.workdriveLink ? `/api/objects/${encodeURIComponent(file.workdriveLink)}` : "";
+                      const fileUrl = file.workdriveLink || "";
                       const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
                       const isPdf = file.fileName?.match(/\.pdf$/i);
                       return (
@@ -804,35 +834,63 @@ export default function VendorJobDetail() {
         </Tabs>
       </div>
 
-      <Dialog open={showResubmissionDialog} onOpenChange={setShowResubmissionDialog}>
+      <Dialog open={showResubmissionDialog} onOpenChange={(open) => {
+        setShowResubmissionDialog(open);
+        if (!open) {
+          setResubmissionDocs([]);
+          setResubmissionRemarks("");
+          setResubmissionScreenshotUrl("");
+          setResubmissionScreenshotName("");
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Request Document Resubmission</DialogTitle>
-            <DialogDescription>Select which documents need to be resubmitted and provide details.</DialogDescription>
+            <DialogDescription>Select which uploaded documents need to be changed and explain what needs to be corrected.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="text-sm font-medium">Documents to Resubmit</p>
-              {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
-                <div key={key} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`doc-${key}`}
-                    checked={resubmissionDocs.includes(key)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setResubmissionDocs(prev => [...prev, key]);
-                      } else {
-                        setResubmissionDocs(prev => prev.filter(d => d !== key));
-                      }
-                    }}
-                    data-testid={`checkbox-doc-${key}`}
-                  />
-                  <label htmlFor={`doc-${key}`} className="text-sm">{label}</label>
-                </div>
-              ))}
+              <p className="text-sm font-medium">Which documents need to be changed?</p>
+              {job && job.woDocuments && job.woDocuments.length > 0 ? (
+                job.woDocuments.map((doc) => {
+                  const label = DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType;
+                  const isImage = doc.mimeType?.startsWith("image/");
+                  return (
+                    <div key={doc.id} className="flex items-center gap-3 p-2 rounded-lg hover-elevate">
+                      <Checkbox
+                        id={`resub-doc-${doc.id}`}
+                        checked={resubmissionDocs.includes(doc.documentType)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setResubmissionDocs(prev => prev.includes(doc.documentType) ? prev : [...prev, doc.documentType]);
+                          } else {
+                            setResubmissionDocs(prev => prev.filter(d => d !== doc.documentType));
+                          }
+                        }}
+                        data-testid={`checkbox-doc-${doc.documentType}`}
+                      />
+                      <label htmlFor={`resub-doc-${doc.id}`} className="flex items-center gap-2 text-sm cursor-pointer flex-1 min-w-0">
+                        {isImage && doc.fileUrl ? (
+                          <img src={doc.fileUrl} alt={doc.fileName} className="h-8 w-8 rounded object-cover border shrink-0" />
+                        ) : (
+                          <div className="h-8 w-8 rounded border flex items-center justify-center bg-red-50 dark:bg-red-900/20 shrink-0">
+                            <FileText className="h-4 w-4 text-red-500" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{label}</p>
+                          <p className="text-xs text-muted-foreground truncate">{doc.fileName}</p>
+                        </div>
+                      </label>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-sm text-muted-foreground">No documents uploaded for this job yet.</p>
+              )}
             </div>
             <div className="space-y-2">
-              <p className="text-sm font-medium">Remarks</p>
+              <p className="text-sm font-medium">Reason for resubmission</p>
               <Textarea
                 value={resubmissionRemarks}
                 onChange={(e) => setResubmissionRemarks(e.target.value)}
@@ -841,12 +899,52 @@ export default function VendorJobDetail() {
                 data-testid="input-resubmission-remarks"
               />
             </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Attach screenshot <span className="text-muted-foreground font-normal">(optional)</span></p>
+              {resubmissionScreenshotUrl ? (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                  <img src={resubmissionScreenshotUrl} alt="Screenshot" className="h-12 w-12 rounded object-cover border shrink-0" />
+                  <span className="text-sm truncate flex-1">{resubmissionScreenshotName}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => { setResubmissionScreenshotUrl(""); setResubmissionScreenshotName(""); }}
+                    data-testid="button-remove-screenshot"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleScreenshotUpload}
+                    className="hidden"
+                    id="screenshot-upload"
+                    data-testid="input-screenshot-upload"
+                  />
+                  <label htmlFor="screenshot-upload">
+                    <Button variant="outline" asChild disabled={uploadingScreenshot}>
+                      <span className="gap-2 cursor-pointer">
+                        <Upload className="h-4 w-4" />
+                        {uploadingScreenshot ? "Uploading..." : "Choose file"}
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+              )}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowResubmissionDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowResubmissionDialog(false)} data-testid="button-cancel-resubmission">Cancel</Button>
             <Button
-              onClick={() => resubmissionMutation.mutate({ documentTypes: resubmissionDocs, remarks: resubmissionRemarks })}
-              disabled={resubmissionDocs.length === 0 || !resubmissionRemarks.trim() || resubmissionMutation.isPending}
+              onClick={() => resubmissionMutation.mutate({ 
+                documentTypes: resubmissionDocs, 
+                remarks: resubmissionRemarks,
+                ...(resubmissionScreenshotUrl ? { screenshotUrl: resubmissionScreenshotUrl, screenshotName: resubmissionScreenshotName } : {})
+              })}
+              disabled={resubmissionDocs.length === 0 || !resubmissionRemarks.trim() || resubmissionMutation.isPending || uploadingScreenshot}
               data-testid="button-confirm-resubmission"
             >
               {resubmissionMutation.isPending ? "Sending..." : "Send Request"}

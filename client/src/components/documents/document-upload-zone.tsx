@@ -94,7 +94,7 @@ export function DocumentUploadZone({
 
   const isImage = existingDoc?.mimeType?.startsWith("image/");
   const isPdf = existingDoc?.mimeType === "application/pdf";
-  const fileProxyUrl = existingDoc?.fileUrl ? `/api/objects/${encodeURIComponent(existingDoc.fileUrl)}` : "";
+  const fileProxyUrl = existingDoc?.fileUrl || "";
   const label = DOCUMENT_TYPE_LABELS[documentType] || documentType;
 
   return (

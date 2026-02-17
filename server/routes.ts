@@ -3485,6 +3485,8 @@ export async function registerRoutes(
   const resubmissionSchema = z.object({
     documentTypes: z.array(z.string()).min(1, "Select at least one document"),
     remarks: z.string().min(1, "Remarks are required"),
+    screenshotUrl: z.string().optional(),
+    screenshotName: z.string().optional(),
   });
 
   app.post("/api/vendor/jobs/:id/resubmission", requireVendorAuth, async (req, res) => {
@@ -3501,21 +3503,25 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      const { documentTypes, remarks } = validation.data;
+      const { documentTypes, remarks, screenshotUrl, screenshotName } = validation.data;
 
       await storage.updateTypingJob(jobId, { status: "WaitingForDocs" });
 
       const docLabels = documentTypes.join(", ");
+      let commentMessage = `Resubmission Required - Documents: ${docLabels}\nRemarks: ${remarks}`;
+      if (screenshotUrl) {
+        commentMessage += `\n[Screenshot: ${screenshotName || 'screenshot'}](${screenshotUrl})`;
+      }
       await storage.createTypingJobComment({
         typingJobId: jobId,
         authorType: "Vendor",
-        message: `Resubmission Required - Documents: ${docLabels}\nRemarks: ${remarks}`,
+        message: commentMessage,
       });
 
       await storage.createAuditLog({
         entityType: "typing_job", entityId: jobId,
         action: "vendor_resubmission_requested",
-        details: { documentTypes, remarks, vendorUserId: req.session.vendorUserId },
+        details: { documentTypes, remarks, screenshotUrl, vendorUserId: req.session.vendorUserId },
       });
 
       res.json({ message: "Resubmission request sent" });
