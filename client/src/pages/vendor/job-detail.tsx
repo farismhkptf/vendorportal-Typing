@@ -485,28 +485,48 @@ export default function VendorJobDetail() {
               <div className="space-y-2">
                 {job.documentRequirements.map((req) => {
                   const uploaded = job.woDocuments?.find(d => d.documentType === req.documentType);
+                  const docUrl = uploaded?.fileUrl ? `/api/objects/${encodeURIComponent(uploaded.fileUrl)}` : "";
+                  const isImage = uploaded?.mimeType?.startsWith("image/");
                   return (
-                    <div key={req.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50" data-testid={`doc-req-${req.documentType}`}>
-                      <div className="flex items-center gap-3">
-                        {uploaded ? (
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                        ) : (
-                          <Clock className="h-4 w-4 text-amber-500 shrink-0" />
-                        )}
-                        <span className="text-sm font-medium">
-                          {DOCUMENT_TYPE_LABELS[req.documentType] || req.documentType}
-                        </span>
+                    <div key={req.id} className="p-3 rounded-lg bg-muted/50" data-testid={`doc-req-${req.documentType}`}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          {uploaded ? (
+                            <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                          ) : (
+                            <Clock className="h-4 w-4 text-amber-500 shrink-0" />
+                          )}
+                          <span className="text-sm font-medium">
+                            {DOCUMENT_TYPE_LABELS[req.documentType] || req.documentType}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {req.isRequired ? (
+                            <Badge variant="secondary" className="text-xs">Required</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs">Optional</Badge>
+                          )}
+                          {uploaded && (
+                            <Badge variant="secondary" className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Uploaded</Badge>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {req.isRequired ? (
-                          <Badge variant="secondary" className="text-xs">Required</Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-xs">Optional</Badge>
-                        )}
-                        {uploaded && (
-                          <Badge variant="secondary" className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Uploaded</Badge>
-                        )}
-                      </div>
+                      {uploaded && docUrl && (
+                        <a href={docUrl} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center gap-3 p-2 rounded-md hover-elevate cursor-pointer" data-testid={`doc-preview-${req.documentType}`}>
+                          {isImage ? (
+                            <img src={docUrl} alt={uploaded.fileName} className="h-12 w-12 rounded object-cover border shrink-0" />
+                          ) : (
+                            <div className="h-12 w-12 rounded border flex items-center justify-center bg-red-50 dark:bg-red-900/20 shrink-0">
+                              <FileText className="h-6 w-6 text-red-500" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm truncate">{uploaded.fileName}</p>
+                            <p className="text-xs text-muted-foreground">{uploaded.fileSize ? `${(uploaded.fileSize / 1024).toFixed(1)} KB` : "View document"}</p>
+                          </div>
+                          <Download className="h-4 w-4 text-muted-foreground shrink-0" />
+                        </a>
+                      )}
                     </div>
                   );
                 })}
