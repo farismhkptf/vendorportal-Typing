@@ -551,6 +551,121 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/dashboard/stale-jobs", async (req, res) => {
+    try {
+      const now = Date.now();
+      const [sentToVendorJobs, waitingForDocsJobs, inProgressJobs, allJobTypes] = await Promise.all([
+        storage.getTypingJobs("SentToVendor"),
+        storage.getTypingJobs("WaitingForDocs"),
+        storage.getTypingJobs("InProgress"),
+        storage.getJobTypes(),
+      ]);
+
+      const enrichJob = async (job: typeof sentToVendorJobs[0]) => {
+        const wo = await storage.getWorkOrderById(job.woId);
+        return { wo, job };
+      };
+
+      const unacceptedOver24h = (await Promise.all(
+        sentToVendorJobs
+          .filter(j => j.sentAt && (now - new Date(j.sentAt).getTime()) > 24 * 3600000)
+          .map(enrichJob)
+      )).map(({ wo, job }) => ({
+        id: job.id,
+        jobCode: job.jobCode || "",
+        woNumber: wo?.woNumber || "N/A",
+        applicantName: wo?.applicantName || "N/A",
+        sentAt: job.sentAt,
+        hoursWaiting: Math.round((now - new Date(job.sentAt!).getTime()) / 3600000),
+      }));
+
+      const waitingForDocsOver48h = (await Promise.all(
+        waitingForDocsJobs
+          .filter(j => (now - new Date(j.createdAt).getTime()) > 48 * 3600000)
+          .map(enrichJob)
+      )).map(({ wo, job }) => ({
+        id: job.id,
+        jobCode: job.jobCode || "",
+        woNumber: wo?.woNumber || "N/A",
+        applicantName: wo?.applicantName || "N/A",
+        lastStatusChange: job.createdAt,
+        hoursWaiting: Math.round((now - new Date(job.createdAt).getTime()) / 3600000),
+      }));
+
+      const inProgressOver72h = (await Promise.all(
+        inProgressJobs
+          .filter(j => (now - new Date(j.createdAt).getTime()) > 72 * 3600000)
+          .map(enrichJob)
+      )).map(({ wo, job }) => ({
+        id: job.id,
+        jobCode: job.jobCode || "",
+        woNumber: wo?.woNumber || "N/A",
+        applicantName: wo?.applicantName || "N/A",
+        startedAt: job.createdAt,
+        hoursInProgress: Math.round((now - new Date(job.createdAt).getTime()) / 3600000),
+      }));
+
+      res.json({ unacceptedOver24h, waitingForDocsOver48h, inProgressOver72h });
+    } catch (error) {
+      console.error("Dashboard stale-jobs error:", error);
+      res.status(500).json({ message: "Failed to fetch stale jobs" });
+    }
+  });
+
+  app.get("/api/dashboard/expiring-documents", async (req, res) => {
+    try {
+      const now = Date.now();
+      const DAY_MS = 86400000;
+      const allJobTypes = await storage.getJobTypes();
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+
+      const [returnedJobs, sentToClientJobs] = await Promise.all([
+        storage.getTypingJobs("Returned"),
+        storage.getTypingJobs("SentToClient"),
+      ]);
+      const completedJobs = [...returnedJobs, ...sentToClientJobs];
+
+      const expiringMedical: Array<{ jobId: string; jobCode: string; woNumber: string; applicantName: string; completedAt: string; daysRemaining: number }> = [];
+      const expiringEid: Array<{ jobId: string; jobCode: string; woNumber: string; applicantName: string; completedAt: string; daysRemaining: number }> = [];
+
+      for (const job of completedJobs) {
+        const jt = jobTypeMap.get(job.jobTypeId);
+        if (!jt) continue;
+        const completedAt = job.sentToClientAt || job.returnedAt;
+        if (!completedAt) continue;
+        const completedTime = new Date(completedAt).getTime();
+        const daysSinceCompleted = (now - completedTime) / DAY_MS;
+
+        if (jt.category === "Medical" && daysSinceCompleted >= 25 && daysSinceCompleted <= 30) {
+          const wo = await storage.getWorkOrderById(job.woId);
+          expiringMedical.push({
+            jobId: job.id,
+            jobCode: job.jobCode || "",
+            woNumber: wo?.woNumber || "N/A",
+            applicantName: wo?.applicantName || "N/A",
+            completedAt: new Date(completedAt).toISOString(),
+            daysRemaining: Math.max(0, Math.round(30 - daysSinceCompleted)),
+          });
+        } else if (jt.category === "EID" && daysSinceCompleted >= 55 && daysSinceCompleted <= 60) {
+          const wo = await storage.getWorkOrderById(job.woId);
+          expiringEid.push({
+            jobId: job.id,
+            jobCode: job.jobCode || "",
+            woNumber: wo?.woNumber || "N/A",
+            applicantName: wo?.applicantName || "N/A",
+            completedAt: new Date(completedAt).toISOString(),
+            daysRemaining: Math.max(0, Math.round(60 - daysSinceCompleted)),
+          });
+        }
+      }
+
+      res.json({ expiringMedical, expiringEid });
+    } catch (error) {
+      console.error("Dashboard expiring-documents error:", error);
+      res.status(500).json({ message: "Failed to fetch expiring documents" });
+    }
+  });
+
   // ========== Work Orders ==========
   app.get("/api/work-orders", async (req, res) => {
     try {
@@ -3028,7 +3143,14 @@ export async function registerRoutes(
         })
       );
       
-      res.json({ stats, recentJobs });
+      const now12h = now - 12 * 3600000;
+      const now24h = now - 24 * 3600000;
+      const staleAlerts = {
+        unacceptedJobs: jobs.filter(j => j.status === "SentToVendor" && j.sentAt && new Date(j.sentAt).getTime() < now12h).length,
+        waitingForDocsJobs: jobs.filter(j => j.status === "WaitingForDocs" && new Date(j.createdAt).getTime() < now24h).length,
+      };
+
+      res.json({ stats, recentJobs, staleAlerts });
     } catch (error) {
       console.error("Vendor dashboard error:", error);
       res.status(500).json({ message: "Failed to fetch dashboard" });

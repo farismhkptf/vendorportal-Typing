@@ -1,11 +1,12 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, FileText, Wallet, LogOut, Bell } from "lucide-react";
+import { LayoutDashboard, FileText, Wallet, LogOut, Bell, WifiOff, Wifi } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVendorAuth } from "@/hooks/use-vendor-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { useOnlineStatus } from "@/hooks/use-online-status";
 import type { VendorNotification } from "@shared/schema";
 
 const navItems = [
@@ -17,6 +18,7 @@ const navItems = [
 export function VendorHeader() {
   const { user, logout } = useVendorAuth();
   const [location] = useLocation();
+  const { isOnline, showReconnected } = useOnlineStatus();
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/vendor/notifications/unread-count"],
@@ -50,7 +52,20 @@ export function VendorHeader() {
   const unreadCount = unreadData?.count || 0;
 
   return (
-    <header className="sticky top-0 z-30 glass border-b border-border/50">
+    <header className="sticky top-0 z-30">
+      {!isOnline && (
+        <div className="flex items-center justify-center gap-2 px-4 py-1.5 bg-amber-500/90 text-white text-xs font-medium" data-testid="banner-offline">
+          <WifiOff className="h-3.5 w-3.5" />
+          You're offline - showing cached data
+        </div>
+      )}
+      {showReconnected && isOnline && (
+        <div className="flex items-center justify-center gap-2 px-4 py-1.5 bg-emerald-500/90 text-white text-xs font-medium animate-in fade-in duration-300" data-testid="banner-reconnected">
+          <Wifi className="h-3.5 w-3.5" />
+          Back online
+        </div>
+      )}
+      <div className="glass border-b border-border/50">
       <div className="flex h-16 items-center justify-between gap-2 px-4 lg:px-8">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
@@ -140,6 +155,7 @@ export function VendorHeader() {
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
+      </div>
       </div>
     </header>
   );

@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { 
   FileText, Clock, CheckCircle2, AlertTriangle, 
-  ArrowRight, Calendar, Zap, TrendingUp, Wallet
+  ArrowRight, Calendar, Zap, TrendingUp, Wallet,
+  Info, Inbox, Play
 } from "lucide-react";
 import { formatDate } from "@/lib/format-date";
 import { useVendorAuth } from "@/hooks/use-vendor-auth";
@@ -25,6 +26,10 @@ interface DashboardData {
     todayPending: number;
   };
   recentJobs: Array<TypingJob & { workOrder?: WorkOrder; jobType?: JobType; urgent?: boolean; priority?: "urgent" | "today" | "standard" }>;
+  staleAlerts?: {
+    unacceptedJobs: number;
+    waitingForDocsJobs: number;
+  };
 }
 
 interface PerformanceData {
@@ -130,6 +135,7 @@ export default function VendorDashboard() {
 
   const stats = data?.stats;
   const recentJobs = data?.recentJobs || [];
+  const staleAlerts = data?.staleAlerts;
 
   return (
     <div className="min-h-screen bg-background">
@@ -147,6 +153,48 @@ export default function VendorDashboard() {
       </div>
 
       <div className="p-4 lg:p-8 space-y-6">
+        {staleAlerts && staleAlerts.unacceptedJobs > 0 && (
+          <Link href="/vendor/jobs">
+            <Card className="border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20 hover-elevate cursor-pointer" data-testid="alert-unaccepted-jobs">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-amber-100 dark:bg-amber-900/40 shrink-0">
+                    <AlertTriangle className="h-4.5 w-4.5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                      You have {staleAlerts.unacceptedJobs} {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} waiting for acceptance
+                    </p>
+                    <p className="text-xs text-amber-600/80 dark:text-amber-400/80 mt-0.5">These jobs have been pending for over 12 hours</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
+
+        {staleAlerts && staleAlerts.waitingForDocsJobs > 0 && (
+          <Link href="/vendor/jobs">
+            <Card className="border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20 hover-elevate cursor-pointer" data-testid="alert-waiting-docs-jobs">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg flex items-center justify-center bg-blue-100 dark:bg-blue-900/40 shrink-0">
+                    <Info className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                      {staleAlerts.waitingForDocsJobs} {staleAlerts.waitingForDocsJobs === 1 ? "job is" : "jobs are"} waiting for document resubmission
+                    </p>
+                    <p className="text-xs text-blue-600/80 dark:text-blue-400/80 mt-0.5">Documents have been pending for over 24 hours</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
+
         {isLoading ? (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -294,6 +342,33 @@ export default function VendorDashboard() {
           </>
         )}
       </div>
+
+      {!isLoading && stats && ((stats.pending || 0) > 0 || (stats.inProgress || 0) > 0) && (
+        <div className="fixed bottom-4 left-4 right-4 md:hidden z-20" data-testid="mobile-quick-actions">
+          <Card className="border border-border/50 shadow-lg">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2">
+                {(stats.pending || 0) > 0 && (
+                  <Link href="/vendor/jobs?status=SentToVendor" className="flex-1">
+                    <Button size="sm" className="w-full gap-1.5 bg-amber-600 text-white" data-testid="quick-action-to-accept">
+                      <Inbox className="h-3.5 w-3.5" />
+                      {stats.pending} to accept
+                    </Button>
+                  </Link>
+                )}
+                {(stats.inProgress || 0) > 0 && (
+                  <Link href="/vendor/jobs?status=InProgress" className="flex-1">
+                    <Button size="sm" variant="outline" className="w-full gap-1.5" data-testid="quick-action-in-progress">
+                      <Play className="h-3.5 w-3.5" />
+                      {stats.inProgress} in progress
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

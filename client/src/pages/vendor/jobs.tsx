@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, FileText, Filter, Calendar, Upload, MessageSquare, AlertTriangle, Zap } from "lucide-react";
+import { Search, FileText, Filter, Calendar, Upload, MessageSquare, AlertTriangle, Zap, CheckCircle2, Play, Loader2, ExternalLink } from "lucide-react";
 import { VendorHeader } from "@/components/vendor-header";
 import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import { DataTableRow } from "@/components/ui/data-table-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { TypingJob, WorkOrder, JobType } from "@shared/schema";
 
 interface VendorJob extends TypingJob {
@@ -26,9 +28,61 @@ interface VendorJob extends TypingJob {
 export default function VendorJobs() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const { toast } = useToast();
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   const { data: jobs, isLoading } = useQuery<VendorJob[]>({
     queryKey: ["/api/vendor/jobs", { status: statusFilter }],
+  });
+
+  const invalidateJobs = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
+  };
+
+  const acceptMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      setPendingAction(`accept-${jobId}`);
+      return apiRequest("POST", `/api/vendor/jobs/${jobId}/accept`);
+    },
+    onSuccess: () => {
+      toast({ title: "Job accepted", description: "Job has been moved to In Progress" });
+      invalidateJobs();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+    onSettled: () => setPendingAction(null),
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      setPendingAction(`complete-${jobId}`);
+      return apiRequest("POST", `/api/vendor/jobs/${jobId}/complete`);
+    },
+    onSuccess: () => {
+      toast({ title: "Job completed", description: "Job has been marked as done" });
+      invalidateJobs();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+    onSettled: () => setPendingAction(null),
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: async (jobId: number) => {
+      setPendingAction(`resume-${jobId}`);
+      return apiRequest("POST", `/api/vendor/jobs/${jobId}/resume`);
+    },
+    onSuccess: () => {
+      toast({ title: "Job resumed", description: "Job has been moved back to In Progress" });
+      invalidateJobs();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+    onSettled: () => setPendingAction(null),
   });
 
   const filteredJobs = jobs?.filter((job) => {
@@ -189,6 +243,56 @@ export default function VendorJobs() {
                         )}
                       </div>
                     </div>
+
+                    {(job.status === "SentToVendor" || job.status === "InProgress" || job.status === "WaitingForDocs") && (
+                      <div className="flex items-center gap-2 pt-3 border-t border-border/50 md:hidden" onClick={(e) => e.preventDefault()}>
+                        {job.status === "SentToVendor" && (
+                          <Button
+                            size="sm"
+                            className="flex-1 gap-1.5 bg-emerald-600 text-white"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
+                            disabled={pendingAction === `accept-${job.id}`}
+                            data-testid={`button-accept-job-${job.id}`}
+                          >
+                            {pendingAction === `accept-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            Accept
+                          </Button>
+                        )}
+                        {job.status === "InProgress" && (
+                          <>
+                            <Button
+                              size="sm"
+                              className="flex-1 gap-1.5 bg-emerald-600 text-white"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); completeMutation.mutate(job.id); }}
+                              disabled={pendingAction === `complete-${job.id}`}
+                              data-testid={`button-complete-job-${job.id}`}
+                            >
+                              {pendingAction === `complete-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                              Mark Done
+                            </Button>
+                            <Link href={`/vendor/jobs/${job.id}`} onClick={(e: any) => e.stopPropagation()}>
+                              <Button size="sm" variant="outline" className="gap-1.5" data-testid={`button-request-docs-${job.id}`}>
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                Request Docs
+                              </Button>
+                            </Link>
+                          </>
+                        )}
+                        {job.status === "WaitingForDocs" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex-1 gap-1.5"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); resumeMutation.mutate(job.id); }}
+                            disabled={pendingAction === `resume-${job.id}`}
+                            data-testid={`button-resume-job-${job.id}`}
+                          >
+                            {pendingAction === `resume-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                            Resume
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </DataTableRow>
               </Link>
