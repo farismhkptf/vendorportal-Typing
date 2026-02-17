@@ -866,6 +866,12 @@ export async function registerRoutes(
         applicantName: toProperCase(validation.data.applicantName),
         status: "Draft",
       });
+      await storage.createAuditLog({
+        entityType: "work_order",
+        entityId: wo.id,
+        action: "created",
+        details: { woNumber: wo.woNumber },
+      });
       
       // Auto-create Medical and EID typing jobs for the new work order
       try {
@@ -4300,13 +4306,19 @@ export async function registerRoutes(
 
           const validServiceTypeId = serviceTypeId && serviceTypeIds.has(serviceTypeId) ? serviceTypeId : undefined;
 
-          await storage.createWorkOrder({
+          const newWo = await storage.createWorkOrder({
             woNumber,
             applicantName: toProperCase(staffName),
             companyId,
             serviceTypeId: validServiceTypeId,
             status: "Draft",
             notes: designation ? `Designation: ${designation}` : undefined,
+          });
+          await storage.createAuditLog({
+            entityType: "work_order",
+            entityId: newWo.id,
+            action: "created",
+            details: { source: "gsheet_import", woNumber },
           });
           imported++;
         } catch (err: any) {
