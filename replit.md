@@ -34,7 +34,7 @@ The design adopts an Apple-inspired glassmorphism aesthetic with soft gradients,
 
 -   **Work Order Management**: Unique WO numbers, applicant details, company linking.
 -   **Appointment Scheduling**: Dedicated scheduling pages for Medical and Emirates ID, featuring a multi-step wizard or quick mode, center filtering, application number auto-fill from typing jobs, preferred center detection, and generation of HTML email templates/WhatsApp messages. Includes robust handling for scheduling conflicts, rescheduling, and status updates.
--   **Typing Job Workflow**: Auto-creation of Medical/EID jobs, vendor assignment, wallet deductions, and status tracking (Draft, SentToVendor, Returned, SentToClient) with unique job codes.
+-   **Typing Job Workflow**: Auto-creation of Medical/EID jobs, vendor assignment, wallet deductions, and status tracking (Draft, SentToVendor, InProgress, WaitingForDocs, Returned, SentToClient, OnHold, Rejected, Cancelled, VendorMistake) with unique job codes. Team actions: Submit, Resubmit (from WaitingForDocs), On Hold, Resume, Abort, Deliver to Client, Re-assign. Vendor actions: Accept, Request Resubmission, Complete, Reject.
 -   **Vendor Management**: CRUD operations for vendors, a vendor wallet ledger with advance top-ups, auto-deductions, and reversals.
 -   **Document Management**: Supports presigned URL upload flows to object storage, document status updates, and context-based filtering of requirements.
 -   **Input Formatting**: `Proper Case` auto-formatting for textual inputs and phone number masking.

@@ -64,7 +64,8 @@ export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", 
 export const rescheduleStatusEnum = pgEnum("reschedule_status", ["New", "Accepted", "Closed"]);
 export const typingJobStatusEnum = pgEnum("typing_job_status", [
   "Draft", "SentToVendor", "InProgress", "WaitingForDocs", 
-  "Returned", "SentToClient", "VendorMistake", "Cancelled"
+  "Returned", "SentToClient", "VendorMistake", "Cancelled",
+  "OnHold", "Rejected"
 ]);
 export const jobCategoryEnum = pgEnum("job_category", ["Medical", "EID"]);
 export const fileDirectionEnum = pgEnum("file_direction", ["Input", "Output"]);
@@ -317,6 +318,8 @@ export const typingJobs = pgTable("typing_jobs", {
   vendorMistakeAt: timestamp("vendor_mistake_at"),
   vendorMistakeReason: text("vendor_mistake_reason"),
   createdBy: varchar("created_by"),
+  previousStatus: typingJobStatusEnum("previous_status"),
+  rejectedReason: text("rejected_reason"),
   urgent: boolean("urgent").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

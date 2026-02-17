@@ -75,26 +75,14 @@ export default function TypingJobDetail() {
   
   // Dialog states
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
-  const [showReceivedDialog, setShowReceivedDialog] = useState(false);
-  const [showReturnedDialog, setShowReturnedDialog] = useState(false);
+  const [showOnHoldDialog, setShowOnHoldDialog] = useState(false);
+  const [showAbortDialog, setShowAbortDialog] = useState(false);
   
   // Submit to vendor form
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   
-  // Mark received form
-  const [receivedForm, setReceivedForm] = useState({
-    applicationRefNo: "",
-    centerName: "",
-    centerArea: "",
-    centerNotes: "",
-    biometricsRequired: false,
-    biometricsDatetime: "",
-    biometricsCenter: "",
-    vendorNotes: "",
-  });
-  
-  // Return reason
-  const [returnReason, setReturnReason] = useState("");
+  const [onHoldReason, setOnHoldReason] = useState("");
+  const [abortReason, setAbortReason] = useState("");
   
   // Reassign state
   const [showReassignDialog, setShowReassignDialog] = useState(false);
@@ -139,42 +127,46 @@ export default function TypingJobDetail() {
     },
   });
   
-  const markReceivedMutation = useMutation({
+  const onHoldMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/typing-jobs/${id}/mark-received`, receivedForm);
+      return apiRequest("POST", `/api/typing-jobs/${id}/on-hold`, { reason: onHoldReason });
     },
     onSuccess: () => {
       invalidateTypingJobQueries();
-      setShowReceivedDialog(false);
-      setReceivedForm({
-        applicationRefNo: "",
-        centerName: "",
-        centerArea: "",
-        centerNotes: "",
-        biometricsRequired: false,
-        biometricsDatetime: "",
-        biometricsCenter: "",
-        vendorNotes: "",
-      });
-      toast({ title: "Job marked as received" });
+      setShowOnHoldDialog(false);
+      setOnHoldReason("");
+      toast({ title: "Job put on hold" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to mark received", description: error.message, variant: "destructive" });
+      toast({ title: "Failed to put on hold", description: error.message, variant: "destructive" });
     },
   });
-  
-  const markReturnedMutation = useMutation({
+
+  const resumeMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/typing-jobs/${id}/mark-returned`, { reason: returnReason });
+      return apiRequest("POST", `/api/typing-jobs/${id}/resume`, {});
     },
     onSuccess: () => {
       invalidateTypingJobQueries();
-      setShowReturnedDialog(false);
-      setReturnReason("");
-      toast({ title: "Job marked as returned" });
+      toast({ title: "Job resumed" });
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to mark returned", description: error.message, variant: "destructive" });
+      toast({ title: "Failed to resume job", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const abortMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/typing-jobs/${id}/abort`, { reason: abortReason });
+    },
+    onSuccess: () => {
+      invalidateTypingJobQueries();
+      setShowAbortDialog(false);
+      setAbortReason("");
+      toast({ title: "Job aborted" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to abort job", description: error.message, variant: "destructive" });
     },
   });
   
@@ -399,31 +391,7 @@ export default function TypingJobDetail() {
                 </Button>
               )}
               
-              {(job.status === "SentToVendor" || job.status === "InProgress") && (
-                <>
-                  <Button 
-                    size="sm" 
-                    className="gap-2"
-                    onClick={() => setShowReceivedDialog(true)}
-                    data-testid="button-mark-received"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    Mark Received
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2"
-                    onClick={() => setShowReturnedDialog(true)}
-                    data-testid="button-mark-returned"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Mark Returned
-                  </Button>
-                </>
-              )}
-              
-              {job.status === "Returned" && (
+              {job.status === "WaitingForDocs" && (
                 <Button 
                   size="sm" 
                   className="gap-2"
@@ -440,7 +408,7 @@ export default function TypingJobDetail() {
                 </Button>
               )}
               
-              {job.status === "WaitingForDocs" && (
+              {job.status === "Returned" && (
                 <Button 
                   size="sm" 
                   className="gap-2"
@@ -456,6 +424,49 @@ export default function TypingJobDetail() {
                   Deliver to Client
                 </Button>
               )}
+
+              {job.status === "OnHold" && (
+                <Button 
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => resumeMutation.mutate()}
+                  disabled={resumeMutation.isPending}
+                  data-testid="button-resume"
+                >
+                  {resumeMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RotateCcw className="h-4 w-4" />
+                  )}
+                  Resume Job
+                </Button>
+              )}
+              
+              {["SentToVendor", "InProgress", "WaitingForDocs"].includes(job.status) && (
+                <Button 
+                  variant="outline"
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setShowOnHoldDialog(true)}
+                  data-testid="button-on-hold"
+                >
+                  <Clock className="h-4 w-4" />
+                  On Hold
+                </Button>
+              )}
+
+              {["Draft", "SentToVendor", "InProgress", "WaitingForDocs", "OnHold"].includes(job.status) && (
+                <Button 
+                  variant="destructive"
+                  size="sm" 
+                  className="gap-2"
+                  onClick={() => setShowAbortDialog(true)}
+                  data-testid="button-abort"
+                >
+                  <AlertCircle className="h-4 w-4" />
+                  Abort
+                </Button>
+              )}
               
               {job.status === "SentToClient" && (
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
@@ -464,10 +475,13 @@ export default function TypingJobDetail() {
                 </Badge>
               )}
               
-              {job.status === "Cancelled" && (
+              {(job.status === "Cancelled" || job.status === "Rejected") && (
                 <>
-                  <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">
-                    Job Cancelled
+                  <Badge variant="outline" className={job.status === "Rejected" 
+                    ? "bg-orange-50 text-orange-700 border-orange-200"
+                    : "bg-gray-50 text-gray-600 border-gray-200"
+                  }>
+                    {job.status === "Rejected" ? "Vendor Rejected" : "Job Cancelled"}
                   </Badge>
                   <Button
                     variant="outline"
@@ -914,112 +928,6 @@ export default function TypingJobDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Mark Received Dialog */}
-      <Dialog open={showReceivedDialog} onOpenChange={setShowReceivedDialog}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Mark as Received</DialogTitle>
-            <DialogDescription>
-              Enter the application details received from the vendor.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="space-y-2">
-              <Label>Application Reference No.</Label>
-              <Input 
-                value={receivedForm.applicationRefNo}
-                onChange={(e) => setReceivedForm(prev => ({ ...prev, applicationRefNo: e.target.value }))}
-                placeholder="e.g., APP-2024-12345"
-                data-testid="input-application-ref"
-              />
-            </div>
-            <div className="grid grid-cols-1 xs:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Center Name</Label>
-                <Input 
-                  value={receivedForm.centerName}
-                  onChange={(e) => setReceivedForm(prev => ({ ...prev, centerName: e.target.value }))}
-                  placeholder="Center name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Center Area</Label>
-                <Input 
-                  value={receivedForm.centerArea}
-                  onChange={(e) => setReceivedForm(prev => ({ ...prev, centerArea: e.target.value }))}
-                  placeholder="Area"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Center Notes</Label>
-              <Textarea 
-                value={receivedForm.centerNotes}
-                onChange={(e) => setReceivedForm(prev => ({ ...prev, centerNotes: e.target.value }))}
-                placeholder="Any notes about the center"
-                rows={2}
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="biometrics"
-                checked={receivedForm.biometricsRequired}
-                onCheckedChange={(checked) => setReceivedForm(prev => ({ ...prev, biometricsRequired: !!checked }))}
-              />
-              <Label htmlFor="biometrics" className="cursor-pointer">Biometrics Required</Label>
-            </div>
-            {receivedForm.biometricsRequired && (
-              <div className="grid grid-cols-1 xs:grid-cols-2 gap-4 pl-6">
-                <div className="space-y-2">
-                  <Label>Biometrics Date/Time</Label>
-                  <Input 
-                    type="datetime-local"
-                    value={receivedForm.biometricsDatetime}
-                    onChange={(e) => setReceivedForm(prev => ({ ...prev, biometricsDatetime: e.target.value }))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Biometrics Center</Label>
-                  <Input 
-                    value={receivedForm.biometricsCenter}
-                    onChange={(e) => setReceivedForm(prev => ({ ...prev, biometricsCenter: e.target.value }))}
-                    placeholder="Center name"
-                  />
-                </div>
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label>Vendor Notes</Label>
-              <Textarea 
-                value={receivedForm.vendorNotes}
-                onChange={(e) => setReceivedForm(prev => ({ ...prev, vendorNotes: e.target.value }))}
-                placeholder="Any additional notes from vendor"
-                rows={2}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowReceivedDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => markReceivedMutation.mutate()}
-              disabled={markReceivedMutation.isPending}
-              data-testid="button-confirm-received"
-            >
-              {markReceivedMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Saving...
-                </>
-              ) : (
-                "Mark as Received"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Re-assign Dialog */}
       <Dialog open={showReassignDialog} onOpenChange={setShowReassignDialog}>
         <DialogContent>
@@ -1053,43 +961,87 @@ export default function TypingJobDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Mark Returned Dialog */}
-      <Dialog open={showReturnedDialog} onOpenChange={setShowReturnedDialog}>
+      {/* On Hold Dialog */}
+      <Dialog open={showOnHoldDialog} onOpenChange={setShowOnHoldDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Mark as Returned</DialogTitle>
+            <DialogTitle>Put Job On Hold</DialogTitle>
             <DialogDescription>
-              The vendor needs additional documents. Enter the reason for return.
+              This will pause the job. You can resume it later to its current status.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Reason for Return</Label>
+              <Label>Reason (optional)</Label>
               <Textarea 
-                value={returnReason}
-                onChange={(e) => setReturnReason(e.target.value)}
-                placeholder="e.g., Missing passport copy, need updated visa photo..."
+                value={onHoldReason}
+                onChange={(e) => setOnHoldReason(e.target.value)}
+                placeholder="e.g., Waiting for client confirmation..."
                 rows={3}
-                data-testid="input-return-reason"
+                data-testid="input-on-hold-reason"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowReturnedDialog(false)}>
+            <Button variant="outline" onClick={() => setShowOnHoldDialog(false)}>
               Cancel
             </Button>
             <Button 
-              onClick={() => markReturnedMutation.mutate()}
-              disabled={markReturnedMutation.isPending}
-              data-testid="button-confirm-returned"
+              onClick={() => onHoldMutation.mutate()}
+              disabled={onHoldMutation.isPending}
+              data-testid="button-confirm-on-hold"
             >
-              {markReturnedMutation.isPending ? (
+              {onHoldMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Saving...
                 </>
               ) : (
-                "Mark as Returned"
+                "Put On Hold"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Abort Dialog */}
+      <Dialog open={showAbortDialog} onOpenChange={setShowAbortDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Abort Job</DialogTitle>
+            <DialogDescription>
+              This will cancel the job permanently. This action cannot be undone, but the job can be re-assigned to a vendor later.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Reason (optional)</Label>
+              <Textarea 
+                value={abortReason}
+                onChange={(e) => setAbortReason(e.target.value)}
+                placeholder="e.g., Client cancelled the request..."
+                rows={3}
+                data-testid="input-abort-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAbortDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => abortMutation.mutate()}
+              disabled={abortMutation.isPending}
+              data-testid="button-confirm-abort"
+            >
+              {abortMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Aborting...
+                </>
+              ) : (
+                "Abort Job"
               )}
             </Button>
           </DialogFooter>

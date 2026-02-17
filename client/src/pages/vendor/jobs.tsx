@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, FileText, Filter, Calendar, Upload, MessageSquare, AlertTriangle, Zap, CheckCircle2, Play, Loader2, ExternalLink } from "lucide-react";
+import { Search, FileText, Filter, Calendar, Upload, MessageSquare, AlertTriangle, Zap, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 import { VendorHeader } from "@/components/vendor-header";
 import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
@@ -70,21 +70,6 @@ export default function VendorJobs() {
     onSettled: () => setPendingAction(null),
   });
 
-  const resumeMutation = useMutation({
-    mutationFn: async (jobId: number) => {
-      setPendingAction(`resume-${jobId}`);
-      return apiRequest("POST", `/api/vendor/jobs/${jobId}/resume`);
-    },
-    onSuccess: () => {
-      toast({ title: "Job resumed", description: "Job has been moved back to In Progress" });
-      invalidateJobs();
-    },
-    onError: (err: Error) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    },
-    onSettled: () => setPendingAction(null),
-  });
-
   const filteredJobs = jobs?.filter((job) => {
     const matchesSearch = !search || 
       job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
@@ -137,6 +122,7 @@ export default function VendorJobs() {
               <SelectItem value="InProgress">In Progress</SelectItem>
               <SelectItem value="WaitingForDocs">Waiting for Docs</SelectItem>
               <SelectItem value="Returned">Returned</SelectItem>
+              <SelectItem value="Rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -279,17 +265,7 @@ export default function VendorJobs() {
                           </>
                         )}
                         {job.status === "WaitingForDocs" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 gap-1.5"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); resumeMutation.mutate(job.id); }}
-                            disabled={pendingAction === `resume-${job.id}`}
-                            data-testid={`button-resume-job-${job.id}`}
-                          >
-                            {pendingAction === `resume-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                            Resume
-                          </Button>
+                          <p className="text-xs text-muted-foreground">Waiting for team to resubmit</p>
                         )}
                       </div>
                     )}

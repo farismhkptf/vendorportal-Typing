@@ -70,8 +70,8 @@ export default function VendorJobDetail() {
   const [showResubmissionDialog, setShowResubmissionDialog] = useState(false);
   const [resubmissionDocs, setResubmissionDocs] = useState<string[]>([]);
   const [resubmissionRemarks, setResubmissionRemarks] = useState("");
-  const [showAbortDialog, setShowAbortDialog] = useState(false);
-  const [abortReason, setAbortReason] = useState("");
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
   const [bioRequired, setBioRequired] = useState(false);
   const [bioDate, setBioDate] = useState("");
   const [bioTime, setBioTime] = useState("");
@@ -211,20 +211,20 @@ export default function VendorJobDetail() {
     },
   });
 
-  const abortMutation = useMutation({
+  const rejectMutation = useMutation({
     mutationFn: async (reason: string) => {
-      return apiRequest("POST", `/api/vendor/jobs/${id}/abort`, { reason });
+      return apiRequest("POST", `/api/vendor/jobs/${id}/reject`, { reason });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
-      setShowAbortDialog(false);
-      setAbortReason("");
-      toast({ title: "Job aborted" });
+      setShowRejectDialog(false);
+      setRejectReason("");
+      toast({ title: "Job rejected" });
     },
     onError: (error: Error) => {
-      toast({ title: error.message || "Failed to abort job", variant: "destructive" });
+      toast({ title: error.message || "Failed to reject job", variant: "destructive" });
     },
   });
 
@@ -382,15 +382,26 @@ export default function VendorJobDetail() {
               <p className="text-sm font-medium">Actions</p>
 
               {job.status === "SentToVendor" && (
-                <Button
-                  onClick={() => acceptMutation.mutate()}
-                  disabled={acceptMutation.isPending}
-                  className="w-full sm:w-auto gap-2"
-                  data-testid="button-accept-job"
-                >
-                  <CheckCircle2 className="h-4 w-4" />
-                  {acceptMutation.isPending ? "Accepting..." : "Accept Job"}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => acceptMutation.mutate()}
+                    disabled={acceptMutation.isPending}
+                    className="gap-2"
+                    data-testid="button-accept-job"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {acceptMutation.isPending ? "Accepting..." : "Accept Job"}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowRejectDialog(true)}
+                    className="gap-2"
+                    data-testid="button-reject-job"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reject
+                  </Button>
+                </div>
               )}
 
               {job.status === "InProgress" && (
@@ -413,42 +424,16 @@ export default function VendorJobDetail() {
                     <RotateCcw className="h-4 w-4" />
                     Request Resubmission
                   </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowAbortDialog(true)}
-                    className="gap-2 text-destructive"
-                    data-testid="button-abort-job"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Abort
-                  </Button>
                 </div>
               )}
 
               {job.status === "WaitingForDocs" && (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => acceptMutation.mutate()}
-                    disabled={acceptMutation.isPending}
-                    className="gap-2"
-                    data-testid="button-resume-work"
-                  >
-                    <Zap className="h-4 w-4" />
-                    {acceptMutation.isPending ? "Resuming..." : "Resume Work"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowAbortDialog(true)}
-                    className="gap-2 text-destructive"
-                    data-testid="button-abort-job"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Abort
-                  </Button>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                  Waiting for the team to resubmit documents.
+                </p>
               )}
 
-              {(job.status === "Returned" || job.status === "SentToClient" || job.status === "Cancelled") && (
+              {(job.status === "Returned" || job.status === "SentToClient" || job.status === "Cancelled" || job.status === "Rejected" || job.status === "OnHold") && (
                 <p className="text-sm text-muted-foreground">
                   No actions available for this job status.
                 </p>
@@ -816,31 +801,31 @@ export default function VendorJobDetail() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showAbortDialog} onOpenChange={setShowAbortDialog}>
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Abort Job</DialogTitle>
-            <DialogDescription>This action cannot be undone. Please provide a reason for aborting.</DialogDescription>
+            <DialogTitle>Reject Job</DialogTitle>
+            <DialogDescription>Please provide a reason for rejecting this job. The team will be notified.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <p className="text-sm font-medium">Reason</p>
             <Textarea
-              value={abortReason}
-              onChange={(e) => setAbortReason(e.target.value)}
-              placeholder="Why is this job being aborted?"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Why are you rejecting this job?"
               className="min-h-20 resize-none"
-              data-testid="input-abort-reason"
+              data-testid="input-reject-reason"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAbortDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Cancel</Button>
             <Button
               variant="destructive"
-              onClick={() => abortMutation.mutate(abortReason)}
-              disabled={!abortReason.trim() || abortMutation.isPending}
-              data-testid="button-confirm-abort"
+              onClick={() => rejectMutation.mutate(rejectReason)}
+              disabled={!rejectReason.trim() || rejectMutation.isPending}
+              data-testid="button-confirm-reject"
             >
-              {abortMutation.isPending ? "Aborting..." : "Abort Job"}
+              {rejectMutation.isPending ? "Rejecting..." : "Reject Job"}
             </Button>
           </DialogFooter>
         </DialogContent>

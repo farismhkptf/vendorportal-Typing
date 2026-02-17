@@ -1922,8 +1922,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Job not found" });
       }
       
-      if (job.status !== "Cancelled" && job.status !== "VendorMistake") {
-        return res.status(400).json({ message: "Can only re-assign cancelled or returned jobs" });
+      if (job.status !== "Cancelled" && job.status !== "VendorMistake" && job.status !== "Rejected") {
+        return res.status(400).json({ message: "Can only re-assign cancelled, vendor mistake, or rejected jobs" });
       }
       
       const updated = await storage.updateTypingJob(id, {
@@ -2112,95 +2112,6 @@ export async function registerRoutes(
     }
   });
 
-  // Mark typing job as received from vendor
-  app.post("/api/typing-jobs/:id/mark-received", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { applicationRefNo, centerName, centerArea, centerNotes, biometricsRequired, biometricsDatetime, biometricsCenter, vendorNotes } = req.body;
-      
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Typing job not found" });
-      }
-      
-      if (job.status !== "SentToVendor" && job.status !== "InProgress") {
-        return res.status(400).json({ message: "Job must be with vendor to mark as received" });
-      }
-      
-      // Create or update typing job result
-      await storage.createTypingJobResult({
-        typingJobId: id,
-        applicationRefNo,
-        centerName,
-        centerArea,
-        centerNotes,
-        biometricsRequired: biometricsRequired || false,
-        biometricsDatetime: biometricsDatetime ? new Date(biometricsDatetime) : null,
-        biometricsCenter,
-        vendorNotes,
-      });
-      
-      // Update job status
-      const updatedJob = await storage.updateTypingJob(id, {
-        status: "WaitingForDocs",
-        returnedAt: new Date(),
-      });
-      
-      // Create audit log
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "received_from_vendor",
-        details: { applicationRefNo },
-      });
-      
-      res.json(updatedJob);
-    } catch (error) {
-      console.error("Mark received error:", error);
-      res.status(500).json({ message: "Failed to mark job as received" });
-    }
-  });
-
-  // Mark typing job as returned (needs more docs)
-  app.post("/api/typing-jobs/:id/mark-returned", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { reason } = req.body;
-      
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Typing job not found" });
-      }
-      
-      // Update job status to Returned
-      const updatedJob = await storage.updateTypingJob(id, {
-        status: "Returned",
-      });
-      
-      // Add comment with reason
-      if (reason) {
-        await storage.createTypingJobComment({
-          typingJobId: id,
-          authorType: "Vendor",
-          message: `Returned for additional documents: ${reason}`,
-        });
-      }
-      
-      // Create audit log
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "returned_by_vendor",
-        details: { reason },
-      });
-      
-      res.json(updatedJob);
-    } catch (error) {
-      console.error("Mark returned error:", error);
-      res.status(500).json({ message: "Failed to mark job as returned" });
-    }
-  });
-
   // Resubmit typing job to vendor
   app.post("/api/typing-jobs/:id/resubmit", async (req, res) => {
     try {
@@ -2211,17 +2122,15 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Typing job not found" });
       }
       
-      if (job.status !== "Returned") {
-        return res.status(400).json({ message: "Only returned jobs can be resubmitted" });
+      if (job.status !== "WaitingForDocs") {
+        return res.status(400).json({ message: "Only jobs waiting for documents can be resubmitted" });
       }
       
-      // Update job status back to SentToVendor
       const updatedJob = await storage.updateTypingJob(id, {
         status: "SentToVendor",
         sentAt: new Date(),
       });
       
-      // Create audit log
       await storage.createAuditLog({
         entityType: "typing_job",
         entityId: id,
@@ -2233,6 +2142,129 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Resubmit error:", error);
       res.status(500).json({ message: "Failed to resubmit job" });
+    }
+  });
+
+  app.post("/api/typing-jobs/:id/on-hold", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      const activeStatuses = ["SentToVendor", "InProgress", "WaitingForDocs"];
+      if (!activeStatuses.includes(job.status)) {
+        return res.status(400).json({ message: "Can only put active jobs on hold" });
+      }
+      
+      const updatedJob = await storage.updateTypingJob(id, {
+        status: "OnHold",
+        previousStatus: job.status,
+      });
+      
+      if (reason) {
+        await storage.createTypingJobComment({
+          typingJobId: id,
+          authorType: "Internal",
+          message: `Job put on hold: ${reason}`,
+        });
+      }
+      
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "put_on_hold",
+        details: { reason, previousStatus: job.status },
+      });
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("On hold error:", error);
+      res.status(500).json({ message: "Failed to put job on hold" });
+    }
+  });
+
+  app.post("/api/typing-jobs/:id/resume", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      if (job.status !== "OnHold") {
+        return res.status(400).json({ message: "Only on-hold jobs can be resumed" });
+      }
+      
+      const resumeStatus = job.previousStatus || "SentToVendor";
+      
+      const updatedJob = await storage.updateTypingJob(id, {
+        status: resumeStatus,
+        previousStatus: null,
+      });
+      
+      await storage.createTypingJobComment({
+        typingJobId: id,
+        authorType: "Internal",
+        message: `Job resumed from hold (restored to ${resumeStatus})`,
+      });
+      
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "resumed_from_hold",
+        details: { resumedToStatus: resumeStatus },
+      });
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Resume error:", error);
+      res.status(500).json({ message: "Failed to resume job" });
+    }
+  });
+
+  app.post("/api/typing-jobs/:id/abort", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      
+      const job = await storage.getTypingJobById(id);
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+      
+      const abortableStatuses = ["Draft", "SentToVendor", "InProgress", "WaitingForDocs", "OnHold"];
+      if (!abortableStatuses.includes(job.status)) {
+        return res.status(400).json({ message: "Cannot abort job in current status" });
+      }
+      
+      const updatedJob = await storage.updateTypingJob(id, {
+        status: "Cancelled",
+      });
+      
+      if (reason) {
+        await storage.createTypingJobComment({
+          typingJobId: id,
+          authorType: "Internal",
+          message: `Job aborted: ${reason}`,
+        });
+      }
+      
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "team_aborted",
+        details: { reason },
+      });
+      
+      res.json(updatedJob);
+    } catch (error) {
+      console.error("Abort error:", error);
+      res.status(500).json({ message: "Failed to abort job" });
     }
   });
 
@@ -3430,7 +3462,7 @@ export async function registerRoutes(
     }
   });
 
-  // Vendor accept job (SentToVendor or WaitingForDocs → InProgress)
+  // Vendor accept job (SentToVendor → InProgress)
   app.post("/api/vendor/jobs/:id/accept", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
@@ -3438,8 +3470,8 @@ export async function registerRoutes(
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
       }
-      if (job.status !== "SentToVendor" && job.status !== "WaitingForDocs") {
-        return res.status(400).json({ message: "Cannot accept job in current status" });
+      if (job.status !== "SentToVendor") {
+        return res.status(400).json({ message: "Can only accept jobs that are sent to vendor" });
       }
       const updated = await storage.updateTypingJob(jobId, { status: "InProgress" });
       await storage.createAuditLog({
@@ -3534,43 +3566,46 @@ export async function registerRoutes(
     }
   });
 
-  // Vendor abort job (any active status → Cancelled)
-  const abortSchema = z.object({
+  const rejectSchema = z.object({
     reason: z.string().min(1, "Reason is required"),
   });
 
-  app.post("/api/vendor/jobs/:id/abort", requireVendorAuth, async (req, res) => {
+  app.post("/api/vendor/jobs/:id/reject", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
       }
-      const activeStatuses = ["SentToVendor", "InProgress", "WaitingForDocs"];
-      if (!activeStatuses.includes(job.status)) {
-        return res.status(400).json({ message: "Cannot abort job in current status" });
+      if (job.status !== "SentToVendor") {
+        return res.status(400).json({ message: "Can only reject jobs that are sent to vendor" });
       }
-      const validation = validateBody(abortSchema, req.body);
+      const validation = validateBody(rejectSchema, req.body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
       const { reason } = validation.data;
 
       const updated = await storage.updateTypingJob(jobId, {
-        status: "Cancelled",
-        vendorMistakeReason: reason,
-        vendorMistakeAt: new Date(),
+        status: "Rejected",
+        rejectedReason: reason,
+      });
+
+      await storage.createTypingJobComment({
+        typingJobId: jobId,
+        authorType: "Vendor",
+        message: `Job rejected: ${reason}`,
       });
 
       await storage.createAuditLog({
         entityType: "typing_job", entityId: jobId,
-        action: "vendor_aborted", details: { reason, vendorUserId: req.session.vendorUserId },
+        action: "vendor_rejected", details: { reason, vendorUserId: req.session.vendorUserId },
       });
 
       res.json(updated);
     } catch (error) {
-      console.error("Vendor abort error:", error);
-      res.status(500).json({ message: "Failed to abort job" });
+      console.error("Vendor reject error:", error);
+      res.status(500).json({ message: "Failed to reject job" });
     }
   });
 
