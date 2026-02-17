@@ -458,6 +458,7 @@ export const appSettings = pgTable("app_settings", {
   alwaysCc: json("always_cc").$type<string[]>().default(["faris@procompany.ae", "yasin@procompany.ae"]),
   lowBalanceThreshold: integer("low_balance_threshold").notNull().default(1000),
   masterPassword: text("master_password"),
+  defaultVendorId: varchar("default_vendor_id"),
 });
 
 // Change notifications table (manager edits for admin review)

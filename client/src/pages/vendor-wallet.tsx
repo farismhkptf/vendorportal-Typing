@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { toProperCase } from "@/lib/proper-case";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
@@ -34,7 +34,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { cn } from "@/lib/utils";
-import type { VendorWalletLedger } from "@shared/schema";
+import type { VendorWalletLedger, Vendor } from "@shared/schema";
 
 interface WalletSummary {
   balance: number;
@@ -64,14 +64,38 @@ export default function VendorWallet() {
   const [viewBy, setViewBy] = useState<ViewByOption>("none");
   const [ledgerSearch, setLedgerSearch] = useState("");
   const [ledgerTypeFilter, setLedgerTypeFilter] = useState<string>("all");
+  const [selectedVendorId, setSelectedVendorId] = useState<string>("");
   const { toast } = useToast();
 
+  const { data: vendors = [] } = useQuery<Vendor[]>({
+    queryKey: ["/api/vendors"],
+  });
+
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+  });
+
+  useEffect(() => {
+    if (!selectedVendorId && vendors.length > 0) {
+      const defaultId = settings?.defaultVendorId;
+      if (defaultId && vendors.some(v => v.id === defaultId)) {
+        setSelectedVendorId(defaultId);
+      } else {
+        setSelectedVendorId(vendors[0].id);
+      }
+    }
+  }, [vendors, settings, selectedVendorId]);
+
   const { data: summary, isLoading: summaryLoading } = useQuery<WalletSummary>({
-    queryKey: ["/api/vendor-wallet/summary"],
+    queryKey: ["/api/vendor-wallet/summary", selectedVendorId],
+    queryFn: () => fetch(`/api/vendor-wallet/summary?vendorId=${selectedVendorId}`).then(r => r.json()),
+    enabled: !!selectedVendorId,
   });
 
   const { data: ledger, isLoading: ledgerLoading } = useQuery<LedgerEntryWithDetails[]>({
-    queryKey: ["/api/vendor-wallet/ledger"],
+    queryKey: ["/api/vendor-wallet/ledger", selectedVendorId],
+    queryFn: () => fetch(`/api/vendor-wallet/ledger?vendorId=${selectedVendorId}`).then(r => r.json()),
+    enabled: !!selectedVendorId,
   });
 
   const form = useForm<TopupForm>({
@@ -84,10 +108,11 @@ export default function VendorWallet() {
 
   const topupMutation = useMutation({
     mutationFn: async (data: TopupForm) => {
-      return apiRequest("POST", "/api/vendor-wallet/topup", data);
+      return apiRequest("POST", "/api/vendor-wallet/topup", { ...data, vendorId: selectedVendorId });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet/summary", selectedVendorId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet/ledger", selectedVendorId] });
       toast({
         title: "Top-up successful",
         description: `AED ${form.getValues("amount").toLocaleString()} has been added to the wallet.`,
@@ -178,11 +203,23 @@ export default function VendorWallet() {
       {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="text-xl font-semibold text-foreground">
-              Vendor Wallet
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">Vendor advance balance and transaction history</p>
+          <div className="min-w-0 flex items-center gap-3 flex-wrap">
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">
+                Vendor Wallet
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">Vendor advance balance and transaction history</p>
+            </div>
+            <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>
+              <SelectTrigger className="w-[240px]" data-testid="select-vendor-wallet">
+                <SelectValue placeholder="Select vendor" />
+              </SelectTrigger>
+              <SelectContent>
+                {vendors.map((v) => (
+                  <SelectItem key={v.id} value={v.id}>{v.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
               <DialogTrigger asChild>

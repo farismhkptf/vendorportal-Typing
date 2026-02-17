@@ -62,6 +62,7 @@ function parseCSV(text: string): string[][] {
 }
 
 const topupSchema = z.object({
+  vendorId: z.string().min(1, "Vendor is required"),
   amount: z.number().positive(),
   note: z.string().optional(),
 });
@@ -2316,8 +2317,8 @@ export async function registerRoutes(
   // ========== Vendor Wallet ==========
   app.get("/api/vendor-wallet/summary", async (req, res) => {
     try {
-      const vendors = await storage.getVendors();
-      if (vendors.length === 0) {
+      const vendorId = req.query.vendorId as string;
+      if (!vendorId) {
         return res.json({
           balance: 0,
           monthTopups: 0,
@@ -2326,7 +2327,6 @@ export async function registerRoutes(
         });
       }
 
-      const vendorId = vendors[0].id;
       const balance = await storage.getWalletBalance(vendorId);
       const monthlyStats = await storage.getMonthlyStats(vendorId);
       const settings = await storage.getAppSettings();
@@ -2345,12 +2345,12 @@ export async function registerRoutes(
 
   app.get("/api/vendor-wallet/ledger", async (req, res) => {
     try {
-      const vendors = await storage.getVendors();
-      if (vendors.length === 0) {
+      const vendorId = req.query.vendorId as string;
+      if (!vendorId) {
         return res.json([]);
       }
 
-      const ledger = await storage.getWalletLedger(vendors[0].id);
+      const ledger = await storage.getWalletLedger(vendorId);
       res.json(ledger);
     } catch (error) {
       console.error("Wallet ledger error:", error);
@@ -2365,15 +2365,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: validation.error });
       }
       
-      const { amount, note } = validation.data;
-      const vendors = await storage.getVendors();
-      
-      if (vendors.length === 0) {
-        return res.status(400).json({ message: "No vendor found" });
-      }
+      const { vendorId, amount, note } = validation.data;
 
       const entry = await storage.createWalletEntry({
-        vendorId: vendors[0].id,
+        vendorId,
         entryType: "Topup",
         amount,
         note: note || "Manual top-up",
