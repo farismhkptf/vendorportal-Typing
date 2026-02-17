@@ -227,8 +227,8 @@ function Pipeline({ data }: { data: PipelineData }) {
 
 const ACTION_CENTER_ITEMS = [
   { key: "pendingApprovals" as const, label: "Pending Approvals", icon: ShieldCheck, href: "/admin", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-900/40" },
-  { key: "unacceptedJobs" as const, label: "Unaccepted Jobs", icon: UserCheck, href: "/typing-jobs", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/40" },
-  { key: "waitingForDocs" as const, label: "Waiting for Docs", icon: FileQuestion, href: "/typing-jobs", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/40" },
+  { key: "unacceptedJobs" as const, label: "Unaccepted Jobs", icon: UserCheck, href: "/typing-jobs?status=SentToVendor", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/40" },
+  { key: "waitingForDocs" as const, label: "Waiting for Docs", icon: FileQuestion, href: "/typing-jobs?status=WaitingForDocs", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/40" },
   { key: "overdueItems" as const, label: "Overdue Items", icon: AlertOctagon, href: "/work-orders", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/40" },
 ];
 

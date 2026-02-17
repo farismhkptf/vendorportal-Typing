@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { 
   Plus, Search, FileText, Building2, Filter, ArrowUpDown, 
   List, LayoutGrid, Columns3, Table2, Star, Tag,
@@ -234,8 +234,17 @@ function ProgressBar({ percent }: { percent: number }) {
 
 export default function WorkOrdersList() {
   const [, navigate] = useLocation();
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const initialStatus = urlParams.get("status") || "all";
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const s = params.get("status");
+    if (s) setStatusFilter(s);
+  }, [searchString]);
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
   const [columnSort, setColumnSort] = useState<SortState>({ key: null, direction: null });

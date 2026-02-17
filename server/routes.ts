@@ -2991,6 +2991,9 @@ export async function registerRoutes(
       if (!user) {
         return res.status(401).json({ message: "Not authenticated" });
       }
+      if (user.vendorId && user.vendorId !== req.session.vendorId) {
+        req.session.vendorId = user.vendorId;
+      }
       res.json({
         id: user.id,
         name: user.name,

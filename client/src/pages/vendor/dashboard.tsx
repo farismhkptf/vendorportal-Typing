@@ -154,7 +154,7 @@ export default function VendorDashboard() {
 
       <div className="p-4 lg:p-8 space-y-6">
         {staleAlerts && staleAlerts.unacceptedJobs > 0 && (
-          <Link href="/vendor/jobs">
+          <Link href="/vendor/jobs?status=SentToVendor">
             <Card className="border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20 hover-elevate cursor-pointer" data-testid="alert-unaccepted-jobs">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -175,7 +175,7 @@ export default function VendorDashboard() {
         )}
 
         {staleAlerts && staleAlerts.waitingForDocsJobs > 0 && (
-          <Link href="/vendor/jobs">
+          <Link href="/vendor/jobs?status=WaitingForDocs">
             <Card className="border border-blue-200 dark:border-blue-800/50 bg-blue-50/50 dark:bg-blue-950/20 hover-elevate cursor-pointer" data-testid="alert-waiting-docs-jobs">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">

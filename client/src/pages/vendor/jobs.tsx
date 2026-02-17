@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Search, FileText, Filter, Calendar, Upload, MessageSquare, AlertTriangle, Zap, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 import { VendorHeader } from "@/components/vendor-header";
 import { formatDate } from "@/lib/format-date";
@@ -26,8 +26,17 @@ interface VendorJob extends TypingJob {
 }
 
 export default function VendorJobs() {
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const initialStatus = urlParams.get("status") || "all";
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const s = params.get("status");
+    if (s) setStatusFilter(s);
+  }, [searchString]);
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
@@ -41,7 +50,7 @@ export default function VendorJobs() {
   };
 
   const acceptMutation = useMutation({
-    mutationFn: async (jobId: number) => {
+    mutationFn: async (jobId: string) => {
       setPendingAction(`accept-${jobId}`);
       return apiRequest("POST", `/api/vendor/jobs/${jobId}/accept`);
     },
@@ -56,7 +65,7 @@ export default function VendorJobs() {
   });
 
   const completeMutation = useMutation({
-    mutationFn: async (jobId: number) => {
+    mutationFn: async (jobId: string) => {
       setPendingAction(`complete-${jobId}`);
       return apiRequest("POST", `/api/vendor/jobs/${jobId}/complete`);
     },

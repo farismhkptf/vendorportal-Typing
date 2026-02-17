@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -38,8 +38,17 @@ const STATUS_ORDER = ["Draft", "SentToVendor", "InProgress", "WaitingForDocs", "
 
 export default function TypingJobsList() {
   const [, navigate] = useLocation();
+  const searchString = useSearch();
+  const urlParams = new URLSearchParams(searchString);
+  const initialStatus = urlParams.get("status") || "all";
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+
+  useEffect(() => {
+    const params = new URLSearchParams(searchString);
+    const s = params.get("status");
+    if (s) setStatusFilter(s);
+  }, [searchString]);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
   const [columnSort, setColumnSort] = useState<SortState>({ key: null, direction: null });
