@@ -27,7 +27,8 @@ import {
   AlertCircle,
   Loader2,
   Link2,
-  UserPlus
+  UserPlus,
+  ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,6 +46,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -722,6 +724,7 @@ function ImportExportSection() {
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("companies");
+  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [centerDialogOpen, setCenterDialogOpen] = useState(false);
   const [editCenterDialogOpen, setEditCenterDialogOpen] = useState(false);
   const [editingCenter, setEditingCenter] = useState<Center | null>(null);
@@ -1476,105 +1479,240 @@ export default function AdminPage() {
     <AppLayout>
       {/* Header Section */}
       <div className="px-4 lg:px-6 pt-4 pb-3">
-        <h1 className="text-xl font-semibold text-foreground">
-          Admin Console
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">System configuration and data management</p>
+        <div className="flex items-center gap-3">
+          {activeSection && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setActiveSection(null)}
+              data-testid="button-back-sections"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">
+              {activeSection === "organization" ? "Organization" :
+               activeSection === "vendor" ? "Vendor Management" :
+               activeSection === "admin" ? "Administration" :
+               activeSection === "settings" ? "Settings" :
+               "Admin Console"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {activeSection === "organization" ? "Manage companies, centers, staff, and services" :
+               activeSection === "vendor" ? "Manage vendors, job types, and approvals" :
+               activeSection === "admin" ? "User accounts, data import/export, and change log" :
+               activeSection === "settings" ? "Email and system configuration" :
+               "System configuration and data management"}
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="px-4 lg:px-6 pb-6">
-        <div className="premium-card overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full justify-start border-b border-border/50 rounded-none bg-transparent p-0 h-auto overflow-x-auto scroll-fade-x">
-              <TabsTrigger 
-                value="companies" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-companies"
+        {!activeSection ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { key: "organization", icon: Building2, title: "Organization", desc: "Companies, Centers, Staff, Services", defaultTab: "companies", count: null },
+              { key: "vendor", icon: Briefcase, title: "Vendor Management", desc: "Vendors, Vendor Jobs, Approvals", defaultTab: "vendors", count: null },
+              { key: "admin", icon: UserPlus, title: "Administration", desc: "User Accounts, Import / Export, Change Log", defaultTab: "accounts", count: null },
+              { key: "settings", icon: Settings, title: "Settings", desc: "Email & system configuration", defaultTab: "settings", count: null },
+            ].map((section) => (
+              <Card
+                key={section.key}
+                className="hover-elevate cursor-pointer p-5"
+                onClick={() => {
+                  setActiveSection(section.key);
+                  setActiveTab(section.defaultTab);
+                }}
+                data-testid={`card-section-${section.key}`}
               >
-                <Building2 className="h-4 w-4 mr-2" />
-                Companies
-              </TabsTrigger>
-              <TabsTrigger 
-                value="centers" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-centers"
-              >
-                <MapPin className="h-4 w-4 mr-2" />
-                Centers
-              </TabsTrigger>
-              <TabsTrigger 
-                value="staff" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-staff"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Staff
-              </TabsTrigger>
-              <TabsTrigger 
-                value="services" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-services"
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                Services
-              </TabsTrigger>
-              <TabsTrigger 
-                value="jobtypes" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-jobtypes"
-              >
-                <Briefcase className="h-4 w-4 mr-2" />
-                Vendor Jobs
-              </TabsTrigger>
-              <TabsTrigger 
-                value="vendors" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-vendors"
-              >
-                <Building2 className="h-4 w-4 mr-2" />
-                Vendors
-              </TabsTrigger>
-              <TabsTrigger 
-                value="approvals" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-approvals"
-              >
-                <CheckCircle2 className="h-4 w-4 mr-2" />
-                Approvals
-              </TabsTrigger>
-              <TabsTrigger 
-                value="accounts" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-accounts"
-              >
-                <UserPlus className="h-4 w-4 mr-2" />
-                User Accounts
-              </TabsTrigger>
-              <TabsTrigger 
-                value="import" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-import"
-              >
-                <FileSpreadsheet className="h-4 w-4 mr-2" />
-                Import / Export
-              </TabsTrigger>
-              <TabsTrigger 
-                value="changelog" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-changelog"
-              >
-                <AlertCircle className="h-4 w-4 mr-2" />
-                Change Log
-              </TabsTrigger>
-              <TabsTrigger 
-                value="settings" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm"
-                data-testid="tab-settings"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </TabsTrigger>
-            </TabsList>
+                <div className="flex items-start gap-4">
+                  <div className="rounded-xl bg-primary/10 p-3">
+                    <section.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-medium text-foreground">{section.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{section.desc}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : activeSection === "settings" ? (
+          <div className="premium-card overflow-hidden p-6">
+            <div className="space-y-6">
+              <div>
+                <h3 className="font-medium text-foreground mb-4">Email Configuration</h3>
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Always CC Recipients</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {settings?.alwaysCc?.join(", ") || "No CC recipients configured"}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl"
+                        onClick={handleEditCc}
+                        data-testid="button-edit-cc"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Low Balance Threshold</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          AED {settings?.lowBalanceThreshold?.toLocaleString() || "1,000"}
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl"
+                        onClick={handleEditThreshold}
+                        data-testid="button-edit-threshold"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Dialog open={editCcDialogOpen} onOpenChange={setEditCcDialogOpen}>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit CC Recipients</DialogTitle>
+                </DialogHeader>
+                <Form {...ccForm}>
+                  <form onSubmit={ccForm.handleSubmit(handleSubmitCc)} className="space-y-4">
+                    <FormField
+                      control={ccForm.control}
+                      name="alwaysCc"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Addresses</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field} 
+                              placeholder="email1@example.com, email2@example.com" 
+                              className="rounded-xl"
+                              rows={3}
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Separate multiple emails with commas</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end gap-3 pt-4">
+                      <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditCcDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>
+                        {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={editThresholdDialogOpen} onOpenChange={setEditThresholdDialogOpen}>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Low Balance Threshold</DialogTitle>
+                </DialogHeader>
+                <Form {...thresholdForm}>
+                  <form onSubmit={thresholdForm.handleSubmit(handleSubmitThreshold)} className="space-y-4">
+                    <FormField
+                      control={thresholdForm.control}
+                      name="lowBalanceThreshold"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Threshold Amount (AED)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number" 
+                              placeholder="1000" 
+                              className="h-11 rounded-xl"
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">You'll be warned when balance falls below this amount</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end gap-3 pt-4">
+                      <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditThresholdDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>
+                        {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        ) : (
+          <div className="premium-card overflow-hidden">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="w-full justify-start border-b border-border/50 rounded-none bg-transparent p-0 h-auto overflow-x-auto scroll-fade-x">
+                {activeSection === "organization" && (
+                  <>
+                    <TabsTrigger value="companies" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-companies">
+                      <Building2 className="h-4 w-4 mr-2" /> Companies
+                    </TabsTrigger>
+                    <TabsTrigger value="centers" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-centers">
+                      <MapPin className="h-4 w-4 mr-2" /> Centers
+                    </TabsTrigger>
+                    <TabsTrigger value="staff" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-staff">
+                      <Users className="h-4 w-4 mr-2" /> Staff
+                    </TabsTrigger>
+                    <TabsTrigger value="services" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-services">
+                      <FileText className="h-4 w-4 mr-2" /> Services
+                    </TabsTrigger>
+                  </>
+                )}
+                {activeSection === "vendor" && (
+                  <>
+                    <TabsTrigger value="vendors" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-vendors">
+                      <Building2 className="h-4 w-4 mr-2" /> Vendors
+                    </TabsTrigger>
+                    <TabsTrigger value="jobtypes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-jobtypes">
+                      <Briefcase className="h-4 w-4 mr-2" /> Vendor Jobs
+                    </TabsTrigger>
+                    <TabsTrigger value="approvals" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-approvals">
+                      <CheckCircle2 className="h-4 w-4 mr-2" /> Approvals
+                    </TabsTrigger>
+                  </>
+                )}
+                {activeSection === "admin" && (
+                  <>
+                    <TabsTrigger value="accounts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-accounts">
+                      <UserPlus className="h-4 w-4 mr-2" /> User Accounts
+                    </TabsTrigger>
+                    <TabsTrigger value="import" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-import">
+                      <FileSpreadsheet className="h-4 w-4 mr-2" /> Import / Export
+                    </TabsTrigger>
+                    <TabsTrigger value="changelog" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-changelog">
+                      <AlertCircle className="h-4 w-4 mr-2" /> Change Log
+                    </TabsTrigger>
+                  </>
+                )}
+              </TabsList>
 
             {/* Companies Tab */}
             <TabsContent value="companies" className="p-4">
@@ -4637,141 +4775,13 @@ export default function AdminPage() {
               <ImportExportSection />
             </TabsContent>
 
-            {/* Email Settings Tab */}
+            {/* Change Log Tab */}
             <TabsContent value="changelog" className="p-4">
               <ChangeLogTab />
             </TabsContent>
-
-            <TabsContent value="settings" className="p-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-medium text-foreground mb-4">Email Configuration</h3>
-                  <div className="space-y-4">
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="font-medium text-foreground">Always CC Recipients</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {settings?.alwaysCc?.join(", ") || "No CC recipients configured"}
-                          </p>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="rounded-xl"
-                          onClick={handleEditCc}
-                          data-testid="button-edit-cc"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-                      <div className="flex items-center justify-between gap-2">
-                        <div>
-                          <p className="font-medium text-foreground">Low Balance Threshold</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            AED {settings?.lowBalanceThreshold?.toLocaleString() || "1,000"}
-                          </p>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="rounded-xl"
-                          onClick={handleEditThreshold}
-                          data-testid="button-edit-threshold"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Edit CC Recipients Dialog */}
-              <Dialog open={editCcDialogOpen} onOpenChange={setEditCcDialogOpen}>
-                <DialogContent className="rounded-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Edit CC Recipients</DialogTitle>
-                  </DialogHeader>
-                  <Form {...ccForm}>
-                    <form onSubmit={ccForm.handleSubmit(handleSubmitCc)} className="space-y-4">
-                      <FormField
-                        control={ccForm.control}
-                        name="alwaysCc"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email Addresses</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                {...field} 
-                                placeholder="email1@example.com, email2@example.com" 
-                                className="rounded-xl"
-                                rows={3}
-                              />
-                            </FormControl>
-                            <p className="text-xs text-muted-foreground">Separate multiple emails with commas</p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex justify-end gap-3 pt-4">
-                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditCcDialogOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>
-                          {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-
-              {/* Edit Threshold Dialog */}
-              <Dialog open={editThresholdDialogOpen} onOpenChange={setEditThresholdDialogOpen}>
-                <DialogContent className="rounded-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Edit Low Balance Threshold</DialogTitle>
-                  </DialogHeader>
-                  <Form {...thresholdForm}>
-                    <form onSubmit={thresholdForm.handleSubmit(handleSubmitThreshold)} className="space-y-4">
-                      <FormField
-                        control={thresholdForm.control}
-                        name="lowBalanceThreshold"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Threshold Amount (AED)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                {...field} 
-                                type="number" 
-                                placeholder="1000" 
-                                className="h-11 rounded-xl"
-                                onChange={(e) => field.onChange(Number(e.target.value))}
-                              />
-                            </FormControl>
-                            <p className="text-xs text-muted-foreground">You'll be warned when balance falls below this amount</p>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <div className="flex justify-end gap-3 pt-4">
-                        <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditThresholdDialogOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>
-                          {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </TabsContent>
           </Tabs>
         </div>
+      )}
       </div>
     </AppLayout>
   );
