@@ -1,9 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, X, Phone, Mail, Star, RefreshCw, Home, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, AlertTriangle, X, Phone, Mail, Star, RefreshCw, Home, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -110,6 +110,26 @@ export default function NewWorkOrder() {
 
   const selectedCompanyId = form.watch("companyId");
   const selectedCompany = companies?.find((c) => c.id === selectedCompanyId);
+
+  const watchedApplicantName = form.watch("applicantName");
+  const [debouncedApplicantName, setDebouncedApplicantName] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedApplicantName(watchedApplicantName || "");
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [watchedApplicantName]);
+
+  const { data: duplicateData } = useQuery<{ duplicates: Array<{ id: string; woNumber: string; applicantName: string; companyName: string; status: string; createdAt: string }> }>({
+    queryKey: ["/api/work-orders/check-duplicate", debouncedApplicantName],
+    queryFn: async () => {
+      const res = await fetch(`/api/work-orders/check-duplicate?applicantName=${encodeURIComponent(debouncedApplicantName)}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to check duplicates");
+      return res.json();
+    },
+    enabled: debouncedApplicantName.length >= 3,
+  });
 
   const { data: lastWorkOrder } = useQuery<WorkOrder | null>({
     queryKey: ["/api/companies", selectedCompanyId, "last-work-order"],
@@ -606,6 +626,36 @@ export default function NewWorkOrder() {
                         />
                       </FormControl>
                       <FormMessage />
+                      {duplicateData && duplicateData.duplicates.length > 0 && (
+                        <div
+                          className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-lg p-3 mt-2"
+                          data-testid="duplicate-warning"
+                        >
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                            <div className="space-y-1.5">
+                              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                                Possible duplicate: An active work order for this applicant already exists
+                              </p>
+                              <div className="space-y-1">
+                                {duplicateData.duplicates.map((dup) => (
+                                  <button
+                                    key={dup.id}
+                                    type="button"
+                                    className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 hover-elevate rounded px-1.5 py-0.5 w-full text-left"
+                                    onClick={() => window.open('/work-orders/' + dup.id, '_blank')}
+                                    data-testid={`duplicate-link-${dup.id}`}
+                                  >
+                                    <span className="font-mono font-medium">{dup.woNumber}</span>
+                                    <span className="text-amber-600 dark:text-amber-500">{dup.companyName}</span>
+                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{dup.status}</Badge>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </FormItem>
                   )}
                 />

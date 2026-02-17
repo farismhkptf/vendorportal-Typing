@@ -312,6 +312,32 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/dashboard/action-center", async (req, res) => {
+    try {
+      const [pendingApprovals, unacceptedJobs, waitingForDocs, workOrders] = await Promise.all([
+        storage.getPendingVendorApprovals(),
+        storage.getTypingJobs("SentToVendor"),
+        storage.getTypingJobs("WaitingForDocs"),
+        storage.getWorkOrders(),
+      ]);
+
+      const fiveDaysAgo = Date.now() - 5 * 86400000;
+      const overdueItems = workOrders.filter(
+        wo => wo.status === "Draft" && new Date(wo.createdAt).getTime() < fiveDaysAgo
+      );
+
+      res.json({
+        pendingApprovals: pendingApprovals.length,
+        unacceptedJobs: unacceptedJobs.length,
+        waitingForDocs: waitingForDocs.length,
+        overdueItems: overdueItems.length,
+      });
+    } catch (error) {
+      console.error("Dashboard action-center error:", error);
+      res.status(500).json({ message: "Failed to fetch action center data" });
+    }
+  });
+
   app.get("/api/dashboard/needs-attention", async (req, res) => {
     try {
       const workOrders = await storage.getWorkOrders();
@@ -469,6 +495,39 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/work-orders/check-duplicate", async (req, res) => {
+    try {
+      const applicantName = (req.query.applicantName as string || "").trim();
+      if (!applicantName) {
+        return res.json({ duplicates: [] });
+      }
+      const workOrders = await storage.getWorkOrders();
+      const matches = workOrders.filter(
+        wo =>
+          wo.applicantName.toLowerCase() === applicantName.toLowerCase() &&
+          wo.status !== "Completed" &&
+          wo.status !== "Cancelled"
+      );
+      const duplicates = await Promise.all(
+        matches.map(async (wo) => {
+          const company = await storage.getCompanyById(wo.companyId);
+          return {
+            id: wo.id,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            companyName: company?.name || "N/A",
+            status: wo.status,
+            createdAt: wo.createdAt,
+          };
+        })
+      );
+      res.json({ duplicates });
+    } catch (error) {
+      console.error("Check duplicate error:", error);
+      res.status(500).json({ message: "Failed to check duplicates" });
+    }
+  });
+
   app.get("/api/work-orders/:id", async (req, res) => {
     try {
       const wo = await storage.getWorkOrderById(req.params.id);
@@ -543,6 +602,15 @@ export async function registerRoutes(
       if (existing) {
         return res.status(400).json({ message: `Work order ${validation.data.woNumber} already exists` });
       }
+
+      // Check for duplicate applicant (warning only, does not block creation)
+      const allWorkOrders = await storage.getWorkOrders();
+      const duplicateApplicants = allWorkOrders.filter(
+        wo =>
+          wo.applicantName.toLowerCase() === validation.data.applicantName.toLowerCase() &&
+          wo.status !== "Completed" &&
+          wo.status !== "Cancelled"
+      );
       
       const wo = await storage.createWorkOrder({
         ...validation.data,
@@ -580,7 +648,15 @@ export async function registerRoutes(
         console.error("Failed to auto-create typing jobs for WO:", typingJobError);
       }
       
-      res.status(201).json(wo);
+      const responseData: any = { ...wo };
+      if (duplicateApplicants.length > 0) {
+        responseData.duplicateWarning = {
+          message: "An active work order for this applicant already exists",
+          count: duplicateApplicants.length,
+        };
+      }
+      
+      res.status(201).json(responseData);
     } catch (error) {
       console.error("Create work order error:", error);
       res.status(500).json({ message: "Failed to create work order" });
@@ -2774,19 +2850,36 @@ export async function registerRoutes(
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
+      const now = Date.now();
+      
+      const calcPriority = (job: typeof jobs[0]): "urgent" | "today" | "standard" => {
+        const sentTime = job.sentAt ? new Date(job.sentAt).getTime() : 0;
+        const hoursSinceSent = sentTime ? (now - sentTime) / 3600000 : 0;
+        const isToday = sentTime && (now - sentTime) < 86400000;
+        if (job.status === "SentToVendor" && hoursSinceSent > 24) return "urgent";
+        if (isToday && (job.status === "SentToVendor" || job.status === "InProgress")) return "today";
+        return "standard";
+      };
+
       const stats = {
         total: jobs.length,
         pending: jobs.filter(j => j.status === "SentToVendor").length,
         inProgress: jobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
         completed: jobs.filter(j => j.status === "Returned" || j.status === "SentToClient").length,
-        urgent: jobs.filter(j => (j as any).urgent).length,
+        urgent: jobs.filter(j => {
+          const sentTime = j.sentAt ? new Date(j.sentAt).getTime() : 0;
+          const hoursSinceSent = sentTime ? (now - sentTime) / 3600000 : 0;
+          return j.status === "SentToVendor" && hoursSinceSent > 24;
+        }).length,
         todayPending: jobs.filter(j => j.status === "SentToVendor" && j.sentAt && new Date(j.sentAt) >= today).length,
       };
       
       const recentJobsRaw = [...jobs]
         .sort((a, b) => {
-          if ((a as any).urgent && !(b as any).urgent) return -1;
-          if (!(a as any).urgent && (b as any).urgent) return 1;
+          const pa = calcPriority(a);
+          const pb = calcPriority(b);
+          const order = { urgent: 0, today: 1, standard: 2 };
+          if (order[pa] !== order[pb]) return order[pa] - order[pb];
           const aDate = a.sentAt ? new Date(a.sentAt).getTime() : 0;
           const bDate = b.sentAt ? new Date(b.sentAt).getTime() : 0;
           return bDate - aDate;
@@ -2797,7 +2890,8 @@ export async function registerRoutes(
         recentJobsRaw.map(async (job) => {
           const wo = await storage.getWorkOrderById(job.woId);
           const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
-          return { ...job, workOrder: wo, jobType };
+          const priority = calcPriority(job);
+          return { ...job, workOrder: wo, jobType, priority, urgent: priority === "urgent" };
         })
       );
       
@@ -2805,6 +2899,99 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Vendor dashboard error:", error);
       res.status(500).json({ message: "Failed to fetch dashboard" });
+    }
+  });
+
+  app.get("/api/vendor/performance", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorId = req.session.vendorId;
+      if (!vendorId) {
+        return res.json({
+          completionRate: 0,
+          avgTurnaroundHours: 0,
+          monthlyEarnings: 0,
+          totalJobsThisMonth: 0,
+          jobsByCategory: {},
+          statusBreakdown: { pending: 0, inProgress: 0, completed: 0, cancelled: 0 },
+        });
+      }
+
+      const jobs = await storage.getTypingJobsByVendorId(vendorId);
+      const jobTypesAll = await storage.getJobTypes();
+      const jobTypeMap = new Map(jobTypesAll.map(jt => [jt.id, jt]));
+
+      const nonDraftJobs = jobs.filter(j => j.status !== "Draft");
+      const completedJobs = nonDraftJobs.filter(j => j.status === "Returned" || j.status === "SentToClient");
+      const completionRate = nonDraftJobs.length > 0
+        ? Math.round((completedJobs.length / nonDraftJobs.length) * 100)
+        : 0;
+
+      let totalTurnaroundMs = 0;
+      let turnaroundCount = 0;
+      for (const job of completedJobs) {
+        const start = job.sentAt ? new Date(job.sentAt).getTime() : 0;
+        const end = job.sentToClientAt
+          ? new Date(job.sentToClientAt).getTime()
+          : job.returnedAt
+            ? new Date(job.returnedAt).getTime()
+            : 0;
+        if (start && end && end > start) {
+          totalTurnaroundMs += end - start;
+          turnaroundCount++;
+        }
+      }
+      const avgTurnaroundHours = turnaroundCount > 0
+        ? Math.round((totalTurnaroundMs / turnaroundCount / 3600000) * 10) / 10
+        : 0;
+
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      let monthlyEarnings = 0;
+      try {
+        const ledger = await storage.getWalletLedger(vendorId);
+        for (const entry of ledger) {
+          if (
+            entry.type === "Debit" &&
+            new Date(entry.createdAt) >= monthStart
+          ) {
+            monthlyEarnings += Math.abs(Number(entry.amount));
+          }
+        }
+      } catch (e) {
+        // ignore if no ledger
+      }
+
+      const totalJobsThisMonth = jobs.filter(j => {
+        if (!j.sentAt) return false;
+        return new Date(j.sentAt) >= monthStart;
+      }).length;
+
+      const jobsByCategory: Record<string, number> = {};
+      for (const job of jobs) {
+        const jt = job.jobTypeId ? jobTypeMap.get(job.jobTypeId) : null;
+        const cat = jt?.category || "Other";
+        jobsByCategory[cat] = (jobsByCategory[cat] || 0) + 1;
+      }
+
+      const statusBreakdown = {
+        pending: jobs.filter(j => j.status === "SentToVendor").length,
+        inProgress: jobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
+        completed: completedJobs.length,
+        cancelled: jobs.filter(j => j.status === "Cancelled").length,
+      };
+
+      res.json({
+        completionRate,
+        avgTurnaroundHours,
+        monthlyEarnings,
+        totalJobsThisMonth,
+        jobsByCategory,
+        statusBreakdown,
+      });
+    } catch (error) {
+      console.error("Vendor performance error:", error);
+      res.status(500).json({ message: "Failed to fetch performance data" });
     }
   });
 
@@ -2817,18 +3004,33 @@ export async function registerRoutes(
 
       const jobs = await storage.getTypingJobsByVendorId(vendorId);
       
+      const now = Date.now();
       const result = await Promise.all(
         jobs.map(async (job) => {
           const wo = await storage.getWorkOrderById(job.woId);
           const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
           const files = await storage.getFilesByRelated("TypingJob", job.id);
           const comments = await storage.getTypingJobComments(job.id);
+
+          const sentTime = job.sentAt ? new Date(job.sentAt).getTime() : 0;
+          const hoursSinceSent = sentTime ? (now - sentTime) / 3600000 : 0;
+          const isToday = sentTime && (now - sentTime) < 86400000;
+
+          let priority: "urgent" | "today" | "standard" = "standard";
+          if (job.status === "SentToVendor" && hoursSinceSent > 24) {
+            priority = "urgent";
+          } else if (isToday && (job.status === "SentToVendor" || job.status === "InProgress")) {
+            priority = "today";
+          }
+
           return { 
             ...job, 
             workOrder: wo, 
             jobType,
             hasInputDocs: files.some((f: { direction: string }) => f.direction === "Input"),
             commentCount: comments.length,
+            priority,
+            urgent: priority === "urgent",
           };
         })
       );

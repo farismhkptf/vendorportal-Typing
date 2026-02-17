@@ -15,7 +15,11 @@ import {
   Send,
   XCircle,
   Stethoscope,
-  CreditCard
+  CreditCard,
+  ShieldCheck,
+  UserCheck,
+  FileQuestion,
+  AlertOctagon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -112,6 +116,13 @@ interface RecentWorkOrder {
   eidAppt: string | null;
 }
 
+interface ActionCenterData {
+  pendingApprovals: number;
+  unacceptedJobs: number;
+  waitingForDocs: number;
+  overdueItems: number;
+}
+
 interface PipelineData {
   draft: number;
   scheduled: number;
@@ -199,6 +210,62 @@ function Pipeline({ data }: { data: PipelineData }) {
   );
 }
 
+const ACTION_CENTER_ITEMS = [
+  { key: "pendingApprovals" as const, label: "Pending Approvals", icon: ShieldCheck, href: "/admin", color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-900/40" },
+  { key: "unacceptedJobs" as const, label: "Unaccepted Jobs", icon: UserCheck, href: "/typing-jobs", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/40" },
+  { key: "waitingForDocs" as const, label: "Waiting for Docs", icon: FileQuestion, href: "/typing-jobs", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/40" },
+  { key: "overdueItems" as const, label: "Overdue Items", icon: AlertOctagon, href: "/work-orders", color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/40" },
+];
+
+function ActionCenter({ data }: { data: ActionCenterData }) {
+  const [, navigate] = useLocation();
+
+  return (
+    <div className="premium-card p-4 opacity-0 animate-fade-in animate-delay-1" data-testid="section-action-center">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="h-2 w-2 rounded-full bg-violet-500 animate-pulse" />
+        <h2 className="text-sm font-semibold text-foreground">Action Center</h2>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {ACTION_CENTER_ITEMS.map((item, i) => {
+          const count = data[item.key];
+          return (
+            <div
+              key={item.key}
+              className={cn(
+                "flex flex-col items-center gap-2 p-3 rounded-xl cursor-pointer transition-all hover-elevate",
+                "opacity-0 animate-fade-in"
+              )}
+              style={{ animationDelay: `${i * 80 + 200}ms` }}
+              onClick={() => navigate(item.href)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter") navigate(item.href); }}
+              data-testid={`action-${item.key}`}
+            >
+              <div className="relative">
+                <div className={cn("h-9 w-9 rounded-lg flex items-center justify-center", item.bg)}>
+                  <item.icon className={cn("h-4 w-4", item.color)} />
+                </div>
+                {count > 0 && (
+                  <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-rose-500 animate-pulse" />
+                )}
+              </div>
+              <ActionCenterCount count={count} delay={i * 100} color={item.color} />
+              <span className="text-[11px] font-medium text-muted-foreground text-center leading-tight">{item.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ActionCenterCount({ count, delay, color }: { count: number; delay: number; color: string }) {
+  const animated = useCountUp(count, 600, delay);
+  return <span className={cn("text-lg font-semibold tabular-nums", color)}>{animated}</span>;
+}
+
 function NeedsAttention({ items }: { items: NeedsAttentionItem[] }) {
   const [, navigate] = useLocation();
 
@@ -275,9 +342,20 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/pipeline"],
   });
 
+  const { data: actionCenterData } = useQuery<ActionCenterData>({
+    queryKey: ["/api/dashboard/action-center"],
+  });
+
   const { data: needsAttention } = useQuery<NeedsAttentionItem[]>({
     queryKey: ["/api/dashboard/needs-attention"],
   });
+
+  const hasActions = actionCenterData && (
+    actionCenterData.pendingApprovals > 0 ||
+    actionCenterData.unacceptedJobs > 0 ||
+    actionCenterData.waitingForDocs > 0 ||
+    actionCenterData.overdueItems > 0
+  );
 
   return (
     <AppLayout>
@@ -365,6 +443,8 @@ export default function Dashboard() {
             </>
           )}
         </div>
+
+        {actionCenterData && hasActions && <ActionCenter data={actionCenterData} />}
 
         {pipelineLoading ? (
           <Skeleton className="h-28 rounded-xl" />

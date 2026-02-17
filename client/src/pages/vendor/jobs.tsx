@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Search, FileText, Filter, Calendar, Upload, MessageSquare } from "lucide-react";
+import { Search, FileText, Filter, Calendar, Upload, MessageSquare, AlertTriangle, Zap } from "lucide-react";
 import { VendorHeader } from "@/components/vendor-header";
 import { formatDate } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ interface VendorJob extends TypingJob {
   jobType?: JobType;
   hasInputDocs?: boolean;
   commentCount?: number;
+  priority?: "urgent" | "today" | "standard";
 }
 
 export default function VendorJobs() {
@@ -36,6 +37,11 @@ export default function VendorJobs() {
       job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || job.status === statusFilter;
     return matchesSearch && matchesStatus;
+  });
+
+  const sortedJobs = filteredJobs?.sort((a, b) => {
+    const priorityOrder = { urgent: 0, today: 1, standard: 2 };
+    return (priorityOrder[a.priority || "standard"] || 2) - (priorityOrder[b.priority || "standard"] || 2);
   });
 
   return (
@@ -125,8 +131,8 @@ export default function VendorJobs() {
               <Skeleton className="h-32 rounded-xl" />
               <Skeleton className="h-32 rounded-xl" />
             </>
-          ) : filteredJobs && filteredJobs.length > 0 ? (
-            filteredJobs.map((job) => (
+          ) : sortedJobs && sortedJobs.length > 0 ? (
+            sortedJobs.map((job) => (
               <Link key={job.id} href={`/vendor/jobs/${job.id}`}>
                 <DataTableRow className="mb-0" data-testid={`vendor-job-row-${job.id}`}>
                   <div className="space-y-3">
@@ -141,6 +147,12 @@ export default function VendorJobs() {
                               {job.workOrder?.woNumber || "N/A"}
                             </span>
                             <StatusBadge status={job.status} />
+                            {job.priority === "urgent" && (
+                              <Badge variant="destructive" className="text-[10px] gap-0.5"><AlertTriangle className="h-3 w-3" /> Urgent</Badge>
+                            )}
+                            {job.priority === "today" && (
+                              <Badge variant="secondary" className="text-[10px] gap-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 no-default-hover-elevate no-default-active-elevate"><Zap className="h-3 w-3" /> New Today</Badge>
+                            )}
                           </div>
                           <p className="text-sm text-foreground mt-0.5">{job.workOrder?.applicantName}</p>
                         </div>

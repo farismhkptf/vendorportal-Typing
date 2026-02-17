@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
   FileText, Clock, CheckCircle2, AlertTriangle, 
-  ArrowRight, Calendar, Zap
+  ArrowRight, Calendar, Zap, TrendingUp, Wallet
 } from "lucide-react";
 import { formatDate } from "@/lib/format-date";
 import { useVendorAuth } from "@/hooks/use-vendor-auth";
@@ -24,7 +24,16 @@ interface DashboardData {
     urgent: number;
     todayPending: number;
   };
-  recentJobs: Array<TypingJob & { workOrder?: WorkOrder; jobType?: JobType; urgent?: boolean }>;
+  recentJobs: Array<TypingJob & { workOrder?: WorkOrder; jobType?: JobType; urgent?: boolean; priority?: "urgent" | "today" | "standard" }>;
+}
+
+interface PerformanceData {
+  completionRate: number;
+  avgTurnaroundHours: number;
+  monthlyEarnings: number;
+  totalJobsThisMonth: number;
+  jobsByCategory: Record<string, number>;
+  statusBreakdown: { pending: number; inProgress: number; completed: number; cancelled: number };
 }
 
 function getGreeting() {
@@ -34,11 +43,89 @@ function getGreeting() {
   return "Good evening";
 }
 
+function VendorPerformance({ data }: { data: PerformanceData }) {
+  const maxCategoryCount = Math.max(...Object.values(data.jobsByCategory), 1);
+
+  return (
+    <div data-testid="section-vendor-performance">
+      <h2 className="text-lg font-semibold text-foreground mb-4">Your Performance</h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <Card className="border border-border/50" data-testid="stat-completion-rate">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-5 w-5 text-emerald-500" />
+            </div>
+            <p className="text-2xl font-semibold text-foreground" data-testid="text-completion-rate">{data.completionRate}%</p>
+            <p className="text-sm text-muted-foreground mb-2">Completion Rate</p>
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-emerald-500 transition-all"
+                style={{ width: `${Math.min(data.completionRate, 100)}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/50" data-testid="stat-avg-turnaround">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-5 w-5 text-blue-500" />
+            </div>
+            <p className="text-2xl font-semibold text-foreground" data-testid="text-avg-turnaround">{data.avgTurnaroundHours}h</p>
+            <p className="text-sm text-muted-foreground">Avg. Turnaround</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-border/50" data-testid="stat-monthly-earnings">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet className="h-5 w-5 text-violet-500" />
+            </div>
+            <p className="text-2xl font-semibold text-foreground" data-testid="text-monthly-earnings">
+              AED {data.monthlyEarnings.toLocaleString()}
+            </p>
+            <p className="text-sm text-muted-foreground">This Month's Earnings</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {Object.keys(data.jobsByCategory).length > 0 && (
+        <Card className="border border-border/50" data-testid="card-category-breakdown">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-foreground mb-3">Jobs by Category</p>
+            <div className="space-y-3">
+              {Object.entries(data.jobsByCategory).map(([category, count]) => (
+                <div key={category} className="flex items-center gap-3">
+                  <span className="text-sm text-muted-foreground w-16 shrink-0">{category}</span>
+                  <div className="flex-1 h-5 rounded bg-muted overflow-hidden">
+                    <div
+                      className={`h-full rounded transition-all ${
+                        category === "Medical" ? "bg-blue-500" : category === "EID" ? "bg-amber-500" : "bg-violet-500"
+                      }`}
+                      style={{ width: `${(count / maxCategoryCount) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-foreground w-8 text-right" data-testid={`text-category-count-${category}`}>{count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
 export default function VendorDashboard() {
   const { user } = useVendorAuth();
   
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/vendor/dashboard"],
+  });
+
+  const { data: performanceData, isLoading: perfLoading } = useQuery<PerformanceData>({
+    queryKey: ["/api/vendor/performance"],
   });
 
   const stats = data?.stats;
@@ -105,7 +192,7 @@ export default function VendorDashboard() {
                 </CardContent>
               </Card>
 
-              <Card className="border border-border/50" data-testid="stat-urgent">
+              <Card className={`border ${(stats?.urgent || 0) > 0 ? "border-rose-200 dark:border-rose-800/50" : "border-border/50"}`} data-testid="stat-urgent">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -155,8 +242,11 @@ export default function VendorDashboard() {
                                     {job.workOrder?.woNumber || "N/A"}
                                   </span>
                                   <StatusBadge status={job.status} />
-                                  {(job as any).urgent && (
-                                    <Badge variant="destructive" className="text-xs">Urgent</Badge>
+                                  {(job as any).priority === "urgent" && (
+                                    <Badge variant="destructive" className="text-[10px] gap-0.5"><AlertTriangle className="h-3 w-3" /> Urgent</Badge>
+                                  )}
+                                  {(job as any).priority === "today" && (
+                                    <Badge variant="secondary" className="text-[10px] gap-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 no-default-hover-elevate no-default-active-elevate"><Zap className="h-3 w-3" /> New Today</Badge>
                                   )}
                                 </div>
                                 <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
@@ -189,6 +279,18 @@ export default function VendorDashboard() {
                 </Card>
               )}
             </div>
+
+            {perfLoading && (
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-40" />
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+                </div>
+                <Skeleton className="h-32 rounded-xl" />
+              </div>
+            )}
+
+            {performanceData && <VendorPerformance data={performanceData} />}
           </>
         )}
       </div>

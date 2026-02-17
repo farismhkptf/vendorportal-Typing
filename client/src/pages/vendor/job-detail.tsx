@@ -38,7 +38,7 @@ interface VendorJobDetails extends TypingJob {
   serviceType?: { id: string; name: string; category?: string | null };
   documentRequirements?: DocumentRequirement[];
   woDocuments?: WoDocument[];
-  urgent?: boolean;
+  priority?: "urgent" | "today" | "standard";
   approval?: {
     id: string;
     status: string;
