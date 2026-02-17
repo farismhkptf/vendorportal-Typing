@@ -610,30 +610,47 @@ export default function VendorJobDetail() {
               <CardContent>
                 {inputFiles.length > 0 ? (
                   <div className="space-y-2">
-                    {inputFiles.map(file => (
-                      <div 
-                        key={file.id} 
-                        className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50"
-                        data-testid={`input-file-${file.id}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">{file.fileName}</span>
+                    {inputFiles.map(file => {
+                      const fileUrl = file.workdriveLink ? `/api/objects/${encodeURIComponent(file.workdriveLink)}` : "";
+                      const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                      const isPdf = file.fileName?.match(/\.pdf$/i);
+                      return (
+                        <div 
+                          key={file.id} 
+                          className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50"
+                          data-testid={`input-file-${file.id}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isImage && fileUrl ? (
+                              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted">
+                                <img src={fileUrl} alt={file.fileName} className="h-full w-full object-cover" />
+                              </a>
+                            ) : isPdf && fileUrl ? (
+                              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
+                                <FileText className="h-5 w-5 text-red-500" />
+                              </a>
+                            ) : (
+                              <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
+                                <FileText className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <span className="text-sm font-medium">{file.fileName}</span>
+                          </div>
+                          {fileUrl && (
+                            <a 
+                              href={fileUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                            >
+                              <Button variant="ghost" size="sm" className="gap-1">
+                                <Download className="h-3.5 w-3.5" />
+                                Download
+                              </Button>
+                            </a>
+                          )}
                         </div>
-                        {file.workdriveLink && (
-                          <a 
-                            href={`/api/objects/${encodeURIComponent(file.workdriveLink)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                          >
-                            <Button variant="ghost" size="sm" className="gap-1">
-                              <Download className="h-3.5 w-3.5" />
-                              Download
-                            </Button>
-                          </a>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <EmptyState
@@ -655,21 +672,38 @@ export default function VendorJobDetail() {
               <CardContent className="space-y-4">
                 {outputFiles.length > 0 && (
                   <div className="space-y-2 mb-4">
-                    {outputFiles.map(file => (
-                      <div 
-                        key={file.id} 
-                        className="flex items-center justify-between gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20"
-                        data-testid={`output-file-${file.id}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                          <span className="text-sm font-medium">{file.fileName}</span>
+                    {outputFiles.map(file => {
+                      const fileUrl = file.workdriveLink ? `/api/objects/${encodeURIComponent(file.workdriveLink)}` : "";
+                      const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                      const isPdf = file.fileName?.match(/\.pdf$/i);
+                      return (
+                        <div 
+                          key={file.id} 
+                          className="flex items-center justify-between gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20"
+                          data-testid={`output-file-${file.id}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isImage && fileUrl ? (
+                              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted">
+                                <img src={fileUrl} alt={file.fileName} className="h-full w-full object-cover" />
+                              </a>
+                            ) : isPdf && fileUrl ? (
+                              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
+                                <FileText className="h-5 w-5 text-red-500" />
+                              </a>
+                            ) : (
+                              <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
+                                <FileText className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <span className="text-sm font-medium">{file.fileName}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {file.createdAt ? formatDateTime(file.createdAt) : ""}
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {file.createdAt ? formatDateTime(file.createdAt) : ""}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 <ObjectUploader

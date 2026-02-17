@@ -3222,7 +3222,7 @@ export async function registerRoutes(
         const ledger = await storage.getWalletLedger(vendorId);
         for (const entry of ledger) {
           if (
-            entry.type === "Debit" &&
+            entry.entryType === "Debit" &&
             new Date(entry.createdAt) >= monthStart
           ) {
             monthlyEarnings += Math.abs(Number(entry.amount));
