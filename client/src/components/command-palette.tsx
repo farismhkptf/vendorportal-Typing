@@ -23,11 +23,13 @@ import {
   Search,
   Users,
   Calendar,
+  BarChart3,
 } from "lucide-react";
 import { toProperCase } from "@/lib/proper-case";
 
 interface SearchResult {
   workOrders: Array<{ id: string; woNumber: string; applicantName: string; status: string }>;
+  typingJobs: Array<{ id: string; jobCode: string; woNumber: string; applicantName: string; status: string }>;
   companies: Array<{ id: string; name: string }>;
   staff: Array<{ id: string; name: string; role: string }>;
 }
@@ -44,6 +46,7 @@ const PAGES = [
   { name: "Add Company", href: "/companies/new", icon: Plus, keywords: "create new company" },
   { name: "Staff", href: "/staff", icon: Users, keywords: "team members employees" },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, keywords: "balance money" },
+  { name: "Reports", href: "/reports", icon: BarChart3, keywords: "analytics stats charts" },
   { name: "Bots", href: "/bots", icon: Bot, keywords: "quick paste scheduler" },
   { name: "Admin Console", href: "/admin", icon: Settings, keywords: "settings configuration import" },
 ];
@@ -109,6 +112,24 @@ export function CommandPalette() {
           </CommandGroup>
         )}
 
+        {searchResults?.typingJobs && searchResults.typingJobs.length > 0 && (
+          <CommandGroup heading="Typing Jobs">
+            {searchResults.typingJobs.map((job) => (
+              <CommandItem
+                key={job.id}
+                value={`tj-${job.jobCode}-${job.applicantName}`}
+                onSelect={() => handleSelect(`/typing-jobs/${job.id}`)}
+                data-testid={`cmd-tj-${job.jobCode}`}
+              >
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+                <span className="font-mono text-sm font-medium">{job.jobCode}</span>
+                <span className="text-muted-foreground truncate">{toProperCase(job.applicantName)}</span>
+                <span className="text-xs text-muted-foreground ml-auto">{job.status}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+
         {searchResults?.companies && searchResults.companies.length > 0 && (
           <CommandGroup heading="Companies">
             {searchResults.companies.map((c) => (
@@ -142,7 +163,7 @@ export function CommandPalette() {
           </CommandGroup>
         )}
 
-        {(searchResults?.workOrders?.length || searchResults?.companies?.length || searchResults?.staff?.length) && (
+        {(searchResults?.workOrders?.length || searchResults?.typingJobs?.length || searchResults?.companies?.length || searchResults?.staff?.length) && (
           <CommandSeparator />
         )}
 

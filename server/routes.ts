@@ -253,14 +253,28 @@ export async function registerRoutes(
     try {
       const q = ((req.query.q || req.query["0"] || "") as string).toLowerCase().trim();
       if (q.length < 2) {
-        return res.json({ workOrders: [], companies: [], staff: [] });
+        return res.json({ workOrders: [], companies: [], staff: [], typingJobs: [] });
       }
 
-      const [workOrders, companies, staffList] = await Promise.all([
+      const [workOrders, companies, staffList, allTypingJobs] = await Promise.all([
         storage.getWorkOrders(q),
         storage.getCompanies(),
         storage.getStaff(),
+        storage.getTypingJobs(),
       ]);
+
+      const enrichedTypingJobs = await Promise.all(
+        allTypingJobs.map(async (job) => {
+          const wo = await storage.getWorkOrderById(job.woId);
+          return { ...job, workOrder: wo };
+        })
+      );
+
+      const filteredTypingJobs = enrichedTypingJobs.filter(j =>
+        (j.jobCode && j.jobCode.toLowerCase().includes(q)) ||
+        (j.workOrder?.applicantName?.toLowerCase().includes(q)) ||
+        (j.workOrder?.woNumber?.toLowerCase().includes(q))
+      );
 
       const filteredCompanies = companies
         .filter(c => c.name.toLowerCase().includes(q))
@@ -279,12 +293,131 @@ export async function registerRoutes(
           applicantName: wo.applicantName,
           status: wo.status,
         })),
+        typingJobs: filteredTypingJobs.slice(0, 5).map(j => ({
+          id: j.id,
+          jobCode: j.jobCode,
+          woNumber: j.workOrder?.woNumber || "",
+          applicantName: j.workOrder?.applicantName || "",
+          status: j.status,
+        })),
         companies: filteredCompanies,
         staff: filteredStaff,
       });
     } catch (error) {
       console.error("Search error:", error);
       res.status(500).json({ message: "Search failed" });
+    }
+  });
+
+  app.get("/api/reports/summary", async (req, res) => {
+    try {
+      const [allWorkOrders, allTypingJobs, allCompanies, allVendors, allJobTypes] = await Promise.all([
+        storage.getWorkOrders(),
+        storage.getTypingJobs(),
+        storage.getCompanies(),
+        storage.getVendors(),
+        storage.getJobTypes(),
+      ]);
+
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+
+      const overview = {
+        totalWorkOrders: allWorkOrders.length,
+        activeWorkOrders: allWorkOrders.filter(wo => wo.status !== "Completed" && wo.status !== "Cancelled").length,
+        completedWorkOrders: allWorkOrders.filter(wo => wo.status === "Completed").length,
+        totalTypingJobs: allTypingJobs.length,
+        completedTypingJobs: allTypingJobs.filter(j => j.status === "SentToClient" || j.status === "Returned").length,
+        totalCompanies: allCompanies.length,
+        totalVendors: allVendors.length,
+      };
+
+      const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const currentYear = new Date().getFullYear();
+      const woMonthly = Array(12).fill(0);
+      const tjMonthly = Array(12).fill(0);
+
+      for (const wo of allWorkOrders) {
+        const d = new Date(wo.createdAt);
+        if (d.getFullYear() === currentYear) {
+          woMonthly[d.getMonth()]++;
+        }
+      }
+      for (const tj of allTypingJobs) {
+        const d = new Date(tj.createdAt);
+        if (d.getFullYear() === currentYear) {
+          tjMonthly[d.getMonth()]++;
+        }
+      }
+
+      const vendorJobsMap = new Map<string, typeof allTypingJobs>();
+      for (const tj of allTypingJobs) {
+        if (tj.vendorId) {
+          if (!vendorJobsMap.has(tj.vendorId)) vendorJobsMap.set(tj.vendorId, []);
+          vendorJobsMap.get(tj.vendorId)!.push(tj);
+        }
+      }
+
+      const turnaroundByVendor = allVendors.map(v => {
+        const jobs = vendorJobsMap.get(v.id) || [];
+        const completedJobs = jobs.filter(j => j.status === "Returned" || j.status === "SentToClient");
+        let totalHours = 0;
+        let countWithTime = 0;
+        for (const j of completedJobs) {
+          const start = j.sentAt ? new Date(j.sentAt).getTime() : 0;
+          const end = j.returnedAt ? new Date(j.returnedAt).getTime() : (j.sentToClientAt ? new Date(j.sentToClientAt).getTime() : 0);
+          if (start && end && end > start) {
+            totalHours += (end - start) / 3600000;
+            countWithTime++;
+          }
+        }
+        return {
+          vendorName: v.name,
+          avgHours: countWithTime > 0 ? Math.round((totalHours / countWithTime) * 10) / 10 : 0,
+          totalJobs: jobs.length,
+          completionRate: jobs.length > 0 ? Math.round((completedJobs.length / jobs.length) * 100) : 0,
+        };
+      });
+
+      const jobsByCategory: Record<string, number> = {};
+      for (const tj of allTypingJobs) {
+        const jt = jobTypeMap.get(tj.jobTypeId);
+        const cat = jt?.category || "Other";
+        jobsByCategory[cat] = (jobsByCategory[cat] || 0) + 1;
+      }
+
+      const woStatusDist: Record<string, number> = {};
+      for (const wo of allWorkOrders) {
+        woStatusDist[wo.status] = (woStatusDist[wo.status] || 0) + 1;
+      }
+      const tjStatusDist: Record<string, number> = {};
+      for (const tj of allTypingJobs) {
+        tjStatusDist[tj.status] = (tjStatusDist[tj.status] || 0) + 1;
+      }
+
+      const companyCounts: Record<string, { name: string; count: number }> = {};
+      for (const wo of allWorkOrders) {
+        if (!companyCounts[wo.companyId]) {
+          const comp = allCompanies.find(c => c.id === wo.companyId);
+          companyCounts[wo.companyId] = { name: comp?.name || "Unknown", count: 0 };
+        }
+        companyCounts[wo.companyId].count++;
+      }
+      const topCompanies = Object.values(companyCounts)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+        .map(c => ({ name: c.name, woCount: c.count }));
+
+      res.json({
+        overview,
+        monthly: { labels: monthLabels, workOrders: woMonthly, typingJobs: tjMonthly },
+        turnaroundByVendor,
+        jobsByCategory,
+        statusDistribution: { wo: woStatusDist, tj: tjStatusDist },
+        topCompanies,
+      });
+    } catch (error) {
+      console.error("Reports summary error:", error);
+      res.status(500).json({ message: "Failed to fetch reports summary" });
     }
   });
 

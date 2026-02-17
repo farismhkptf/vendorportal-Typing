@@ -40,6 +40,7 @@ import BotsHub from "@/pages/bots/index";
 import QuickPasteBot from "@/pages/bots/quick-paste-bot";
 import SchedulerBot from "@/pages/bots/scheduler-bot";
 import ManagerConsole from "@/pages/manager-console";
+import ReportsPage from "@/pages/reports";
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
@@ -128,6 +129,7 @@ function Router() {
           <Route path="/vendor-wallet" component={VendorWallet} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/manager-console" component={ManagerConsole} />
+          <Route path="/reports" component={ReportsPage} />
           <Route path="/vendor/login" component={VendorLogin} />
           <Route path="/vendor/dashboard" component={VendorLayout} />
           <Route path="/vendor/jobs/:rest*" component={VendorLayout} />
