@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { NotificationsBell } from "@/components/notifications-bell";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -170,6 +171,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   {navigator.platform?.includes("Mac") ? "\u2318" : "Ctrl"}K
                 </kbd>
               </button>
+              <ThemeSwitcher compact />
               <NotificationsBell />
             </div>
           </div>

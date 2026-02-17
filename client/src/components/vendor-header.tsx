@@ -5,6 +5,7 @@ import { useVendorAuth } from "@/hooks/use-vendor-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import type { VendorNotification } from "@shared/schema";
 
 const navItems = [
@@ -83,6 +84,7 @@ export function VendorHeader() {
         </div>
         
         <div className="flex items-center gap-2">
+          <ThemeSwitcher compact />
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative" data-testid="button-notifications">
