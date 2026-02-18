@@ -27,9 +27,12 @@ import TypingJobDetail from "@/pages/typing-jobs/detail";
 import StaffList from "@/pages/staff/index";
 import VendorWallet from "@/pages/vendor-wallet";
 import AdminPage from "@/pages/admin/index";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { VendorSidebar, VendorTopBar } from "@/components/vendor-sidebar";
 import VendorLogin from "@/pages/vendor/login";
 import VendorDashboard from "@/pages/vendor/dashboard";
-import VendorJobs from "@/pages/vendor/jobs";
+import VendorEidJobs from "@/pages/vendor/eid-jobs";
+import VendorMedicalJobs from "@/pages/vendor/medical-jobs";
 import VendorJobDetail from "@/pages/vendor/job-detail";
 import VendorWalletPage from "@/pages/vendor/wallet";
 import ReschedulePage from "@/pages/reschedule";
@@ -56,6 +59,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const isPublicPath =
     location === "/login" ||
+    location === "/vendor" ||
     location.startsWith("/vendor/") ||
     location.startsWith("/reschedule/");
 
@@ -93,15 +97,27 @@ function VendorLayout() {
   return (
     <VendorAuthProvider>
       <VendorAuthGuard>
-        <PageTransition>
-          <Switch>
-            <Route path="/vendor/dashboard" component={VendorDashboard} />
-            <Route path="/vendor/jobs" component={VendorJobs} />
-            <Route path="/vendor/jobs/:id" component={VendorJobDetail} />
-            <Route path="/vendor/wallet" component={VendorWalletPage} />
-            <Route component={NotFound} />
-          </Switch>
-        </PageTransition>
+        <SidebarProvider>
+          <div className="flex h-screen w-full">
+            <VendorSidebar />
+            <div className="flex flex-col flex-1 min-w-0">
+              <VendorTopBar />
+              <main className="flex-1 overflow-y-auto">
+                <PageTransition>
+                  <Switch>
+                    <Route path="/vendor" component={VendorDashboard} />
+                    <Route path="/vendor/eid" component={VendorEidJobs} />
+                    <Route path="/vendor/eid/:id" component={VendorJobDetail} />
+                    <Route path="/vendor/medical" component={VendorMedicalJobs} />
+                    <Route path="/vendor/medical/:id" component={VendorJobDetail} />
+                    <Route path="/vendor/wallet" component={VendorWalletPage} />
+                    <Route component={NotFound} />
+                  </Switch>
+                </PageTransition>
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
       </VendorAuthGuard>
     </VendorAuthProvider>
   );
@@ -131,10 +147,8 @@ function Router() {
           <Route path="/manager-console" component={ManagerConsole} />
           <Route path="/reports" component={ReportsPage} />
           <Route path="/vendor/login" component={VendorLogin} />
-          <Route path="/vendor/dashboard" component={VendorLayout} />
-          <Route path="/vendor/jobs/:rest*" component={VendorLayout} />
-          <Route path="/vendor/jobs" component={VendorLayout} />
-          <Route path="/vendor/wallet" component={VendorLayout} />
+          <Route path="/vendor" component={VendorLayout} />
+          <Route path="/vendor/:rest*" component={VendorLayout} />
           <Route path="/reschedule/:token" component={ReschedulePage} />
           <Route path="/appointments" component={AppointmentsIndex} />
           <Route path="/appointments/schedule-medical" component={ScheduleMedical} />

@@ -22,7 +22,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { VendorHeader } from "@/components/vendor-header";
 import type { 
   TypingJob, WorkOrder, JobType, 
   TypingJobComment, File as FileType, TypingJobResult, WoDocument, DocumentRequirement
@@ -280,47 +279,38 @@ export default function VendorJobDetail() {
   const inputFiles = job?.files?.filter(f => f.direction === "Input") || [];
   const outputFiles = job?.files?.filter(f => f.direction === "Output") || [];
 
+  const backUrl = job?.jobType?.category === "Medical" ? "/vendor/medical" : "/vendor/eid";
+  const backLabel = job?.jobType?.category === "Medical" ? "Medical Jobs" : "Emirates ID Jobs";
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <VendorHeader />
-        <div className="p-4 lg:p-8 space-y-6 max-w-4xl mx-auto">
-          <Skeleton className="h-48 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
-        </div>
+      <div className="p-4 lg:p-6 space-y-6 max-w-4xl">
+        <Skeleton className="h-48 rounded-md" />
+        <Skeleton className="h-64 rounded-md" />
       </div>
     );
   }
 
   if (!job) {
     return (
-      <div className="min-h-screen bg-background">
-        <VendorHeader />
-        <div className="flex items-center justify-center p-16">
-          <EmptyState
-            icon={<FileText className="h-6 w-6" />}
-            title="Job not found"
-            description="This job doesn't exist or you don't have access to it."
-          />
-        </div>
+      <div className="flex items-center justify-center p-16">
+        <EmptyState
+          icon={<FileText className="h-6 w-6" />}
+          title="Job not found"
+          description="This job doesn't exist or you don't have access to it."
+        />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <VendorHeader />
-      
-      <div className="px-4 lg:px-8 py-3 border-b border-border/50">
-        <Link href="/vendor/jobs">
-          <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Jobs
-          </Button>
-        </Link>
-      </div>
-
-      <div className="p-4 lg:p-8 max-w-4xl mx-auto space-y-6">
+    <div className="p-4 lg:p-6 max-w-4xl space-y-6">
+      <Link href={backUrl}>
+        <Button variant="ghost" size="sm" className="gap-2" data-testid="button-back">
+          <ArrowLeft className="h-4 w-4" />
+          {backLabel}
+        </Button>
+      </Link>
         <Card>
           <CardHeader className="pb-4">
             <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -832,7 +822,6 @@ export default function VendorJobDetail() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
 
       <Dialog open={showResubmissionDialog} onOpenChange={(open) => {
         setShowResubmissionDialog(open);

@@ -1,0 +1,210 @@
+import { Link, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import {
+  LayoutDashboard, CreditCard, LogOut, Bell, Shield, Stethoscope,
+  WifiOff, Wifi, ChevronRight
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
+  SidebarGroupContent, SidebarHeader, SidebarMenu,
+  SidebarMenuButton, SidebarMenuItem, SidebarTrigger,
+  useSidebar
+} from "@/components/ui/sidebar";
+import { useVendorAuth } from "@/hooks/use-vendor-auth";
+import { ThemeSwitcher } from "@/components/theme-switcher";
+import { useOnlineStatus } from "@/hooks/use-online-status";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import type { VendorNotification } from "@shared/schema";
+
+const navItems = [
+  { href: "/vendor", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/vendor/eid", label: "Emirates ID", icon: Shield },
+  { href: "/vendor/medical", label: "Medical", icon: Stethoscope },
+  { href: "/vendor/wallet", label: "Wallet", icon: CreditCard },
+];
+
+export function VendorSidebar() {
+  const { user, logout } = useVendorAuth();
+  const [location] = useLocation();
+
+  return (
+    <Sidebar collapsible="icon" variant="sidebar">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
+          <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center shrink-0">
+            <span className="text-sm font-bold text-primary-foreground tracking-tight">PRO</span>
+          </div>
+          <div className="group-data-[collapsible=icon]:hidden overflow-hidden">
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">Vendor Portal</p>
+            <p className="text-xs text-muted-foreground truncate">The P.R.O. Company</p>
+          </div>
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="px-2">
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => {
+                const isActive =
+                  item.href === "/vendor"
+                    ? location === "/vendor" || location === "/vendor/"
+                    : location.startsWith(item.href);
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive}
+                      tooltip={item.label}
+                      className="h-10 gap-3"
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="h-[18px] w-[18px]" />
+                        <span className="font-medium">{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="p-3">
+        <div className="group-data-[collapsible=icon]:hidden">
+          {user && (
+            <div className="flex items-center gap-3 px-2 py-2 rounded-md bg-sidebar-accent/50 mb-2">
+              <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-xs font-semibold text-primary">
+                  {user.name?.charAt(0)?.toUpperCase() || "V"}
+                </span>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">{user.name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
+            </div>
+          )}
+        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Sign Out"
+              className="h-9 gap-3 text-muted-foreground"
+              onClick={() => logout()}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sign Out</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
+
+export function VendorTopBar() {
+  const { isOnline, showReconnected } = useOnlineStatus();
+
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ["/api/vendor/notifications/unread-count"],
+    refetchInterval: 30000,
+  });
+
+  const { data: notifications } = useQuery<VendorNotification[]>({
+    queryKey: ["/api/vendor/notifications"],
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => apiRequest("PUT", "/api/vendor/notifications/read-all"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/notifications/unread-count"] });
+    },
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: string) => apiRequest("PUT", `/api/vendor/notifications/${id}/read`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/notifications/unread-count"] });
+    },
+  });
+
+  const unreadCount = unreadData?.count || 0;
+
+  return (
+    <>
+      {!isOnline && (
+        <div className="flex items-center justify-center gap-2 px-4 py-1.5 bg-amber-500/90 text-white text-xs font-medium" data-testid="banner-offline">
+          <WifiOff className="h-3.5 w-3.5" />
+          You're offline - showing cached data
+        </div>
+      )}
+      {showReconnected && isOnline && (
+        <div className="flex items-center justify-center gap-2 px-4 py-1.5 bg-emerald-500/90 text-white text-xs font-medium animate-in fade-in duration-300" data-testid="banner-reconnected">
+          <Wifi className="h-3.5 w-3.5" />
+          Back online
+        </div>
+      )}
+      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border/50 bg-background/80 backdrop-blur-sm px-4">
+        <SidebarTrigger data-testid="button-vendor-sidebar-toggle" />
+        <div className="flex items-center gap-1">
+          <ThemeSwitcher compact />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="icon" className="relative" data-testid="button-notifications">
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[10px] flex items-center justify-center font-medium" data-testid="text-unread-count">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-0" align="end">
+              <div className="flex items-center justify-between gap-2 p-3 border-b">
+                <p className="text-sm font-medium">Notifications</p>
+                {unreadCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={() => markAllReadMutation.mutate()} data-testid="button-mark-all-read">
+                    Mark all read
+                  </Button>
+                )}
+              </div>
+              <div className="max-h-80 overflow-y-auto">
+                {notifications && notifications.length > 0 ? (
+                  notifications.slice(0, 20).map((n) => (
+                    <Link key={n.id} href={n.relatedJobId ? `/vendor/eid/${n.relatedJobId}` : "#"}>
+                      <div
+                        className={`p-3 border-b border-border/50 hover-elevate cursor-pointer ${!n.isRead ? "bg-primary/5" : ""}`}
+                        onClick={() => { if (!n.isRead) markReadMutation.mutate(n.id); }}
+                        data-testid={`notification-${n.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`text-sm ${!n.isRead ? "font-medium" : ""}`}>{n.title}</p>
+                          {!n.isRead && <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}
+                        </p>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-sm text-muted-foreground">
+                    No notifications
+                  </div>
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </header>
+    </>
+  );
+}
