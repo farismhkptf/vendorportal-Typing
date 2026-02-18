@@ -1,8 +1,11 @@
-import { useState, useCallback, useRef } from "react";
-import { Upload, X, File, FileText, Image, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { Upload, X, File, FileText, Image, CheckCircle, AlertCircle, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "./document-types";
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
 
 interface WoDocument {
   id: string;
@@ -24,7 +27,20 @@ interface DocumentUploadZoneProps {
   onUpload: (file: File, documentType: DocumentType) => Promise<void>;
   onDelete: (documentId: string) => Promise<void>;
   onStatusChange?: (documentId: string, status: "Pending" | "Uploaded" | "Verified") => Promise<void>;
+  onPreviewFile?: (fileUrl: string, fileName: string) => void;
   disabled?: boolean;
+  externalProgress?: number | null;
+  externalUploading?: boolean;
+}
+
+function validateFile(file: File): string | null {
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return `Invalid file type "${file.type || "unknown"}". Only images (JPG, PNG, GIF, WebP) and PDFs are allowed.`;
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    return `File size (${formatFileSize(file.size)}) exceeds the 10MB limit.`;
+  }
+  return null;
 }
 
 export function DocumentUploadZone({
@@ -35,13 +51,86 @@ export function DocumentUploadZone({
   onUpload,
   onDelete,
   onStatusChange,
+  onPreviewFile,
   disabled = false,
+  externalProgress = null,
+  externalUploading = false,
 }: DocumentUploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "failed">("idle");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
+  const [lastFile, setLastFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const existingDoc = documents.find((d) => d.documentType === documentType);
+
+  const isUploading = uploadStatus === "uploading" || externalUploading;
+  const displayProgress = externalProgress !== null && externalProgress !== undefined ? externalProgress : uploadProgress;
+
+  useEffect(() => {
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
+  }, []);
+
+  const startSimulatedProgress = useCallback(() => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    setUploadProgress(0);
+    let p = 0;
+    progressTimerRef.current = setInterval(() => {
+      p += Math.random() * 8 + 2;
+      if (p >= 90) {
+        p = 90;
+        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      }
+      setUploadProgress(Math.round(p));
+    }, 200);
+  }, []);
+
+  const stopSimulatedProgress = useCallback(() => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+  }, []);
+
+  const processFile = useCallback(async (file: File) => {
+    setUploadError(null);
+
+    const validationError = validateFile(file);
+    if (validationError) {
+      setUploadError(validationError);
+      return;
+    }
+
+    setLastFile(file);
+    setUploadingFileName(file.name);
+    setUploadStatus("uploading");
+    startSimulatedProgress();
+
+    try {
+      await onUpload(file, documentType);
+      stopSimulatedProgress();
+      setUploadProgress(100);
+      setUploadStatus("success");
+      setTimeout(() => {
+        setUploadStatus("idle");
+        setUploadProgress(0);
+        setUploadingFileName(null);
+        setLastFile(null);
+      }, 2000);
+    } catch {
+      stopSimulatedProgress();
+      setUploadStatus("failed");
+      setUploadError("Upload failed. Please try again.");
+    }
+  }, [onUpload, documentType, startSimulatedProgress, stopSimulatedProgress]);
+
+  const handleRetry = useCallback(() => {
+    if (lastFile) {
+      processFile(lastFile);
+    }
+  }, [lastFile, processFile]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -63,36 +152,35 @@ export function DocumentUploadZone({
 
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
-      setIsUploading(true);
-      try {
-        await onUpload(files[0], documentType);
-      } finally {
-        setIsUploading(false);
-      }
+      await processFile(files[0]);
     }
-  }, [disabled, isUploading, onUpload, documentType]);
+  }, [disabled, isUploading, processFile]);
 
   const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || disabled || isUploading) return;
 
-    setIsUploading(true);
-    try {
-      await onUpload(files[0], documentType);
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    await processFile(files[0]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
-  }, [disabled, isUploading, onUpload, documentType]);
+  }, [disabled, isUploading, processFile]);
 
   const handleDelete = useCallback(async () => {
     if (!existingDoc || disabled) return;
     await onDelete(existingDoc.id);
   }, [existingDoc, disabled, onDelete]);
 
-  const isImage = existingDoc?.mimeType?.startsWith("image/");
+  const handlePreview = useCallback(() => {
+    if (!existingDoc?.fileUrl) return;
+    if (onPreviewFile) {
+      onPreviewFile(existingDoc.fileUrl, existingDoc.fileName);
+    } else {
+      window.open(existingDoc.fileUrl, "_blank");
+    }
+  }, [existingDoc, onPreviewFile]);
+
+  const isImageDoc = existingDoc?.mimeType?.startsWith("image/");
   const isPdf = existingDoc?.mimeType === "application/pdf";
   const fileProxyUrl = existingDoc?.fileUrl || "";
   const label = DOCUMENT_TYPE_LABELS[documentType] || documentType;
@@ -112,8 +200,12 @@ export function DocumentUploadZone({
       {existingDoc ? (
         <div className="border rounded-lg p-3 bg-card">
           <div className="flex items-center gap-3">
-            {isImage ? (
-              <div className="h-16 w-16 rounded border overflow-hidden flex-shrink-0 bg-muted">
+            {isImageDoc ? (
+              <div
+                className="h-16 w-16 rounded border overflow-hidden flex-shrink-0 bg-muted cursor-pointer"
+                onClick={handlePreview}
+                data-testid={`preview-image-${documentType}`}
+              >
                 <img
                   src={fileProxyUrl}
                   alt={existingDoc.fileName}
@@ -121,9 +213,13 @@ export function DocumentUploadZone({
                 />
               </div>
             ) : isPdf ? (
-              <a href={fileProxyUrl} target="_blank" rel="noopener noreferrer" className="h-16 w-16 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
+              <div
+                className="h-16 w-16 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer"
+                onClick={handlePreview}
+                data-testid={`preview-pdf-${documentType}`}
+              >
                 <FileText className="h-6 w-6 text-red-500" />
-              </a>
+              </div>
             ) : (
               <div className="h-16 w-16 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
                 <File className="h-6 w-6 text-muted-foreground" />
@@ -155,7 +251,8 @@ export function DocumentUploadZone({
           className={cn(
             "border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer",
             isDragging && "border-primary bg-primary/5",
-            !isDragging && "border-muted-foreground/25 hover:border-muted-foreground/50",
+            !isDragging && !isUploading && "border-muted-foreground/25 hover:border-muted-foreground/50",
+            isUploading && "border-primary/50",
             disabled && "opacity-50 cursor-not-allowed"
           )}
           onDragOver={handleDragOver}
@@ -173,21 +270,65 @@ export function DocumentUploadZone({
             disabled={disabled || isUploading}
           />
           <div className="flex flex-col items-center gap-2 text-center">
-            {isUploading ? (
-              <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+            {uploadStatus === "uploading" ? (
+              <>
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                <div className="w-full max-w-[200px]">
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all duration-300"
+                      style={{ width: `${displayProgress}%` }}
+                      data-testid={`progress-bar-${documentType}`}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Uploading{uploadingFileName ? ` ${uploadingFileName}` : ""}... {displayProgress}%
+                  </p>
+                </div>
+              </>
+            ) : uploadStatus === "success" ? (
+              <>
+                <CheckCircle className="h-8 w-8 text-green-500" />
+                <p className="text-sm text-green-600">Upload complete</p>
+              </>
+            ) : uploadStatus === "failed" ? (
+              <>
+                <AlertCircle className="h-8 w-8 text-destructive" />
+                <p className="text-sm text-destructive">Upload failed</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRetry();
+                  }}
+                  data-testid={`button-retry-upload-${documentType}`}
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+              </>
             ) : (
-              <Upload className="h-8 w-8 text-muted-foreground" />
+              <>
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Drop file here or click to upload
+                  </p>
+                  <p className="text-xs text-muted-foreground/60">
+                    Images (JPG, PNG, GIF, WebP) and PDFs only. Max 10MB.
+                  </p>
+                </div>
+              </>
             )}
-            <div>
-              <p className="text-sm text-muted-foreground">
-                {isUploading ? "Uploading..." : "Drop file here or click to upload"}
-              </p>
-              <p className="text-xs text-muted-foreground/60">
-                Supports images and PDFs
-              </p>
-            </div>
           </div>
         </div>
+      )}
+
+      {uploadError && uploadStatus !== "uploading" && (
+        <p className="text-xs text-destructive" data-testid={`error-upload-${documentType}`}>
+          {uploadError}
+        </p>
       )}
     </div>
   );

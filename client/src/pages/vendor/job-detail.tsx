@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import { 
@@ -19,7 +19,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import { EnhancedUploader } from "@/components/enhanced-uploader";
+import { ImageLightbox, type LightboxFile } from "@/components/image-lightbox";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
@@ -80,6 +81,9 @@ export default function VendorJobDetail() {
   const [bioCenter, setBioCenter] = useState("");
   const [bioNotes, setBioNotes] = useState("");
   const [appRefNo, setAppRefNo] = useState("");
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxFiles, setLightboxFiles] = useState<LightboxFile[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const { data: job, isLoading } = useQuery<VendorJobDetails>({
     queryKey: ["/api/vendor/jobs", id],
@@ -99,8 +103,6 @@ export default function VendorJobDetail() {
     }
   }, [job?.results]);
 
-  const fileObjectPathsRef = useRef<Map<string, string>>(new Map());
-
   const saveFileMutation = useMutation({
     mutationFn: async (data: { fileName: string; objectPath: string }) => {
       return apiRequest("POST", `/api/vendor/jobs/${id}/files`, {
@@ -117,39 +119,31 @@ export default function VendorJobDetail() {
     },
   });
 
-  const getUploadParameters = async (file: { name: string; size: number | null; type?: string; id?: string }) => {
-    const res = await fetch("/api/uploads/request-url", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: file.name,
-        size: file.size || 0,
-        contentType: file.type || "application/octet-stream",
-      }),
-    });
-    const data = await res.json();
-    const key = file.id || `${file.name}-${Date.now()}`;
-    fileObjectPathsRef.current.set(key, data.objectPath);
-    fileObjectPathsRef.current.set(file.name, data.objectPath);
-    return {
-      method: "PUT" as const,
-      url: data.uploadURL as string,
-      headers: { "Content-Type": file.type || "application/octet-stream" },
-    };
-  };
+  const deleteFileMutation = useMutation({
+    mutationFn: async (fileId: string) => {
+      return apiRequest("DELETE", `/api/vendor/jobs/${id}/files/${fileId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs", id] });
+      toast({ title: "File deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete file", variant: "destructive" });
+    },
+  });
 
-  const handleUploadComplete = (result: { successful?: Array<{ name: string; id?: string }> }) => {
-    if (!result.successful) return;
-    result.successful.forEach((file) => {
-      const objectPath = file.id 
-        ? fileObjectPathsRef.current.get(file.id) 
-        : fileObjectPathsRef.current.get(file.name);
-      if (objectPath) {
-        saveFileMutation.mutate({ fileName: file.name, objectPath });
-        if (file.id) fileObjectPathsRef.current.delete(file.id);
-        fileObjectPathsRef.current.delete(file.name);
-      }
-    });
+  const openLightbox = (files: FileType[], index: number) => {
+    const lbFiles: LightboxFile[] = files
+      .filter(f => f.workdriveLink)
+      .map(f => ({
+        id: f.id,
+        fileName: f.fileName || "File",
+        fileUrl: f.workdriveLink || "",
+        mimeType: f.mimeType || null,
+      }));
+    setLightboxFiles(lbFiles);
+    setLightboxIndex(index);
+    setLightboxOpen(true);
   };
 
   const addCommentMutation = useMutation({
@@ -651,6 +645,44 @@ export default function VendorJobDetail() {
           </TabsList>
 
           <TabsContent value="documents" className="space-y-4">
+            {job.documentRequirements && job.documentRequirements.length > 0 && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileCheck className="h-4 w-4" />
+                    Required Documents Checklist
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {job.documentRequirements
+                      .filter(req => {
+                        if (job.jobType?.category === "Medical" && !req.appliesToMedical) return false;
+                        if (job.jobType?.category === "EID" && !req.appliesToEid) return false;
+                        return true;
+                      })
+                      .map(req => {
+                        const docLabel = DOCUMENT_TYPE_LABELS[req.documentType] || req.documentType;
+                        const uploaded = job.woDocuments?.some(d => d.documentType === req.documentType);
+                        return (
+                          <div key={req.id} className="flex items-center gap-2 text-sm" data-testid={`req-${req.documentType}`}>
+                            {uploaded ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                            )}
+                            <span className={uploaded ? "text-muted-foreground" : ""}>{docLabel}</span>
+                            {req.isRequired && !uploaded && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Required</Badge>
+                            )}
+                          </div>
+                        );
+                      })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -661,7 +693,7 @@ export default function VendorJobDetail() {
               <CardContent>
                 {inputFiles.length > 0 ? (
                   <div className="space-y-2">
-                    {inputFiles.map(file => {
+                    {inputFiles.map((file, idx) => {
                       const fileUrl = file.workdriveLink || "";
                       const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
                       const isPdf = file.fileName?.match(/\.pdf$/i);
@@ -673,13 +705,21 @@ export default function VendorJobDetail() {
                         >
                           <div className="flex items-center gap-3">
                             {isImage && fileUrl ? (
-                              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted">
+                              <div
+                                className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted cursor-pointer"
+                                onClick={() => openLightbox(inputFiles, idx)}
+                                data-testid={`preview-input-${file.id}`}
+                              >
                                 <img src={fileUrl} alt={file.fileName} className="h-full w-full object-cover" />
-                              </a>
+                              </div>
                             ) : isPdf && fileUrl ? (
-                              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
+                              <div
+                                className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted cursor-pointer"
+                                onClick={() => openLightbox(inputFiles, idx)}
+                                data-testid={`preview-input-${file.id}`}
+                              >
                                 <FileText className="h-5 w-5 text-red-500" />
-                              </a>
+                              </div>
                             ) : (
                               <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
                                 <FileText className="h-5 w-5 text-muted-foreground" />
@@ -720,50 +760,30 @@ export default function VendorJobDetail() {
                   Output Documents (Upload Completed Work)
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {outputFiles.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    {outputFiles.map(file => {
-                      const fileUrl = file.workdriveLink || "";
-                      const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
-                      const isPdf = file.fileName?.match(/\.pdf$/i);
-                      return (
-                        <div 
-                          key={file.id} 
-                          className="flex items-center justify-between gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20"
-                          data-testid={`output-file-${file.id}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            {isImage && fileUrl ? (
-                              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted">
-                                <img src={fileUrl} alt={file.fileName} className="h-full w-full object-cover" />
-                              </a>
-                            ) : isPdf && fileUrl ? (
-                              <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
-                                <FileText className="h-5 w-5 text-red-500" />
-                              </a>
-                            ) : (
-                              <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
-                                <FileText className="h-5 w-5 text-muted-foreground" />
-                              </div>
-                            )}
-                            <span className="text-sm font-medium">{file.fileName}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {file.createdAt ? formatDateTime(file.createdAt) : ""}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                <ObjectUploader
-                  onGetUploadParameters={getUploadParameters}
-                  onComplete={handleUploadComplete}
-                  maxNumberOfFiles={5}
-                >
-                  Upload Documents
-                </ObjectUploader>
+              <CardContent>
+                <EnhancedUploader
+                  existingFiles={outputFiles.map(f => ({
+                    id: f.id,
+                    fileName: f.fileName || "File",
+                    fileUrl: f.workdriveLink || undefined,
+                    mimeType: f.mimeType,
+                    createdAt: f.createdAt ? String(f.createdAt) : undefined,
+                  }))}
+                  onUploadComplete={(file) => {
+                    saveFileMutation.mutate(file);
+                  }}
+                  onDelete={(fileId) => {
+                    deleteFileMutation.mutate(fileId);
+                  }}
+                  maxFiles={5}
+                  disabled={!["SentToVendor", "InProgress", "WaitingForDocs"].includes(job?.status || "")}
+                  onPreviewFile={(file) => {
+                    if (file.fileUrl) {
+                      const idx = outputFiles.findIndex(f => f.id === file.id);
+                      openLightbox(outputFiles, idx >= 0 ? idx : 0);
+                    }
+                  }}
+                />
               </CardContent>
             </Card>
           </TabsContent>
@@ -982,6 +1002,13 @@ export default function VendorJobDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImageLightbox
+        files={lightboxFiles}
+        initialIndex={lightboxIndex}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
     </div>
   );
 }

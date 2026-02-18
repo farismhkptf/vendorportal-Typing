@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useParams } from "wouter";
 import { 
@@ -21,7 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ObjectUploader } from "@/components/ObjectUploader";
+import { EnhancedUploader } from "@/components/enhanced-uploader";
+import { ImageLightbox, type LightboxFile } from "@/components/image-lightbox";
 import { DocumentPanel } from "@/components/documents/document-panel";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { toProperCase } from "@/lib/proper-case";
@@ -71,7 +72,10 @@ export default function TypingJobDetail() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [newComment, setNewComment] = useState("");
-  const fileObjectPathsRef = useRef<Map<string, string>>(new Map());
+  // Lightbox state
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxFiles, setLightboxFiles] = useState<LightboxFile[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   
   // Dialog states
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
@@ -232,43 +236,32 @@ export default function TypingJobDetail() {
     },
   });
 
-  const getUploadParameters = async (file: { name: string; size: number | null; type?: string; id?: string }) => {
-    const res = await fetch("/api/uploads/request-url", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: file.name,
-        size: file.size || 0,
-        contentType: file.type || "application/octet-stream",
-      }),
-    });
-    const data = await res.json();
-    const key = file.id || `${file.name}-${Date.now()}`;
-    fileObjectPathsRef.current.set(key, data.objectPath);
-    fileObjectPathsRef.current.set(file.name, data.objectPath);
-    return {
-      method: "PUT" as const,
-      url: data.uploadURL as string,
-      headers: { "Content-Type": file.type || "application/octet-stream" },
-    };
-  };
+  const deleteFileMutation = useMutation({
+    mutationFn: async (fileId: string) => {
+      return apiRequest("DELETE", `/api/files/${fileId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/audit-logs", "typing_job", id] });
+      toast({ title: "File deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete file", variant: "destructive" });
+    },
+  });
 
-  const handleUploadComplete = (direction: "Input" | "Output") => (result: { successful?: Array<{ name: string; id?: string }> }) => {
-    if (!result.successful) return;
-    result.successful.forEach((file) => {
-      const objectPath = file.id 
-        ? fileObjectPathsRef.current.get(file.id) 
-        : fileObjectPathsRef.current.get(file.name);
-      if (objectPath) {
-        saveFileMutation.mutate({
-          fileName: file.name,
-          objectPath,
-          direction,
-        });
-        if (file.id) fileObjectPathsRef.current.delete(file.id);
-        fileObjectPathsRef.current.delete(file.name);
-      }
-    });
+  const openLightbox = (files: any[], index: number) => {
+    const lbFiles: LightboxFile[] = files
+      .filter((f: any) => f.workdriveLink)
+      .map((f: any) => ({
+        id: f.id,
+        fileName: f.fileName || "File",
+        fileUrl: f.workdriveLink || "",
+        mimeType: f.mimeType || null,
+      }));
+    setLightboxFiles(lbFiles);
+    setLightboxIndex(index);
+    setLightboxOpen(true);
   };
 
   const addCommentMutation = useMutation({
@@ -716,99 +709,71 @@ export default function TypingJobDetail() {
             <div className="grid md:grid-cols-2 gap-4">
               <Card className="border border-border/50">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2">
-                      <Upload className="h-4 w-4 text-blue-500" />
-                      Sent to Vendor ({inputFiles.length})
-                    </span>
-                    <ObjectUploader
-                      maxNumberOfFiles={5}
-                      onGetUploadParameters={getUploadParameters}
-                      onComplete={handleUploadComplete("Input")}
-                      buttonClassName="h-8 px-3 text-sm gap-1.5"
-                    >
-                      <Upload className="h-3.5 w-3.5" />
-                      Upload
-                    </ObjectUploader>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Upload className="h-4 w-4 text-blue-500" />
+                    Sent to Vendor ({inputFiles.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {inputFiles.length > 0 ? (
-                    <div className="space-y-2">
-                      {inputFiles.map((file) => {
-                        const fileUrl = file.workdriveLink || "";
-                        const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
-                        const isPdf = file.fileName?.match(/\.pdf$/i);
-                        return (
-                          <div
-                            key={file.id}
-                            className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50"
-                          >
-                            <div className="flex items-center gap-3 min-w-0">
-                              {isImage && fileUrl ? (
-                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted">
-                                  <img src={fileUrl} alt={file.fileName} className="h-full w-full object-cover" />
-                                </a>
-                              ) : isPdf && fileUrl ? (
-                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
-                                  <FileText className="h-5 w-5 text-red-500" />
-                                </a>
-                              ) : (
-                                <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
-                                  <FileText className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                              )}
-                              <span className="text-sm truncate">{file.fileName}</span>
-                            </div>
-                            {fileUrl && (
-                              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
-                                <Button variant="ghost" size="icon" className="shrink-0" data-testid={`button-download-input-${file.id}`}>
-                                  <Download className="h-3.5 w-3.5" />
-                                </Button>
-                              </a>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground text-center py-4">
-                      No documents uploaded yet
-                    </p>
-                  )}
+                  <EnhancedUploader
+                    existingFiles={inputFiles.map(f => ({
+                      id: f.id,
+                      fileName: f.fileName || "File",
+                      fileUrl: f.workdriveLink || undefined,
+                      mimeType: f.mimeType,
+                      fileSize: null,
+                      createdAt: f.createdAt ? String(f.createdAt) : undefined,
+                    }))}
+                    onUploadComplete={(file) => {
+                      saveFileMutation.mutate({ fileName: file.fileName, objectPath: file.objectPath, direction: "Input" });
+                    }}
+                    onDelete={(fileId) => deleteFileMutation.mutate(fileId)}
+                    maxFiles={10}
+                    onPreviewFile={(file) => {
+                      if (file.fileUrl) {
+                        const idx = inputFiles.findIndex(f => f.id === file.id);
+                        openLightbox(inputFiles, idx >= 0 ? idx : 0);
+                      }
+                    }}
+                  />
                 </CardContent>
               </Card>
 
               <Card className="border border-border/50">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-2">
-                      <Download className="h-4 w-4 text-green-500" />
-                      Received from Vendor ({outputFiles.length})
-                    </span>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                    <Download className="h-4 w-4 text-green-500" />
+                    Received from Vendor ({outputFiles.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {outputFiles.length > 0 ? (
                     <div className="space-y-2">
-                      {outputFiles.map((file) => {
+                      {outputFiles.map((file, idx) => {
                         const fileUrl = file.workdriveLink || "";
-                        const isImage = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
-                        const isPdf = file.fileName?.match(/\.pdf$/i);
+                        const isImg = file.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                        const isPdfFile = file.fileName?.match(/\.pdf$/i);
                         return (
-                          <div
-                            key={file.id}
-                            className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50"
-                          >
+                          <div key={file.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50">
                             <div className="flex items-center gap-3 min-w-0">
-                              {isImage && fileUrl ? (
-                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted">
+                              {isImg && fileUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openLightbox(outputFiles, idx)}
+                                  className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted cursor-pointer"
+                                  data-testid={`preview-output-${file.id}`}
+                                >
                                   <img src={fileUrl} alt={file.fileName} className="h-full w-full object-cover" />
-                                </a>
-                              ) : isPdf && fileUrl ? (
-                                <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
+                                </button>
+                              ) : isPdfFile && fileUrl ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openLightbox(outputFiles, idx)}
+                                  className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted cursor-pointer"
+                                  data-testid={`preview-output-${file.id}`}
+                                >
                                   <FileText className="h-5 w-5 text-red-500" />
-                                </a>
+                                </button>
                               ) : (
                                 <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
                                   <FileText className="h-5 w-5 text-muted-foreground" />
@@ -1089,6 +1054,13 @@ export default function TypingJobDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImageLightbox
+        files={lightboxFiles}
+        initialIndex={lightboxIndex}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
     </AppLayout>
   );
 }

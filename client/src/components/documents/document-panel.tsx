@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, FileText, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { DocumentUploadZone } from "./document-upload-zone";
 import { DOCUMENT_TYPE_LABELS, SERVICE_CATEGORY_LABELS, type DocumentType, type ServiceCategory } from "./document-types";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ImageLightbox, type LightboxFile } from "@/components/image-lightbox";
 
 interface WoDocument {
   id: string;
@@ -43,6 +45,12 @@ export function DocumentPanel({
 }: DocumentPanelProps) {
   const { toast } = useToast();
 
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxFiles, setLightboxFiles] = useState<LightboxFile[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+  const [uploadingDocType, setUploadingDocType] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   const { data: documents = [], isLoading: loadingDocs } = useQuery<WoDocument[]>({
     queryKey: ["/api/work-orders", woId, "documents"],
     queryFn: () => fetch(`/api/work-orders/${woId}/documents`).then(r => r.json()),
@@ -53,9 +61,26 @@ export function DocumentPanel({
     queryKey: ["/api/document-requirements"],
   });
 
+  const openLightbox = (fileUrl: string, _fileName: string) => {
+    const allFiles: LightboxFile[] = documents
+      .filter(d => d.fileUrl)
+      .map(d => ({
+        id: d.id,
+        fileName: d.fileName,
+        fileUrl: d.fileUrl,
+        mimeType: d.mimeType,
+      }));
+    const idx = allFiles.findIndex(f => f.fileUrl === fileUrl);
+    setLightboxFiles(allFiles);
+    setLightboxIndex(idx >= 0 ? idx : 0);
+    setLightboxOpen(true);
+  };
+
   const uploadMutation = useMutation({
     mutationFn: async ({ file, documentType }: { file: File; documentType: DocumentType }) => {
-      // Step 1: Get presigned URL
+      setUploadingDocType(documentType);
+      setUploadProgress(0);
+
       const presignResponse = await fetch("/api/uploads/request-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -72,32 +97,54 @@ export function DocumentPanel({
 
       const { uploadURL, objectPath } = await presignResponse.json();
 
-      // Step 2: Upload file directly to storage
-      const uploadResponse = await fetch(uploadURL, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadURL, true);
+        xhr.setRequestHeader("Content-Type", file.type);
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 90);
+            setUploadProgress(pct);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadProgress(95);
+            resolve();
+          } else {
+            reject(new Error("Failed to upload file"));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error("Failed to upload file"));
+        xhr.send(file);
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file");
-      }
+      setUploadProgress(98);
 
-      // Step 3: Save document record with object path as URL
-      return apiRequest("POST", `/api/work-orders/${woId}/documents`, {
+      const result = await apiRequest("POST", `/api/work-orders/${woId}/documents`, {
         documentType,
         fileName: file.name,
         fileUrl: objectPath,
         mimeType: file.type,
         fileSize: file.size,
       });
+
+      setUploadProgress(100);
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders", woId, "documents"] });
       toast({ title: "Document uploaded successfully" });
+      setUploadingDocType(null);
+      setUploadProgress(0);
     },
     onError: () => {
       toast({ title: "Failed to upload document", variant: "destructive" });
+      setUploadingDocType(null);
+      setUploadProgress(0);
     },
   });
 
@@ -205,7 +252,10 @@ export function DocumentPanel({
             isRequired={requiredTypes.includes(docType)}
             onUpload={handleUpload}
             onDelete={handleDelete}
+            onPreviewFile={(fileUrl, fileName) => openLightbox(fileUrl, fileName)}
             disabled={uploadMutation.isPending || deleteMutation.isPending}
+            externalProgress={uploadingDocType === docType ? uploadProgress : null}
+            externalUploading={uploadingDocType === docType && uploadMutation.isPending}
           />
         ))}
 
@@ -222,13 +272,21 @@ export function DocumentPanel({
                   <div key={doc.id} className="flex items-center justify-between gap-2 py-2 text-sm">
                     <div className="flex items-center gap-3 min-w-0">
                       {isImage && fileUrl ? (
-                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted">
+                        <div
+                          className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted cursor-pointer"
+                          onClick={() => openLightbox(fileUrl, doc.fileName)}
+                          data-testid={`preview-other-image-${doc.id}`}
+                        >
                           <img src={fileUrl} alt={doc.fileName} className="h-full w-full object-cover" />
-                        </a>
+                        </div>
                       ) : isPdf && fileUrl ? (
-                        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer">
+                        <div
+                          className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer"
+                          onClick={() => openLightbox(fileUrl, doc.fileName)}
+                          data-testid={`preview-other-pdf-${doc.id}`}
+                        >
                           <FileText className="h-5 w-5 text-red-500" />
-                        </a>
+                        </div>
                       ) : (
                         <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
                           <FileText className="h-5 w-5 text-muted-foreground" />
@@ -243,6 +301,13 @@ export function DocumentPanel({
           </div>
         )}
       </CardContent>
+
+      <ImageLightbox
+        files={lightboxFiles}
+        initialIndex={lightboxIndex}
+        open={lightboxOpen}
+        onClose={() => setLightboxOpen(false)}
+      />
     </Card>
   );
 }

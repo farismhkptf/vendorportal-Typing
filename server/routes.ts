@@ -3444,6 +3444,46 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/vendor/jobs/:jobId/files/:fileId", requireVendorAuth, async (req, res) => {
+    try {
+      const vendorId = req.session.vendorId;
+      if (!vendorId) {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const { jobId, fileId } = req.params;
+
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== vendorId) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+
+      const jobFiles = await storage.getFilesByRelated("TypingJob", jobId);
+      const file = jobFiles.find(f => f.id === fileId);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      if (file.direction !== "Output") {
+        return res.status(403).json({ message: "Cannot delete input files" });
+      }
+
+      await storage.deleteFile(fileId);
+
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: jobId,
+        action: "file_deleted",
+        details: { fileName: file.fileName, deletedBy: "vendor" },
+      });
+
+      res.json({ message: "File deleted" });
+    } catch (error) {
+      console.error("Vendor file delete error:", error);
+      res.status(500).json({ message: "Failed to delete file" });
+    }
+  });
+
   // Vendor add comment
   const vendorCommentSchema = z.object({
     message: z.string().min(1).max(2000),
