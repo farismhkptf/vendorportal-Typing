@@ -135,11 +135,12 @@ export default function VendorDashboard() {
             )}
 
             <div>
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3" data-testid="heading-action-queue">
+              <h2 className="text-xs font-medium text-muted-foreground mb-3" data-testid="heading-action-queue">
                 Action Queue
               </h2>
               {needsAttention.length > 0 ? (
-                <div className="space-y-1">
+                <Card>
+                  <div className="divide-y divide-border/50">
                   {needsAttention.map((job) => {
                     const isEid = job.jobType?.category === "EID";
                     const detailUrl = isEid ? `/vendor/eid/${job.id}` : `/vendor/medical/${job.id}`;
@@ -147,7 +148,7 @@ export default function VendorDashboard() {
                     return (
                       <Link key={job.id} href={detailUrl}>
                         <div
-                          className={`flex items-center gap-3 p-3 rounded-md hover-elevate cursor-pointer ${
+                          className={`flex items-center gap-3 p-3 hover-elevate cursor-pointer ${
                             job.priority === "urgent" ? "bg-red-500/5 dark:bg-red-500/10" : ""
                           }`}
                           data-testid={`action-job-${job.id}`}
@@ -199,7 +200,8 @@ export default function VendorDashboard() {
                       </Link>
                     );
                   })}
-                </div>
+                  </div>
+                </Card>
               ) : (
                 <Card>
                   <CardContent className="p-8 text-center">
@@ -212,103 +214,106 @@ export default function VendorDashboard() {
             </div>
           </div>
 
-          <div className="lg:col-span-2 space-y-5">
-            <Link href="/vendor/wallet">
-              <Card className="hover-elevate cursor-pointer" data-testid="card-wallet-balance">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-sm text-muted-foreground">Wallet Balance</span>
-                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+          {/* RIGHT COLUMN — single cohesive panel */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardContent className="p-5 space-y-0">
+                {/* Wallet Balance */}
+                <Link href="/vendor/wallet">
+                  <div className="flex items-center justify-between gap-2 hover-elevate rounded-md -mx-2 px-2 py-1 cursor-pointer" data-testid="card-wallet-balance">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-0.5">Wallet Balance</p>
+                      <p className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-wallet-balance">
+                        AED {(balanceData?.balance || 0).toLocaleString()}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-wallet-balance">
-                    AED {(balanceData?.balance || 0).toLocaleString()}
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
+                </Link>
 
-            <div>
-              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-                Active Jobs
-              </h2>
-              <div className="grid grid-cols-2 gap-3">
-                <Link href="/vendor/eid">
-                  <Card className="hover-elevate cursor-pointer" data-testid="stat-eid-jobs">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                {/* Divider */}
+                <div className="border-t border-border/60 my-4" />
+
+                {/* Active Jobs */}
+                <p className="text-xs font-medium text-muted-foreground mb-3">Active Jobs</p>
+                <div className="grid grid-cols-2 gap-3 mb-1">
+                  <Link href="/vendor/eid">
+                    <div className="p-3 rounded-md bg-muted/50 hover-elevate cursor-pointer" data-testid="stat-eid-jobs">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Shield className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                         <span className="text-xs text-muted-foreground">Emirates ID</span>
                       </div>
                       <p className="text-xl font-bold text-foreground" data-testid="text-eid-count">
                         {stats?.activeEid || 0}
                       </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-                <Link href="/vendor/medical">
-                  <Card className="hover-elevate cursor-pointer" data-testid="stat-medical-jobs">
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </Link>
+                  <Link href="/vendor/medical">
+                    <div className="p-3 rounded-md bg-muted/50 hover-elevate cursor-pointer" data-testid="stat-medical-jobs">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Stethoscope className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                         <span className="text-xs text-muted-foreground">Medical</span>
                       </div>
                       <p className="text-xl font-bold text-foreground" data-testid="text-medical-count">
                         {stats?.activeMedical || 0}
                       </p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </div>
-            </div>
+                    </div>
+                  </Link>
+                </div>
 
-            {performanceData && (
-              <div>
-                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
-                  Performance
-                </h2>
-                <Card data-testid="section-performance">
-                  <CardContent className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        <span className="text-sm text-muted-foreground">Completion</span>
-                      </div>
-                      <span className="text-sm font-bold" data-testid="text-completion-rate">{performanceData.completionRate}%</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-muted overflow-hidden -mt-2">
-                      <div
-                        className="h-full rounded-full bg-emerald-500 transition-all"
-                        style={{ width: `${Math.min(performanceData.completionRate, 100)}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                        <span className="text-sm text-muted-foreground">Avg. Turnaround</span>
-                      </div>
-                      <span className="text-sm font-bold" data-testid="text-turnaround">{performanceData.avgTurnaroundHours}h</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                        <span className="text-sm text-muted-foreground">This Month</span>
-                      </div>
-                      <span className="text-sm font-bold" data-testid="text-monthly-earnings">AED {performanceData.monthlyEarnings.toLocaleString()}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
+                {/* Urgent count inline */}
+                {(stats?.urgent || 0) > 0 && (
+                  <div className="flex items-center gap-2 mt-2 p-2 rounded-md bg-red-500/10" data-testid="stat-urgent-count">
+                    <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+                    <p className="text-xs">
+                      <span className="font-medium text-red-600 dark:text-red-400">{stats?.urgent}</span>
+                      <span className="text-muted-foreground"> priority {stats?.urgent === 1 ? "job" : "jobs"}</span>
+                    </p>
+                  </div>
+                )}
 
-            {(stats?.urgent || 0) > 0 && (
-              <div className="flex items-center gap-3 p-3 rounded-md bg-red-500/10 border border-red-500/20" data-testid="stat-urgent-count">
-                <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
-                <p className="text-sm">
-                  <span className="font-medium text-red-600 dark:text-red-400">{stats?.urgent}</span>
-                  <span className="text-muted-foreground"> priority {stats?.urgent === 1 ? "job" : "jobs"}</span>
-                </p>
-              </div>
-            )}
+                {/* Divider */}
+                {performanceData && <div className="border-t border-border/60 my-4" />}
+
+                {/* Performance */}
+                {performanceData && (
+                  <div data-testid="section-performance">
+                    <p className="text-xs font-medium text-muted-foreground mb-3">Performance</p>
+                    <div className="space-y-3">
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <TrendingUp className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span className="text-sm text-muted-foreground">Completion</span>
+                          </div>
+                          <span className="text-sm font-bold" data-testid="text-completion-rate">{performanceData.completionRate}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500 transition-all"
+                            style={{ width: `${Math.min(performanceData.completionRate, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                          <span className="text-sm text-muted-foreground">Avg. Turnaround</span>
+                        </div>
+                        <span className="text-sm font-bold" data-testid="text-turnaround">{performanceData.avgTurnaroundHours}h</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                          <span className="text-sm text-muted-foreground">This Month</span>
+                        </div>
+                        <span className="text-sm font-bold" data-testid="text-monthly-earnings">AED {performanceData.monthlyEarnings.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
