@@ -4576,31 +4576,33 @@ export default function AdminPage() {
                             )}
                           />
                         )}
-                        <FormField
-                          control={userForm.control}
-                          name="staffId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Staff Member (Optional)</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value || ""}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-user-staff">
-                                    <SelectValue placeholder="Link to staff member" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
-                                  {staffList?.map((s: Staff) => (
-                                    <SelectItem key={s.id} value={s.id}>
-                                      {s.name} — {s.roleTitle}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {["Admin", "Client Relationship Manager", "Medical Assistance Support"].includes(userForm.watch("role")) && (
+                          <FormField
+                            control={userForm.control}
+                            name="staffId"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Linked Staff Member</FormLabel>
+                                <Select onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)} value={field.value || "__none__"}>
+                                  <FormControl>
+                                    <SelectTrigger data-testid="select-user-staff">
+                                      <SelectValue placeholder="Link to staff member" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    <SelectItem value="__none__">None</SelectItem>
+                                    {staffList?.map((s: Staff) => (
+                                      <SelectItem key={s.id} value={s.id}>
+                                        {s.name} — {s.roleTitle}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
                         <div className="flex justify-end gap-3 pt-4">
                           <Button type="button" variant="outline" onClick={() => setUserDialogOpen(false)}>
                             Cancel
@@ -4795,31 +4797,33 @@ export default function AdminPage() {
                           )}
                         />
                       )}
-                      <FormField
-                        control={editUserForm.control}
-                        name="staffId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Staff Member (Optional)</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl>
-                                <SelectTrigger data-testid="select-edit-user-staff">
-                                  <SelectValue placeholder="Link to staff member" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="">None</SelectItem>
-                                {staffList?.map((s: Staff) => (
-                                  <SelectItem key={s.id} value={s.id}>
-                                    {s.name} — {s.roleTitle}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {["Admin", "Client Relationship Manager", "Medical Assistance Support"].includes(editUserForm.watch("role")) && (
+                        <FormField
+                          control={editUserForm.control}
+                          name="staffId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Linked Staff Member</FormLabel>
+                              <Select onValueChange={(val) => field.onChange(val === "__none__" ? "" : val)} value={field.value || "__none__"}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-edit-user-staff">
+                                    <SelectValue placeholder="Link to staff member" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="__none__">None</SelectItem>
+                                  {staffList?.map((s: Staff) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.name} — {s.roleTitle}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      )}
                       <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" onClick={() => setEditingUser(null)}>
                           Cancel

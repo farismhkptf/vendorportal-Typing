@@ -86,7 +86,7 @@ function VendorAuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user && location !== "/vendor/login") {
+  if (!user) {
     return <Redirect to="/vendor/login" />;
   }
 
@@ -105,13 +105,13 @@ function VendorLayout() {
               <main className="flex-1 overflow-y-auto">
                 <PageTransition>
                   <Switch>
-                    <Route path="/vendor" component={VendorDashboard} />
-                    <Route path="/vendor/dashboard">{() => <Redirect to="/vendor" />}</Route>
-                    <Route path="/vendor/eid" component={VendorEidJobs} />
-                    <Route path="/vendor/eid/:id" component={VendorJobDetail} />
-                    <Route path="/vendor/medical" component={VendorMedicalJobs} />
-                    <Route path="/vendor/medical/:id" component={VendorJobDetail} />
-                    <Route path="/vendor/wallet" component={VendorWalletPage} />
+                    <Route path="/" component={VendorDashboard} />
+                    <Route path="/dashboard">{() => <Redirect to="/vendor" />}</Route>
+                    <Route path="/eid" component={VendorEidJobs} />
+                    <Route path="/eid/:id" component={VendorJobDetail} />
+                    <Route path="/medical" component={VendorMedicalJobs} />
+                    <Route path="/medical/:id" component={VendorJobDetail} />
+                    <Route path="/wallet" component={VendorWalletPage} />
                     <Route component={NotFound} />
                   </Switch>
                 </PageTransition>
@@ -148,8 +148,7 @@ function Router() {
           <Route path="/manager-console" component={ManagerConsole} />
           <Route path="/reports" component={ReportsPage} />
           <Route path="/vendor/login" component={VendorLogin} />
-          <Route path="/vendor" component={VendorLayout} />
-          <Route path="/vendor/:rest*" component={VendorLayout} />
+          <Route path="/vendor" nest component={VendorLayout} />
           <Route path="/reschedule/:token" component={ReschedulePage} />
           <Route path="/appointments" component={AppointmentsIndex} />
           <Route path="/appointments/schedule-medical" component={ScheduleMedical} />

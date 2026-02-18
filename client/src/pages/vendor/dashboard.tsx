@@ -2,8 +2,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   Shield, Stethoscope, AlertTriangle, ArrowRight,
-  CreditCard, Clock, CheckCircle2, TrendingUp,
-  Inbox, Loader2, Zap, PartyPopper
+  CreditCard, Clock, CheckCircle2, Inbox, Loader2,
+  Zap, Bell, ChevronRight
 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format-date";
 import { useVendorAuth } from "@/hooks/use-vendor-auth";
@@ -14,7 +14,31 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { TypingJob, WorkOrder, JobType } from "@shared/schema";
+import type { VendorNotification } from "@shared/schema";
+
+interface WoGroupedItem {
+  woId: string;
+  woNumber: string;
+  applicantName: string;
+  jobs: Array<{
+    id: string;
+    category: string;
+    status: string;
+    priority: string;
+    sentAt: string | null;
+    costSnapshot: number | null;
+  }>;
+}
+
+interface ActivityItem {
+  id: string;
+  woNumber: string;
+  applicantName: string;
+  category: string;
+  status: string;
+  timestamp: string;
+  sentAt: string | null;
+}
 
 interface DashboardData {
   stats: {
@@ -27,20 +51,13 @@ interface DashboardData {
     activeEid: number;
     activeMedical: number;
   };
-  recentJobs: Array<TypingJob & { workOrder?: WorkOrder; jobType?: JobType; urgent?: boolean; priority?: "urgent" | "today" | "standard" }>;
+  recentJobs: Array<any>;
   staleAlerts?: {
     unacceptedJobs: number;
     waitingForDocsJobs: number;
   };
-}
-
-interface PerformanceData {
-  completionRate: number;
-  avgTurnaroundHours: number;
-  monthlyEarnings: number;
-  totalJobsThisMonth: number;
-  jobsByCategory: Record<string, number>;
-  statusBreakdown: { pending: number; inProgress: number; completed: number; cancelled: number };
+  woGrouped: WoGroupedItem[];
+  activityFeed: ActivityItem[];
 }
 
 function getGreeting() {
@@ -58,12 +75,20 @@ export default function VendorDashboard() {
     queryKey: ["/api/vendor/dashboard"],
   });
 
-  const { data: performanceData } = useQuery<PerformanceData>({
-    queryKey: ["/api/vendor/performance"],
-  });
-
   const { data: balanceData } = useQuery<{ balance: number }>({
     queryKey: ["/api/vendor/wallet/balance"],
+  });
+
+  const { data: notifications } = useQuery<VendorNotification[]>({
+    queryKey: ["/api/vendor/notifications"],
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: string) => apiRequest("PUT", `/api/vendor/notifications/${id}/read`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/notifications/unread-count"] });
+    },
   });
 
   const acceptMutation = useMutation({
@@ -77,243 +102,384 @@ export default function VendorDashboard() {
   });
 
   const stats = data?.stats;
-  const recentJobs = data?.recentJobs || [];
+  const woGrouped = data?.woGrouped || [];
+  const activityFeed = data?.activityFeed || [];
   const staleAlerts = data?.staleAlerts;
-  const needsAttention = recentJobs.filter(j => j.status === "SentToVendor" || j.priority === "urgent");
-
   const hasStaleAlerts = staleAlerts && (staleAlerts.unacceptedJobs > 0 || staleAlerts.waitingForDocsJobs > 0);
+  const unreadNotifications = (notifications || []).filter(n => !n.isRead).slice(0, 5);
 
   return (
     <div className="p-4 lg:p-6 max-w-6xl">
-      <div className="mb-6">
+      {/* Greeting */}
+      <div className="mb-5">
         <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-foreground" data-testid="text-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0] || "there"}
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {needsAttention.length > 0
-            ? `${needsAttention.length} ${needsAttention.length === 1 ? "job needs" : "jobs need"} your attention`
+          {(stats?.pending || 0) > 0
+            ? `${stats?.pending} ${stats?.pending === 1 ? "job" : "jobs"} awaiting acceptance`
             : "You're all caught up"}
         </p>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-3 space-y-3">
-            <Skeleton className="h-16 rounded-md" />
-            <Skeleton className="h-16 rounded-md" />
-            <Skeleton className="h-16 rounded-md" />
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
           </div>
-          <div className="lg:col-span-2 space-y-4">
-            <Skeleton className="h-24 rounded-md" />
-            <Skeleton className="h-32 rounded-md" />
-          </div>
+          <Skeleton className="h-48 rounded-md" />
+          <Skeleton className="h-48 rounded-md" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-3 space-y-5">
-            {hasStaleAlerts && (
-              <div className="space-y-2">
-                {staleAlerts.unacceptedJobs > 0 && (
-                  <div className="flex items-center gap-3 p-3 rounded-md bg-amber-500/10 border border-amber-500/20" data-testid="alert-unaccepted">
-                    <Inbox className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">{staleAlerts.unacceptedJobs}</span> {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} awaiting acceptance
-                      <span className="text-muted-foreground"> &middot; pending over 12 hours</span>
-                    </p>
-                  </div>
-                )}
-                {staleAlerts.waitingForDocsJobs > 0 && (
-                  <div className="flex items-center gap-3 p-3 rounded-md bg-blue-500/10 border border-blue-500/20" data-testid="alert-waiting-docs">
-                    <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">{staleAlerts.waitingForDocsJobs}</span> {staleAlerts.waitingForDocsJobs === 1 ? "job" : "jobs"} waiting for docs
-                      <span className="text-muted-foreground"> &middot; pending over 24 hours</span>
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div>
-              <h2 className="text-xs font-medium text-muted-foreground mb-3" data-testid="heading-action-queue">
-                Action Queue
-              </h2>
-              {needsAttention.length > 0 ? (
-                <Card>
-                  <div className="divide-y divide-border/50">
-                  {needsAttention.map((job) => {
-                    const isEid = job.jobType?.category === "EID";
-                    const detailUrl = isEid ? `/vendor/eid/${job.id}` : `/vendor/medical/${job.id}`;
-                    const isAccepting = acceptMutation.isPending && acceptMutation.variables === job.id;
-                    return (
-                      <Link key={job.id} href={detailUrl}>
-                        <div
-                          className={`flex items-center gap-3 p-3 hover-elevate cursor-pointer ${
-                            job.priority === "urgent" ? "bg-red-500/5 dark:bg-red-500/10" : ""
-                          }`}
-                          data-testid={`action-job-${job.id}`}
-                        >
-                          <div className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 ${
-                            job.priority === "urgent" ? "bg-red-500/10" : isEid ? "bg-amber-500/10" : "bg-blue-500/10"
-                          }`}>
-                            {job.priority === "urgent" ? (
-                              <AlertTriangle className="h-4 w-4 text-red-500" />
-                            ) : isEid ? (
-                              <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                            ) : (
-                              <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            )}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-medium">{job.workOrder?.woNumber || "N/A"}</span>
-                              <StatusBadge status={job.status} />
-                              {job.priority === "urgent" && (
-                                <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
-                              {job.costSnapshot && (
-                                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">AED {job.costSnapshot}</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs text-muted-foreground hidden sm:block">
-                              {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
-                            </span>
-                            {job.status === "SentToVendor" && (
-                              <Button
-                                size="sm"
-                                className="gap-1.5"
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
-                                disabled={isAccepting}
-                                data-testid={`button-accept-${job.id}`}
-                              >
-                                {isAccepting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                                Accept
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                  </div>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <PartyPopper className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
-                    <p className="text-sm font-medium text-foreground">You're all caught up</p>
-                    <p className="text-xs text-muted-foreground mt-1">No jobs need your immediate attention</p>
+        <div className="space-y-5">
+          {/* ── OVERVIEW STRIP ── */}
+          <div className="flex gap-3 flex-wrap" data-testid="section-overview-strip">
+            <div className="flex gap-3 flex-1 min-w-0">
+              <Link href="/vendor/eid" className="flex-1 min-w-0">
+                <Card className="hover-elevate cursor-pointer h-full" data-testid="tile-pending">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="h-7 w-7 rounded-md bg-amber-500/10 flex items-center justify-center">
+                        <Inbox className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Pending</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-pending-count">{stats?.pending || 0}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Not accepted</p>
                   </CardContent>
                 </Card>
-              )}
+              </Link>
+              <div className="flex-1 min-w-0">
+                <Card className="h-full" data-testid="tile-in-progress">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="h-7 w-7 rounded-md bg-blue-500/10 flex items-center justify-center">
+                        <Zap className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">In Progress</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-inprogress-count">{stats?.inProgress || 0}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Accepted, not done</p>
+                  </CardContent>
+                </Card>
+              </div>
+              <div className="flex-1 min-w-0">
+                <Card className="h-full" data-testid="tile-completed">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <div className="h-7 w-7 rounded-md bg-emerald-500/10 flex items-center justify-center">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Completed</span>
+                    </div>
+                    <p className="text-2xl font-bold text-foreground" data-testid="text-completed-count">{stats?.completed || 0}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">Done</p>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
+            {/* Gap + Wallet */}
+            <div className="w-px bg-border/40 hidden sm:block self-stretch" />
+            <Link href="/vendor/wallet" className="min-w-[140px]">
+              <Card className="hover-elevate cursor-pointer h-full" data-testid="tile-wallet">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="h-7 w-7 rounded-md bg-violet-500/10 flex items-center justify-center">
+                      <CreditCard className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <span className="text-xs text-muted-foreground">Wallet</span>
+                  </div>
+                  <p className="text-2xl font-bold text-foreground" data-testid="text-wallet-balance">
+                    AED {(balanceData?.balance || 0).toLocaleString()}
+                  </p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="text-[11px] text-muted-foreground">View details</span>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
 
-          {/* RIGHT COLUMN — single cohesive panel */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardContent className="p-5 space-y-0">
-                {/* Wallet Balance */}
-                <Link href="/vendor/wallet">
-                  <div className="flex items-center justify-between gap-2 hover-elevate rounded-md -mx-2 px-2 py-1 cursor-pointer" data-testid="card-wallet-balance">
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-0.5">Wallet Balance</p>
-                      <p className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-wallet-balance">
-                        AED {(balanceData?.balance || 0).toLocaleString()}
-                      </p>
+          {/* ── ALERTS ── */}
+          {hasStaleAlerts && (
+            <div className="flex flex-col sm:flex-row gap-2">
+              {staleAlerts.unacceptedJobs > 0 && (
+                <div className="flex items-center gap-3 p-3 rounded-md bg-amber-500/10 border border-amber-500/20 flex-1" data-testid="alert-unaccepted">
+                  <Inbox className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <p className="text-sm text-foreground">
+                    <span className="font-medium">{staleAlerts.unacceptedJobs}</span> {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} awaiting acceptance
+                    <span className="text-muted-foreground"> -- pending over 12 hours</span>
+                  </p>
+                </div>
+              )}
+              {staleAlerts.waitingForDocsJobs > 0 && (
+                <div className="flex items-center gap-3 p-3 rounded-md bg-blue-500/10 border border-blue-500/20 flex-1" data-testid="alert-waiting-docs">
+                  <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                  <p className="text-sm text-foreground">
+                    <span className="font-medium">{staleAlerts.waitingForDocsJobs}</span> {staleAlerts.waitingForDocsJobs === 1 ? "job" : "jobs"} waiting for docs
+                    <span className="text-muted-foreground"> -- pending over 24 hours</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── MAIN GRID ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+            {/* LEFT COLUMN: Action Queue + Activity Feed */}
+            <div className="lg:col-span-3 space-y-5">
+              {/* Action Queue — WO-based */}
+              <div>
+                <h2 className="text-xs font-medium text-muted-foreground mb-3" data-testid="heading-action-queue">
+                  Active Work Orders
+                </h2>
+                {woGrouped.length > 0 ? (
+                  <Card>
+                    <div className="divide-y divide-border/50">
+                      {woGrouped.map((wo) => {
+                        const hasPending = wo.jobs.some(j => j.status === "SentToVendor");
+                        const hasUrgent = wo.jobs.some(j => j.priority === "urgent");
+                        return (
+                          <div
+                            key={wo.woId}
+                            className={`p-3 ${hasUrgent ? "bg-red-500/5 dark:bg-red-500/10" : ""}`}
+                            data-testid={`action-wo-${wo.woId}`}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-medium">{wo.woNumber}</span>
+                                  {hasUrgent && <Badge variant="destructive" className="text-[10px]">Urgent</Badge>}
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate mt-0.5">{wo.applicantName}</p>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {wo.jobs.map((job) => {
+                                const isEid = job.category === "EID";
+                                const detailUrl = isEid ? `/vendor/eid/${job.id}` : `/vendor/medical/${job.id}`;
+                                const isAccepting = acceptMutation.isPending && acceptMutation.variables === job.id;
+                                return (
+                                  <div
+                                    key={job.id}
+                                    className="flex items-center gap-2 p-2 rounded-md bg-muted/50 flex-1 min-w-[200px]"
+                                    data-testid={`action-job-${job.id}`}
+                                  >
+                                    <div className={`h-6 w-6 rounded flex items-center justify-center shrink-0 ${isEid ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
+                                      {isEid
+                                        ? <Shield className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                                        : <Stethoscope className="h-3 w-3 text-blue-600 dark:text-blue-400" />}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-medium">{job.category}</span>
+                                        <StatusBadge status={job.status as any} />
+                                      </div>
+                                      {job.costSnapshot && (
+                                        <span className="text-[11px] text-emerald-600 dark:text-emerald-400">AED {job.costSnapshot}</span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {job.status === "SentToVendor" && (
+                                        <Button
+                                          size="sm"
+                                          className="gap-1 h-7 text-xs"
+                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
+                                          disabled={isAccepting}
+                                          data-testid={`button-accept-${job.id}`}
+                                        >
+                                          {isAccepting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                          Accept
+                                        </Button>
+                                      )}
+                                      <Link href={detailUrl}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-view-${job.id}`}>
+                                          <ChevronRight className="h-3.5 w-3.5" />
+                                        </Button>
+                                      </Link>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </Link>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <CheckCircle2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+                      <p className="text-sm font-medium text-foreground">No active work orders</p>
+                      <p className="text-xs text-muted-foreground mt-1">New jobs will appear here when assigned</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
 
-                {/* Divider */}
-                <div className="border-t border-border/60 my-4" />
+              {/* Activity Feed */}
+              <div>
+                <h2 className="text-xs font-medium text-muted-foreground mb-3" data-testid="heading-activity">
+                  Recent Activity
+                </h2>
+                {activityFeed.length > 0 ? (
+                  <Card>
+                    <div className="divide-y divide-border/50">
+                      {activityFeed.map((item) => {
+                        const isEid = item.category === "EID";
+                        const detailUrl = isEid ? `/vendor/eid/${item.id}` : `/vendor/medical/${item.id}`;
+                        return (
+                          <Link key={item.id} href={detailUrl}>
+                            <div className="flex items-center gap-3 p-3 hover-elevate cursor-pointer" data-testid={`activity-${item.id}`}>
+                              <div className={`h-7 w-7 rounded-md flex items-center justify-center shrink-0 ${isEid ? "bg-amber-500/10" : "bg-blue-500/10"}`}>
+                                {isEid
+                                  ? <Shield className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                                  : <Stethoscope className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-medium">{item.woNumber}</span>
+                                  <StatusBadge status={item.status as any} />
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate">{item.applicantName}</p>
+                              </div>
+                              <span className="text-xs text-muted-foreground shrink-0 hidden sm:block">
+                                {formatRelativeTime(item.timestamp)}
+                              </span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <p className="text-sm text-muted-foreground">No recent activity</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
 
-                {/* Active Jobs */}
-                <p className="text-xs font-medium text-muted-foreground mb-3">Active Jobs</p>
-                <div className="grid grid-cols-2 gap-3 mb-1">
+            {/* RIGHT COLUMN: Quick Actions + Notifications */}
+            <div className="lg:col-span-2 space-y-5">
+              {/* Quick Actions */}
+              <div>
+                <h2 className="text-xs font-medium text-muted-foreground mb-3" data-testid="heading-quick-actions">
+                  Quick Actions
+                </h2>
+                <div className="grid grid-cols-1 gap-2">
                   <Link href="/vendor/eid">
-                    <div className="p-3 rounded-md bg-muted/50 hover-elevate cursor-pointer" data-testid="stat-eid-jobs">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Shield className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                        <span className="text-xs text-muted-foreground">Emirates ID</span>
-                      </div>
-                      <p className="text-xl font-bold text-foreground" data-testid="text-eid-count">
-                        {stats?.activeEid || 0}
-                      </p>
-                    </div>
+                    <Card className="hover-elevate cursor-pointer" data-testid="quick-action-eid">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
+                          <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">Emirates ID Jobs</p>
+                          <p className="text-xs text-muted-foreground">{stats?.activeEid || 0} active</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </CardContent>
+                    </Card>
                   </Link>
                   <Link href="/vendor/medical">
-                    <div className="p-3 rounded-md bg-muted/50 hover-elevate cursor-pointer" data-testid="stat-medical-jobs">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Stethoscope className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                        <span className="text-xs text-muted-foreground">Medical</span>
-                      </div>
-                      <p className="text-xl font-bold text-foreground" data-testid="text-medical-count">
-                        {stats?.activeMedical || 0}
-                      </p>
-                    </div>
+                    <Card className="hover-elevate cursor-pointer" data-testid="quick-action-medical">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0">
+                          <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">Medical Jobs</p>
+                          <p className="text-xs text-muted-foreground">{stats?.activeMedical || 0} active</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </CardContent>
+                    </Card>
+                  </Link>
+                  <Link href="/vendor/wallet">
+                    <Card className="hover-elevate cursor-pointer" data-testid="quick-action-wallet">
+                      <CardContent className="p-3 flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-md bg-violet-500/10 flex items-center justify-center shrink-0">
+                          <CreditCard className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">Wallet & Transactions</p>
+                          <p className="text-xs text-muted-foreground">Balance: AED {(balanceData?.balance || 0).toLocaleString()}</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                      </CardContent>
+                    </Card>
                   </Link>
                 </div>
+              </div>
 
-                {/* Urgent count inline */}
-                {(stats?.urgent || 0) > 0 && (
-                  <div className="flex items-center gap-2 mt-2 p-2 rounded-md bg-red-500/10" data-testid="stat-urgent-count">
-                    <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
-                    <p className="text-xs">
-                      <span className="font-medium text-red-600 dark:text-red-400">{stats?.urgent}</span>
-                      <span className="text-muted-foreground"> priority {stats?.urgent === 1 ? "job" : "jobs"}</span>
-                    </p>
-                  </div>
-                )}
-
-                {/* Divider */}
-                {performanceData && <div className="border-t border-border/60 my-4" />}
-
-                {/* Performance */}
-                {performanceData && (
-                  <div data-testid="section-performance">
-                    <p className="text-xs font-medium text-muted-foreground mb-3">Performance</p>
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <TrendingUp className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span className="text-sm text-muted-foreground">Completion</span>
-                          </div>
-                          <span className="text-sm font-bold" data-testid="text-completion-rate">{performanceData.completionRate}%</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              {/* Inline Notifications */}
+              <div>
+                <h2 className="text-xs font-medium text-muted-foreground mb-3" data-testid="heading-notifications">
+                  Notifications
+                </h2>
+                {unreadNotifications.length > 0 ? (
+                  <Card>
+                    <div className="divide-y divide-border/50">
+                      {unreadNotifications.map((n) => {
+                        const jobUrl = n.relatedJobId
+                          ? ((n as any).jobCategory === "Medical" ? `/vendor/medical/${n.relatedJobId}` : `/vendor/eid/${n.relatedJobId}`)
+                          : null;
+                        return (
                           <div
-                            className="h-full rounded-full bg-emerald-500 transition-all"
-                            style={{ width: `${Math.min(performanceData.completionRate, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                          <span className="text-sm text-muted-foreground">Avg. Turnaround</span>
-                        </div>
-                        <span className="text-sm font-bold" data-testid="text-turnaround">{performanceData.avgTurnaroundHours}h</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <CreditCard className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
-                          <span className="text-sm text-muted-foreground">This Month</span>
-                        </div>
-                        <span className="text-sm font-bold" data-testid="text-monthly-earnings">AED {performanceData.monthlyEarnings.toLocaleString()}</span>
-                      </div>
+                            key={n.id}
+                            className="p-3 hover-elevate cursor-pointer"
+                            onClick={() => {
+                              if (!n.isRead) markReadMutation.mutate(n.id);
+                              if (jobUrl) window.location.href = jobUrl;
+                            }}
+                            data-testid={`inline-notification-${n.id}`}
+                          >
+                            <div className="flex items-start gap-2">
+                              <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium text-foreground">{n.title}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
+                                <p className="text-[11px] text-muted-foreground mt-1">
+                                  {n.createdAt ? formatRelativeTime(n.createdAt) : ""}
+                                </p>
+                              </div>
+                              {(n as any).jobCategory && (
+                                <Badge variant="secondary" className={`text-[10px] shrink-0 no-default-hover-elevate no-default-active-elevate ${(n as any).jobCategory === "EID" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
+                                  {(n as any).jobCategory}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  </div>
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="p-6 text-center">
+                      <Bell className="h-6 w-6 text-muted-foreground/40 mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No new notifications</p>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Urgent count */}
+              {(stats?.urgent || 0) > 0 && (
+                <div className="flex items-center gap-3 p-3 rounded-md bg-red-500/10 border border-red-500/20" data-testid="stat-urgent-count">
+                  <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                  <p className="text-sm">
+                    <span className="font-medium text-red-600 dark:text-red-400">{stats?.urgent}</span>
+                    <span className="text-muted-foreground"> priority {stats?.urgent === 1 ? "job" : "jobs"} need attention</span>
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

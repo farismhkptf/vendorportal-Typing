@@ -20,10 +20,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { VendorNotification, TypingJob, JobType } from "@shared/schema";
 
 const navItems = [
-  { href: "/vendor", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/vendor/eid", label: "Emirates ID", icon: Shield },
-  { href: "/vendor/medical", label: "Medical", icon: Stethoscope },
-  { href: "/vendor/wallet", label: "Wallet", icon: CreditCard },
+  { href: "/vendor", label: "Dashboard", icon: LayoutDashboard, match: "/" },
+  { href: "/vendor/eid", label: "Emirates ID", icon: Shield, match: "/eid" },
+  { href: "/vendor/medical", label: "Medical", icon: Stethoscope, match: "/medical" },
+  { href: "/vendor/wallet", label: "Wallet", icon: CreditCard, match: "/wallet" },
 ];
 
 export function VendorSidebar() {
@@ -58,9 +58,9 @@ export function VendorSidebar() {
             <SidebarMenu>
               {navItems.map((item) => {
                 const isActive =
-                  item.href === "/vendor"
-                    ? location === "/vendor" || location === "/vendor/"
-                    : location.startsWith(item.href);
+                  item.match === "/"
+                    ? location === "/" || location === ""
+                    : location.startsWith(item.match);
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -72,10 +72,10 @@ export function VendorSidebar() {
                       <Link href={item.href}>
                         <item.icon className="h-[18px] w-[18px]" />
                         <span className="font-medium">{item.label}</span>
-                        {item.href === "/vendor/eid" && eidActionCount > 0 && (
+                        {item.match === "/eid" && eidActionCount > 0 && (
                           <Badge variant="secondary" className="text-[10px] ml-auto px-1.5 min-w-[18px]">{eidActionCount}</Badge>
                         )}
-                        {item.href === "/vendor/medical" && medActionCount > 0 && (
+                        {item.match === "/medical" && medActionCount > 0 && (
                           <Badge variant="secondary" className="text-[10px] ml-auto px-1.5 min-w-[18px]">{medActionCount}</Badge>
                         )}
                       </Link>

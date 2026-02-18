@@ -3194,7 +3194,59 @@ export async function registerRoutes(
         waitingForDocsJobs: jobs.filter(j => j.status === "WaitingForDocs" && new Date(j.createdAt).getTime() < now24h).length,
       };
 
-      res.json({ stats, recentJobs, staleAlerts });
+      const activeJobsByWo = new Map<string, { woId: string; woNumber: string; applicantName: string; jobs: Array<{ id: string; category: string; status: string; priority: string; sentAt: string | null; costSnapshot: number | null }> }>();
+      for (const job of activeJobs) {
+        const wo = await storage.getWorkOrderById(job.woId);
+        const jt = job.jobTypeId ? jobTypeMap.get(job.jobTypeId) : null;
+        const priority = calcPriority(job);
+        const key = job.woId;
+        if (!activeJobsByWo.has(key)) {
+          activeJobsByWo.set(key, {
+            woId: job.woId,
+            woNumber: wo?.woNumber || "N/A",
+            applicantName: wo?.applicantName || "Unknown",
+            jobs: [],
+          });
+        }
+        activeJobsByWo.get(key)!.jobs.push({
+          id: job.id,
+          category: jt?.category || "Other",
+          status: job.status,
+          priority,
+          sentAt: job.sentAt ? new Date(job.sentAt).toISOString() : null,
+          costSnapshot: job.costSnapshot,
+        });
+      }
+      const woGrouped = Array.from(activeJobsByWo.values())
+        .sort((a, b) => {
+          const pOrder = { urgent: 0, today: 1, standard: 2 };
+          const aPriority = Math.min(...a.jobs.map(j => pOrder[j.priority as keyof typeof pOrder] ?? 2));
+          const bPriority = Math.min(...b.jobs.map(j => pOrder[j.priority as keyof typeof pOrder] ?? 2));
+          return aPriority - bPriority;
+        });
+
+      const getLatestTimestamp = (job: typeof jobs[0]) => {
+        const dates = [job.createdAt, job.sentAt, job.returnedAt, job.sentToClientAt, job.vendorMistakeAt].filter(Boolean).map(d => new Date(d!).getTime());
+        return Math.max(...dates, 0);
+      };
+      const allJobsSorted = [...jobs].sort((a, b) => getLatestTimestamp(b) - getLatestTimestamp(a)).slice(0, 15);
+      const activityFeed = await Promise.all(
+        allJobsSorted.map(async (job) => {
+          const wo = await storage.getWorkOrderById(job.woId);
+          const jt = job.jobTypeId ? jobTypeMap.get(job.jobTypeId) : null;
+          return {
+            id: job.id,
+            woNumber: wo?.woNumber || "N/A",
+            applicantName: wo?.applicantName || "Unknown",
+            category: jt?.category || "Other",
+            status: job.status,
+            timestamp: new Date(getLatestTimestamp(job)).toISOString(),
+            sentAt: job.sentAt ? new Date(job.sentAt).toISOString() : null,
+          };
+        })
+      );
+
+      res.json({ stats, recentJobs, staleAlerts, woGrouped, activityFeed });
     } catch (error) {
       console.error("Vendor dashboard error:", error);
       res.status(500).json({ message: "Failed to fetch dashboard" });
