@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   LayoutDashboard, CreditCard, LogOut, Bell, Shield, Stethoscope,
-  WifiOff, Wifi, ChevronRight
+  WifiOff, Wifi, ChevronRight, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -105,6 +105,33 @@ export function VendorSidebar() {
           )}
         </div>
         <SidebarMenu>
+          {user?.isAdminViewing && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                tooltip="Back to Admin"
+                className="h-9 gap-3 text-primary"
+              >
+                <a
+                  href="/"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    try {
+                      await apiRequest("POST", "/api/vendor/auth/exit-to-admin");
+                      queryClient.clear();
+                      window.location.href = "/";
+                    } catch {
+                      window.location.href = "/";
+                    }
+                  }}
+                  data-testid="button-back-to-admin"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Back to Admin</span>
+                </a>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Sign Out"

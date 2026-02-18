@@ -9,6 +9,7 @@ type VendorUser = {
   email: string;
   role: string;
   vendorId: string | null;
+  isAdminViewing?: boolean;
 };
 
 type VendorAuthContextType = {

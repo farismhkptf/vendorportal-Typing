@@ -3006,10 +3006,28 @@ export async function registerRoutes(
         email: user.email,
         role: user.role,
         vendorId: user.vendorId,
+        isAdminViewing: !!req.session.userId && req.session.userId !== req.session.vendorUserId,
       });
     } catch (error) {
       console.error("Vendor auth me error:", error);
       res.status(500).json({ message: "Failed to get user" });
+    }
+  });
+
+  app.post("/api/vendor/auth/exit-to-admin", async (req, res) => {
+    try {
+      if (!req.session?.userId || !req.session?.vendorUserId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      if (req.session.userId === req.session.vendorUserId) {
+        return res.status(403).json({ message: "Not an admin session" });
+      }
+      delete req.session.vendorUserId;
+      delete req.session.vendorId;
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Exit vendor portal error:", error);
+      res.status(500).json({ message: "Failed to exit vendor portal" });
     }
   });
 
