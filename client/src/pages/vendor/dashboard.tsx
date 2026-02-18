@@ -1,17 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   Shield, Stethoscope, AlertTriangle, ArrowRight,
-  CreditCard, Clock, CheckCircle2, Zap, TrendingUp, FileText,
-  Calendar, Inbox
+  CreditCard, Clock, CheckCircle2, TrendingUp,
+  Inbox, Loader2, Zap, PartyPopper
 } from "lucide-react";
-import { formatDate, formatRelativeTime } from "@/lib/format-date";
+import { formatRelativeTime } from "@/lib/format-date";
 import { useVendorAuth } from "@/hooks/use-vendor-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { TypingJob, WorkOrder, JobType } from "@shared/schema";
 
 interface DashboardData {
@@ -50,6 +52,7 @@ function getGreeting() {
 
 export default function VendorDashboard() {
   const { user } = useVendorAuth();
+  const { toast } = useToast();
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/vendor/dashboard"],
@@ -63,291 +66,251 @@ export default function VendorDashboard() {
     queryKey: ["/api/vendor/wallet/balance"],
   });
 
+  const acceptMutation = useMutation({
+    mutationFn: async (jobId: string) => apiRequest("POST", `/api/vendor/jobs/${jobId}/accept`),
+    onSuccess: () => {
+      toast({ title: "Job accepted" });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
   const stats = data?.stats;
   const recentJobs = data?.recentJobs || [];
   const staleAlerts = data?.staleAlerts;
-  const eidJobs = recentJobs.filter(j => j.jobType?.category === "EID");
-  const medJobs = recentJobs.filter(j => j.jobType?.category === "Medical");
-  const urgentJobs = recentJobs.filter(j => j.priority === "urgent" || j.urgent);
   const needsAttention = recentJobs.filter(j => j.status === "SentToVendor" || j.priority === "urgent");
 
+  const hasStaleAlerts = staleAlerts && (staleAlerts.unacceptedJobs > 0 || staleAlerts.waitingForDocsJobs > 0);
+
   return (
-    <div className="space-y-8 p-4 lg:p-6 max-w-5xl">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground" data-testid="text-greeting">
+    <div className="p-4 lg:p-6 max-w-6xl">
+      <div className="mb-6">
+        <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-foreground" data-testid="text-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0] || "there"}
         </h1>
-        <p className="text-muted-foreground mt-1">
-          Here's what needs your attention today
+        <p className="text-sm text-muted-foreground mt-0.5">
+          {needsAttention.length > 0
+            ? `${needsAttention.length} ${needsAttention.length === 1 ? "job needs" : "jobs need"} your attention`
+            : "You're all caught up"}
         </p>
       </div>
 
       {isLoading ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-md" />)}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="lg:col-span-3 space-y-3">
+            <Skeleton className="h-16 rounded-md" />
+            <Skeleton className="h-16 rounded-md" />
+            <Skeleton className="h-16 rounded-md" />
           </div>
-          <Skeleton className="h-48 rounded-md" />
+          <div className="lg:col-span-2 space-y-4">
+            <Skeleton className="h-24 rounded-md" />
+            <Skeleton className="h-32 rounded-md" />
+          </div>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/vendor/eid">
-              <Card className="hover-elevate cursor-pointer group" data-testid="stat-eid-jobs">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="h-10 w-10 rounded-md bg-amber-500/10 flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="lg:col-span-3 space-y-5">
+            {hasStaleAlerts && (
+              <div className="space-y-2">
+                {staleAlerts.unacceptedJobs > 0 && (
+                  <div className="flex items-center gap-3 p-3 rounded-md bg-amber-500/10 border border-amber-500/20" data-testid="alert-unaccepted">
+                    <Inbox className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <p className="text-sm text-foreground">
+                      <span className="font-medium">{staleAlerts.unacceptedJobs}</span> {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} awaiting acceptance
+                      <span className="text-muted-foreground"> &middot; pending over 12 hours</span>
+                    </p>
                   </div>
-                  <p className="text-2xl font-bold text-foreground" data-testid="text-eid-count">
-                    {stats?.activeEid || 0}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">EID Active</p>
-                </CardContent>
-              </Card>
-            </Link>
+                )}
+                {staleAlerts.waitingForDocsJobs > 0 && (
+                  <div className="flex items-center gap-3 p-3 rounded-md bg-blue-500/10 border border-blue-500/20" data-testid="alert-waiting-docs">
+                    <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                    <p className="text-sm text-foreground">
+                      <span className="font-medium">{staleAlerts.waitingForDocsJobs}</span> {staleAlerts.waitingForDocsJobs === 1 ? "job" : "jobs"} waiting for docs
+                      <span className="text-muted-foreground"> &middot; pending over 24 hours</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
-            <Link href="/vendor/medical">
-              <Card className="hover-elevate cursor-pointer group" data-testid="stat-medical-jobs">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="h-10 w-10 rounded-md bg-blue-500/10 flex items-center justify-center">
-                      <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <p className="text-2xl font-bold text-foreground" data-testid="text-medical-count">
-                    {stats?.activeMedical || 0}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">Medical Active</p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            <Card data-testid="stat-urgent-count">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <div className={`h-10 w-10 rounded-md flex items-center justify-center ${(stats?.urgent || 0) > 0 ? "bg-red-500/10" : "bg-muted"}`}>
-                    <AlertTriangle className={`h-5 w-5 ${(stats?.urgent || 0) > 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`} />
-                  </div>
+            <div>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3" data-testid="heading-action-queue">
+                Action Queue
+              </h2>
+              {needsAttention.length > 0 ? (
+                <div className="space-y-1">
+                  {needsAttention.map((job) => {
+                    const isEid = job.jobType?.category === "EID";
+                    const detailUrl = isEid ? `/vendor/eid/${job.id}` : `/vendor/medical/${job.id}`;
+                    const isAccepting = acceptMutation.isPending && acceptMutation.variables === job.id;
+                    return (
+                      <Link key={job.id} href={detailUrl}>
+                        <div
+                          className={`flex items-center gap-3 p-3 rounded-md hover-elevate cursor-pointer ${
+                            job.priority === "urgent" ? "bg-red-500/5 dark:bg-red-500/10" : ""
+                          }`}
+                          data-testid={`action-job-${job.id}`}
+                        >
+                          <div className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 ${
+                            job.priority === "urgent" ? "bg-red-500/10" : isEid ? "bg-amber-500/10" : "bg-blue-500/10"
+                          }`}>
+                            {job.priority === "urgent" ? (
+                              <AlertTriangle className="h-4 w-4 text-red-500" />
+                            ) : isEid ? (
+                              <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            ) : (
+                              <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-medium">{job.workOrder?.woNumber || "N/A"}</span>
+                              <StatusBadge status={job.status} />
+                              {job.priority === "urgent" && (
+                                <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                              {job.costSnapshot && (
+                                <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">AED {job.costSnapshot}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs text-muted-foreground hidden sm:block">
+                              {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
+                            </span>
+                            {job.status === "SentToVendor" && (
+                              <Button
+                                size="sm"
+                                className="gap-1.5"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
+                                disabled={isAccepting}
+                                data-testid={`button-accept-${job.id}`}
+                              >
+                                {isAccepting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                Accept
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
-                <p className={`text-2xl font-bold ${(stats?.urgent || 0) > 0 ? "text-red-600 dark:text-red-400" : "text-foreground"}`}>
-                  {stats?.urgent || 0}
-                </p>
-                <p className="text-sm text-muted-foreground mt-0.5">Priority</p>
-              </CardContent>
-            </Card>
-
-            <Link href="/vendor/wallet">
-              <Card className="hover-elevate cursor-pointer group" data-testid="stat-wallet">
-                <CardContent className="p-5">
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="h-10 w-10 rounded-md bg-emerald-500/10 flex items-center justify-center">
-                      <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </div>
-                  <p className="text-2xl font-bold text-foreground" data-testid="text-wallet-balance">
-                    AED {(balanceData?.balance || 0).toLocaleString()}
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">Wallet</p>
-                </CardContent>
-              </Card>
-            </Link>
+              ) : (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <PartyPopper className="h-8 w-8 text-muted-foreground/50 mx-auto mb-3" />
+                    <p className="text-sm font-medium text-foreground">You're all caught up</p>
+                    <p className="text-xs text-muted-foreground mt-1">No jobs need your immediate attention</p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
 
-          {needsAttention.length > 0 && (
-            <div data-testid="section-needs-attention">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                <h2 className="text-lg font-semibold text-foreground">Needs Your Attention</h2>
-                <Badge variant="secondary" className="text-xs">{needsAttention.length}</Badge>
-              </div>
-              <div className="space-y-2">
-                {needsAttention.slice(0, 5).map((job) => {
-                  const isEid = job.jobType?.category === "EID";
-                  const detailUrl = isEid ? `/vendor/eid/${job.id}` : `/vendor/medical/${job.id}`;
-                  return (
-                    <Link key={job.id} href={detailUrl}>
-                      <Card
-                        className={`hover-elevate cursor-pointer ${job.priority === "urgent" ? "border-red-500/30 dark:border-red-500/20" : ""}`}
-                        data-testid={`attention-job-${job.id}`}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3 min-w-0">
-                              <div className={`h-10 w-10 rounded-md flex items-center justify-center shrink-0 ${
-                                job.priority === "urgent"
-                                  ? "bg-red-500/10"
-                                  : isEid ? "bg-amber-500/10" : "bg-blue-500/10"
-                              }`}>
-                                {job.priority === "urgent" ? (
-                                  <AlertTriangle className="h-5 w-5 text-red-500" />
-                                ) : isEid ? (
-                                  <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                                ) : (
-                                  <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-semibold text-sm">{job.workOrder?.woNumber || "N/A"}</span>
-                                  <StatusBadge status={job.status} />
-                                  <Badge variant="secondary" className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${isEid ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
-                                    {isEid ? "EID" : "Medical"}
-                                  </Badge>
-                                  {job.priority === "urgent" && (
-                                    <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
-                                  {job.costSnapshot && (
-                                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">AED {job.costSnapshot}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-xs text-muted-foreground">{job.sentAt ? formatRelativeTime(job.sentAt) : ""}</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  );
-                })}
+          <div className="lg:col-span-2 space-y-5">
+            <Link href="/vendor/wallet">
+              <Card className="hover-elevate cursor-pointer" data-testid="card-wallet-balance">
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-sm text-muted-foreground">Wallet Balance</span>
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                  </div>
+                  <p className="text-2xl font-bold tracking-tight text-foreground" data-testid="text-wallet-balance">
+                    AED {(balanceData?.balance || 0).toLocaleString()}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+
+            <div>
+              <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                Active Jobs
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                <Link href="/vendor/eid">
+                  <Card className="hover-elevate cursor-pointer" data-testid="stat-eid-jobs">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        <span className="text-xs text-muted-foreground">Emirates ID</span>
+                      </div>
+                      <p className="text-xl font-bold text-foreground" data-testid="text-eid-count">
+                        {stats?.activeEid || 0}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+                <Link href="/vendor/medical">
+                  <Card className="hover-elevate cursor-pointer" data-testid="stat-medical-jobs">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-xs text-muted-foreground">Medical</span>
+                      </div>
+                      <p className="text-xl font-bold text-foreground" data-testid="text-medical-count">
+                        {stats?.activeMedical || 0}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
               </div>
             </div>
-          )}
 
-          {staleAlerts && (staleAlerts.unacceptedJobs > 0 || staleAlerts.waitingForDocsJobs > 0) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {staleAlerts.unacceptedJobs > 0 && (
-                <Card className="border-amber-500/20" data-testid="alert-unaccepted">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
-                        <Inbox className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            {performanceData && (
+              <div>
+                <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                  Performance
+                </h2>
+                <Card data-testid="section-performance">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-sm text-muted-foreground">Completion</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">
-                          {staleAlerts.unacceptedJobs} {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} awaiting acceptance
-                        </p>
-                        <p className="text-xs text-muted-foreground">Pending over 12 hours</p>
-                      </div>
+                      <span className="text-sm font-bold" data-testid="text-completion-rate">{performanceData.completionRate}%</span>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
-              {staleAlerts.waitingForDocsJobs > 0 && (
-                <Card className="border-blue-500/20" data-testid="alert-waiting-docs">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0">
+                    <div className="h-1.5 rounded-full bg-muted overflow-hidden -mt-2">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all"
+                        style={{ width: `${Math.min(performanceData.completionRate, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm text-muted-foreground">Avg. Turnaround</span>
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">
-                          {staleAlerts.waitingForDocsJobs} {staleAlerts.waitingForDocsJobs === 1 ? "job" : "jobs"} waiting for docs
-                        </p>
-                        <p className="text-xs text-muted-foreground">Pending over 24 hours</p>
+                      <span className="text-sm font-bold" data-testid="text-turnaround">{performanceData.avgTurnaroundHours}h</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                        <span className="text-sm text-muted-foreground">This Month</span>
                       </div>
+                      <span className="text-sm font-bold" data-testid="text-monthly-earnings">AED {performanceData.monthlyEarnings.toLocaleString()}</span>
                     </div>
                   </CardContent>
                 </Card>
-              )}
-            </div>
-          )}
-
-          {performanceData && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" data-testid="section-performance">
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-9 w-9 rounded-md bg-emerald-500/10 flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <span className="text-sm text-muted-foreground">Completion</span>
-                  </div>
-                  <p className="text-2xl font-bold" data-testid="text-completion-rate">{performanceData.completionRate}%</p>
-                  <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-2">
-                    <div
-                      className="h-full rounded-full bg-emerald-500 transition-all"
-                      style={{ width: `${Math.min(performanceData.completionRate, 100)}%` }}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-9 w-9 rounded-md bg-blue-500/10 flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <span className="text-sm text-muted-foreground">Avg. Turnaround</span>
-                  </div>
-                  <p className="text-2xl font-bold" data-testid="text-turnaround">{performanceData.avgTurnaroundHours}h</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-9 w-9 rounded-md bg-violet-500/10 flex items-center justify-center">
-                      <CreditCard className="h-4 w-4 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <span className="text-sm text-muted-foreground">This Month</span>
-                  </div>
-                  <p className="text-2xl font-bold" data-testid="text-monthly-earnings">AED {performanceData.monthlyEarnings.toLocaleString()}</p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {recentJobs.length > 0 && (
-            <div data-testid="section-recent-jobs">
-              <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
-              <div className="space-y-2">
-                {recentJobs.slice(0, 6).map((job) => {
-                  const isEid = job.jobType?.category === "EID";
-                  const detailUrl = isEid ? `/vendor/eid/${job.id}` : `/vendor/medical/${job.id}`;
-                  return (
-                    <Link key={job.id} href={detailUrl}>
-                      <div className="flex items-center gap-3 p-3 rounded-md hover-elevate cursor-pointer" data-testid={`recent-job-${job.id}`}>
-                        <div className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 ${
-                          isEid ? "bg-amber-500/10" : "bg-blue-500/10"
-                        }`}>
-                          {isEid ? (
-                            <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                          ) : (
-                            <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{job.workOrder?.woNumber}</span>
-                            <StatusBadge status={job.status} />
-                            <Badge variant="secondary" className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${isEid ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
-                              {isEid ? "EID" : "Medical"}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
-                        </div>
-                        <p className="text-xs text-muted-foreground shrink-0">
-                          {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
-                        </p>
-                      </div>
-                    </Link>
-                  );
-                })}
               </div>
-            </div>
-          )}
-        </>
+            )}
+
+            {(stats?.urgent || 0) > 0 && (
+              <div className="flex items-center gap-3 p-3 rounded-md bg-red-500/10 border border-red-500/20" data-testid="stat-urgent-count">
+                <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+                <p className="text-sm">
+                  <span className="font-medium text-red-600 dark:text-red-400">{stats?.urgent}</span>
+                  <span className="text-muted-foreground"> priority {stats?.urgent === 1 ? "job" : "jobs"}</span>
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

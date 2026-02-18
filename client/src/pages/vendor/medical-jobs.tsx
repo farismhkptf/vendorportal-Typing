@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useSearch } from "wouter";
 import {
-  Search, Stethoscope, Filter, Calendar, Upload, MessageSquare,
-  AlertTriangle, Zap, CheckCircle2, Loader2, ExternalLink, Clock
+  Search, Stethoscope, Upload, MessageSquare,
+  AlertTriangle, CheckCircle2, Loader2
 } from "lucide-react";
-import { formatDate, formatRelativeTime } from "@/lib/format-date";
+import { formatRelativeTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -164,45 +164,36 @@ export default function MedicalJobs() {
                 className={`hover-elevate cursor-pointer ${job.priority === "urgent" ? "border-red-500/30 dark:border-red-500/20" : ""}`}
                 data-testid={`medical-job-${job.id}`}
               >
-                <CardContent className="p-4">
+                <CardContent className="p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className={`h-10 w-10 rounded-md flex items-center justify-center shrink-0 ${
+                      <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${
                         job.priority === "urgent" ? "bg-red-500/10" : "bg-blue-500/10"
                       }`}>
                         {job.priority === "urgent" ? (
-                          <AlertTriangle className="h-5 w-5 text-red-500" />
+                          <AlertTriangle className="h-4 w-4 text-red-500" />
                         ) : (
-                          <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         )}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm">{job.workOrder?.woNumber || "N/A"}</span>
+                          <span className="font-medium text-sm">{job.workOrder?.woNumber || "N/A"}</span>
                           <StatusBadge status={job.status} />
                           {job.priority === "urgent" && (
                             <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
                           )}
-                          {job.priority === "today" && (
-                            <Badge variant="secondary" className="text-[10px] gap-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 no-default-hover-elevate no-default-active-elevate">
-                              <Zap className="h-3 w-3" /> New
-                            </Badge>
-                          )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
                           {job.costSnapshot && (
                             <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">AED {job.costSnapshot}</span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0 space-y-1">
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
-                        <Calendar className="h-3 w-3" />
-                        {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
-                      </p>
-                      <div className="flex items-center gap-1.5 justify-end">
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5">
                         {job.hasInputDocs && (
                           <Badge variant="outline" className="text-[10px] gap-0.5">
                             <Upload className="h-3 w-3" /> Docs
@@ -214,15 +205,13 @@ export default function MedicalJobs() {
                           </Badge>
                         )}
                       </div>
-                    </div>
-                  </div>
-
-                  {(job.status === "SentToVendor" || job.status === "InProgress") && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={(e) => e.preventDefault()}>
+                      <span className="text-xs text-muted-foreground hidden sm:block">
+                        {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
+                      </span>
                       {job.status === "SentToVendor" && (
                         <Button
                           size="sm"
-                          className="flex-1 gap-1.5"
+                          className="gap-1.5"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
                           disabled={pendingAction === `accept-${job.id}`}
                           data-testid={`button-accept-${job.id}`}
@@ -234,17 +223,18 @@ export default function MedicalJobs() {
                       {job.status === "InProgress" && (
                         <Button
                           size="sm"
-                          className="flex-1 gap-1.5"
+                          variant="outline"
+                          className="gap-1.5"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); completeMutation.mutate(job.id); }}
                           disabled={pendingAction === `complete-${job.id}`}
                           data-testid={`button-complete-${job.id}`}
                         >
                           {pendingAction === `complete-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                          Mark Done
+                          Done
                         </Button>
                       )}
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             </Link>

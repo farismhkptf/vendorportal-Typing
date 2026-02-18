@@ -45,107 +45,84 @@ export default function VendorWallet() {
 
   return (
     <div className="space-y-6 p-4 lg:p-6 max-w-4xl">
-      <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-md bg-emerald-500/10 flex items-center justify-center">
-          <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground" data-testid="heading-wallet">Wallet</h1>
-          <p className="text-sm text-muted-foreground">Balance & transaction history</p>
+      {/* Hero Balance */}
+      <div data-testid="card-balance">
+        <p className="text-sm text-muted-foreground mb-1">Available Balance</p>
+        {balanceLoading ? (
+          <Skeleton className="h-12 w-48" />
+        ) : (
+          <p className="text-4xl font-bold tracking-tight text-foreground" data-testid="text-wallet-balance">
+            AED {(balanceData?.balance || 0).toLocaleString()}
+          </p>
+        )}
+        {/* Compact summary line */}
+        <div className="flex items-center gap-4 mt-3">
+          <div className="flex items-center gap-1.5" data-testid="card-total-in">
+            <ArrowUpCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <span className="text-sm text-muted-foreground">Received</span>
+            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">AED {totalIn.toLocaleString()}</span>
+          </div>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-1.5" data-testid="card-total-out">
+            <ArrowDownCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <span className="text-sm text-muted-foreground">Debited</span>
+            <span className="text-sm font-semibold text-red-600 dark:text-red-400">AED {totalOut.toLocaleString()}</span>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="sm:col-span-1" data-testid="card-balance">
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground mb-2">Available Balance</p>
-            {balanceLoading ? (
-              <Skeleton className="h-10 w-36" />
-            ) : (
-              <p className="text-3xl font-bold tracking-tight text-foreground" data-testid="text-wallet-balance">
-                AED {(balanceData?.balance || 0).toLocaleString()}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card data-testid="card-total-in">
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground mb-2">Total Received</p>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-              AED {totalIn.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card data-testid="card-total-out">
-          <CardContent className="p-6">
-            <p className="text-sm text-muted-foreground mb-2">Total Debited</p>
-            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
-              AED {totalOut.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
+      {/* Transaction History */}
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Transaction History</h2>
+        <h2 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-3">Transaction History</h2>
 
         {txLoading ? (
           <div className="space-y-2">
-            <Skeleton className="h-16 rounded-md" />
-            <Skeleton className="h-16 rounded-md" />
-            <Skeleton className="h-16 rounded-md" />
+            <Skeleton className="h-14 rounded-md" />
+            <Skeleton className="h-14 rounded-md" />
+            <Skeleton className="h-14 rounded-md" />
           </div>
         ) : transactions && transactions.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {transactions.map((tx) => {
               const config = ENTRY_TYPE_CONFIG[tx.entryType] || ENTRY_TYPE_CONFIG.Adjustment;
               const Icon = config.icon;
               const isCredit = tx.entryType === "Topup" || tx.entryType === "Reversal";
 
               return (
-                <Card key={tx.id} data-testid={`transaction-${tx.id}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className={`h-10 w-10 rounded-md flex items-center justify-center shrink-0 ${config.bg}`}>
-                          <Icon className={`h-5 w-5 ${config.color}`} />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className="text-xs">{config.label}</Badge>
-                            {tx.jobInfo?.woNumber && (
-                              <span className="text-xs text-muted-foreground">
-                                {tx.jobInfo.woNumber}
-                                {tx.jobInfo.jobCode && ` (${tx.jobInfo.jobCode})`}
-                              </span>
-                            )}
-                            {tx.jobInfo?.jobCategory && (
-                              <Badge variant="secondary" className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${tx.jobInfo.jobCategory === "EID" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
-                                {tx.jobInfo.jobCategory === "EID" ? "EID" : "Medical"}
-                              </Badge>
-                            )}
-                          </div>
-                          {tx.note && (
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{tx.note}</p>
-                          )}
-                          {tx.jobInfo?.applicantName && (
-                            <p className="text-xs text-muted-foreground truncate">{tx.jobInfo.applicantName}</p>
-                          )}
-                        </div>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className={`text-sm font-bold ${isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`} data-testid={`text-amount-${tx.id}`}>
-                          {isCredit ? "+" : "-"} AED {Math.abs(tx.amount).toLocaleString()}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {tx.createdAt ? formatDateTime(tx.createdAt) : ""}
-                        </p>
-                      </div>
+                <div key={tx.id} className="flex items-center gap-3 p-3 rounded-md hover-elevate" data-testid={`transaction-${tx.id}`}>
+                  <div className={`h-8 w-8 rounded-md flex items-center justify-center shrink-0 ${config.bg}`}>
+                    <Icon className={`h-4 w-4 ${config.color}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium">{config.label}</span>
+                      {tx.jobInfo?.woNumber && (
+                        <span className="text-xs text-muted-foreground">
+                          {tx.jobInfo.woNumber}
+                          {tx.jobInfo.jobCode && ` (${tx.jobInfo.jobCode})`}
+                        </span>
+                      )}
+                      {tx.jobInfo?.jobCategory && (
+                        <Badge variant="secondary" className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${tx.jobInfo.jobCategory === "EID" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
+                          {tx.jobInfo.jobCategory === "EID" ? "EID" : "Medical"}
+                        </Badge>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
+                    {(tx.note || tx.jobInfo?.applicantName) && (
+                      <p className="text-xs text-muted-foreground truncate">
+                        {tx.note || tx.jobInfo?.applicantName}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className={`text-sm font-bold ${isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`} data-testid={`text-amount-${tx.id}`}>
+                      {isCredit ? "+" : "-"} AED {Math.abs(tx.amount).toLocaleString()}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {tx.createdAt ? formatDateTime(tx.createdAt) : ""}
+                    </p>
+                  </div>
+                </div>
               );
             })}
           </div>
