@@ -17,7 +17,7 @@ import { useVendorAuth } from "@/hooks/use-vendor-auth";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import type { VendorNotification } from "@shared/schema";
+import type { VendorNotification, TypingJob, JobType } from "@shared/schema";
 
 const navItems = [
   { href: "/vendor", label: "Dashboard", icon: LayoutDashboard },
@@ -29,6 +29,14 @@ const navItems = [
 export function VendorSidebar() {
   const { user, logout } = useVendorAuth();
   const [location] = useLocation();
+
+  const { data: jobs } = useQuery<Array<{ status: string; jobType?: { category?: string } }>>({
+    queryKey: ["/api/vendor/jobs"],
+  });
+
+  const activeStatuses = ["SentToVendor", "InProgress", "WaitingForDocs"];
+  const eidActionCount = jobs?.filter(j => activeStatuses.includes(j.status) && j.jobType?.category === "EID").length || 0;
+  const medActionCount = jobs?.filter(j => activeStatuses.includes(j.status) && j.jobType?.category === "Medical").length || 0;
 
   return (
     <Sidebar collapsible="icon" variant="sidebar">
@@ -64,6 +72,12 @@ export function VendorSidebar() {
                       <Link href={item.href}>
                         <item.icon className="h-[18px] w-[18px]" />
                         <span className="font-medium">{item.label}</span>
+                        {item.href === "/vendor/eid" && eidActionCount > 0 && (
+                          <Badge variant="secondary" className="text-[10px] ml-auto px-1.5 min-w-[18px]">{eidActionCount}</Badge>
+                        )}
+                        {item.href === "/vendor/medical" && medActionCount > 0 && (
+                          <Badge variant="secondary" className="text-[10px] ml-auto px-1.5 min-w-[18px]">{medActionCount}</Badge>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -178,7 +192,7 @@ export function VendorTopBar() {
               <div className="max-h-80 overflow-y-auto">
                 {notifications && notifications.length > 0 ? (
                   notifications.slice(0, 20).map((n) => (
-                    <Link key={n.id} href={n.relatedJobId ? `/vendor/eid/${n.relatedJobId}` : "#"}>
+                    <Link key={n.id} href={n.relatedJobId ? ((n as any).jobCategory === "Medical" ? `/vendor/medical/${n.relatedJobId}` : `/vendor/eid/${n.relatedJobId}`) : "#"}>
                       <div
                         className={`p-3 border-b border-border/50 hover-elevate cursor-pointer ${!n.isRead ? "bg-primary/5" : ""}`}
                         onClick={() => { if (!n.isRead) markReadMutation.mutate(n.id); }}
@@ -186,6 +200,11 @@ export function VendorTopBar() {
                       >
                         <div className="flex items-start justify-between gap-2">
                           <p className={`text-sm ${!n.isRead ? "font-medium" : ""}`}>{n.title}</p>
+                          {(n as any).jobCategory && (
+                            <Badge variant="secondary" className={`text-[10px] shrink-0 no-default-hover-elevate no-default-active-elevate ${(n as any).jobCategory === "EID" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
+                              {(n as any).jobCategory}
+                            </Badge>
+                          )}
                           {!n.isRead && <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>

@@ -3028,7 +3028,18 @@ export async function registerRoutes(
       const vendorUserId = req.session.vendorUserId;
       if (!vendorUserId) return res.json([]);
       const notifications = await storage.getVendorNotifications(vendorUserId);
-      res.json(notifications);
+      const enriched = await Promise.all(notifications.map(async (n) => {
+        let jobCategory = null;
+        if (n.relatedJobId) {
+          const job = await storage.getTypingJobById(n.relatedJobId);
+          if (job?.jobTypeId) {
+            const jt = await storage.getJobTypeById(job.jobTypeId);
+            jobCategory = jt?.category || null;
+          }
+        }
+        return { ...n, jobCategory };
+      }));
+      res.json(enriched);
     } catch (error) {
       console.error("Get notifications error:", error);
       res.status(500).json({ message: "Failed to get notifications" });
@@ -3093,10 +3104,12 @@ export async function registerRoutes(
           const job = await storage.getTypingJobById(entry.typingJobId);
           if (job) {
             const wo = await storage.getWorkOrderById(job.woId);
+            const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
             jobInfo = {
               jobCode: job.jobCode,
               woNumber: wo?.woNumber,
               applicantName: wo?.applicantName,
+              jobCategory: jobType?.category || null,
             };
           }
         }
@@ -3133,6 +3146,11 @@ export async function registerRoutes(
         return "standard";
       };
 
+      const jobTypesAll = await storage.getJobTypes();
+      const jobTypeMap = new Map(jobTypesAll.map(jt => [jt.id, jt]));
+      const activeStatuses = ["SentToVendor", "InProgress", "WaitingForDocs"];
+      const activeJobs = jobs.filter(j => activeStatuses.includes(j.status));
+
       const stats = {
         total: jobs.length,
         pending: jobs.filter(j => j.status === "SentToVendor").length,
@@ -3144,6 +3162,8 @@ export async function registerRoutes(
           return j.status === "SentToVendor" && hoursSinceSent > 24;
         }).length,
         todayPending: jobs.filter(j => j.status === "SentToVendor" && j.sentAt && new Date(j.sentAt) >= today).length,
+        activeEid: activeJobs.filter(j => { const jt = j.jobTypeId ? jobTypeMap.get(j.jobTypeId) : null; return jt?.category === "EID"; }).length,
+        activeMedical: activeJobs.filter(j => { const jt = j.jobTypeId ? jobTypeMap.get(j.jobTypeId) : null; return jt?.category === "Medical"; }).length,
       };
       
       const recentJobsRaw = [...jobs]

@@ -5,7 +5,7 @@ import {
   ArrowLeft, FileText, User, Clock, Calendar, 
   Upload, Download, MessageSquare, Send, CheckCircle2,
   Building2, Briefcase, Phone, Mail, MapPin, AlertTriangle,
-  Shield, FileCheck, RotateCcw, XCircle, Zap
+  Shield, FileCheck, RotateCcw, XCircle, Zap, Stethoscope
 } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
@@ -281,6 +281,7 @@ export default function VendorJobDetail() {
 
   const backUrl = job?.jobType?.category === "Medical" ? "/vendor/medical" : "/vendor/eid";
   const backLabel = job?.jobType?.category === "Medical" ? "Medical Jobs" : "Emirates ID Jobs";
+  const isEid = job?.jobType?.category === "EID";
 
   if (isLoading) {
     return (
@@ -316,12 +317,14 @@ export default function VendorJobDetail() {
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-3">
                 <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
-                  job.urgent ? "bg-red-100 dark:bg-red-900/30" : "bg-violet-100 dark:bg-violet-900/30"
+                  job.urgent ? "bg-red-100 dark:bg-red-900/30" : isEid ? "bg-amber-100 dark:bg-amber-900/30" : "bg-blue-100 dark:bg-blue-900/30"
                 }`}>
                   {job.urgent ? (
                     <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  ) : isEid ? (
+                    <Shield className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                   ) : (
-                    <FileText className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                    <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   )}
                 </div>
                 <div>
@@ -330,6 +333,9 @@ export default function VendorJobDetail() {
                       {job.workOrder?.woNumber || "N/A"}
                     </CardTitle>
                     <StatusBadge status={job.status} />
+                    <Badge variant="secondary" className={`no-default-hover-elevate no-default-active-elevate ${isEid ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
+                      {isEid ? "Emirates ID" : "Medical"}
+                    </Badge>
                     {job.urgent && <Badge variant="destructive">Urgent</Badge>}
                     {job.workOrder?.isVip && <Badge variant="secondary">VIP</Badge>}
                   </div>
@@ -337,6 +343,11 @@ export default function VendorJobDetail() {
                     {job.jobCode && <span className="font-mono">{job.jobCode} &middot; </span>}
                     {job.workOrder?.applicantName}
                   </p>
+                  {job.costSnapshot && (
+                    <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mt-0.5">
+                      Job Value: AED {job.costSnapshot}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

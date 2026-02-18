@@ -5,7 +5,7 @@ import {
   CreditCard, Clock, CheckCircle2, Zap, TrendingUp, FileText,
   Calendar, Inbox
 } from "lucide-react";
-import { formatDate } from "@/lib/format-date";
+import { formatDate, formatRelativeTime } from "@/lib/format-date";
 import { useVendorAuth } from "@/hooks/use-vendor-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,8 @@ interface DashboardData {
     completed: number;
     urgent: number;
     todayPending: number;
+    activeEid: number;
+    activeMedical: number;
   };
   recentJobs: Array<TypingJob & { workOrder?: WorkOrder; jobType?: JobType; urgent?: boolean; priority?: "urgent" | "today" | "standard" }>;
   staleAlerts?: {
@@ -100,9 +102,9 @@ export default function VendorDashboard() {
                     <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <p className="text-2xl font-bold text-foreground" data-testid="text-eid-count">
-                    {performanceData?.jobsByCategory?.["EID"] || 0}
+                    {stats?.activeEid || 0}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">Emirates ID</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">EID Active</p>
                 </CardContent>
               </Card>
             </Link>
@@ -117,9 +119,9 @@ export default function VendorDashboard() {
                     <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                   <p className="text-2xl font-bold text-foreground" data-testid="text-medical-count">
-                    {performanceData?.jobsByCategory?.["Medical"] || 0}
+                    {stats?.activeMedical || 0}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-0.5">Medical</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">Medical Active</p>
                 </CardContent>
               </Card>
             </Link>
@@ -193,18 +195,23 @@ export default function VendorDashboard() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-semibold text-sm">{job.workOrder?.woNumber || "N/A"}</span>
                                   <StatusBadge status={job.status} />
+                                  <Badge variant="secondary" className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${isEid ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
+                                    {isEid ? "EID" : "Medical"}
+                                  </Badge>
                                   {job.priority === "urgent" && (
                                     <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
                                   )}
                                 </div>
-                                <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                                  {job.costSnapshot && (
+                                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">AED {job.costSnapshot}</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-xs text-muted-foreground">{job.sentAt ? formatDate(job.sentAt) : ""}</p>
-                              {job.jobType && (
-                                <Badge variant="outline" className="text-[10px] mt-1">{job.jobType.category}</Badge>
-                              )}
+                              <p className="text-xs text-muted-foreground">{job.sentAt ? formatRelativeTime(job.sentAt) : ""}</p>
                             </div>
                           </div>
                         </CardContent>
@@ -324,11 +331,14 @@ export default function VendorDashboard() {
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium">{job.workOrder?.woNumber}</span>
                             <StatusBadge status={job.status} />
+                            <Badge variant="secondary" className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${isEid ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
+                              {isEid ? "EID" : "Medical"}
+                            </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
                         </div>
                         <p className="text-xs text-muted-foreground shrink-0">
-                          {job.sentAt ? formatDate(job.sentAt) : ""}
+                          {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
                         </p>
                       </div>
                     </Link>

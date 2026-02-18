@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { CreditCard, ArrowUpCircle, ArrowDownCircle, RotateCcw, Settings2 } from "lucide-react";
+import { CreditCard, ArrowUpCircle, ArrowDownCircle, RotateCcw, Settings2, Shield, Stethoscope } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +18,7 @@ interface WalletTransaction {
     jobCode: string | null;
     woNumber: string | null;
     applicantName: string | null;
+    jobCategory: string | null;
   } | null;
 }
 
@@ -119,6 +120,11 @@ export default function VendorWallet() {
                                 {tx.jobInfo.woNumber}
                                 {tx.jobInfo.jobCode && ` (${tx.jobInfo.jobCode})`}
                               </span>
+                            )}
+                            {tx.jobInfo?.jobCategory && (
+                              <Badge variant="secondary" className={`text-[10px] no-default-hover-elevate no-default-active-elevate ${tx.jobInfo.jobCategory === "EID" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
+                                {tx.jobInfo.jobCategory === "EID" ? "EID" : "Medical"}
+                              </Badge>
                             )}
                           </div>
                           {tx.note && (

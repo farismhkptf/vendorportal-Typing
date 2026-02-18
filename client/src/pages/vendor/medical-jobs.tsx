@@ -5,7 +5,7 @@ import {
   Search, Stethoscope, Filter, Calendar, Upload, MessageSquare,
   AlertTriangle, Zap, CheckCircle2, Loader2, ExternalLink, Clock
 } from "lucide-react";
-import { formatDate } from "@/lib/format-date";
+import { formatDate, formatRelativeTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,7 +81,8 @@ export default function MedicalJobs() {
     const matchesSearch = !search ||
       job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
       job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "NeedsAction" ? (job.status === "SentToVendor" || job.priority === "urgent") : job.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -116,6 +117,7 @@ export default function MedicalJobs() {
         {[
           { key: "all", label: "All", count: statusCounts.all },
           { key: "SentToVendor", label: "New", count: statusCounts.SentToVendor },
+          { key: "NeedsAction", label: "Needs Action", count: jobs.filter(j => j.status === "SentToVendor" || (j.priority === "urgent")).length },
           { key: "InProgress", label: "In Progress", count: statusCounts.InProgress },
           { key: "WaitingForDocs", label: "Waiting", count: statusCounts.WaitingForDocs },
           { key: "Returned", label: "Returned", count: statusCounts.Returned },
@@ -187,13 +189,18 @@ export default function MedicalJobs() {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                          {job.costSnapshot && (
+                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">AED {job.costSnapshot}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="text-right shrink-0 space-y-1">
                       <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
                         <Calendar className="h-3 w-3" />
-                        {job.sentAt ? formatDate(job.sentAt) : ""}
+                        {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
                       </p>
                       <div className="flex items-center gap-1.5 justify-end">
                         {job.hasInputDocs && (
@@ -211,7 +218,7 @@ export default function MedicalJobs() {
                   </div>
 
                   {(job.status === "SentToVendor" || job.status === "InProgress") && (
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50 md:hidden" onClick={(e) => e.preventDefault()}>
+                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50" onClick={(e) => e.preventDefault()}>
                       {job.status === "SentToVendor" && (
                         <Button
                           size="sm"
