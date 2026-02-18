@@ -9,13 +9,6 @@ import { Table } from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -38,13 +31,18 @@ import {
   Table as TableIcon,
   Undo,
   Redo,
-  Trash2,
+  Minus,
   X,
-  Keyboard,
+  GripHorizontal,
+  Plus,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STORAGE_KEY = "pro-dev-notes";
+const POSITION_KEY = "pro-dev-notes-pos";
 
 interface NoteEntry {
   id: string;
@@ -52,6 +50,28 @@ interface NoteEntry {
   pageLabel: string;
   content: string;
   updatedAt: string;
+}
+
+interface StickyPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  minimized: boolean;
+}
+
+const MIN_WIDTH = 320;
+const MIN_HEIGHT = 280;
+
+function getDefaultPos(): StickyPosition {
+  const w = typeof window !== "undefined" ? window.innerWidth : 1024;
+  return {
+    x: Math.max(w - 520, 20),
+    y: 80,
+    width: 480,
+    height: 500,
+    minimized: false,
+  };
 }
 
 function getPageLabel(path: string): string {
@@ -84,6 +104,7 @@ function getPageLabel(path: string): string {
 }
 
 function loadNotes(): NoteEntry[] {
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -93,10 +114,36 @@ function loadNotes(): NoteEntry[] {
 }
 
 function saveNotes(notes: NoteEntry[]) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
 }
 
-function ToolbarButton({
+function loadPosition(): StickyPosition {
+  const defaults = getDefaultPos();
+  if (typeof window === "undefined") return defaults;
+  try {
+    const raw = localStorage.getItem(POSITION_KEY);
+    if (raw) {
+      const pos = JSON.parse(raw);
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      return {
+        x: Math.max(0, Math.min(pos.x, vw - 100)),
+        y: Math.max(0, Math.min(pos.y, vh - 50)),
+        width: Math.max(MIN_WIDTH, Math.min(pos.width || defaults.width, vw - 40)),
+        height: Math.max(MIN_HEIGHT, Math.min(pos.height || defaults.height, vh - 40)),
+        minimized: pos.minimized ?? false,
+      };
+    }
+  } catch {}
+  return defaults;
+}
+
+function savePosition(pos: StickyPosition) {
+  localStorage.setItem(POSITION_KEY, JSON.stringify(pos));
+}
+
+function ToolbarBtn({
   onClick,
   isActive,
   disabled,
@@ -117,7 +164,7 @@ function ToolbarButton({
           onClick={onClick}
           disabled={disabled}
           className={cn(
-            "p-1.5 rounded-md transition-colors",
+            "p-1 rounded transition-colors",
             isActive
               ? "bg-primary/15 text-primary"
               : "text-muted-foreground hover:text-foreground hover:bg-muted",
@@ -137,119 +184,53 @@ function ToolbarButton({
 
 function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   if (!editor) return null;
-
-  const iconSize = "h-4 w-4";
+  const s = "h-3.5 w-3.5";
 
   return (
-    <div className="flex items-center gap-0.5 flex-wrap p-1.5 border-b bg-muted/30" data-testid="editor-toolbar">
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        isActive={editor.isActive("bold")}
-        title="Bold"
-      >
-        <Bold className={iconSize} />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        isActive={editor.isActive("italic")}
-        title="Italic"
-      >
-        <Italic className={iconSize} />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        isActive={editor.isActive("underline")}
-        title="Underline"
-      >
-        <UnderlineIcon className={iconSize} />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleStrike().run()}
-        isActive={editor.isActive("strike")}
-        title="Strikethrough"
-      >
-        <Strikethrough className={iconSize} />
-      </ToolbarButton>
-
-      <Separator orientation="vertical" className="h-5 mx-1" />
-
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        isActive={editor.isActive("heading", { level: 1 })}
-        title="Heading 1"
-      >
-        <Heading1 className={iconSize} />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        isActive={editor.isActive("heading", { level: 2 })}
-        title="Heading 2"
-      >
-        <Heading2 className={iconSize} />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        isActive={editor.isActive("heading", { level: 3 })}
-        title="Heading 3"
-      >
-        <Heading3 className={iconSize} />
-      </ToolbarButton>
-
-      <Separator orientation="vertical" className="h-5 mx-1" />
-
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        isActive={editor.isActive("bulletList")}
-        title="Bullet List"
-      >
-        <List className={iconSize} />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        isActive={editor.isActive("orderedList")}
-        title="Numbered List"
-      >
-        <ListOrdered className={iconSize} />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().toggleTaskList().run()}
-        isActive={editor.isActive("taskList")}
-        title="Checklist"
-      >
-        <ListChecks className={iconSize} />
-      </ToolbarButton>
-
-      <Separator orientation="vertical" className="h-5 mx-1" />
-
-      <ToolbarButton
-        onClick={() =>
-          editor
-            .chain()
-            .focus()
-            .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-            .run()
-        }
-        title="Insert Table"
-      >
-        <TableIcon className={iconSize} />
-      </ToolbarButton>
-
-      <Separator orientation="vertical" className="h-5 mx-1" />
-
-      <ToolbarButton
-        onClick={() => editor.chain().focus().undo().run()}
-        disabled={!editor.can().undo()}
-        title="Undo"
-      >
-        <Undo className={iconSize} />
-      </ToolbarButton>
-      <ToolbarButton
-        onClick={() => editor.chain().focus().redo().run()}
-        disabled={!editor.can().redo()}
-        title="Redo"
-      >
-        <Redo className={iconSize} />
-      </ToolbarButton>
+    <div className="flex items-center gap-0.5 flex-wrap px-2 py-1 border-b bg-muted/30" data-testid="editor-toolbar">
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleBold().run()} isActive={editor.isActive("bold")} title="Bold">
+        <Bold className={s} />
+      </ToolbarBtn>
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleItalic().run()} isActive={editor.isActive("italic")} title="Italic">
+        <Italic className={s} />
+      </ToolbarBtn>
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleUnderline().run()} isActive={editor.isActive("underline")} title="Underline">
+        <UnderlineIcon className={s} />
+      </ToolbarBtn>
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleStrike().run()} isActive={editor.isActive("strike")} title="Strikethrough">
+        <Strikethrough className={s} />
+      </ToolbarBtn>
+      <Separator orientation="vertical" className="h-4 mx-0.5" />
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} isActive={editor.isActive("heading", { level: 1 })} title="Heading 1">
+        <Heading1 className={s} />
+      </ToolbarBtn>
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} isActive={editor.isActive("heading", { level: 2 })} title="Heading 2">
+        <Heading2 className={s} />
+      </ToolbarBtn>
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} isActive={editor.isActive("heading", { level: 3 })} title="Heading 3">
+        <Heading3 className={s} />
+      </ToolbarBtn>
+      <Separator orientation="vertical" className="h-4 mx-0.5" />
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleBulletList().run()} isActive={editor.isActive("bulletList")} title="Bullet List">
+        <List className={s} />
+      </ToolbarBtn>
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleOrderedList().run()} isActive={editor.isActive("orderedList")} title="Numbered List">
+        <ListOrdered className={s} />
+      </ToolbarBtn>
+      <ToolbarBtn onClick={() => editor.chain().focus().toggleTaskList().run()} isActive={editor.isActive("taskList")} title="Checklist">
+        <ListChecks className={s} />
+      </ToolbarBtn>
+      <Separator orientation="vertical" className="h-4 mx-0.5" />
+      <ToolbarBtn onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()} title="Insert Table">
+        <TableIcon className={s} />
+      </ToolbarBtn>
+      <Separator orientation="vertical" className="h-4 mx-0.5" />
+      <ToolbarBtn onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().undo()} title="Undo">
+        <Undo className={s} />
+      </ToolbarBtn>
+      <ToolbarBtn onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().redo()} title="Redo">
+        <Redo className={s} />
+      </ToolbarBtn>
     </div>
   );
 }
@@ -257,19 +238,15 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
 function NoteEditor({
   note,
   onSave,
-  onDelete,
 }: {
   note: NoteEntry;
   onSave: (id: string, content: string) => void;
-  onDelete: (id: string) => void;
 }) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
       Underline,
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -288,7 +265,7 @@ function NoteEditor({
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none p-3 min-h-[200px] focus:outline-none [&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]]:pl-0 [&_ul[data-type=taskList]_li]:flex [&_ul[data-type=taskList]_li]:gap-2 [&_ul[data-type=taskList]_li]:items-start [&_ul[data-type=taskList]_li_label]:mt-0.5 [&_table]:border-collapse [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-muted/50 [&_th]:font-semibold",
+          "prose prose-sm dark:prose-invert max-w-none p-3 focus:outline-none [&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]]:pl-0 [&_ul[data-type=taskList]_li]:flex [&_ul[data-type=taskList]_li]:gap-2 [&_ul[data-type=taskList]_li]:items-start [&_ul[data-type=taskList]_li_label]:mt-0.5 [&_table]:border-collapse [&_table]:w-full [&_td]:border [&_td]:border-border [&_td]:p-2 [&_th]:border [&_th]:border-border [&_th]:p-2 [&_th]:bg-muted/50 [&_th]:font-semibold",
       },
     },
   });
@@ -300,60 +277,46 @@ function NoteEditor({
   }, []);
 
   return (
-    <div className="border rounded-md overflow-hidden" data-testid={`note-editor-${note.id}`}>
-      <div className="flex items-center justify-between gap-2 px-2 py-1 bg-muted/20 border-b">
-        <div className="flex items-center gap-2 min-w-0">
-          <Badge variant="secondary" className="text-xs shrink-0 no-default-hover-elevate no-default-active-elevate">
-            {note.pageLabel}
-          </Badge>
-          <span className="text-xs text-muted-foreground truncate">
-            {new Date(note.updatedAt).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-        </div>
-        <Button
-          size="icon"
-          variant="ghost"
-          className="shrink-0 text-muted-foreground"
-          onClick={() => onDelete(note.id)}
-          data-testid={`button-delete-note-${note.id}`}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-      </div>
+    <div className="flex flex-col h-full">
       <EditorToolbar editor={editor} />
-      <EditorContent editor={editor} />
+      <div className="flex-1 overflow-y-auto">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   );
 }
 
-export function DevNotesDrawer({
+export function DevNotesSticky({
   open,
-  onOpenChange,
+  onClose,
 }: {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
 }) {
   const [location] = useLocation();
   const [notes, setNotes] = useState<NoteEntry[]>(loadNotes);
-  const [showAll, setShowAll] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const interval = setInterval(() => setNotes(loadNotes()), 1500);
-    return () => clearInterval(interval);
-  }, [open]);
+  const [pos, setPos] = useState<StickyPosition>(loadPosition);
+  const [activeNoteIndex, setActiveNoteIndex] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState<string | null>(null);
+  const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+  const resizeStartRef = useRef({ x: 0, y: 0, w: 0, h: 0, posX: 0, posY: 0 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const currentPage = location.split("?")[0].split("#")[0];
   const pageLabel = getPageLabel(currentPage);
 
-  const pageNotes = notes.filter((n) => n.page === currentPage);
-  const otherNotes = notes.filter((n) => n.page !== currentPage);
-  const displayNotes = showAll ? notes : pageNotes;
+  useEffect(() => {
+    if (open) {
+      setNotes(loadNotes());
+      const interval = setInterval(() => setNotes(loadNotes()), 2000);
+      return () => clearInterval(interval);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    savePosition(pos);
+  }, [pos]);
 
   const addNote = useCallback(() => {
     const newNote: NoteEntry = {
@@ -368,6 +331,7 @@ export function DevNotesDrawer({
       saveNotes(updated);
       return updated;
     });
+    setActiveNoteIndex(0);
   }, [currentPage, pageLabel]);
 
   const saveNote = useCallback((id: string, content: string) => {
@@ -384,80 +348,283 @@ export function DevNotesDrawer({
     setNotes((prev) => {
       const updated = prev.filter((n) => n.id !== id);
       saveNotes(updated);
+      setActiveNoteIndex((i) => Math.max(0, Math.min(i, updated.length - 1)));
       return updated;
     });
   }, []);
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full sm:w-[480px] sm:max-w-[480px] p-0 flex flex-col"
-        data-testid="dev-notes-drawer"
-      >
-        <SheetHeader className="px-4 pt-4 pb-3 border-b shrink-0">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <StickyNote className="h-5 w-5 text-amber-500" />
-              <SheetTitle className="text-base">Dev Notes</SheetTitle>
-            </div>
-            <div className="flex items-center gap-1">
-              <Badge
-                variant="outline"
-                className="text-xs gap-1 no-default-hover-elevate no-default-active-elevate"
-              >
-                <Keyboard className="h-3 w-3" />
-                Alt+N
-              </Badge>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 pt-2">
-            <Button
-              size="sm"
-              variant={showAll ? "outline" : "default"}
-              onClick={() => setShowAll(false)}
-              data-testid="button-notes-this-page"
-            >
-              This Page ({pageNotes.length})
-            </Button>
-            <Button
-              size="sm"
-              variant={showAll ? "default" : "outline"}
-              onClick={() => setShowAll(true)}
-              data-testid="button-notes-all"
-            >
-              All Notes ({notes.length})
-            </Button>
-            <div className="flex-1" />
-            <Button size="sm" onClick={addNote} data-testid="button-add-note">
-              + New Note
-            </Button>
-          </div>
-        </SheetHeader>
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartRef.current = { x: e.clientX, y: e.clientY, posX: pos.x, posY: pos.y };
+  }, [pos.x, pos.y]);
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {displayNotes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <StickyNote className="h-10 w-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm text-muted-foreground">
-                {showAll
-                  ? "No notes yet. Add your first note!"
-                  : `No notes for "${pageLabel}". Click "+ New Note" to start.`}
-              </p>
-            </div>
-          ) : (
-            displayNotes.map((note) => (
-              <NoteEditor
-                key={note.id}
-                note={note}
-                onSave={saveNote}
-                onDelete={deleteNote}
-              />
-            ))
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragStartRef.current.x;
+      const dy = e.clientY - dragStartRef.current.y;
+      setPos((p) => ({
+        ...p,
+        x: Math.max(0, Math.min(dragStartRef.current.posX + dx, window.innerWidth - 100)),
+        y: Math.max(0, Math.min(dragStartRef.current.posY + dy, window.innerHeight - 40)),
+      }));
+    };
+    const handleUp = () => setIsDragging(false);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, [isDragging]);
+
+  const handleResizeStart = useCallback((e: React.MouseEvent, direction: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsResizing(direction);
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      w: pos.width,
+      h: pos.height,
+      posX: pos.x,
+      posY: pos.y,
+    };
+  }, [pos]);
+
+  useEffect(() => {
+    if (!isResizing) return;
+    const handleMove = (e: MouseEvent) => {
+      const dx = e.clientX - resizeStartRef.current.x;
+      const dy = e.clientY - resizeStartRef.current.y;
+      setPos((p) => {
+        const newPos = { ...p };
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        if (isResizing.includes("e")) {
+          const maxW = vw - newPos.x - 8;
+          newPos.width = Math.max(MIN_WIDTH, Math.min(resizeStartRef.current.w + dx, maxW));
+        }
+        if (isResizing.includes("w")) {
+          const newW = Math.max(MIN_WIDTH, resizeStartRef.current.w - dx);
+          newPos.width = newW;
+          newPos.x = Math.max(0, resizeStartRef.current.posX + (resizeStartRef.current.w - newW));
+        }
+        if (isResizing.includes("s")) {
+          const maxH = vh - newPos.y - 8;
+          newPos.height = Math.max(MIN_HEIGHT, Math.min(resizeStartRef.current.h + dy, maxH));
+        }
+        if (isResizing.includes("n")) {
+          const newH = Math.max(MIN_HEIGHT, resizeStartRef.current.h - dy);
+          newPos.height = newH;
+          newPos.y = Math.max(0, resizeStartRef.current.posY + (resizeStartRef.current.h - newH));
+        }
+        return newPos;
+      });
+    };
+    const handleUp = () => setIsResizing(null);
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+    };
+  }, [isResizing]);
+
+  if (!open) return null;
+
+  const activeNote = notes[activeNoteIndex];
+
+  return (
+    <div
+      ref={containerRef}
+      className={cn(
+        "fixed z-[9999] flex flex-col",
+        "bg-background border border-border rounded-lg shadow-2xl",
+        "select-none",
+        (isDragging || isResizing) && "pointer-events-auto"
+      )}
+      style={{
+        left: pos.x,
+        top: pos.y,
+        width: pos.minimized ? 300 : pos.width,
+        height: pos.minimized ? "auto" : pos.height,
+      }}
+      data-testid="dev-notes-sticky"
+    >
+      <div
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 rounded-t-lg",
+          "bg-amber-500 dark:bg-amber-600 text-white",
+          "cursor-grab",
+          isDragging && "cursor-grabbing"
+        )}
+        onMouseDown={handleDragStart}
+        data-testid="dev-notes-sticky-titlebar"
+      >
+        <GripHorizontal className="h-4 w-4 opacity-60 shrink-0" />
+        <StickyNote className="h-4 w-4 shrink-0" />
+        <span className="text-sm font-medium truncate flex-1">
+          Dev Notes
+          {notes.length > 0 && (
+            <span className="opacity-75 ml-1">({notes.length})</span>
           )}
+        </span>
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={addNote}
+            className="p-1 rounded hover:bg-white/20 transition-colors"
+            title="New Note"
+            data-testid="button-sticky-add-note"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setPos((p) => ({ ...p, minimized: !p.minimized }))}
+            className="p-1 rounded hover:bg-white/20 transition-colors"
+            title={pos.minimized ? "Expand" : "Minimize"}
+            data-testid="button-sticky-minimize"
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={onClose}
+            className="p-1 rounded hover:bg-white/20 transition-colors"
+            title="Close (Alt+N)"
+            data-testid="button-sticky-close"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+
+      {!pos.minimized && (
+        <>
+          {notes.length > 0 && (
+            <div className="flex items-center gap-1 px-2 py-1.5 border-b bg-muted/20 overflow-x-auto">
+              <button
+                onClick={() => setActiveNoteIndex((i) => Math.max(0, i - 1))}
+                disabled={activeNoteIndex === 0}
+                className="p-0.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 shrink-0"
+                data-testid="button-note-prev"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+              <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0">
+                {notes.map((note, i) => (
+                  <button
+                    key={note.id}
+                    onClick={() => setActiveNoteIndex(i)}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-xs whitespace-nowrap transition-colors shrink-0",
+                      i === activeNoteIndex
+                        ? "bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 font-medium"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    )}
+                    data-testid={`button-note-tab-${i}`}
+                  >
+                    {note.pageLabel}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => setActiveNoteIndex((i) => Math.min(notes.length - 1, i + 1))}
+                disabled={activeNoteIndex >= notes.length - 1}
+                className="p-0.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-30 shrink-0"
+                data-testid="button-note-next"
+              >
+                <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+              {activeNote && (
+                <button
+                  onClick={() => deleteNote(activeNote.id)}
+                  className="p-0.5 rounded text-muted-foreground hover:text-red-500 shrink-0 ml-1"
+                  title="Delete this note"
+                  data-testid="button-delete-active-note"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className="flex-1 overflow-hidden min-h-0">
+            {notes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full py-8 text-center px-4">
+                <StickyNote className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                <p className="text-sm text-muted-foreground mb-3">
+                  No notes yet. Click + to add one.
+                </p>
+                <Badge variant="outline" className="text-xs gap-1 no-default-hover-elevate no-default-active-elevate">
+                  Page: {pageLabel}
+                </Badge>
+              </div>
+            ) : activeNote ? (
+              <NoteEditor
+                key={activeNote.id}
+                note={activeNote}
+                onSave={saveNote}
+              />
+            ) : null}
+          </div>
+
+          {notes.length > 0 && activeNote && (
+            <div className="flex items-center justify-between gap-2 px-2 py-1 border-t bg-muted/10 text-xs text-muted-foreground">
+              <span className="truncate">{activeNote.pageLabel}</span>
+              <span className="shrink-0">
+                {new Date(activeNote.updatedAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+          )}
+
+          <div
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+            onMouseDown={(e) => handleResizeStart(e, "se")}
+            data-testid="resize-handle-se"
+          >
+            <svg className="w-4 h-4 text-muted-foreground/40" viewBox="0 0 16 16">
+              <path d="M14 14L8 14L14 8Z" fill="currentColor" />
+              <path d="M14 14L12 14L14 12Z" fill="currentColor" opacity="0.5" />
+            </svg>
+          </div>
+          <div
+            className="absolute top-0 right-0 bottom-0 w-1.5 cursor-e-resize"
+            onMouseDown={(e) => handleResizeStart(e, "e")}
+          />
+          <div
+            className="absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize"
+            onMouseDown={(e) => handleResizeStart(e, "s")}
+          />
+          <div
+            className="absolute top-0 left-0 bottom-0 w-1.5 cursor-w-resize"
+            onMouseDown={(e) => handleResizeStart(e, "w")}
+          />
+          <div
+            className="absolute top-0 left-0 right-0 h-1.5 cursor-n-resize"
+            onMouseDown={(e) => handleResizeStart(e, "n")}
+          />
+          <div
+            className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize"
+            onMouseDown={(e) => handleResizeStart(e, "nw")}
+          />
+          <div
+            className="absolute top-0 right-0 w-3 h-3 cursor-ne-resize"
+            onMouseDown={(e) => handleResizeStart(e, "ne")}
+          />
+          <div
+            className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize"
+            onMouseDown={(e) => handleResizeStart(e, "sw")}
+          />
+        </>
+      )}
+    </div>
   );
 }
 
@@ -477,24 +644,24 @@ export function DevNotesButton() {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className={cn(
-          "fixed bottom-6 right-6 z-50",
-          "h-12 w-12 rounded-full",
-          "bg-amber-500 hover:bg-amber-600 active:bg-amber-700",
-          "text-white shadow-lg",
-          "flex items-center justify-center",
-          "transition-all duration-200",
-          "hover:scale-105 active:scale-95",
-          "group"
-        )}
-        data-testid="button-dev-notes-fab"
-        title="Dev Notes (Alt+N)"
-      >
-        <StickyNote className="h-5 w-5" />
-      </button>
-      <DevNotesDrawer open={open} onOpenChange={setOpen} />
+      {!open && (
+        <button
+          onClick={() => setOpen(true)}
+          className={cn(
+            "fixed bottom-6 right-6 z-50",
+            "h-12 w-12 rounded-full",
+            "bg-amber-500 text-white shadow-lg",
+            "flex items-center justify-center",
+            "transition-all duration-200",
+            "hover-elevate active-elevate-2"
+          )}
+          data-testid="button-dev-notes-fab"
+          title="Dev Notes (Alt+N)"
+        >
+          <StickyNote className="h-5 w-5" />
+        </button>
+      )}
+      <DevNotesSticky open={open} onClose={() => setOpen(false)} />
     </>
   );
 }
