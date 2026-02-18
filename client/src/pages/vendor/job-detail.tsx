@@ -309,21 +309,21 @@ export default function VendorJobDetail() {
         <Card>
           <CardHeader className="pb-4">
             <div className="flex items-start justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-3">
-                <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${
+              <div className="flex items-start gap-3">
+                <div className={`h-10 w-10 sm:h-12 sm:w-12 rounded-xl flex items-center justify-center shrink-0 ${
                   job.urgent ? "bg-red-100 dark:bg-red-900/30" : isEid ? "bg-amber-100 dark:bg-amber-900/30" : "bg-blue-100 dark:bg-blue-900/30"
                 }`}>
                   {job.urgent ? (
-                    <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                    <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
                   ) : isEid ? (
-                    <Shield className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    <Shield className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600 dark:text-amber-400" />
                   ) : (
-                    <Stethoscope className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    <Stethoscope className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
                   )}
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <CardTitle className="text-xl" data-testid="text-wo-number">
+                    <CardTitle className="text-lg sm:text-xl" data-testid="text-wo-number">
                       {job.workOrder?.woNumber || "N/A"}
                     </CardTitle>
                     <StatusBadge status={job.status} />
@@ -348,57 +348,57 @@ export default function VendorJobDetail() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm min-w-0">
                 <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">Applicant:</span>
-                <span className="font-medium">{job.workOrder?.applicantName}</span>
+                <span className="text-muted-foreground shrink-0">Applicant:</span>
+                <span className="font-medium truncate">{job.workOrder?.applicantName}</span>
               </div>
               {job.workOrder?.applicantPhone && (
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm min-w-0">
                   <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground">Phone:</span>
-                  <span className="font-medium">{job.workOrder.applicantPhone}</span>
+                  <span className="text-muted-foreground shrink-0">Phone:</span>
+                  <span className="font-medium truncate">{job.workOrder.applicantPhone}</span>
                 </div>
               )}
               {job.workOrder?.applicantEmail && (
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm min-w-0">
                   <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground">Email:</span>
-                  <span className="font-medium">{job.workOrder.applicantEmail}</span>
+                  <span className="text-muted-foreground shrink-0">Email:</span>
+                  <span className="font-medium truncate">{job.workOrder.applicantEmail}</span>
                 </div>
               )}
               {job.company && (
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm min-w-0">
                   <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground">Company:</span>
-                  <span className="font-medium">{job.company.name}</span>
+                  <span className="text-muted-foreground shrink-0">Company:</span>
+                  <span className="font-medium truncate">{job.company.name}</span>
                 </div>
               )}
               {job.serviceType && (
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm min-w-0">
                   <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground">Service:</span>
-                  <span className="font-medium">{job.serviceType.name}</span>
+                  <span className="text-muted-foreground shrink-0">Service:</span>
+                  <span className="font-medium truncate">{job.serviceType.name}</span>
                 </div>
               )}
               {job.jobType && (
-                <div className="flex items-center gap-2 text-sm">
+                <div className="flex items-center gap-2 text-sm min-w-0">
                   <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground">Job Type:</span>
+                  <span className="text-muted-foreground shrink-0">Job Type:</span>
                   <StatusBadge status={job.jobType.category} />
-                  <span className="font-medium">{job.jobType.name}</span>
+                  <span className="font-medium truncate">{job.jobType.name}</span>
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-sm min-w-0">
                 <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-muted-foreground">Sent:</span>
+                <span className="text-muted-foreground shrink-0">Sent:</span>
                 <span className="font-medium">{job.sentAt ? formatDate(job.sentAt) : "Not sent yet"}</span>
               </div>
               {job.company?.deliveryAddress && (
-                <div className="flex items-center gap-2 text-sm sm:col-span-2">
+                <div className="flex items-center gap-2 text-sm sm:col-span-2 min-w-0">
                   <MapPin className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-muted-foreground">Delivery Address:</span>
-                  <span className="font-medium">{job.company.deliveryAddress}</span>
+                  <span className="text-muted-foreground shrink-0">Address:</span>
+                  <span className="font-medium truncate">{job.company.deliveryAddress}</span>
                 </div>
               )}
             </div>

@@ -134,63 +134,59 @@ export default function VendorDashboard() {
       ) : (
         <div className="space-y-5">
           {/* ── OVERVIEW STRIP ── */}
-          <div className="flex gap-3 flex-wrap" data-testid="section-overview-strip">
-            <div className="flex gap-3 flex-1 min-w-0">
-              <Link href="/eid" className="flex-1 min-w-0">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3" data-testid="section-overview-strip">
+              <Link href="/eid">
                 <Card className="hover-elevate cursor-pointer h-full" data-testid="tile-pending">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <div className="h-7 w-7 rounded-md bg-amber-500/10 flex items-center justify-center">
+                      <div className="h-7 w-7 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
                         <Inbox className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
                       </div>
                       <span className="text-xs text-muted-foreground">Pending</span>
                     </div>
-                    <p className="text-2xl font-bold text-foreground" data-testid="text-pending-count">{stats?.pending || 0}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Not accepted</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-pending-count">{stats?.pending || 0}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Not accepted</p>
                   </CardContent>
                 </Card>
               </Link>
-              <div className="flex-1 min-w-0">
+              <div>
                 <Card className="h-full" data-testid="tile-in-progress">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <div className="h-7 w-7 rounded-md bg-blue-500/10 flex items-center justify-center">
+                      <div className="h-7 w-7 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0">
                         <Zap className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <span className="text-xs text-muted-foreground">In Progress</span>
                     </div>
-                    <p className="text-2xl font-bold text-foreground" data-testid="text-inprogress-count">{stats?.inProgress || 0}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Accepted, not done</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-inprogress-count">{stats?.inProgress || 0}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Accepted, not done</p>
                   </CardContent>
                 </Card>
               </div>
-              <div className="flex-1 min-w-0">
+              <div>
                 <Card className="h-full" data-testid="tile-completed">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <div className="h-7 w-7 rounded-md bg-emerald-500/10 flex items-center justify-center">
+                      <div className="h-7 w-7 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                       </div>
                       <span className="text-xs text-muted-foreground">Completed</span>
                     </div>
-                    <p className="text-2xl font-bold text-foreground" data-testid="text-completed-count">{stats?.completed || 0}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">Done</p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-completed-count">{stats?.completed || 0}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Done</p>
                   </CardContent>
                 </Card>
               </div>
-            </div>
-            {/* Gap + Wallet */}
-            <div className="w-px bg-border/40 hidden sm:block self-stretch" />
-            <Link href="/wallet" className="min-w-[140px]">
+            <Link href="/wallet">
               <Card className="hover-elevate cursor-pointer h-full" data-testid="tile-wallet">
-                <CardContent className="p-4">
+                <CardContent className="p-3 sm:p-4">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div className="h-7 w-7 rounded-md bg-violet-500/10 flex items-center justify-center">
+                    <div className="h-7 w-7 rounded-md bg-violet-500/10 flex items-center justify-center shrink-0">
                       <CreditCard className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                     </div>
                     <span className="text-xs text-muted-foreground">Wallet</span>
                   </div>
-                  <p className="text-2xl font-bold text-foreground" data-testid="text-wallet-balance">
+                  <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-wallet-balance">
                     AED {(balanceData?.balance || 0).toLocaleString()}
                   </p>
                   <div className="flex items-center gap-1 mt-0.5">
@@ -256,7 +252,7 @@ export default function VendorDashboard() {
                                 <p className="text-xs text-muted-foreground truncate mt-0.5">{wo.applicantName}</p>
                               </div>
                             </div>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                               {wo.jobs.map((job) => {
                                 const isEid = job.category === "EID";
                                 const detailUrl = isEid ? `/eid/${job.id}` : `/medical/${job.id}`;
@@ -264,7 +260,7 @@ export default function VendorDashboard() {
                                 return (
                                   <div
                                     key={job.id}
-                                    className="flex items-center gap-2 p-2 rounded-md bg-muted/50 flex-1 min-w-[200px]"
+                                    className="flex items-center gap-2 p-2 rounded-md bg-muted/50 flex-1 min-w-0 sm:min-w-[200px]"
                                     data-testid={`action-job-${job.id}`}
                                   >
                                     <div className={`h-6 w-6 rounded flex items-center justify-center shrink-0 ${isEid ? "bg-amber-500/10" : "bg-blue-500/10"}`}>

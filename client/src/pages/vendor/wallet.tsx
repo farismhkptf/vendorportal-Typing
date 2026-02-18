@@ -51,12 +51,12 @@ export default function VendorWallet() {
         {balanceLoading ? (
           <Skeleton className="h-12 w-48" />
         ) : (
-          <p className="text-4xl font-bold tracking-tight text-foreground" data-testid="text-wallet-balance">
+          <p className="text-2xl sm:text-4xl font-bold tracking-tight text-foreground" data-testid="text-wallet-balance">
             AED {(balanceData?.balance || 0).toLocaleString()}
           </p>
         )}
         {/* Compact summary line */}
-        <div className="flex items-center gap-4 mt-3">
+        <div className="flex items-center gap-3 sm:gap-4 mt-3 flex-wrap">
           <div className="flex items-center gap-1.5" data-testid="card-total-in">
             <ArrowUpCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <span className="text-sm text-muted-foreground">Received</span>

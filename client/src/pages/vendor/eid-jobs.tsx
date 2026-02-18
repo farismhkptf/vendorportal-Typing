@@ -108,7 +108,7 @@ export default function EidJobs() {
             <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground" data-testid="heading-eid">Emirates ID Jobs</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground" data-testid="heading-eid">Emirates ID Jobs</h1>
             <p className="text-sm text-muted-foreground">{jobs.length} total jobs</p>
           </div>
         </div>
@@ -166,35 +166,31 @@ export default function EidJobs() {
                 data-testid={`eid-job-${job.id}`}
               >
                 <CardContent className="p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${
-                        job.priority === "urgent" ? "bg-red-500/10" : "bg-amber-500/10"
-                      }`}>
-                        {job.priority === "urgent" ? (
-                          <AlertTriangle className="h-4 w-4 text-red-500" />
-                        ) : (
-                          <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <div className="flex items-start gap-3">
+                    <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${
+                      job.priority === "urgent" ? "bg-red-500/10" : "bg-amber-500/10"
+                    }`}>
+                      {job.priority === "urgent" ? (
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm">{job.workOrder?.woNumber || "N/A"}</span>
+                        <StatusBadge status={job.status} />
+                        {job.priority === "urgent" && (
+                          <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm">{job.workOrder?.woNumber || "N/A"}</span>
-                          <StatusBadge status={job.status} />
-                          {job.priority === "urgent" && (
-                            <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
-                          {job.costSnapshot && (
-                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">AED {job.costSnapshot}</span>
-                          )}
-                        </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
+                        {job.costSnapshot && (
+                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 shrink-0">AED {job.costSnapshot}</span>
+                        )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
                         {job.hasInputDocs && (
                           <Badge variant="outline" className="text-[10px] gap-0.5">
                             <Upload className="h-3 w-3" /> Docs
@@ -205,35 +201,35 @@ export default function EidJobs() {
                             <MessageSquare className="h-3 w-3" /> {job.commentCount}
                           </Badge>
                         )}
+                        <span className="text-xs text-muted-foreground hidden sm:block">
+                          {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
+                        </span>
+                        {job.status === "SentToVendor" && (
+                          <Button
+                            size="sm"
+                            className="gap-1.5 ml-auto"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
+                            disabled={pendingAction === `accept-${job.id}`}
+                            data-testid={`button-accept-${job.id}`}
+                          >
+                            {pendingAction === `accept-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            Accept
+                          </Button>
+                        )}
+                        {job.status === "InProgress" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 ml-auto"
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); completeMutation.mutate(job.id); }}
+                            disabled={pendingAction === `complete-${job.id}`}
+                            data-testid={`button-complete-${job.id}`}
+                          >
+                            {pendingAction === `complete-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            Done
+                          </Button>
+                        )}
                       </div>
-                      <span className="text-xs text-muted-foreground hidden sm:block">
-                        {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
-                      </span>
-                      {job.status === "SentToVendor" && (
-                        <Button
-                          size="sm"
-                          className="gap-1.5"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
-                          disabled={pendingAction === `accept-${job.id}`}
-                          data-testid={`button-accept-${job.id}`}
-                        >
-                          {pendingAction === `accept-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                          Accept
-                        </Button>
-                      )}
-                      {job.status === "InProgress" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1.5"
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); completeMutation.mutate(job.id); }}
-                          disabled={pendingAction === `complete-${job.id}`}
-                          data-testid={`button-complete-${job.id}`}
-                        >
-                          {pendingAction === `complete-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                          Done
-                        </Button>
-                      )}
                     </div>
                   </div>
                 </CardContent>
