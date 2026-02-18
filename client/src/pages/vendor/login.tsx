@@ -43,7 +43,7 @@ export default function VendorLogin() {
         title: "Welcome!",
         description: "You have successfully logged in.",
       });
-      setLocation("/vendor/dashboard");
+      setLocation("/vendor");
     },
     onError: (error: Error) => {
       toast({

@@ -10,7 +10,7 @@ const views = [
   { key: "admin", label: "Admin", icon: LayoutDashboard, href: "/" },
   { key: "crm", label: "CRM", icon: Briefcase, href: "/crm" },
   { key: "medical", label: "Medical", icon: Stethoscope, href: "/medical" },
-  { key: "vendor", label: "Vendor", icon: Store, href: "/vendor/dashboard" },
+  { key: "vendor", label: "Vendor", icon: Store, href: "/vendor" },
 ] as const;
 
 type ViewKey = (typeof views)[number]["key"];
@@ -27,7 +27,7 @@ export function DashboardSwitcher({ active }: { active: ViewKey }) {
     setEntering(true);
     try {
       await apiRequest("POST", "/api/auth/enter-vendor-portal");
-      navigate("/vendor/dashboard");
+      navigate("/vendor");
     } catch {
       toast({
         title: "No vendor accounts",

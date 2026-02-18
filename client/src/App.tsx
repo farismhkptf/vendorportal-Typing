@@ -106,6 +106,7 @@ function VendorLayout() {
                 <PageTransition>
                   <Switch>
                     <Route path="/vendor" component={VendorDashboard} />
+                    <Route path="/vendor/dashboard">{() => <Redirect to="/vendor" />}</Route>
                     <Route path="/vendor/eid" component={VendorEidJobs} />
                     <Route path="/vendor/eid/:id" component={VendorJobDetail} />
                     <Route path="/vendor/medical" component={VendorMedicalJobs} />
