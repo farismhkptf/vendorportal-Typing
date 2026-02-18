@@ -160,7 +160,7 @@ export default function EidJobs() {
           </>
         ) : sortedJobs.length > 0 ? (
           sortedJobs.map((job) => (
-            <Link key={job.id} href={`/vendor/eid/${job.id}`}>
+            <Link key={job.id} href={`/eid/${job.id}`}>
               <Card
                 className={`hover-elevate cursor-pointer ${job.priority === "urgent" ? "border-red-500/30 dark:border-red-500/20" : ""}`}
                 data-testid={`eid-job-${job.id}`}

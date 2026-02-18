@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import {
   Shield, Stethoscope, AlertTriangle, ArrowRight,
   CreditCard, Clock, CheckCircle2, Inbox, Loader2,
@@ -70,6 +70,7 @@ function getGreeting() {
 export default function VendorDashboard() {
   const { user } = useVendorAuth();
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ["/api/vendor/dashboard"],
@@ -135,7 +136,7 @@ export default function VendorDashboard() {
           {/* ── OVERVIEW STRIP ── */}
           <div className="flex gap-3 flex-wrap" data-testid="section-overview-strip">
             <div className="flex gap-3 flex-1 min-w-0">
-              <Link href="/vendor/eid" className="flex-1 min-w-0">
+              <Link href="/eid" className="flex-1 min-w-0">
                 <Card className="hover-elevate cursor-pointer h-full" data-testid="tile-pending">
                   <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-1.5">
@@ -180,7 +181,7 @@ export default function VendorDashboard() {
             </div>
             {/* Gap + Wallet */}
             <div className="w-px bg-border/40 hidden sm:block self-stretch" />
-            <Link href="/vendor/wallet" className="min-w-[140px]">
+            <Link href="/wallet" className="min-w-[140px]">
               <Card className="hover-elevate cursor-pointer h-full" data-testid="tile-wallet">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-1.5">
@@ -258,7 +259,7 @@ export default function VendorDashboard() {
                             <div className="flex flex-wrap gap-2">
                               {wo.jobs.map((job) => {
                                 const isEid = job.category === "EID";
-                                const detailUrl = isEid ? `/vendor/eid/${job.id}` : `/vendor/medical/${job.id}`;
+                                const detailUrl = isEid ? `/eid/${job.id}` : `/medical/${job.id}`;
                                 const isAccepting = acceptMutation.isPending && acceptMutation.variables === job.id;
                                 return (
                                   <div
@@ -329,7 +330,7 @@ export default function VendorDashboard() {
                     <div className="divide-y divide-border/50">
                       {activityFeed.map((item) => {
                         const isEid = item.category === "EID";
-                        const detailUrl = isEid ? `/vendor/eid/${item.id}` : `/vendor/medical/${item.id}`;
+                        const detailUrl = isEid ? `/eid/${item.id}` : `/medical/${item.id}`;
                         return (
                           <Link key={item.id} href={detailUrl}>
                             <div className="flex items-center gap-3 p-3 hover-elevate cursor-pointer" data-testid={`activity-${item.id}`}>
@@ -372,7 +373,7 @@ export default function VendorDashboard() {
                   Quick Actions
                 </h2>
                 <div className="grid grid-cols-1 gap-2">
-                  <Link href="/vendor/eid">
+                  <Link href="/eid">
                     <Card className="hover-elevate cursor-pointer" data-testid="quick-action-eid">
                       <CardContent className="p-3 flex items-center gap-3">
                         <div className="h-8 w-8 rounded-md bg-amber-500/10 flex items-center justify-center shrink-0">
@@ -386,7 +387,7 @@ export default function VendorDashboard() {
                       </CardContent>
                     </Card>
                   </Link>
-                  <Link href="/vendor/medical">
+                  <Link href="/medical">
                     <Card className="hover-elevate cursor-pointer" data-testid="quick-action-medical">
                       <CardContent className="p-3 flex items-center gap-3">
                         <div className="h-8 w-8 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0">
@@ -400,7 +401,7 @@ export default function VendorDashboard() {
                       </CardContent>
                     </Card>
                   </Link>
-                  <Link href="/vendor/wallet">
+                  <Link href="/wallet">
                     <Card className="hover-elevate cursor-pointer" data-testid="quick-action-wallet">
                       <CardContent className="p-3 flex items-center gap-3">
                         <div className="h-8 w-8 rounded-md bg-violet-500/10 flex items-center justify-center shrink-0">
@@ -427,7 +428,7 @@ export default function VendorDashboard() {
                     <div className="divide-y divide-border/50">
                       {unreadNotifications.map((n) => {
                         const jobUrl = n.relatedJobId
-                          ? ((n as any).jobCategory === "Medical" ? `/vendor/medical/${n.relatedJobId}` : `/vendor/eid/${n.relatedJobId}`)
+                          ? ((n as any).jobCategory === "Medical" ? `/medical/${n.relatedJobId}` : `/eid/${n.relatedJobId}`)
                           : null;
                         return (
                           <div
@@ -435,7 +436,7 @@ export default function VendorDashboard() {
                             className="p-3 hover-elevate cursor-pointer"
                             onClick={() => {
                               if (!n.isRead) markReadMutation.mutate(n.id);
-                              if (jobUrl) window.location.href = jobUrl;
+                              if (jobUrl) navigate(jobUrl);
                             }}
                             data-testid={`inline-notification-${n.id}`}
                           >

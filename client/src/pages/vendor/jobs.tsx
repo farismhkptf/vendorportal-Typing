@@ -182,7 +182,7 @@ export default function VendorJobs() {
             </>
           ) : sortedJobs && sortedJobs.length > 0 ? (
             sortedJobs.map((job) => (
-              <Link key={job.id} href={`/vendor/jobs/${job.id}`}>
+              <Link key={job.id} href={`/jobs/${job.id}`}>
                 <DataTableRow className="mb-0" data-testid={`vendor-job-row-${job.id}`}>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
@@ -265,7 +265,7 @@ export default function VendorJobs() {
                               {pendingAction === `complete-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                               Mark Done
                             </Button>
-                            <Link href={`/vendor/jobs/${job.id}`} onClick={(e: any) => e.stopPropagation()}>
+                            <Link href={`/jobs/${job.id}`} onClick={(e: any) => e.stopPropagation()}>
                               <Button size="sm" variant="outline" className="gap-1.5" data-testid={`button-request-docs-${job.id}`}>
                                 <ExternalLink className="h-3.5 w-3.5" />
                                 Request Docs

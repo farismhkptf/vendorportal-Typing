@@ -159,7 +159,7 @@ export default function MedicalJobs() {
           </>
         ) : sortedJobs.length > 0 ? (
           sortedJobs.map((job) => (
-            <Link key={job.id} href={`/vendor/medical/${job.id}`}>
+            <Link key={job.id} href={`/medical/${job.id}`}>
               <Card
                 className={`hover-elevate cursor-pointer ${job.priority === "urgent" ? "border-red-500/30 dark:border-red-500/20" : ""}`}
                 data-testid={`medical-job-${job.id}`}

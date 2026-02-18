@@ -20,10 +20,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { VendorNotification, TypingJob, JobType } from "@shared/schema";
 
 const navItems = [
-  { href: "/vendor", label: "Dashboard", icon: LayoutDashboard, match: "/" },
-  { href: "/vendor/eid", label: "Emirates ID", icon: Shield, match: "/eid" },
-  { href: "/vendor/medical", label: "Medical", icon: Stethoscope, match: "/medical" },
-  { href: "/vendor/wallet", label: "Wallet", icon: CreditCard, match: "/wallet" },
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, match: "/" },
+  { href: "/eid", label: "Emirates ID", icon: Shield, match: "/eid" },
+  { href: "/medical", label: "Medical", icon: Stethoscope, match: "/medical" },
+  { href: "/wallet", label: "Wallet", icon: CreditCard, match: "/wallet" },
 ];
 
 export function VendorSidebar() {
@@ -192,7 +192,7 @@ export function VendorTopBar() {
               <div className="max-h-80 overflow-y-auto">
                 {notifications && notifications.length > 0 ? (
                   notifications.slice(0, 20).map((n) => (
-                    <Link key={n.id} href={n.relatedJobId ? ((n as any).jobCategory === "Medical" ? `/vendor/medical/${n.relatedJobId}` : `/vendor/eid/${n.relatedJobId}`) : "#"}>
+                    <Link key={n.id} href={n.relatedJobId ? ((n as any).jobCategory === "Medical" ? `/medical/${n.relatedJobId}` : `/eid/${n.relatedJobId}`) : "#"}>
                       <div
                         className={`p-3 border-b border-border/50 hover-elevate cursor-pointer ${!n.isRead ? "bg-primary/5" : ""}`}
                         onClick={() => { if (!n.isRead) markReadMutation.mutate(n.id); }}

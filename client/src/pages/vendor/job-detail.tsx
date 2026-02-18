@@ -273,7 +273,7 @@ export default function VendorJobDetail() {
   const inputFiles = job?.files?.filter(f => f.direction === "Input") || [];
   const outputFiles = job?.files?.filter(f => f.direction === "Output") || [];
 
-  const backUrl = job?.jobType?.category === "Medical" ? "/vendor/medical" : "/vendor/eid";
+  const backUrl = job?.jobType?.category === "Medical" ? "/medical" : "/eid";
   const backLabel = job?.jobType?.category === "Medical" ? "Medical Jobs" : "Emirates ID Jobs";
   const isEid = job?.jobType?.category === "EID";
 
