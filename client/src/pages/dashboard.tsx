@@ -38,6 +38,7 @@ import { useCountUp } from "@/hooks/use-count-up";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardSwitcher } from "@/components/dashboard-switcher";
+import { DevNotesDashboard } from "@/components/dev-notes-dashboard";
 
 function getStatusSummary(typing: string | null, appt: string | null): { label: string; color: string } {
   if (appt === "Completed" && (typing === "SentToClient" || typing === "Returned")) {
@@ -754,6 +755,8 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        <DevNotesDashboard />
       </div>
     </AppLayout>
   );

@@ -7,6 +7,7 @@ import { PageTransition } from "@/components/ui/page-transition";
 import NotFound from "@/pages/not-found";
 import { CommandPalette } from "@/components/command-palette";
 import { MobileBottomNav } from "@/components/mobile-nav";
+import { DevNotesButton } from "@/components/dev-notes";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { VendorAuthProvider, useVendorAuth } from "@/hooks/use-vendor-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
@@ -171,6 +172,7 @@ function App() {
           <AuthProvider>
             <CommandPalette />
             <MobileBottomNav />
+            <DevNotesButton />
             <Toaster />
             <Router />
           </AuthProvider>
