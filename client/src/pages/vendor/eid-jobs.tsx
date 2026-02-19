@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useSearch } from "wouter";
+import { useSearch } from "wouter";
+import { JobWizardDialog } from "./job-detail";
 import {
   Search, Shield, Upload, MessageSquare,
   AlertTriangle, CheckCircle2, Loader2, Clock, Inbox,
@@ -46,6 +47,7 @@ export default function EidJobs() {
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const { toast } = useToast();
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(searchString);
@@ -253,7 +255,7 @@ export default function EidJobs() {
             <div className="space-y-2">
               {sortedJobs.length > 0 ? (
                 sortedJobs.map((job) => (
-                  <Link key={job.id} href={`/eid/${job.id}`}>
+                  <div key={job.id} onClick={() => setSelectedJobId(job.id)}>
                     <Card
                       className={`hover-elevate cursor-pointer ${job.priority === "urgent" ? "border-red-500/30 dark:border-red-500/20" : ""}`}
                       data-testid={`eid-job-${job.id}`}
@@ -320,7 +322,7 @@ export default function EidJobs() {
                         </div>
                       </CardContent>
                     </Card>
-                  </Link>
+                  </div>
                 ))
               ) : (
                 <Card>
@@ -337,6 +339,11 @@ export default function EidJobs() {
           </div>
         </div>
       )}
+      <JobWizardDialog
+        jobId={selectedJobId}
+        open={!!selectedJobId}
+        onClose={() => setSelectedJobId(null)}
+      />
     </div>
   );
 }

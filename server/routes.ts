@@ -3438,6 +3438,11 @@ export async function registerRoutes(
       let documentRequirements: any[] = [];
       let woDocuments: any[] = [];
       
+      let sentByStaffName: string | null = null;
+      let preferredCenter: any = null;
+      let companyContacts: any = null;
+      let eidCenters: any[] = [];
+      
       if (wo) {
         company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
         serviceType = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId) : null;
@@ -3453,6 +3458,47 @@ export async function registerRoutes(
             });
           }
         }
+
+        if (job.createdBy) {
+          const creatorUser = await storage.getUser(job.createdBy);
+          if (creatorUser?.staffId) {
+            const staffMember = await storage.getStaffById(creatorUser.staffId);
+            sentByStaffName = staffMember?.name || creatorUser.name;
+          } else if (creatorUser) {
+            sentByStaffName = creatorUser.name;
+          }
+        }
+
+        if (company) {
+          companyContacts = {
+            coordinator: company.clientCoordinator || null,
+            manager: company.clientManager || null,
+            accountant: company.clientAccountant || null,
+          };
+
+          const isVip = wo.isVip;
+          if (jobType?.category === "Medical") {
+            const centerId = isVip ? company.preferredMedicalCenterVipId : company.preferredMedicalCenterId;
+            if (centerId) {
+              const center = await storage.getCenterById(centerId);
+              if (center) {
+                preferredCenter = { id: center.id, name: center.name, area: center.area, type: center.type, tier: center.tier };
+              }
+            }
+          } else if (jobType?.category === "EID") {
+            const centerId = isVip ? company.preferredBiometricsCenterVipId : company.preferredBiometricsCenterId;
+            if (centerId) {
+              const center = await storage.getCenterById(centerId);
+              if (center) {
+                preferredCenter = { id: center.id, name: center.name, area: center.area, type: center.type, tier: center.tier };
+              }
+            }
+            const allCenters = await storage.getCenters();
+            eidCenters = allCenters
+              .filter(c => (c.type === "EID" || c.type === "Both"))
+              .map(c => ({ id: c.id, name: c.name, area: c.area, tier: c.tier }));
+          }
+        }
       }
 
       const approval = await storage.getVendorApprovalByJobId(jobId);
@@ -3465,10 +3511,20 @@ export async function registerRoutes(
         comments,
         results,
         approval,
-        company: company ? { id: company.id, name: company.name, deliveryAddress: company.deliveryAddress } : null,
+        company: company ? {
+          id: company.id,
+          name: company.name,
+          deliveryAddress: company.deliveryAddress,
+          coordinatorMobile: (company.clientCoordinator as any)?.mobile || null,
+          coordinatorEmail: (company.clientCoordinator as any)?.email || null,
+        } : null,
         serviceType: serviceType ? { id: serviceType.id, name: serviceType.name, category: serviceType.category } : null,
         documentRequirements,
         woDocuments,
+        sentByStaffName,
+        preferredCenter,
+        companyContacts,
+        eidCenters,
       });
     } catch (error) {
       console.error("Vendor job detail error:", error);
