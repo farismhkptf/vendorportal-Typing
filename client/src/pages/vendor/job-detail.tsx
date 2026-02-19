@@ -24,7 +24,7 @@ import { ImageLightbox, type LightboxFile } from "@/components/image-lightbox";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import emiratesIdSample from "@/assets/images/emirates-id-sample.png";
+import emiratesIdSample from "@assets/image_1771501559423.png";
 import type { 
   TypingJob, WorkOrder, JobType, 
   TypingJobComment, File as FileType, TypingJobResult, WoDocument, DocumentRequirement
@@ -301,17 +301,14 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
       )}
 
       {isEid && (
-        <div className="p-3 rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/20">
-          <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1.5">
-            <Shield className="h-3.5 w-3.5" />
-            Emirates ID Reference
-          </p>
+        <div className="flex items-center gap-3 p-2.5 rounded-md bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/20">
           <img
             src={emiratesIdSample}
-            alt="Emirates ID sample card"
-            className="w-full max-w-md rounded-lg border border-border/50"
-            data-testid="img-eid-sample"
+            alt="Emirates ID"
+            className="h-10 w-16 rounded object-cover object-top border border-border/30"
+            data-testid="img-eid-tile"
           />
+          <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Emirates ID</span>
         </div>
       )}
     </div>
