@@ -183,7 +183,7 @@ function formatJobTypeName(name: string) {
   return (
     <span>
       {match[1]}
-      <span className="font-bold text-primary">{match[2]}</span>
+      <span className="font-bold text-foreground">{match[2]}</span>
       {match[3]}
     </span>
   );

@@ -3,7 +3,8 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useSearch } from "wouter";
 import {
   Search, Stethoscope, Upload, MessageSquare,
-  AlertTriangle, CheckCircle2, Loader2
+  AlertTriangle, CheckCircle2, Loader2, Clock, Inbox,
+  Zap, ArrowRight, User
 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
@@ -100,153 +101,230 @@ export default function MedicalJobs() {
   };
 
   return (
-    <div className="space-y-6 p-4 lg:p-6 max-w-5xl">
-      <div>
+    <div className="p-4 lg:p-6 max-w-6xl">
+      <div className="mb-5">
         <div className="flex items-center gap-3 mb-1">
           <div className="h-10 w-10 rounded-md bg-blue-500/10 flex items-center justify-center">
             <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground" data-testid="heading-medical">Medical Jobs</h1>
-            <p className="text-sm text-muted-foreground">{jobs.length} total jobs</p>
+            <p className="text-sm text-muted-foreground">
+              {statusCounts.SentToVendor > 0
+                ? `${statusCounts.SentToVendor} ${statusCounts.SentToVendor === 1 ? "job" : "jobs"} awaiting acceptance`
+                : "All caught up"}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2" data-testid="status-pills">
-        {[
-          { key: "all", label: "All", count: statusCounts.all },
-          { key: "SentToVendor", label: "New", count: statusCounts.SentToVendor },
-          { key: "NeedsAction", label: "Needs Action", count: jobs.filter(j => j.status === "SentToVendor" || (j.priority === "urgent")).length },
-          { key: "InProgress", label: "In Progress", count: statusCounts.InProgress },
-          { key: "WaitingForDocs", label: "Waiting", count: statusCounts.WaitingForDocs },
-          { key: "Returned", label: "Returned", count: statusCounts.Returned },
-        ].map(({ key, label, count }) => (
-          <Button
-            key={key}
-            variant={statusFilter === key ? "default" : "outline"}
-            size="sm"
-            className="gap-1.5"
-            onClick={() => setStatusFilter(key)}
-            data-testid={`filter-${key}`}
-          >
-            {label}
-            {count > 0 && (
-              <Badge variant="secondary" className="text-[10px] px-1.5 min-w-[18px]">{count}</Badge>
-            )}
-          </Button>
-        ))}
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="search"
-          placeholder="Search by WO number or applicant name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-          data-testid="input-search-medical"
-        />
-      </div>
-
-      <div className="space-y-2">
-        {isLoading ? (
-          <>
-            <Skeleton className="h-24 rounded-md" />
-            <Skeleton className="h-24 rounded-md" />
-            <Skeleton className="h-24 rounded-md" />
-          </>
-        ) : sortedJobs.length > 0 ? (
-          sortedJobs.map((job) => (
-            <Link key={job.id} href={`/medical/${job.id}`}>
-              <Card
-                className={`hover-elevate cursor-pointer ${job.priority === "urgent" ? "border-red-500/30 dark:border-red-500/20" : ""}`}
-                data-testid={`medical-job-${job.id}`}
-              >
-                <CardContent className="p-3">
-                  <div className="flex items-start gap-3">
-                    <div className={`h-9 w-9 rounded-md flex items-center justify-center shrink-0 ${
-                      job.priority === "urgent" ? "bg-red-500/10" : "bg-blue-500/10"
-                    }`}>
-                      {job.priority === "urgent" ? (
-                        <AlertTriangle className="h-4 w-4 text-red-500" />
-                      ) : (
-                        <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{job.workOrder?.woNumber || "N/A"}</span>
-                        <StatusBadge status={job.status} />
-                        {job.priority === "urgent" && (
-                          <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <p className="text-xs text-muted-foreground truncate">{job.workOrder?.applicantName}</p>
-                        {job.costSnapshot && (
-                          <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 shrink-0">AED {job.costSnapshot}</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        {job.hasInputDocs && (
-                          <Badge variant="outline" className="text-[10px] gap-0.5">
-                            <Upload className="h-3 w-3" /> Docs
-                          </Badge>
-                        )}
-                        {job.commentCount && job.commentCount > 0 && (
-                          <Badge variant="outline" className="text-[10px] gap-0.5">
-                            <MessageSquare className="h-3 w-3" /> {job.commentCount}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-muted-foreground hidden sm:block">
-                          {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
-                        </span>
-                        {job.status === "SentToVendor" && (
-                          <Button
-                            size="sm"
-                            className="gap-1.5 ml-auto"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
-                            disabled={pendingAction === `accept-${job.id}`}
-                            data-testid={`button-accept-${job.id}`}
-                          >
-                            {pendingAction === `accept-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                            Accept
-                          </Button>
-                        )}
-                        {job.status === "InProgress" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="gap-1.5 ml-auto"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); completeMutation.mutate(job.id); }}
-                            disabled={pendingAction === `complete-${job.id}`}
-                            data-testid={`button-complete-${job.id}`}
-                          >
-                            {pendingAction === `complete-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                            Done
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+      {isLoading ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
+          </div>
+          <Skeleton className="h-12 rounded-md" />
+          <Skeleton className="h-24 rounded-md" />
+          <Skeleton className="h-24 rounded-md" />
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3" data-testid="section-medical-stats">
+            <Card
+              className="hover-elevate cursor-pointer h-full"
+              onClick={() => setStatusFilter("SentToVendor")}
+              data-testid="tile-medical-new"
+            >
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="h-7 w-7 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0">
+                    <Inbox className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                   </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))
-        ) : (
-          <Card>
-            <CardContent className="p-8">
-              <EmptyState
-                icon={<Stethoscope className="h-6 w-6" />}
-                title="No medical jobs found"
-                description={search ? "Try adjusting your search or filters" : "No medical jobs assigned yet."}
+                  <span className="text-xs text-muted-foreground">New</span>
+                </div>
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-medical-new-count">{statusCounts.SentToVendor}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Awaiting acceptance</p>
+              </CardContent>
+            </Card>
+            <Card
+              className="hover-elevate cursor-pointer h-full"
+              onClick={() => setStatusFilter("InProgress")}
+              data-testid="tile-medical-progress"
+            >
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="h-7 w-7 rounded-md bg-teal-500/10 flex items-center justify-center shrink-0">
+                    <Zap className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">In Progress</span>
+                </div>
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-medical-progress-count">{statusCounts.InProgress}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Being worked on</p>
+              </CardContent>
+            </Card>
+            <Card
+              className="hover-elevate cursor-pointer h-full"
+              onClick={() => setStatusFilter("WaitingForDocs")}
+              data-testid="tile-medical-waiting"
+            >
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="h-7 w-7 rounded-md bg-orange-500/10 flex items-center justify-center shrink-0">
+                    <Clock className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Waiting</span>
+                </div>
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-medical-waiting-count">{statusCounts.WaitingForDocs}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Pending documents</p>
+              </CardContent>
+            </Card>
+            <Card
+              className="hover-elevate cursor-pointer h-full"
+              onClick={() => setStatusFilter("Returned")}
+              data-testid="tile-medical-returned"
+            >
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="h-7 w-7 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <span className="text-xs text-muted-foreground">Returned</span>
+                </div>
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-medical-returned-count">{statusCounts.Returned}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Sent back to team</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search by WO number or applicant name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+                data-testid="input-search-medical"
               />
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 shrink-0">
+              {[
+                { key: "all", label: "All" },
+                { key: "NeedsAction", label: "Needs Action" },
+                { key: "SentToVendor", label: "New" },
+                { key: "InProgress", label: "Active" },
+              ].map(({ key, label }) => (
+                <Button
+                  key={key}
+                  variant={statusFilter === key ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setStatusFilter(key)}
+                  data-testid={`filter-${key}`}
+                >
+                  {label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="text-xs font-medium text-muted-foreground mb-3" data-testid="heading-medical-jobs-list">
+              {statusFilter === "all" ? "All Jobs" : 
+               statusFilter === "NeedsAction" ? "Jobs Needing Action" :
+               statusFilter === "SentToVendor" ? "New Jobs" :
+               statusFilter === "InProgress" ? "Active Jobs" :
+               statusFilter === "WaitingForDocs" ? "Waiting for Documents" :
+               statusFilter === "Returned" ? "Returned Jobs" : "Jobs"}
+              {` (${sortedJobs.length})`}
+            </h2>
+            <div className="space-y-2">
+              {sortedJobs.length > 0 ? (
+                sortedJobs.map((job) => (
+                  <Link key={job.id} href={`/medical/${job.id}`}>
+                    <Card
+                      className={`hover-elevate cursor-pointer ${job.priority === "urgent" ? "border-red-500/30 dark:border-red-500/20" : ""}`}
+                      data-testid={`medical-job-${job.id}`}
+                    >
+                      <CardContent className="p-3 sm:p-4">
+                        <div className="flex items-start gap-3">
+                          <div className={`h-9 w-9 rounded-full flex items-center justify-center shrink-0 ${
+                            job.priority === "urgent" ? "bg-red-500/10" : "bg-blue-500/10"
+                          }`}>
+                            {job.priority === "urgent" ? (
+                              <AlertTriangle className="h-4 w-4 text-red-500" />
+                            ) : (
+                              <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-sm">{job.workOrder?.woNumber || "N/A"}</span>
+                              <StatusBadge status={job.status} />
+                              {job.priority === "urgent" && (
+                                <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">{job.workOrder?.applicantName}</p>
+                            {job.jobType && (
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                {job.jobType.name}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              {job.hasInputDocs && (
+                                <Badge variant="outline" className="text-[10px] gap-0.5">
+                                  <Upload className="h-3 w-3" /> Docs
+                                </Badge>
+                              )}
+                              {job.commentCount && job.commentCount > 0 && (
+                                <Badge variant="outline" className="text-[10px] gap-0.5">
+                                  <MessageSquare className="h-3 w-3" /> {job.commentCount}
+                                </Badge>
+                              )}
+                              <span className="text-xs text-muted-foreground hidden sm:block">
+                                {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
+                              </span>
+                              {job.status === "SentToVendor" && (
+                                <Button
+                                  size="sm"
+                                  className="gap-1.5 ml-auto"
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
+                                  disabled={pendingAction === `accept-${job.id}`}
+                                  data-testid={`button-accept-${job.id}`}
+                                >
+                                  {pendingAction === `accept-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                  Accept
+                                </Button>
+                              )}
+                              {job.status === "InProgress" && (
+                                <div className="ml-auto flex items-center gap-1.5 shrink-0">
+                                  <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span className="text-xs text-muted-foreground">Open to complete</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="p-8">
+                    <EmptyState
+                      icon={<Stethoscope className="h-6 w-6" />}
+                      title="No medical jobs found"
+                      description={search ? "Try adjusting your search or filters" : "No medical jobs assigned yet."}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
