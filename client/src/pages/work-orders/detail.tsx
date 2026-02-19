@@ -37,7 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -51,7 +51,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType, WoNote } from "@shared/schema";
+import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType, WoNote, Vendor } from "@shared/schema";
 import { DocumentPanel } from "@/components/documents/document-panel";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { CopyableText } from "@/components/ui/copy-button";
@@ -296,10 +296,48 @@ export default function WorkOrderDetail() {
     queryKey: ["/api/job-types"],
   });
 
+  const { data: vendors = [] } = useQuery<Vendor[]>({
+    queryKey: ["/api/vendors"],
+  });
+
   const medicalJobType = jobTypes?.find(jt => jt.category === "Medical") || null;
   const eidJobType = jobTypes?.find(jt => jt.category === "EID") || null;
 
   const [isCreatingJobs, setIsCreatingJobs] = useState(false);
+  const [showSendToVendorDialog, setShowSendToVendorDialog] = useState(false);
+  const [sendVendorId, setSendVendorId] = useState("");
+
+  const draftTypingJobs = workOrder?.typingJobs?.filter(j => j.status === "Draft") || [];
+
+  const sendToVendorMutation = useMutation({
+    mutationFn: async () => {
+      const ids = draftTypingJobs.map(j => j.id);
+      return apiRequest("POST", "/api/typing-jobs/bulk-assign-vendor", {
+        ids,
+        vendorId: sendVendorId,
+      });
+    },
+    onSuccess: async (res) => {
+      const result = await res.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      setShowSendToVendorDialog(false);
+      setSendVendorId("");
+      if (result.failed > 0) {
+        toast({
+          title: `${result.updated} job${result.updated !== 1 ? 's' : ''} sent, ${result.failed} failed`,
+          description: result.errors?.join(". "),
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: `${result.updated} job${result.updated !== 1 ? 's' : ''} sent to vendor` });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to send jobs", description: error.message, variant: "destructive" });
+    },
+  });
 
   const handleCreateTypingJobs = async () => {
     if (!id) return;
@@ -848,20 +886,34 @@ export default function WorkOrderDetail() {
             </TabsContent>
 
             <TabsContent value="typing" className="p-6">
-              <div className="flex items-center justify-between gap-2 mb-4">
+              <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
                 <h3 className="font-medium text-foreground">Typing Jobs</h3>
-                {(!workOrder.typingJobs || workOrder.typingJobs.length === 0) && !showNewTypingJobForm && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="gap-2" 
-                    onClick={() => setShowNewTypingJobForm(true)}
-                    data-testid="button-new-typing-job"
-                  >
-                    <Plus className="h-4 w-4" />
-                    New Typing Job
-                  </Button>
-                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {draftTypingJobs.length > 0 && (
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="gap-2" 
+                      onClick={() => setShowSendToVendorDialog(true)}
+                      data-testid="button-send-to-vendor"
+                    >
+                      <Send className="h-4 w-4" />
+                      Send {draftTypingJobs.length > 1 ? `${draftTypingJobs.length} Jobs` : "to Vendor"}
+                    </Button>
+                  )}
+                  {(!workOrder.typingJobs || workOrder.typingJobs.length === 0) && !showNewTypingJobForm && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="gap-2" 
+                      onClick={() => setShowNewTypingJobForm(true)}
+                      data-testid="button-new-typing-job"
+                    >
+                      <Plus className="h-4 w-4" />
+                      New Typing Job
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {showNewTypingJobForm && (
@@ -947,14 +999,17 @@ export default function WorkOrderDetail() {
 
               {workOrder.typingJobs && workOrder.typingJobs.length > 0 ? (
                 <div className="space-y-3">
-                  {workOrder.typingJobs.map((job) => (
+                  {workOrder.typingJobs.map((job: any) => (
                     <Link key={job.id} href={`/typing-jobs/${job.id}`}>
                       <Card className="border border-border/50 hover-elevate cursor-pointer">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="font-medium text-foreground">Typing Job</p>
+                              <p className="font-medium text-foreground">
+                                {job.jobType?.category === "Medical" ? "Medical" : job.jobType?.category === "EID" ? "Emirates ID" : "Typing"} Job
+                              </p>
                               <p className="text-sm text-muted-foreground">
+                                {job.jobCode && <span className="font-mono mr-2">{job.jobCode}</span>}
                                 Created {formatDate(job.createdAt)}
                               </p>
                             </div>
@@ -1255,6 +1310,87 @@ export default function WorkOrderDetail() {
                 aptConfirmDialog.type === "complete" ? "Mark Completed" :
                 aptConfirmDialog.type === "cancel" ? "Cancel Appointment" :
                 "Reschedule"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Send to Vendor Dialog */}
+      <Dialog open={showSendToVendorDialog} onOpenChange={setShowSendToVendorDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send to Vendor</DialogTitle>
+            <DialogDescription>
+              Select a vendor to assign {draftTypingJobs.length > 1 ? `${draftTypingJobs.length} draft jobs` : "this draft job"} to. Each job will be tracked independently.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Vendor</Label>
+              <Select value={sendVendorId} onValueChange={setSendVendorId}>
+                <SelectTrigger data-testid="select-send-vendor">
+                  <SelectValue placeholder="Select vendor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendors.map((vendor) => (
+                    <SelectItem key={vendor.id} value={vendor.id}>
+                      {vendor.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Jobs to send</Label>
+              <div className="space-y-2">
+                {draftTypingJobs.map((job: any) => {
+                  const category = job.jobType?.category;
+                  const cost = job.jobType?.cost || 0;
+                  return (
+                    <div key={job.id} className="flex items-center justify-between gap-2 p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-sm font-medium">
+                          {category === "Medical" ? "Medical" : category === "EID" ? "Emirates ID" : "Typing"}
+                        </span>
+                        {job.jobCode && (
+                          <span className="text-xs text-muted-foreground font-mono">{job.jobCode}</span>
+                        )}
+                      </div>
+                      <span className="text-sm font-semibold shrink-0">AED {cost}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {draftTypingJobs.length > 1 && (
+                <div className="flex items-center justify-between gap-2 pt-1 border-t">
+                  <span className="text-sm font-medium">Total</span>
+                  <span className="text-sm font-semibold">
+                    AED {draftTypingJobs.reduce((sum: number, job: any) => sum + (job.jobType?.cost || 0), 0)}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowSendToVendorDialog(false); setSendVendorId(""); }} data-testid="button-cancel-send-vendor">
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => sendToVendorMutation.mutate()}
+              disabled={!sendVendorId || sendToVendorMutation.isPending}
+              className="gap-2"
+              data-testid="button-confirm-send-vendor"
+            >
+              {sendToVendorMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  Send {draftTypingJobs.length > 1 ? `${draftTypingJobs.length} Jobs` : "to Vendor"}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
