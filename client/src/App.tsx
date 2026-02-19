@@ -47,6 +47,7 @@ import QuickPasteBot from "@/pages/bots/quick-paste-bot";
 import SchedulerBot from "@/pages/bots/scheduler-bot";
 import ManagerConsole from "@/pages/manager-console";
 import ReportsPage from "@/pages/reports";
+import LegalPage from "@/pages/legal";
 
 function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
   return (
@@ -85,6 +86,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   const isPublicPath =
     location === "/login" ||
+    location === "/privacy-policy" ||
+    location === "/terms-of-service" ||
     location === "/vendor" ||
     location.startsWith("/vendor/") ||
     location.startsWith("/reschedule/");
@@ -153,6 +156,8 @@ function Router() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/login" component={Login} />
+          <Route path="/privacy-policy">{() => <LegalPage type="privacy" />}</Route>
+          <Route path="/terms-of-service">{() => <LegalPage type="terms" />}</Route>
           <Route path="/crm" component={CrmDashboard} />
           <Route path="/medical" component={MedicalDashboard} />
           <Route path="/work-orders" component={WorkOrdersList} />

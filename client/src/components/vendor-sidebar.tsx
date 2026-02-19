@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   LayoutDashboard, CreditCard, LogOut, Bell, Shield, Stethoscope,
-  WifiOff, Wifi, ChevronRight, ArrowLeft
+  WifiOff, Wifi, ChevronRight, ArrowLeft, KeyRound
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useVendorAuth } from "@/hooks/use-vendor-auth";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { VendorNotification, TypingJob, JobType } from "@shared/schema";
@@ -33,6 +34,7 @@ const navItems = [
 export function VendorSidebar() {
   const { user, logout } = useVendorAuth();
   const [location] = useLocation();
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const { data: jobs } = useQuery<Array<{ status: string; jobType?: { category?: string } }>>({
     queryKey: ["/api/vendor/jobs"],
@@ -140,6 +142,16 @@ export function VendorSidebar() {
           )}
           <SidebarMenuItem>
             <SidebarMenuButton
+              tooltip="Change Password"
+              className="h-9 gap-3 text-muted-foreground"
+              onClick={() => setChangePasswordOpen(true)}
+            >
+              <KeyRound className="h-4 w-4" />
+              <span>Change Password</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
               tooltip="Sign Out"
               className="h-9 gap-3 text-muted-foreground"
               onClick={() => logout()}
@@ -150,6 +162,11 @@ export function VendorSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+        apiEndpoint="/api/vendor/auth/change-password"
+      />
     </Sidebar>
   );
 }

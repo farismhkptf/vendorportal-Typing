@@ -3,7 +3,7 @@ import {
   workOrders, appointments, rescheduleRequests, jobTypes, vendors,
   typingJobs, typingJobResults, typingJobComments, files, messages, woNotes,
   vendorWalletLedger, vendorStatements, vendorInvoices, vendorApprovals, vendorNotifications, appSettings, auditLog,
-  woDocuments, documentRequirements, changeNotifications,
+  woDocuments, documentRequirements, changeNotifications, loginAuditLog, passwordResetRequests,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -17,7 +17,9 @@ import {
   type WoNote, type InsertWoNote,
   type ChangeNotification, type InsertChangeNotification,
   type VendorApproval, type InsertVendorApproval,
-  type VendorNotification, type InsertVendorNotification
+  type VendorNotification, type InsertVendorNotification,
+  type LoginAuditLog, type InsertLoginAuditLog,
+  type PasswordResetRequest, type InsertPasswordResetRequest
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
@@ -181,6 +183,15 @@ export interface IStorage {
   getUnreadNotificationCount(vendorUserId: string): Promise<number>;
   markNotificationRead(id: string): Promise<void>;
   markAllNotificationsRead(vendorUserId: string): Promise<void>;
+
+  // Login audit
+  createLoginAuditEntry(data: InsertLoginAuditLog): Promise<LoginAuditLog>;
+  getLoginAuditLog(limit?: number): Promise<LoginAuditLog[]>;
+
+  // Password reset requests
+  createPasswordResetRequest(data: InsertPasswordResetRequest): Promise<PasswordResetRequest>;
+  getPasswordResetRequests(status?: string): Promise<PasswordResetRequest[]>;
+  resolvePasswordResetRequest(id: string, resolvedBy: string): Promise<PasswordResetRequest>;
 
   // Seed data
   seedData(): Promise<void>;
@@ -1384,6 +1395,47 @@ export class DatabaseStorage implements IStorage {
     await db.update(vendorNotifications)
       .set({ isRead: true })
       .where(eq(vendorNotifications.vendorUserId, vendorUserId));
+  }
+
+  async createLoginAuditEntry(data: InsertLoginAuditLog): Promise<LoginAuditLog> {
+    const [entry] = await db.insert(loginAuditLog).values(data).returning();
+    return entry;
+  }
+
+  async getLoginAuditLog(limit: number = 100): Promise<LoginAuditLog[]> {
+    return db.select().from(loginAuditLog).orderBy(desc(loginAuditLog.createdAt)).limit(limit);
+  }
+
+  async createPasswordResetRequest(data: InsertPasswordResetRequest): Promise<PasswordResetRequest> {
+    const [request] = await db.insert(passwordResetRequests).values(data).returning();
+    return request;
+  }
+
+  async getPasswordResetRequests(status?: string): Promise<PasswordResetRequest[]> {
+    const conditions = status ? [eq(passwordResetRequests.status, status)] : [];
+    const requests = conditions.length > 0
+      ? await db.select().from(passwordResetRequests).where(and(...conditions)).orderBy(desc(passwordResetRequests.createdAt))
+      : await db.select().from(passwordResetRequests).orderBy(desc(passwordResetRequests.createdAt));
+
+    const enriched = await Promise.all(
+      requests.map(async (req) => {
+        const user = await this.getUser(req.userId);
+        return {
+          ...req,
+          userName: user?.name || "Unknown",
+          userEmail: user?.email || "Unknown",
+        };
+      })
+    );
+    return enriched as any;
+  }
+
+  async resolvePasswordResetRequest(id: string, resolvedBy: string): Promise<PasswordResetRequest> {
+    const [updated] = await db.update(passwordResetRequests)
+      .set({ status: "resolved", resolvedBy, resolvedAt: new Date() })
+      .where(eq(passwordResetRequests.id, id))
+      .returning();
+    return updated;
   }
 
   async seedDocumentRequirements(): Promise<{ added: number; skipped: number }> {

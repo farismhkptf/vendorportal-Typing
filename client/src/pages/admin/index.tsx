@@ -28,11 +28,13 @@ import {
   Loader2,
   Link2,
   UserPlus,
-  ArrowLeft
+  ArrowLeft,
+  KeyRound,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -743,8 +745,17 @@ export default function AdminPage() {
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<any>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [editCcDialogOpen, setEditCcDialogOpen] = useState(false);
   const [editThresholdDialogOpen, setEditThresholdDialogOpen] = useState(false);
+  const [editMaintenanceMsgOpen, setEditMaintenanceMsgOpen] = useState(false);
+  const [maintenanceMsg, setMaintenanceMsg] = useState("");
+  const [editWhatsappOpen, setEditWhatsappOpen] = useState(false);
+  const [whatsappNum, setWhatsappNum] = useState("");
+  const [editLegalOpen, setEditLegalOpen] = useState(false);
+  const [legalContent, setLegalContent] = useState("");
+  const [legalType, setLegalType] = useState<"privacy" | "terms">("privacy");
   const [companySearch, setCompanySearch] = useState("");
   const [centerSearch, setCenterSearch] = useState("");
   const [adminStaffSearch, setAdminStaffSearch] = useState("");
@@ -1036,6 +1047,21 @@ export default function AdminPage() {
     },
   });
 
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (data: { userId: string; newPassword: string }) => {
+      const res = await apiRequest("PUT", "/api/admin/reset-user-password", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password reset successfully" });
+      setResetPasswordUser(null);
+      setResetPasswordValue("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to reset password", description: error.message, variant: "destructive" });
+    },
+  });
+
   const toggleUserActiveMutation = useMutation({
     mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
       return apiRequest("PATCH", `/api/users/${id}`, { active });
@@ -1274,6 +1300,20 @@ export default function AdminPage() {
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const maintenanceToggleMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const res = await apiRequest("PUT", "/api/settings", { maintenanceMode: enabled });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Maintenance mode updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to update", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1590,6 +1630,121 @@ export default function AdminPage() {
                   </div>
                 </div>
               </div>
+              <div>
+                <h3 className="font-medium text-foreground mb-4">System Status</h3>
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Maintenance Mode</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          When enabled, a maintenance banner will appear on login pages.
+                        </p>
+                      </div>
+                      <Switch
+                        checked={settings?.maintenanceMode || false}
+                        onCheckedChange={(checked) => maintenanceToggleMutation.mutate(checked)}
+                        data-testid="switch-maintenance-mode"
+                      />
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Maintenance Message</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {settings?.maintenanceMessage || "Default message will be shown"}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl"
+                        onClick={() => {
+                          setMaintenanceMsg(settings?.maintenanceMessage || "");
+                          setEditMaintenanceMsgOpen(true);
+                        }}
+                        data-testid="button-edit-maintenance-msg"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">WhatsApp Support Number</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {settings?.whatsappNumber || "Not configured"}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl"
+                        onClick={() => {
+                          setWhatsappNum(settings?.whatsappNumber || "");
+                          setEditWhatsappOpen(true);
+                        }}
+                        data-testid="button-edit-whatsapp"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h3 className="font-medium text-foreground mb-4">Legal Pages</h3>
+                <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Privacy Policy</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {settings?.privacyPolicyHtml ? "Content configured" : "Not yet configured"}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl"
+                        onClick={() => {
+                          setLegalContent(settings?.privacyPolicyHtml || "");
+                          setLegalType("privacy");
+                          setEditLegalOpen(true);
+                        }}
+                        data-testid="button-edit-privacy-policy"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Terms of Service</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {settings?.termsOfServiceHtml ? "Content configured" : "Not yet configured"}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl"
+                        onClick={() => {
+                          setLegalContent(settings?.termsOfServiceHtml || "");
+                          setLegalType("terms");
+                          setEditLegalOpen(true);
+                        }}
+                        data-testid="button-edit-terms-of-service"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <Dialog open={editCcDialogOpen} onOpenChange={setEditCcDialogOpen}>
@@ -1670,6 +1825,119 @@ export default function AdminPage() {
                 </Form>
               </DialogContent>
             </Dialog>
+
+            <Dialog open={editMaintenanceMsgOpen} onOpenChange={setEditMaintenanceMsgOpen}>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Maintenance Message</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Textarea
+                    value={maintenanceMsg}
+                    onChange={(e) => setMaintenanceMsg(e.target.value)}
+                    placeholder="System maintenance in progress..."
+                    rows={3}
+                    className="rounded-xl"
+                    data-testid="input-maintenance-message"
+                  />
+                  <div className="flex justify-end gap-3">
+                    <Button variant="outline" className="rounded-xl" onClick={() => setEditMaintenanceMsgOpen(false)}>Cancel</Button>
+                    <Button
+                      className="rounded-xl"
+                      onClick={async () => {
+                        try {
+                          await apiRequest("PUT", "/api/settings", { maintenanceMessage: maintenanceMsg });
+                          queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+                          toast({ title: "Maintenance message updated" });
+                          setEditMaintenanceMsgOpen(false);
+                        } catch (e) {
+                          toast({ title: "Failed to update", variant: "destructive" });
+                        }
+                      }}
+                      data-testid="button-save-maintenance-msg"
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={editWhatsappOpen} onOpenChange={setEditWhatsappOpen}>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit WhatsApp Number</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    value={whatsappNum}
+                    onChange={(e) => setWhatsappNum(e.target.value)}
+                    placeholder="+971000000000"
+                    className="h-11 rounded-xl"
+                    data-testid="input-whatsapp-number"
+                  />
+                  <p className="text-xs text-muted-foreground">Include country code (e.g., +971 for UAE)</p>
+                  <div className="flex justify-end gap-3">
+                    <Button variant="outline" className="rounded-xl" onClick={() => setEditWhatsappOpen(false)}>Cancel</Button>
+                    <Button
+                      className="rounded-xl"
+                      onClick={async () => {
+                        try {
+                          await apiRequest("PUT", "/api/settings", { whatsappNumber: whatsappNum });
+                          queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+                          toast({ title: "WhatsApp number updated" });
+                          setEditWhatsappOpen(false);
+                        } catch (e) {
+                          toast({ title: "Failed to update", variant: "destructive" });
+                        }
+                      }}
+                      data-testid="button-save-whatsapp"
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={editLegalOpen} onOpenChange={setEditLegalOpen}>
+              <DialogContent className="rounded-2xl max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{legalType === "privacy" ? "Privacy Policy" : "Terms of Service"}</DialogTitle>
+                  <DialogDescription>Enter the content in HTML format. This will be displayed on the public-facing page.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Textarea
+                    value={legalContent}
+                    onChange={(e) => setLegalContent(e.target.value)}
+                    placeholder="<h2>Section Title</h2><p>Content here...</p>"
+                    rows={12}
+                    className="rounded-xl font-mono text-sm"
+                    data-testid="input-legal-content"
+                  />
+                  <div className="flex justify-end gap-3">
+                    <Button variant="outline" className="rounded-xl" onClick={() => setEditLegalOpen(false)}>Cancel</Button>
+                    <Button
+                      className="rounded-xl"
+                      onClick={async () => {
+                        try {
+                          const field = legalType === "privacy" ? "privacyPolicyHtml" : "termsOfServiceHtml";
+                          await apiRequest("PUT", "/api/settings", { [field]: legalContent });
+                          queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+                          toast({ title: `${legalType === "privacy" ? "Privacy Policy" : "Terms of Service"} updated` });
+                          setEditLegalOpen(false);
+                        } catch (e) {
+                          toast({ title: "Failed to update", variant: "destructive" });
+                        }
+                      }}
+                      data-testid="button-save-legal"
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         ) : (
           <div className="premium-card overflow-hidden">
@@ -1714,6 +1982,12 @@ export default function AdminPage() {
                     </TabsTrigger>
                     <TabsTrigger value="changelog" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-changelog">
                       <AlertCircle className="h-4 w-4 mr-2" /> Change Log
+                    </TabsTrigger>
+                    <TabsTrigger value="loginaudit" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-loginaudit">
+                      Login Audit
+                    </TabsTrigger>
+                    <TabsTrigger value="resetrequests" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-resetrequests">
+                      Reset Requests
                     </TabsTrigger>
                   </>
                 )}
@@ -4673,6 +4947,14 @@ export default function AdminPage() {
                         <Button
                           variant="ghost"
                           size="icon"
+                          onClick={() => setResetPasswordUser(user)}
+                          data-testid={`button-reset-password-${user.id}`}
+                        >
+                          <KeyRound className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => {
                             setEditingUser(user);
                             editUserForm.reset({
@@ -4836,6 +5118,41 @@ export default function AdminPage() {
                   </Form>
                 </DialogContent>
               </Dialog>
+
+              <Dialog open={!!resetPasswordUser} onOpenChange={(open) => { if (!open) { setResetPasswordUser(null); setResetPasswordValue(""); } }}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Reset Password</DialogTitle>
+                    <DialogDescription>
+                      Set a new password for {resetPasswordUser?.name} ({resetPasswordUser?.email})
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>New Password</Label>
+                      <Input
+                        type="password"
+                        value={resetPasswordValue}
+                        onChange={(e) => setResetPasswordValue(e.target.value)}
+                        placeholder="Enter new password (min 4 characters)"
+                        data-testid="input-reset-password"
+                      />
+                    </div>
+                    <div className="flex justify-end gap-3">
+                      <Button variant="outline" onClick={() => { setResetPasswordUser(null); setResetPasswordValue(""); }}>
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => resetPasswordMutation.mutate({ userId: resetPasswordUser?.id, newPassword: resetPasswordValue })}
+                        disabled={resetPasswordValue.length < 4 || resetPasswordMutation.isPending}
+                        data-testid="button-confirm-reset-password"
+                      >
+                        {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* Import / Export Tab */}
@@ -4847,11 +5164,124 @@ export default function AdminPage() {
             <TabsContent value="changelog" className="p-4">
               <ChangeLogTab />
             </TabsContent>
+
+            <TabsContent value="loginaudit" className="p-4">
+              <LoginAuditTab />
+            </TabsContent>
+
+            <TabsContent value="resetrequests" className="p-4">
+              <PasswordResetRequestsTab />
+            </TabsContent>
           </Tabs>
         </div>
       )}
       </div>
     </AppLayout>
+  );
+}
+
+function LoginAuditTab() {
+  const { data: logs, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/login-audit"],
+  });
+
+  if (isLoading) return <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}</div>;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="font-medium text-foreground" data-testid="text-login-audit-title">Login Audit Log</h3>
+      {logs && logs.length > 0 ? (
+        <div className="space-y-2">
+          {logs.map((log: any) => (
+            <div key={log.id} className="p-3 rounded-xl bg-muted/30 border border-border/30 flex items-center justify-between gap-3 flex-wrap" data-testid={`row-login-audit-${log.id}`}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm text-foreground">{log.email}</span>
+                  <Badge variant={log.success ? "default" : "destructive"} data-testid={`badge-login-status-${log.id}`}>
+                    {log.success ? "Success" : "Failed"}
+                  </Badge>
+                  <Badge variant="outline" data-testid={`badge-login-portal-${log.id}`}>{log.portal}</Badge>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1 flex items-center gap-3 flex-wrap">
+                  <span>{new Date(log.createdAt).toLocaleString()}</span>
+                  <span>IP: {log.ipAddress || "unknown"}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<Shield className="h-6 w-6" />}
+          title="No login activity"
+          description="Login attempts will appear here."
+        />
+      )}
+    </div>
+  );
+}
+
+function PasswordResetRequestsTab() {
+  const { data: requests, isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/password-reset-requests"],
+  });
+  const { toast } = useToast();
+
+  const resolveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await apiRequest("PUT", `/api/admin/password-reset-requests/${id}/resolve`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/password-reset-requests"] });
+      toast({ title: "Request resolved" });
+    },
+  });
+
+  if (isLoading) return <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full rounded-xl" />)}</div>;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="font-medium text-foreground" data-testid="text-reset-requests-title">Password Reset Requests</h3>
+      {requests && requests.length > 0 ? (
+        <div className="space-y-2">
+          {requests.map((req: any) => (
+            <div key={req.id} className="p-3 rounded-xl bg-muted/30 border border-border/30 flex items-center justify-between gap-3 flex-wrap" data-testid={`row-reset-request-${req.id}`}>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm text-foreground">{req.userName || "Unknown User"}</span>
+                  <span className="text-sm text-muted-foreground">{req.userEmail || ""}</span>
+                  <Badge variant={req.status === "pending" ? "default" : "secondary"}>
+                    {req.status}
+                  </Badge>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Requested: {new Date(req.createdAt).toLocaleString()}
+                  {req.resolvedAt && ` | Resolved: ${new Date(req.resolvedAt).toLocaleString()}`}
+                </div>
+              </div>
+              {req.status === "pending" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => resolveMutation.mutate(req.id)}
+                  disabled={resolveMutation.isPending}
+                  data-testid={`button-resolve-request-${req.id}`}
+                >
+                  Mark Resolved
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={<KeyRound className="h-6 w-6" />}
+          title="No reset requests"
+          description="Password reset requests from users will appear here."
+        />
+      )}
+    </div>
   );
 }
 

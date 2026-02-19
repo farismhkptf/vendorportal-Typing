@@ -2605,6 +2605,14 @@ export async function registerRoutes(
       const user = await storage.getUserByEmail(email);
       
       if (!user || !user.active) {
+        await storage.createLoginAuditEntry({
+          userId: null,
+          email,
+          success: false,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown',
+          portal: 'team',
+        });
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
@@ -2620,6 +2628,14 @@ export async function registerRoutes(
       }
 
       if (!isValid) {
+        await storage.createLoginAuditEntry({
+          userId: user.id,
+          email,
+          success: false,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown',
+          portal: 'team',
+        });
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
@@ -2627,6 +2643,15 @@ export async function registerRoutes(
       if (vendorRoles.includes(user.role)) {
         return res.status(403).json({ message: "Please use the vendor portal" });
       }
+
+      await storage.createLoginAuditEntry({
+        userId: user.id,
+        email,
+        success: true,
+        ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        portal: 'team',
+      });
 
       req.session.userId = user.id;
       req.session.userRole = user.role;
@@ -2668,6 +2693,129 @@ export async function registerRoutes(
     req.session.destroy(() => {
       res.json({ message: "Logged out" });
     });
+  });
+
+  app.put("/api/auth/change-password", requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword || newPassword.length < 4) {
+        return res.status(400).json({ message: "Current and new password required (min 4 chars)" });
+      }
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      
+      const isValid = user.passwordHash.startsWith("$2")
+        ? await bcrypt.compare(currentPassword, user.passwordHash)
+        : currentPassword === user.passwordHash;
+      
+      if (!isValid) return res.status(401).json({ message: "Current password is incorrect" });
+      
+      const hash = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(user.id, { passwordHash: hash });
+      
+      await storage.createAuditLog({
+        action: "password_changed",
+        entityType: "user",
+        entityId: user.id,
+        userId: user.id,
+        details: { changedBy: "self" },
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  app.post("/api/auth/forgot-password", async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ message: "Email is required" });
+      
+      const user = await storage.getUserByEmail(email);
+      if (user) {
+        await storage.createPasswordResetRequest({ userId: user.id, status: "pending" });
+      }
+      res.json({ success: true, message: "If an account exists with this email, a reset request has been submitted to the administrator." });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Failed to submit request" });
+    }
+  });
+
+  app.get("/api/public/settings", async (_req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      res.json({
+        maintenanceMode: settings?.maintenanceMode || false,
+        maintenanceMessage: settings?.maintenanceMessage || null,
+        whatsappNumber: settings?.whatsappNumber || null,
+        privacyPolicyHtml: settings?.privacyPolicyHtml || null,
+        termsOfServiceHtml: settings?.termsOfServiceHtml || null,
+      });
+    } catch (error) {
+      res.json({ maintenanceMode: false, maintenanceMessage: null, whatsappNumber: null, privacyPolicyHtml: null, termsOfServiceHtml: null });
+    }
+  });
+
+  // ========== Admin Auth Management ==========
+  app.put("/api/admin/reset-user-password", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      const { userId, newPassword } = req.body;
+      if (!userId || !newPassword || newPassword.length < 4) {
+        return res.status(400).json({ message: "User ID and password (min 4 chars) required" });
+      }
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) return res.status(404).json({ message: "User not found" });
+      
+      const hash = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(userId, { passwordHash: hash });
+      
+      await storage.createAuditLog({
+        action: "password_reset_by_admin",
+        entityType: "user",
+        entityId: userId,
+        userId: req.session.userId!,
+        details: { targetUserName: targetUser.name, targetUserEmail: targetUser.email },
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Admin reset password error:", error);
+      res.status(500).json({ message: "Failed to reset password" });
+    }
+  });
+
+  app.get("/api/admin/password-reset-requests", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      const requests = await storage.getPasswordResetRequests();
+      res.json(requests);
+    } catch (error) {
+      console.error("Fetch reset requests error:", error);
+      res.status(500).json({ message: "Failed to fetch requests" });
+    }
+  });
+
+  app.put("/api/admin/password-reset-requests/:id/resolve", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      const resolved = await storage.resolvePasswordResetRequest(req.params.id, req.session.userId!);
+      res.json(resolved);
+    } catch (error) {
+      console.error("Resolve reset request error:", error);
+      res.status(500).json({ message: "Failed to resolve request" });
+    }
+  });
+
+  app.get("/api/admin/login-audit", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const logs = await storage.getLoginAuditLog(limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Fetch login audit error:", error);
+      res.status(500).json({ message: "Failed to fetch login audit" });
+    }
   });
 
   // ========== Manager Console ==========
@@ -2962,13 +3110,38 @@ export async function registerRoutes(
       
       const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
       if (!user || !vendorRoles.includes(user.role)) {
+        await storage.createLoginAuditEntry({
+          userId: null,
+          email: username,
+          success: false,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown',
+          portal: 'vendor',
+        });
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
       const validPassword = await bcrypt.compare(password, user.passwordHash);
       if (!validPassword) {
+        await storage.createLoginAuditEntry({
+          userId: user.id,
+          email: username,
+          success: false,
+          ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+          userAgent: req.headers['user-agent'] || 'unknown',
+          portal: 'vendor',
+        });
         return res.status(401).json({ message: "Invalid credentials" });
       }
+
+      await storage.createLoginAuditEntry({
+        userId: user.id,
+        email: username,
+        success: true,
+        ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        portal: 'vendor',
+      });
 
       req.session.vendorUserId = user.id;
       req.session.vendorId = user.vendorId;
@@ -3034,6 +3207,39 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Exit vendor portal error:", error);
       res.status(500).json({ message: "Failed to exit vendor portal" });
+    }
+  });
+
+  app.put("/api/vendor/auth/change-password", requireVendorAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword || newPassword.length < 4) {
+        return res.status(400).json({ message: "Current and new password required (min 4 chars)" });
+      }
+      const user = await storage.getUser(req.session.vendorUserId!);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      
+      const isValid = user.passwordHash.startsWith("$2")
+        ? await bcrypt.compare(currentPassword, user.passwordHash)
+        : currentPassword === user.passwordHash;
+      
+      if (!isValid) return res.status(401).json({ message: "Current password is incorrect" });
+      
+      const hash = await bcrypt.hash(newPassword, 10);
+      await storage.updateUser(user.id, { passwordHash: hash });
+      
+      await storage.createAuditLog({
+        action: "password_changed",
+        entityType: "user",
+        entityId: user.id,
+        userId: user.id,
+        details: { changedBy: "self", portal: "vendor" },
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Vendor change password error:", error);
+      res.status(500).json({ message: "Failed to change password" });
     }
   });
 

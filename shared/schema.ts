@@ -462,6 +462,11 @@ export const appSettings = pgTable("app_settings", {
   lowBalanceThreshold: integer("low_balance_threshold").notNull().default(1000),
   masterPassword: text("master_password"),
   defaultVendorId: varchar("default_vendor_id"),
+  maintenanceMode: boolean("maintenance_mode").notNull().default(false),
+  maintenanceMessage: text("maintenance_message"),
+  whatsappNumber: text("whatsapp_number").default("+971000000000"),
+  privacyPolicyHtml: text("privacy_policy_html"),
+  termsOfServiceHtml: text("terms_of_service_html"),
 });
 
 // Change notifications table (manager edits for admin review)
@@ -488,6 +493,28 @@ export const auditLog = pgTable("audit_log", {
   entityId: varchar("entity_id"),
   userId: varchar("user_id"),
   details: json("details"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Login Audit Log table
+export const loginAuditLog = pgTable("login_audit_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id"),
+  email: text("email").notNull(),
+  success: boolean("success").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  portal: text("portal").notNull().default("team"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Password Reset Requests table
+export const passwordResetRequests = pgTable("password_reset_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  status: text("status").notNull().default("pending"),
+  resolvedBy: varchar("resolved_by"),
+  resolvedAt: timestamp("resolved_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -518,6 +545,8 @@ export const insertChangeNotificationSchema = createInsertSchema(changeNotificat
 export const insertAuditLogSchema = createInsertSchema(auditLog).omit({ id: true, createdAt: true });
 export const insertVendorApprovalSchema = createInsertSchema(vendorApprovals).omit({ id: true, createdAt: true, resolvedAt: true });
 export const insertVendorNotificationSchema = createInsertSchema(vendorNotifications).omit({ id: true, createdAt: true });
+export const insertLoginAuditLogSchema = createInsertSchema(loginAuditLog).omit({ id: true, createdAt: true });
+export const insertPasswordResetRequestSchema = createInsertSchema(passwordResetRequests).omit({ id: true, createdAt: true, resolvedAt: true });
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -573,6 +602,10 @@ export type InsertVendorApproval = z.infer<typeof insertVendorApprovalSchema>;
 export type VendorApproval = typeof vendorApprovals.$inferSelect;
 export type InsertVendorNotification = z.infer<typeof insertVendorNotificationSchema>;
 export type VendorNotification = typeof vendorNotifications.$inferSelect;
+export type InsertLoginAuditLog = z.infer<typeof insertLoginAuditLogSchema>;
+export type LoginAuditLog = typeof loginAuditLog.$inferSelect;
+export type InsertPasswordResetRequest = z.infer<typeof insertPasswordResetRequestSchema>;
+export type PasswordResetRequest = typeof passwordResetRequests.$inferSelect;
 
 // Login schema
 export const loginSchema = z.object({

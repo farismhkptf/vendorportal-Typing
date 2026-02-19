@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -25,7 +27,31 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function VendorLogin() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
   const { toast } = useToast();
+
+  const { data: publicSettings } = useQuery<{ maintenanceMode: boolean; maintenanceMessage: string | null; whatsappNumber: string | null }>({
+    queryKey: ["/api/public/settings"],
+  });
+
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest("POST", "/api/auth/forgot-password", { email });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Request submitted", description: "If an account exists, the administrator has been notified." });
+      setShowForgotPassword(false);
+      setForgotEmail("");
+    },
+    onError: () => {
+      toast({ title: "Request submitted", description: "If an account exists, the administrator has been notified." });
+      setShowForgotPassword(false);
+      setForgotEmail("");
+    },
+  });
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -73,7 +99,14 @@ export default function VendorLogin() {
           <p className="text-sm text-muted-foreground mt-1">Vendor Portal · <CompanyName /></p>
         </div>
 
-        {/* Login Card */}
+        {publicSettings?.maintenanceMode && (
+          <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center" data-testid="banner-maintenance">
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+              {publicSettings.maintenanceMessage || "System maintenance in progress. Some features may be temporarily unavailable."}
+            </p>
+          </div>
+        )}
+
         <Card className="glass-strong border-0 shadow-xl" data-testid="vendor-login-card">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-xl font-semibold">Vendor Sign In</CardTitle>
@@ -95,6 +128,7 @@ export default function VendorLogin() {
                           <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                           <Input
                             {...field}
+                            autoComplete="username"
                             placeholder="Enter your username"
                             className="pl-10 h-12 rounded-xl"
                             data-testid="input-vendor-username"
@@ -118,8 +152,11 @@ export default function VendorLogin() {
                           <Input
                             {...field}
                             type={showPassword ? "text" : "password"}
+                            autoComplete="current-password"
                             placeholder="Enter your password"
                             className="pl-10 pr-10 h-12 rounded-xl"
+                            onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                            onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
                             data-testid="input-vendor-password"
                           />
                           <Button
@@ -138,6 +175,11 @@ export default function VendorLogin() {
                         </div>
                       </FormControl>
                       <FormMessage />
+                      {capsLockOn && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1" data-testid="text-caps-lock-warning">
+                          Caps Lock is on
+                        </p>
+                      )}
                     </FormItem>
                   )}
                 />
@@ -150,6 +192,17 @@ export default function VendorLogin() {
                 >
                   {loginMutation.isPending ? "Signing in..." : "Sign in"}
                 </Button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    data-testid="button-vendor-forgot-password"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
               </form>
             </Form>
 
@@ -161,11 +214,74 @@ export default function VendorLogin() {
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} <CompanyName />. All rights reserved.
-        </p>
+        <div className="text-center mt-8 space-y-2">
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <a
+              href={`https://wa.me/${publicSettings?.whatsappNumber?.replace(/[^0-9]/g, '') || '971000000000'}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-need-help"
+            >
+              Need help?
+            </a>
+            <span className="text-muted-foreground/30">|</span>
+            <a
+              href="/privacy-policy"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-privacy-policy"
+            >
+              Privacy Policy
+            </a>
+            <span className="text-muted-foreground/30">|</span>
+            <a
+              href="/terms-of-service"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-terms-of-service"
+            >
+              Terms of Service
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} <CompanyName />. All rights reserved.
+          </p>
+        </div>
       </div>
+
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Forgot Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll notify the administrator to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Email Address</Label>
+              <Input
+                type="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="Enter your email"
+                data-testid="input-forgot-email"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowForgotPassword(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => forgotPasswordMutation.mutate(forgotEmail)}
+                disabled={!forgotEmail || forgotPasswordMutation.isPending}
+                data-testid="button-submit-forgot-password"
+              >
+                {forgotPasswordMutation.isPending ? "Submitting..." : "Submit Request"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

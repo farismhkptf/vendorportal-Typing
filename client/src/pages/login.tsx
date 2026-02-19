@@ -4,13 +4,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Lock, Mail, User, ChevronRight, Loader2 } from "lucide-react";
 import { z } from "zod";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest } from "@/lib/queryClient";
 import proLogo from "@assets/Our_Logo_1771503275390.png";
 import { CompanyName } from "@/components/ui/company-name";
 
@@ -63,13 +66,37 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showManualLogin, setShowManualLogin] = useState(false);
   const [quickLoginId, setQuickLoginId] = useState<string | null>(null);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
   const { toast } = useToast();
   const { user, isLoading, login, quickLogin } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest("POST", "/api/auth/forgot-password", { email });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Request submitted", description: "If an account exists, the administrator has been notified." });
+      setShowForgotPassword(false);
+      setForgotEmail("");
+    },
+    onError: () => {
+      toast({ title: "Request submitted", description: "If an account exists, the administrator has been notified." });
+      setShowForgotPassword(false);
+      setForgotEmail("");
+    },
+  });
+
   const { data: accounts = [] } = useQuery<AccountInfo[]>({
     queryKey: ["/api/auth/accounts"],
     enabled: !user,
+  });
+
+  const { data: publicSettings } = useQuery<{ maintenanceMode: boolean; maintenanceMessage: string | null; whatsappNumber: string | null }>({
+    queryKey: ["/api/public/settings"],
   });
 
   const staffAccounts = accounts.filter(
@@ -155,6 +182,14 @@ export default function Login() {
           <p className="text-sm text-muted-foreground mt-1">Internal Portal</p>
         </div>
 
+        {publicSettings?.maintenanceMode && (
+          <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center" data-testid="banner-maintenance">
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+              {publicSettings.maintenanceMessage || "System maintenance in progress. Some features may be temporarily unavailable."}
+            </p>
+          </div>
+        )}
+
         <Card className="glass-strong border-0 shadow-xl" data-testid="login-card">
           <CardHeader className="text-center pb-2">
             <CardTitle className="text-xl font-semibold">Welcome back</CardTitle>
@@ -223,6 +258,7 @@ export default function Login() {
                               <Input
                                 {...field}
                                 type="email"
+                                autoComplete="email"
                                 placeholder="you@company.com"
                                 className="pl-10 h-12 rounded-xl"
                                 data-testid="input-email"
@@ -246,8 +282,11 @@ export default function Login() {
                               <Input
                                 {...field}
                                 type={showPassword ? "text" : "password"}
+                                autoComplete="current-password"
                                 placeholder="Enter your password"
                                 className="pl-10 pr-10 h-12 rounded-xl"
+                                onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                                onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
                                 data-testid="input-password"
                               />
                               <Button
@@ -267,6 +306,11 @@ export default function Login() {
                             </div>
                           </FormControl>
                           <FormMessage />
+                          {capsLockOn && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1" data-testid="text-caps-lock-warning">
+                              Caps Lock is on
+                            </p>
+                          )}
                         </FormItem>
                       )}
                     />
@@ -279,6 +323,17 @@ export default function Login() {
                     >
                       {isSubmitting ? "Signing in..." : "Sign in"}
                     </Button>
+
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        data-testid="button-forgot-password"
+                      >
+                        Forgot your password?
+                      </button>
+                    </div>
                   </form>
                 </Form>
 
@@ -302,10 +357,74 @@ export default function Login() {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} <CompanyName />. All rights reserved.
-        </p>
+        <div className="text-center mt-8 space-y-2">
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <a
+              href={`https://wa.me/${publicSettings?.whatsappNumber?.replace(/[^0-9]/g, '') || '971000000000'}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-need-help"
+            >
+              Need help?
+            </a>
+            <span className="text-muted-foreground/30">|</span>
+            <a
+              href="/privacy-policy"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-privacy-policy"
+            >
+              Privacy Policy
+            </a>
+            <span className="text-muted-foreground/30">|</span>
+            <a
+              href="/terms-of-service"
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              data-testid="link-terms-of-service"
+            >
+              Terms of Service
+            </a>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} <CompanyName />. All rights reserved.
+          </p>
+        </div>
       </div>
+
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Forgot Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll notify the administrator to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Email Address</Label>
+              <Input
+                type="email"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="Enter your email"
+                data-testid="input-forgot-email"
+              />
+            </div>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowForgotPassword(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => forgotPasswordMutation.mutate(forgotEmail)}
+                disabled={!forgotEmail || forgotPasswordMutation.isPending}
+                data-testid="button-submit-forgot-password"
+              >
+                {forgotPasswordMutation.isPending ? "Submitting..." : "Submit Request"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

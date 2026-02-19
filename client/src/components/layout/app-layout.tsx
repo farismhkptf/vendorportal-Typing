@@ -14,10 +14,12 @@ import {
   Building2,
   Search,
   Shield,
-  BarChart3
+  BarChart3,
+  KeyRound
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
@@ -53,6 +55,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useSwipeBack();
 
@@ -143,15 +146,26 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-name">{user?.name || "User"}</p>
                 <p className="text-xs text-muted-foreground" data-testid="text-user-role">{user?.role || "Unknown"}</p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-xl text-muted-foreground"
-                onClick={logout}
-                data-testid="button-logout"
-              >
-                <LogOut className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl text-muted-foreground"
+                  onClick={() => setChangePasswordOpen(true)}
+                  data-testid="button-change-password"
+                >
+                  <KeyRound className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl text-muted-foreground"
+                  onClick={logout}
+                  data-testid="button-logout"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -194,6 +208,11 @@ export function AppLayout({ children }: AppLayoutProps) {
           {children}
         </main>
       </div>
+      <ChangePasswordDialog
+        open={changePasswordOpen}
+        onOpenChange={setChangePasswordOpen}
+        apiEndpoint="/api/auth/change-password"
+      />
     </div>
   );
 }
