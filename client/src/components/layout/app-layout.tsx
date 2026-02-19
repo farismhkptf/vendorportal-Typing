@@ -22,6 +22,7 @@ import { NotificationsBell } from "@/components/notifications-bell";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
 import { useAuth } from "@/hooks/use-auth";
+import proLogo from "@assets/Our_Logo_1771503275390.png";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -81,9 +82,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex h-full flex-col bg-card/95 backdrop-blur-xl border-r border-border/40">
           <div className="flex h-[72px] items-center justify-between gap-2 px-6">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 flex items-center justify-center shadow-sm">
-                <span className="text-base font-semibold text-white">P</span>
-              </div>
+              <img src={proLogo} alt="The P.R.O. Company" className="h-9 w-9 rounded-xl object-contain shrink-0" data-testid="img-pro-logo" />
               <div>
                 <h1 className="text-[15px] font-semibold text-foreground tracking-tight">The P.R.O. Company</h1>
                 <p className="text-xs text-muted-foreground">Portal</p>

@@ -18,6 +18,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { VendorNotification, TypingJob, JobType } from "@shared/schema";
+import vendorLogo from "@assets/Vendor_Logo_1771503175243.jpg";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, match: "/" },
@@ -42,9 +43,7 @@ export function VendorSidebar() {
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-          <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <span className="text-sm font-bold text-primary-foreground tracking-tight">PRO</span>
-          </div>
+          <img src={vendorLogo} alt="Advanced Solutions" className="h-10 w-10 rounded-md object-cover shrink-0" data-testid="img-vendor-logo" />
           <div className="group-data-[collapsible=icon]:hidden overflow-hidden">
             <p className="text-sm font-semibold text-sidebar-foreground truncate">Vendor Portal</p>
             <p className="text-xs text-muted-foreground truncate">The P.R.O. Company</p>
