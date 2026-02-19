@@ -37,7 +37,7 @@ export function PageTransition({ children }: PageTransitionProps) {
     const timeout = setTimeout(() => {
       setDisplayChildren(children);
       setTransitionStage("enter");
-    }, 150);
+    }, 180);
 
     return () => clearTimeout(timeout);
   }, [location, children, prefersReducedMotion]);
@@ -48,9 +48,8 @@ export function PageTransition({ children }: PageTransitionProps) {
 
   return (
     <div
-      className={`transition-opacity duration-150 ease-in-out ${
-        transitionStage === "enter" ? "opacity-100" : "opacity-0"
-      }`}
+      className="page-transition-wrapper"
+      data-stage={transitionStage}
     >
       {displayChildren}
     </div>

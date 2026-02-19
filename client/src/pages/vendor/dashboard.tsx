@@ -241,7 +241,7 @@ export default function VendorDashboard() {
                 </h2>
                 {woGrouped.length > 0 ? (
                   <Card>
-                    <div className="divide-y divide-border/50">
+                    <div className="divide-y divide-border/50 stagger-children">
                       {woGrouped.map((wo) => {
                         const hasPending = wo.jobs.some(j => j.status === "SentToVendor");
                         const hasUrgent = wo.jobs.some(j => j.priority === "urgent");
@@ -331,7 +331,7 @@ export default function VendorDashboard() {
                 </h2>
                 {activityFeed.length > 0 ? (
                   <Card>
-                    <div className="divide-y divide-border/50">
+                    <div className="divide-y divide-border/50 stagger-children">
                       {activityFeed.map((item) => {
                         const isEid = item.category === "EID";
                         const detailUrl = isEid ? `/eid/${item.id}` : `/medical/${item.id}`;
@@ -429,7 +429,7 @@ export default function VendorDashboard() {
                 </h2>
                 {unreadNotifications.length > 0 ? (
                   <Card>
-                    <div className="divide-y divide-border/50">
+                    <div className="divide-y divide-border/50 stagger-children">
                       {unreadNotifications.map((n) => {
                         const jobUrl = n.relatedJobId
                           ? ((n as any).jobCategory === "Medical" ? `/medical/${n.relatedJobId}` : `/eid/${n.relatedJobId}`)
