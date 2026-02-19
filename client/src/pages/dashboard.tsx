@@ -622,11 +622,32 @@ export default function Dashboard() {
           )}
         </div>
 
-        {actionCenterData && hasActions && <ActionCenter data={actionCenterData} />}
+        {actionCenterData && hasActions && (
+          <>
+            <div className="section-divider" />
+            <ActionCenter data={actionCenterData} />
+          </>
+        )}
 
-        {staleJobs && <StaleJobAlerts data={staleJobs} />}
+        {staleJobs && (data => {
+          const total = data.unacceptedOver24h.length + data.waitingForDocsOver48h.length + data.inProgressOver72h.length;
+          return total > 0 ? (
+            <>
+              <div className="section-divider" />
+              <StaleJobAlerts data={data} />
+            </>
+          ) : null;
+        })(staleJobs)}
 
-        {expiringDocs && <ExpiringDocuments data={expiringDocs} />}
+        {expiringDocs && (data => {
+          const total = data.expiringMedical.length + data.expiringEid.length;
+          return total > 0 ? (
+            <>
+              <div className="section-divider" />
+              <ExpiringDocuments data={data} />
+            </>
+          ) : null;
+        })(expiringDocs)}
 
         {pipelineLoading ? (
           <Skeleton className="h-28 rounded-xl" />
@@ -635,8 +656,13 @@ export default function Dashboard() {
         ) : null}
 
         {needsAttention && needsAttention.length > 0 && (
-          <NeedsAttention items={needsAttention} />
+          <>
+            <div className="section-divider" />
+            <NeedsAttention items={needsAttention} />
+          </>
         )}
+
+        <div className="section-divider" />
 
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="space-y-3 opacity-0 animate-fade-in animate-delay-2">

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -154,6 +155,25 @@ export function VendorSidebar() {
 
 export function VendorTopBar() {
   const { isOnline, showReconnected } = useOnlineStatus();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleWindowScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+
+    const mainEl = document.querySelector("main.flex-1.overflow-y-auto");
+    const handleMainScroll = () => {
+      if (mainEl) setScrolled(mainEl.scrollTop > 8);
+    };
+    if (mainEl) {
+      mainEl.addEventListener("scroll", handleMainScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener("scroll", handleWindowScroll);
+      if (mainEl) mainEl.removeEventListener("scroll", handleMainScroll);
+    };
+  }, []);
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/vendor/notifications/unread-count"],
@@ -196,7 +216,7 @@ export function VendorTopBar() {
           Back online
         </div>
       )}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border/50 bg-background/80 backdrop-blur-sm px-4">
+      <header className={`sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border/50 bg-background/80 backdrop-blur-xl px-4 transition-shadow duration-300 ${scrolled ? "header-scrolled" : ""}`}>
         <div className="flex items-center gap-3">
           <SidebarTrigger data-testid="button-vendor-sidebar-toggle" />
           <div className="flex items-center gap-1.5 opacity-50" data-testid="section-topbar-branding">

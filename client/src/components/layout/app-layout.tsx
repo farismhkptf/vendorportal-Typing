@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { 
   LayoutDashboard, 
@@ -55,6 +55,17 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   useSwipeBack();
 
+  const mainRef = useRef<HTMLDivElement>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const main = mainRef.current?.parentElement;
+    if (!main) return;
+    const handleScroll = () => setScrolled(window.scrollY > 8);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const dashboardHref = getDashboardHref(user?.role);
   const navigation = allNavigation
     .filter((item) => item.roles === null || (user && item.roles.includes(user.role)))
@@ -109,7 +120,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 cursor-pointer",
                       isActive
-                        ? "bg-primary text-white shadow-sm"
+                        ? "bg-primary text-white shadow-sm nav-item-active-pill"
                         : "text-muted-foreground hover-elevate"
                     )}
                     data-testid={`nav-${item.name.toLowerCase().replace(" ", "-")}`}
@@ -146,7 +157,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       <div className="lg:pl-[280px]">
-        <header className="sticky top-0 z-30 h-[72px] bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <header ref={mainRef} className={cn("sticky top-0 z-30 h-[72px] bg-background/80 backdrop-blur-xl border-b border-border/40 transition-shadow duration-300", scrolled && "header-scrolled")}>
           <div className="flex h-full items-center gap-4 px-6 lg:px-10">
             <Button
               variant="ghost"

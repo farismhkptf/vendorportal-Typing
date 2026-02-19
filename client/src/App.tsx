@@ -11,6 +11,7 @@ import { DevNotesButton } from "@/components/dev-notes";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { VendorAuthProvider, useVendorAuth } from "@/hooks/use-vendor-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
+import proLogo from "@assets/Our_Logo_1771503275390.png";
 
 import Dashboard from "@/pages/dashboard";
 import CrmDashboard from "@/pages/crm-dashboard";
@@ -46,16 +47,39 @@ import SchedulerBot from "@/pages/bots/scheduler-bot";
 import ManagerConsole from "@/pages/manager-console";
 import ReportsPage from "@/pages/reports";
 
+function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6" data-testid="splash-screen">
+      <div className="relative">
+        <div className="absolute inset-0 rounded-2xl bg-primary/10 scale-[2.5] blur-2xl animate-pulse" />
+        <div className="relative h-16 w-16 rounded-2xl bg-card border border-border/50 flex items-center justify-center shadow-lg splash-logo-enter">
+          <img
+            src={proLogo}
+            alt="The P.R.O. Company"
+            className="h-10 w-10 object-contain"
+          />
+        </div>
+      </div>
+      <div className="flex flex-col items-center gap-2 splash-text-enter">
+        <p className="text-sm font-medium text-foreground tracking-tight">
+          {variant === "vendor" ? "Vendor Portal" : "The P.R.O. Company"}
+        </p>
+        <div className="flex items-center gap-2">
+          <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />
+          <span className="text-xs text-muted-foreground">Loading</span>
+          <div className="h-1 w-1 rounded-full bg-primary animate-pulse" style={{ animationDelay: "0.3s" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    return <BrandedSplash variant="team" />;
   }
 
   const isPublicPath =
@@ -80,11 +104,7 @@ function VendorAuthGuard({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
-    );
+    return <BrandedSplash variant="vendor" />;
   }
 
   if (!user) {

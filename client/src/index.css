@@ -642,37 +642,57 @@
     border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
-  /* Premium card styles - refined with indigo-tinted shadows */
+  /* Premium card styles - refined with layered soft shadows */
   .premium-card {
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.6);
+    border: 1px solid hsl(var(--border) / 0.5);
     border-radius: 12px;
-    box-shadow: 0 1px 2px rgba(100, 100, 140, 0.04), 0 4px 16px rgba(100, 100, 140, 0.03);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 0 0 1px hsl(var(--border) / 0.05),
+      0 1px 2px rgba(100, 100, 140, 0.03),
+      0 2px 8px rgba(100, 100, 140, 0.04),
+      0 8px 24px rgba(100, 100, 140, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .premium-card:hover {
-    border-color: hsl(var(--border) / 0.8);
-    box-shadow: 0 2px 6px rgba(100, 100, 140, 0.06), 0 8px 24px rgba(100, 100, 140, 0.05);
+    border-color: hsl(var(--border) / 0.7);
+    box-shadow:
+      0 0 0 1px hsl(var(--border) / 0.08),
+      0 2px 4px rgba(100, 100, 140, 0.05),
+      0 4px 12px rgba(100, 100, 140, 0.06),
+      0 12px 32px rgba(100, 100, 140, 0.05);
   }
 
   .dark .premium-card {
-    border-color: hsl(var(--border) / 0.4);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), 0 4px 16px rgba(0, 0, 0, 0.2);
+    border-color: hsl(var(--border) / 0.35);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      0 4px 12px rgba(0, 0, 0, 0.18),
+      0 8px 28px rgba(0, 0, 0, 0.15);
   }
 
   .dark .premium-card:hover {
-    border-color: hsl(var(--border) / 0.6);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.25);
+    border-color: hsl(var(--border) / 0.5);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.03),
+      0 2px 6px rgba(0, 0, 0, 0.25),
+      0 6px 16px rgba(0, 0, 0, 0.22),
+      0 14px 40px rgba(0, 0, 0, 0.2);
   }
 
-  /* Stat card with clean styling */
+  /* Stat card with clean styling + refined layered shadows */
   .stat-card {
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.5);
+    border: 1px solid hsl(var(--border) / 0.4);
     border-radius: 14px;
-    box-shadow: 0 1px 3px rgba(100, 100, 140, 0.03), 0 6px 20px rgba(100, 100, 140, 0.03);
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 0 0 1px hsl(var(--border) / 0.04),
+      0 1px 2px rgba(100, 100, 140, 0.03),
+      0 2px 8px rgba(100, 100, 140, 0.03),
+      0 6px 20px rgba(100, 100, 140, 0.03);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
   }
@@ -692,17 +712,27 @@
 
   .stat-card:hover {
     border-color: hsl(var(--primary) / 0.15);
-    box-shadow: 0 4px 12px rgba(100, 100, 140, 0.06), 0 12px 32px rgba(100, 100, 140, 0.04);
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.06),
+      0 2px 6px rgba(100, 100, 140, 0.05),
+      0 6px 16px rgba(100, 100, 140, 0.05),
+      0 12px 32px rgba(100, 100, 140, 0.04);
   }
 
   .dark .stat-card {
-    border-color: hsl(var(--border) / 0.4);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.2);
+    border-color: hsl(var(--border) / 0.35);
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 1px 3px rgba(0, 0, 0, 0.25),
+      0 4px 12px rgba(0, 0, 0, 0.2);
   }
 
   .dark .stat-card:hover {
-    border-color: hsl(var(--primary) / 0.25);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 16px 48px rgba(0, 0, 0, 0.3);
+    border-color: hsl(var(--primary) / 0.2);
+    box-shadow:
+      0 0 0 1px hsl(var(--primary) / 0.08),
+      0 4px 12px rgba(0, 0, 0, 0.35),
+      0 12px 36px rgba(0, 0, 0, 0.28);
   }
 
   /* Smooth fade-in animation */
@@ -928,5 +958,121 @@
 
   .dark .scroll-fade-x::after {
     background: linear-gradient(to right, transparent, hsl(var(--card)));
+  }
+
+  /* ── Task 1: Branded splash screen animations ── */
+  @keyframes splashLogoEnter {
+    0% { opacity: 0; transform: scale(0.8); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes splashTextEnter {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  .splash-logo-enter {
+    animation: splashLogoEnter 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .splash-text-enter {
+    opacity: 0;
+    animation: splashTextEnter 0.4s cubic-bezier(0.4, 0, 0.2, 1) 0.25s forwards;
+  }
+
+  /* ── Task 3: Focus glow on inputs ── */
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="combobox"]:focus-visible {
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.12), 0 0 0 1px hsl(var(--primary) / 0.3);
+    border-color: hsl(var(--primary) / 0.4) !important;
+    outline: none;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .dark input:focus-visible,
+  .dark textarea:focus-visible,
+  .dark select:focus-visible,
+  .dark [role="combobox"]:focus-visible {
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15), 0 0 0 1px hsl(var(--primary) / 0.35);
+  }
+
+  /* ── Task 5: Skeleton shimmer animation ── */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  [data-slot="skeleton"],
+  .animate-pulse.rounded-md.bg-muted {
+    animation: none;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted-foreground) / 0.07) 40%,
+      hsl(var(--muted)) 80%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  /* ── Task 6: Button press scale ── */
+  button:active:not(:disabled),
+  [role="button"]:active:not(:disabled) {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+
+  /* ── Task 7: Status badge color transition ── */
+  [data-testid^="badge-status-"] {
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+
+  /* ── Task 4: Header shadow on scroll ── */
+  .header-scrolled {
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.04),
+      0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+
+  .dark .header-scrolled {
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  /* ── Task 9: Section dividers for dashboard breathing room ── */
+  .section-divider {
+    height: 1px;
+    margin: 8px 0;
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--border) / 0.4) 20%, hsl(var(--border) / 0.4) 80%, transparent 100%);
+  }
+
+  /* ── Task 10: Active sidebar nav indicator ── */
+  .nav-item-active-pill {
+    position: relative;
+  }
+
+  .nav-item-active-pill::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    border-radius: 0 3px 3px 0;
+    background: hsl(var(--primary));
+    animation: pillSlideIn 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes pillSlideIn {
+    0% { opacity: 0; height: 0; }
+    100% { opacity: 1; height: 60%; }
   }
 }
