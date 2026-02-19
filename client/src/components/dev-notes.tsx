@@ -79,11 +79,13 @@ function getDefaultPos(): StickyPosition {
   const w = window.innerWidth;
   const h = window.innerHeight;
   if (w < 640) {
+    const mobileW = w - 16;
+    const mobileH = Math.min(h * 0.6, 420);
     return {
       x: 8,
-      y: 60,
-      width: w - 16,
-      height: Math.min(h - 80, 500),
+      y: h - mobileH - 8,
+      width: mobileW,
+      height: mobileH,
       minimized: false,
     };
   }
@@ -339,12 +341,14 @@ export function DevNotesSticky({
       setViewportW(vw);
       setPos((p) => {
         if (vw < 640) {
+          const mobileW = vw - 16;
+          const mobileH = Math.max(MIN_HEIGHT, Math.min(p.height, vh * 0.6, 420));
           return {
             ...p,
             x: 8,
-            y: Math.max(0, Math.min(p.y, vh - 40)),
-            width: vw - 16,
-            height: Math.max(MIN_HEIGHT, Math.min(p.height, vh - p.y - 8)),
+            y: vh - mobileH - 8,
+            width: mobileW,
+            height: mobileH,
           };
         }
         const w = Math.max(getMinWidth(), Math.min(p.width, vw - 16));
