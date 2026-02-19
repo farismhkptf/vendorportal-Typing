@@ -19,6 +19,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { VendorNotification, TypingJob, JobType } from "@shared/schema";
 import vendorLogo from "@assets/Vendor_Logo_1771503175243.jpg";
+import proLogo from "@assets/Our_Logo_1771503275390.png";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, match: "/" },
@@ -43,10 +44,10 @@ export function VendorSidebar() {
     <Sidebar collapsible="icon" variant="sidebar">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
-          <img src={vendorLogo} alt="Advanced Solutions" className="h-10 w-10 rounded-md object-cover shrink-0" data-testid="img-vendor-logo" />
+          <img src={vendorLogo} alt={user?.vendorName || "Vendor"} className="h-10 w-10 rounded-md object-cover shrink-0" data-testid="img-vendor-logo" />
           <div className="group-data-[collapsible=icon]:hidden overflow-hidden">
-            <p className="text-sm font-semibold text-sidebar-foreground truncate">Vendor Portal</p>
-            <p className="text-xs text-muted-foreground truncate">The P.R.O. Company</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate" data-testid="text-vendor-company-name">{user?.vendorName || "Vendor Portal"}</p>
+            <p className="text-[11px] text-muted-foreground truncate">Vendor Portal</p>
           </div>
         </div>
       </SidebarHeader>
@@ -102,6 +103,10 @@ export function VendorSidebar() {
               </div>
             </div>
           )}
+        </div>
+        <div className="group-data-[collapsible=icon]:hidden flex items-center gap-2 px-3 py-2 mb-2" data-testid="section-powered-by">
+          <img src={proLogo} alt="The P.R.O. Company" className="h-4 w-4 object-contain shrink-0 opacity-60" data-testid="img-powered-by-logo" />
+          <p className="text-[10px] text-muted-foreground/70 truncate" data-testid="text-powered-by">Powered by The P.R.O. Company™</p>
         </div>
         <SidebarMenu>
           {user?.isAdminViewing && (
@@ -192,7 +197,13 @@ export function VendorTopBar() {
         </div>
       )}
       <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border/50 bg-background/80 backdrop-blur-sm px-4">
-        <SidebarTrigger data-testid="button-vendor-sidebar-toggle" />
+        <div className="flex items-center gap-3">
+          <SidebarTrigger data-testid="button-vendor-sidebar-toggle" />
+          <div className="flex items-center gap-1.5 opacity-50" data-testid="section-topbar-branding">
+            <img src={proLogo} alt="The P.R.O. Company" className="h-4 w-4 object-contain" data-testid="img-topbar-pro-logo" />
+            <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline" data-testid="text-topbar-company-name">The P.R.O. Company</span>
+          </div>
+        </div>
         <div className="flex items-center gap-1">
           <ThemeSwitcher compact />
           <Popover>

@@ -68,8 +68,8 @@ export default function VendorLogin() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <img src={vendorLogo} alt="Advanced Solutions" className="h-16 w-16 rounded-2xl object-cover mb-4 shadow-lg" data-testid="img-vendor-logo" />
-          <h1 className="text-2xl font-semibold text-foreground">Vendor Portal</h1>
-          <p className="text-sm text-muted-foreground mt-1">The P.R.O. Company™</p>
+          <h1 className="text-2xl font-semibold text-foreground">Advanced Solutions</h1>
+          <p className="text-sm text-muted-foreground mt-1">Vendor Portal · The P.R.O. Company™</p>
         </div>
 
         {/* Login Card */}
@@ -143,7 +143,7 @@ export default function VendorLogin() {
 
                 <Button
                   type="submit"
-                  className="w-full h-12 rounded-xl text-base font-medium bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700"
+                  className="w-full h-12 rounded-xl text-base font-medium bg-gradient-to-r from-violet-600 to-indigo-600"
                   disabled={loginMutation.isPending}
                   data-testid="button-vendor-login"
                 >

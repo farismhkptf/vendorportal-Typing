@@ -3000,12 +3000,18 @@ export async function registerRoutes(
       if (user.vendorId && user.vendorId !== req.session.vendorId) {
         req.session.vendorId = user.vendorId;
       }
+      let vendorName: string | null = null;
+      if (user.vendorId) {
+        const vendor = await storage.getVendorById(user.vendorId);
+        vendorName = vendor?.name || null;
+      }
       res.json({
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
         vendorId: user.vendorId,
+        vendorName,
         isAdminViewing: !!req.session.userId && req.session.userId !== req.session.vendorUserId,
       });
     } catch (error) {

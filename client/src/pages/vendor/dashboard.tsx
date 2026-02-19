@@ -116,11 +116,19 @@ export default function VendorDashboard() {
         <h1 className="text-xl lg:text-2xl font-semibold tracking-tight text-foreground" data-testid="text-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0] || "there"}
         </h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          {(stats?.pending || 0) > 0
-            ? `${stats?.pending} ${stats?.pending === 1 ? "job" : "jobs"} awaiting acceptance`
-            : "You're all caught up"}
-        </p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          {user?.vendorName && (
+            <span className="text-sm font-medium text-muted-foreground" data-testid="text-vendor-company">{user.vendorName}</span>
+          )}
+          {user?.vendorName && (stats?.pending || 0) > 0 && (
+            <span className="text-muted-foreground/40">·</span>
+          )}
+          <p className="text-sm text-muted-foreground">
+            {(stats?.pending || 0) > 0
+              ? `${stats?.pending} ${stats?.pending === 1 ? "job" : "jobs"} awaiting acceptance`
+              : "You're all caught up"}
+          </p>
+        </div>
       </div>
 
       {isLoading ? (
