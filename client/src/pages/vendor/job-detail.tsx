@@ -24,6 +24,7 @@ import { ImageLightbox, type LightboxFile } from "@/components/image-lightbox";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import emiratesIdSample from "@/assets/images/emirates-id-sample.png";
 import type { 
   TypingJob, WorkOrder, JobType, 
   TypingJobComment, File as FileType, TypingJobResult, WoDocument, DocumentRequirement
@@ -176,23 +177,45 @@ function StepperBar({
   );
 }
 
+function formatJobTypeName(name: string) {
+  const match = name.match(/^(.*?)(\d+\s*(?:YEAR|Year|year)s?)(.*)$/i);
+  if (!match) return <span>{name}</span>;
+  return (
+    <span>
+      {match[1]}
+      <span className="font-bold text-primary">{match[2]}</span>
+      {match[3]}
+    </span>
+  );
+}
+
 function StepOverview({ job }: { job: VendorJobDetails }) {
   const isEid = job.jobType?.category === "EID";
+  const applicantPhoto = job.woDocuments?.find(d => d.documentType === "Photo" && d.fileUrl);
   return (
     <div className="space-y-4" data-testid="step-overview">
       <div className="flex items-center gap-3 pb-2">
-        <div className={cn(
-          "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
-          job.urgent ? "bg-red-100 dark:bg-red-900/30" : isEid ? "bg-amber-100 dark:bg-amber-900/30" : "bg-blue-100 dark:bg-blue-900/30"
-        )}>
-          {job.urgent ? (
-            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-          ) : isEid ? (
-            <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-          ) : (
-            <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-          )}
-        </div>
+        {applicantPhoto ? (
+          <div className="h-11 w-11 rounded-full overflow-hidden border-2 border-border shrink-0">
+            <img
+              src={applicantPhoto.fileUrl}
+              alt={job.workOrder?.applicantName || "Applicant"}
+              className="h-full w-full object-cover"
+              data-testid="img-applicant-photo"
+            />
+          </div>
+        ) : (
+          <div className={cn(
+            "h-11 w-11 rounded-full flex items-center justify-center shrink-0",
+            job.urgent ? "bg-red-100 dark:bg-red-900/30" : isEid ? "bg-amber-100 dark:bg-amber-900/30" : "bg-blue-100 dark:bg-blue-900/30"
+          )}>
+            {job.urgent ? (
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            ) : (
+              <User className="h-5 w-5 text-muted-foreground" />
+            )}
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-semibold" data-testid="text-wo-number">
@@ -214,14 +237,6 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
           </p>
         </div>
       </div>
-
-      {job.costSnapshot && (
-        <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/30">
-          <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300" data-testid="text-job-value">
-            Job Value: AED {job.costSnapshot}
-          </p>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex items-center gap-2 text-sm min-w-0">
@@ -261,7 +276,7 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
           <div className="flex items-center gap-2 text-sm min-w-0">
             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="text-muted-foreground shrink-0">Job Type:</span>
-            <span className="font-medium truncate">{job.jobType.name}</span>
+            <span className="font-medium truncate">{formatJobTypeName(job.jobType.name)}</span>
           </div>
         )}
         <div className="flex items-center gap-2 text-sm min-w-0">
@@ -282,6 +297,21 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
         <div className="p-3 rounded-lg bg-muted/50 border">
           <p className="text-xs text-muted-foreground mb-1">Notes</p>
           <p className="text-sm">{job.workOrder.notes}</p>
+        </div>
+      )}
+
+      {isEid && (
+        <div className="p-3 rounded-lg bg-amber-50/50 dark:bg-amber-900/10 border border-amber-200/50 dark:border-amber-800/20">
+          <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+            <Shield className="h-3.5 w-3.5" />
+            Emirates ID Reference
+          </p>
+          <img
+            src={emiratesIdSample}
+            alt="Emirates ID sample card"
+            className="w-full max-w-md rounded-lg border border-border/50"
+            data-testid="img-eid-sample"
+          />
         </div>
       )}
     </div>
@@ -323,6 +353,32 @@ function StepDocuments({
   const isSentToVendor = job.status === "SentToVendor";
   const isWaitingForDocs = job.status === "WaitingForDocs";
 
+  const allDownloadableFiles = useMemo(() => {
+    const docs: { url: string; name: string }[] = [];
+    job.woDocuments?.forEach(d => {
+      if (d.fileUrl) docs.push({ url: d.fileUrl, name: d.fileName });
+    });
+    inputFiles.forEach(f => {
+      if (f.workdriveLink) docs.push({ url: f.workdriveLink, name: f.fileName || "document" });
+    });
+    return docs;
+  }, [job.woDocuments, inputFiles]);
+
+  const handleDownloadAll = () => {
+    allDownloadableFiles.forEach((file, i) => {
+      setTimeout(() => {
+        const a = document.createElement("a");
+        a.href = file.url;
+        a.download = file.name;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }, i * 300);
+    });
+  };
+
   return (
     <div className="space-y-4" data-testid="step-documents">
       {isWaitingForDocs && (
@@ -336,6 +392,21 @@ function StepDocuments({
               </p>
             </div>
           </div>
+        </div>
+      )}
+
+      {allDownloadableFiles.length > 1 && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadAll}
+            className="gap-2"
+            data-testid="button-download-all"
+          >
+            <Download className="h-4 w-4" />
+            Download All ({allDownloadableFiles.length})
+          </Button>
         </div>
       )}
 
@@ -781,9 +852,9 @@ export default function VendorJobDetail() {
 
   useEffect(() => {
     if (job) {
-      setViewStep(getActiveStep(job.status));
+      setViewStep(1);
     }
-  }, [job?.status]);
+  }, [job?.id]);
 
   useEffect(() => {
     if (job?.results) {
