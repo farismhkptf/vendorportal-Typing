@@ -60,16 +60,38 @@ interface StickyPosition {
   minimized: boolean;
 }
 
-const MIN_WIDTH = 320;
+function isMobileView() {
+  return typeof window !== "undefined" && window.innerWidth < 640;
+}
+
+const MIN_WIDTH_DESKTOP = 320;
+const MIN_WIDTH_MOBILE = 260;
 const MIN_HEIGHT = 280;
 
+function getMinWidth() {
+  return isMobileView() ? MIN_WIDTH_MOBILE : MIN_WIDTH_DESKTOP;
+}
+
 function getDefaultPos(): StickyPosition {
-  const w = typeof window !== "undefined" ? window.innerWidth : 1024;
+  if (typeof window === "undefined") {
+    return { x: 20, y: 80, width: 480, height: 500, minimized: false };
+  }
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  if (w < 640) {
+    return {
+      x: 8,
+      y: 60,
+      width: w - 16,
+      height: Math.min(h - 80, 500),
+      minimized: false,
+    };
+  }
   return {
     x: Math.max(w - 520, 20),
     y: 80,
     width: 480,
-    height: 500,
+    height: Math.min(500, h - 100),
     minimized: false,
   };
 }
@@ -130,7 +152,7 @@ function loadPosition(): StickyPosition {
       return {
         x: Math.max(0, Math.min(pos.x, vw - 100)),
         y: Math.max(0, Math.min(pos.y, vh - 50)),
-        width: Math.max(MIN_WIDTH, Math.min(pos.width || defaults.width, vw - 40)),
+        width: Math.max(getMinWidth(), Math.min(pos.width || defaults.width, vw - 40)),
         height: Math.max(MIN_HEIGHT, Math.min(pos.height || defaults.height, vh - 40)),
         minimized: pos.minimized ?? false,
       };
@@ -140,6 +162,7 @@ function loadPosition(): StickyPosition {
 }
 
 function savePosition(pos: StickyPosition) {
+  if (typeof window === "undefined") return;
   localStorage.setItem(POSITION_KEY, JSON.stringify(pos));
 }
 
@@ -302,9 +325,46 @@ export function DevNotesSticky({
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const resizeStartRef = useRef({ x: 0, y: 0, w: 0, h: 0, posX: 0, posY: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const [viewportW, setViewportW] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth : 1024
+  );
 
   const currentPage = location.split("?")[0].split("#")[0];
   const pageLabel = getPageLabel(currentPage);
+
+  useEffect(() => {
+    const handleViewportChange = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      setViewportW(vw);
+      setPos((p) => {
+        if (vw < 640) {
+          return {
+            ...p,
+            x: 8,
+            y: Math.max(0, Math.min(p.y, vh - 40)),
+            width: vw - 16,
+            height: Math.max(MIN_HEIGHT, Math.min(p.height, vh - p.y - 8)),
+          };
+        }
+        const w = Math.max(getMinWidth(), Math.min(p.width, vw - 16));
+        const h = Math.max(MIN_HEIGHT, Math.min(p.height, vh - 40));
+        return {
+          ...p,
+          x: Math.max(0, Math.min(p.x, vw - w)),
+          y: Math.max(0, Math.min(p.y, vh - 40)),
+          width: w,
+          height: h,
+        };
+      });
+    };
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("orientationchange", handleViewportChange);
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("orientationchange", handleViewportChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -353,40 +413,67 @@ export function DevNotesSticky({
     });
   }, []);
 
-  const handleDragStart = useCallback((e: React.MouseEvent) => {
+  const getClientXY = useCallback((e: MouseEvent | TouchEvent) => {
+    if ("touches" in e) {
+      const t = e.touches[0] || e.changedTouches[0];
+      return { clientX: t.clientX, clientY: t.clientY };
+    }
+    return { clientX: e.clientX, clientY: e.clientY };
+  }, []);
+
+  const handleDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if ((e.target as HTMLElement).closest("button")) return;
     e.preventDefault();
+    const { clientX, clientY } = "touches" in e
+      ? { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }
+      : { clientX: e.clientX, clientY: e.clientY };
     setIsDragging(true);
-    dragStartRef.current = { x: e.clientX, y: e.clientY, posX: pos.x, posY: pos.y };
+    dragStartRef.current = { x: clientX, y: clientY, posX: pos.x, posY: pos.y };
   }, [pos.x, pos.y]);
 
   useEffect(() => {
     if (!isDragging) return;
-    const handleMove = (e: MouseEvent) => {
-      const dx = e.clientX - dragStartRef.current.x;
-      const dy = e.clientY - dragStartRef.current.y;
-      setPos((p) => ({
-        ...p,
-        x: Math.max(0, Math.min(dragStartRef.current.posX + dx, window.innerWidth - 100)),
-        y: Math.max(0, Math.min(dragStartRef.current.posY + dy, window.innerHeight - 40)),
-      }));
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      const { clientX, clientY } = getClientXY(e);
+      const dx = clientX - dragStartRef.current.x;
+      const dy = clientY - dragStartRef.current.y;
+      setPos((p) => {
+        const minVisible = 60;
+        const maxX = Math.max(0, window.innerWidth - Math.min(p.width, minVisible));
+        const maxY = Math.max(0, window.innerHeight - 40);
+        return {
+          ...p,
+          x: Math.max(0, Math.min(dragStartRef.current.posX + dx, maxX)),
+          y: Math.max(0, Math.min(dragStartRef.current.posY + dy, maxY)),
+        };
+      });
     };
     const handleUp = () => setIsDragging(false);
-    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mousemove", handleMove, { passive: false });
     window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove, { passive: false });
+    window.addEventListener("touchend", handleUp);
+    window.addEventListener("touchcancel", handleUp);
     return () => {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleUp);
+      window.removeEventListener("touchcancel", handleUp);
     };
-  }, [isDragging]);
+  }, [isDragging, getClientXY]);
 
-  const handleResizeStart = useCallback((e: React.MouseEvent, direction: string) => {
+  const handleResizeStart = useCallback((e: React.MouseEvent | React.TouchEvent, direction: string) => {
     e.preventDefault();
     e.stopPropagation();
+    const { clientX, clientY } = "touches" in e
+      ? { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY }
+      : { clientX: e.clientX, clientY: e.clientY };
     setIsResizing(direction);
     resizeStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
+      x: clientX,
+      y: clientY,
       w: pos.width,
       h: pos.height,
       posX: pos.x,
@@ -396,19 +483,21 @@ export function DevNotesSticky({
 
   useEffect(() => {
     if (!isResizing) return;
-    const handleMove = (e: MouseEvent) => {
-      const dx = e.clientX - resizeStartRef.current.x;
-      const dy = e.clientY - resizeStartRef.current.y;
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      e.preventDefault();
+      const { clientX, clientY } = getClientXY(e);
+      const dx = clientX - resizeStartRef.current.x;
+      const dy = clientY - resizeStartRef.current.y;
       setPos((p) => {
         const newPos = { ...p };
         const vw = window.innerWidth;
         const vh = window.innerHeight;
         if (isResizing.includes("e")) {
           const maxW = vw - newPos.x - 8;
-          newPos.width = Math.max(MIN_WIDTH, Math.min(resizeStartRef.current.w + dx, maxW));
+          newPos.width = Math.max(getMinWidth(), Math.min(resizeStartRef.current.w + dx, maxW));
         }
         if (isResizing.includes("w")) {
-          const newW = Math.max(MIN_WIDTH, resizeStartRef.current.w - dx);
+          const newW = Math.max(getMinWidth(), resizeStartRef.current.w - dx);
           newPos.width = newW;
           newPos.x = Math.max(0, resizeStartRef.current.posX + (resizeStartRef.current.w - newW));
         }
@@ -425,13 +514,19 @@ export function DevNotesSticky({
       });
     };
     const handleUp = () => setIsResizing(null);
-    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mousemove", handleMove, { passive: false });
     window.addEventListener("mouseup", handleUp);
+    window.addEventListener("touchmove", handleMove, { passive: false });
+    window.addEventListener("touchend", handleUp);
+    window.addEventListener("touchcancel", handleUp);
     return () => {
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
+      window.removeEventListener("touchmove", handleMove);
+      window.removeEventListener("touchend", handleUp);
+      window.removeEventListener("touchcancel", handleUp);
     };
-  }, [isResizing]);
+  }, [isResizing, getClientXY]);
 
   if (!open) return null;
 
@@ -449,7 +544,7 @@ export function DevNotesSticky({
       style={{
         left: pos.x,
         top: pos.y,
-        width: pos.minimized ? 300 : pos.width,
+        width: pos.minimized ? Math.min(300, viewportW - 16) : pos.width,
         height: pos.minimized ? "auto" : pos.height,
       }}
       data-testid="dev-notes-sticky"
@@ -458,10 +553,11 @@ export function DevNotesSticky({
         className={cn(
           "flex items-center gap-2 px-3 py-2 rounded-t-lg",
           "bg-amber-500 dark:bg-amber-600 text-white",
-          "cursor-grab",
+          "cursor-grab touch-none",
           isDragging && "cursor-grabbing"
         )}
         onMouseDown={handleDragStart}
+        onTouchStart={handleDragStart}
         data-testid="dev-notes-sticky-titlebar"
       >
         <GripHorizontal className="h-4 w-4 opacity-60 shrink-0" />
@@ -585,42 +681,50 @@ export function DevNotesSticky({
           )}
 
           <div
-            className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+            className="absolute bottom-0 right-0 w-6 h-6 sm:w-4 sm:h-4 cursor-se-resize touch-none"
             onMouseDown={(e) => handleResizeStart(e, "se")}
+            onTouchStart={(e) => handleResizeStart(e, "se")}
             data-testid="resize-handle-se"
           >
-            <svg className="w-4 h-4 text-muted-foreground/40" viewBox="0 0 16 16">
+            <svg className="w-4 h-4 absolute bottom-0 right-0 text-muted-foreground/40" viewBox="0 0 16 16">
               <path d="M14 14L8 14L14 8Z" fill="currentColor" />
               <path d="M14 14L12 14L14 12Z" fill="currentColor" opacity="0.5" />
             </svg>
           </div>
           <div
-            className="absolute top-0 right-0 bottom-0 w-1.5 cursor-e-resize"
+            className="absolute top-0 right-0 bottom-0 w-3 sm:w-1.5 cursor-e-resize touch-none"
             onMouseDown={(e) => handleResizeStart(e, "e")}
+            onTouchStart={(e) => handleResizeStart(e, "e")}
           />
           <div
-            className="absolute bottom-0 left-0 right-0 h-1.5 cursor-s-resize"
+            className="absolute bottom-0 left-0 right-0 h-3 sm:h-1.5 cursor-s-resize touch-none"
             onMouseDown={(e) => handleResizeStart(e, "s")}
+            onTouchStart={(e) => handleResizeStart(e, "s")}
           />
           <div
-            className="absolute top-0 left-0 bottom-0 w-1.5 cursor-w-resize"
+            className="absolute top-0 left-0 bottom-0 w-3 sm:w-1.5 cursor-w-resize touch-none"
             onMouseDown={(e) => handleResizeStart(e, "w")}
+            onTouchStart={(e) => handleResizeStart(e, "w")}
           />
           <div
-            className="absolute top-0 left-0 right-0 h-1.5 cursor-n-resize"
+            className="absolute top-0 left-0 right-0 h-3 sm:h-1.5 cursor-n-resize touch-none"
             onMouseDown={(e) => handleResizeStart(e, "n")}
+            onTouchStart={(e) => handleResizeStart(e, "n")}
           />
           <div
-            className="absolute top-0 left-0 w-3 h-3 cursor-nw-resize"
+            className="absolute top-0 left-0 w-5 h-5 sm:w-3 sm:h-3 cursor-nw-resize touch-none"
             onMouseDown={(e) => handleResizeStart(e, "nw")}
+            onTouchStart={(e) => handleResizeStart(e, "nw")}
           />
           <div
-            className="absolute top-0 right-0 w-3 h-3 cursor-ne-resize"
+            className="absolute top-0 right-0 w-5 h-5 sm:w-3 sm:h-3 cursor-ne-resize touch-none"
             onMouseDown={(e) => handleResizeStart(e, "ne")}
+            onTouchStart={(e) => handleResizeStart(e, "ne")}
           />
           <div
-            className="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize"
+            className="absolute bottom-0 left-0 w-5 h-5 sm:w-3 sm:h-3 cursor-sw-resize touch-none"
             onMouseDown={(e) => handleResizeStart(e, "sw")}
+            onTouchStart={(e) => handleResizeStart(e, "sw")}
           />
         </>
       )}
