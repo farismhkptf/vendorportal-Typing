@@ -12,6 +12,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import proLogo from "@assets/Our_Logo_1771503275390.png";
+import { CompanyName } from "@/components/ui/company-name";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -150,7 +151,7 @@ export default function Login() {
       <div className="relative z-10 w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
           <img src={proLogo} alt="The P.R.O. Company" className="h-16 w-16 rounded-2xl object-contain mb-4 shadow-lg" data-testid="img-pro-logo" />
-          <h1 className="text-2xl font-semibold text-foreground">The P.R.O. Company</h1>
+          <h1 className="text-2xl font-semibold text-foreground"><CompanyName /></h1>
           <p className="text-sm text-muted-foreground mt-1">Internal Portal</p>
         </div>
 
@@ -302,7 +303,7 @@ export default function Login() {
         </Card>
 
         <p className="text-center text-xs text-muted-foreground mt-8">
-          &copy; {new Date().getFullYear()} The P.R.O. Company. All rights reserved.
+          &copy; {new Date().getFullYear()} <CompanyName />. All rights reserved.
         </p>
       </div>
     </div>

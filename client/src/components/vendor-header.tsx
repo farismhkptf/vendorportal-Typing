@@ -8,6 +8,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useOnlineStatus } from "@/hooks/use-online-status";
 import type { VendorNotification } from "@shared/schema";
+import { CompanyName } from "@/components/ui/company-name";
 
 const navItems = [
   { href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -74,7 +75,7 @@ export function VendorHeader() {
             </div>
             <div className="hidden sm:block">
               <h1 className="text-sm font-semibold text-foreground">Vendor Portal</h1>
-              <p className="text-xs text-muted-foreground">The P.R.O. Company</p>
+              <p className="text-xs text-muted-foreground"><CompanyName /></p>
             </div>
           </div>
           

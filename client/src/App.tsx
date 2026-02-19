@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { VendorAuthProvider, useVendorAuth } from "@/hooks/use-vendor-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
 import proLogo from "@assets/Our_Logo_1771503275390.png";
+import { CompanyName } from "@/components/ui/company-name";
 
 import Dashboard from "@/pages/dashboard";
 import CrmDashboard from "@/pages/crm-dashboard";
@@ -62,7 +63,7 @@ function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
       </div>
       <div className="flex flex-col items-center gap-2 splash-text-enter">
         <p className="text-sm font-medium text-foreground tracking-tight">
-          {variant === "vendor" ? "Vendor Portal" : "The P.R.O. Company"}
+          {variant === "vendor" ? "Vendor Portal" : <CompanyName />}
         </p>
         <div className="flex items-center gap-2">
           <div className="h-1 w-1 rounded-full bg-primary animate-pulse" />

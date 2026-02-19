@@ -23,6 +23,7 @@ import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
 import { useAuth } from "@/hooks/use-auth";
 import proLogo from "@assets/Our_Logo_1771503275390.png";
+import { CompanyName } from "@/components/ui/company-name";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -95,7 +96,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-3">
               <img src={proLogo} alt="The P.R.O. Company" className="h-9 w-9 rounded-xl object-contain shrink-0" data-testid="img-pro-logo" />
               <div>
-                <h1 className="text-[15px] font-semibold text-foreground tracking-tight">The P.R.O. Company</h1>
+                <h1 className="text-[15px] font-semibold text-foreground tracking-tight"><CompanyName /></h1>
                 <p className="text-xs text-muted-foreground">Portal</p>
               </div>
             </div>

@@ -21,6 +21,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { VendorNotification, TypingJob, JobType } from "@shared/schema";
 import vendorLogo from "@assets/Vendor_Logo_1771503175243.jpg";
 import proLogo from "@assets/Our_Logo_1771503275390.png";
+import { CompanyName } from "@/components/ui/company-name";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, match: "/" },
@@ -107,7 +108,7 @@ export function VendorSidebar() {
         </div>
         <div className="group-data-[collapsible=icon]:hidden flex items-center gap-2 px-3 py-2 mb-2" data-testid="section-powered-by">
           <img src={proLogo} alt="The P.R.O. Company" className="h-4 w-4 object-contain shrink-0 opacity-60" data-testid="img-powered-by-logo" />
-          <p className="text-[10px] text-muted-foreground/70 truncate" data-testid="text-powered-by">Powered by The P.R.O. Company™</p>
+          <p className="text-[10px] text-muted-foreground/70 truncate" data-testid="text-powered-by">Powered by <CompanyName /></p>
         </div>
         <SidebarMenu>
           {user?.isAdminViewing && (
@@ -221,7 +222,7 @@ export function VendorTopBar() {
           <SidebarTrigger data-testid="button-vendor-sidebar-toggle" />
           <div className="flex items-center gap-1.5 opacity-50" data-testid="section-topbar-branding">
             <img src={proLogo} alt="The P.R.O. Company" className="h-4 w-4 object-contain" data-testid="img-topbar-pro-logo" />
-            <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline" data-testid="text-topbar-company-name">The P.R.O. Company</span>
+            <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline" data-testid="text-topbar-company-name"><CompanyName /></span>
           </div>
         </div>
         <div className="flex items-center gap-1">
