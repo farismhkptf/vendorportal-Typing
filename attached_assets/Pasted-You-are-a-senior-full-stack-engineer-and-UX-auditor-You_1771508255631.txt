@@ -1,0 +1,147 @@
+You are a senior full-stack engineer and UX auditor.
+
+Your task is to inspect the existing login/authentication system of this application, identify whether the features listed below already exist, and implement any missing items using best practices for security, UX, and maintainability.
+
+This instruction is generic and must work regardless of framework, language, or architecture.
+
+STEP 1 — Audit First
+
+Locate all login-related components:
+
+Frontend login page(s)
+
+Authentication backend logic
+
+Session/token handling
+
+User database model
+
+Admin tools related to users
+
+Create a checklist report showing:
+
+✅ Exists and working
+
+⚠️ Exists but incomplete / incorrect
+
+❌ Missing
+
+Do NOT implement anything until the audit is complete.
+
+STEP 2 — Required Features to Verify / Implement
+Core Login UX
+
+Username + password login
+
+Show / Hide password toggle
+
+Caps Lock warning (only when active)
+
+Browser autofill support (proper attributes)
+
+Inline error messages (no alert popups)
+
+Loading state + disabled button during submission
+
+Recovery
+
+Forgot password flow (user request reset)
+
+Admin ability to reset/change password
+
+Audit trail for admin password changes
+
+Remembered Account Experience
+
+“Remember me” option (identity only, never password)
+
+Recognized account login on next visit:
+
+Display remembered user/company logo
+
+Display user name
+
+Password field only
+
+“Not you? Use another account” option
+
+Optional: last login time and device info
+
+Security rule:
+Never store passwords in browser storage. Use secure tokens or identifiers.
+
+Role-Based Behavior
+
+Redirect user after login based on role (e.g., admin, staff, client, vendor)
+
+Admin Oversight
+
+Login audit log including:
+
+User ID
+
+Timestamp
+
+IP address
+
+Device / browser info
+
+Success or failure status
+
+Operations & Trust
+
+Maintenance banner capability (toggleable)
+
+Privacy Policy and Terms links on login page
+
+Support link (“Need help?”) opening configured contact method
+
+Anti-Annoyance UX
+
+Enter key submits login
+
+Proper tab navigation order
+
+Password paste allowed
+
+No intrusive modal popups
+
+Field-level validation only when necessary
+
+STEP 3 — Implementation Standards
+
+Follow these principles:
+
+Security first (OWASP best practices)
+
+Clean architecture (no duplicated logic)
+
+Minimal UI clutter
+
+Accessible markup where possible
+
+Scalable data model for future features
+
+Clear separation of frontend and backend responsibilities
+
+If a feature already exists but is poorly implemented, refactor it.
+
+STEP 4 — Deliverables
+
+Provide:
+
+Audit report checklist
+
+List of missing or improved features
+
+Code changes implemented
+
+Database changes (if any)
+
+Short explanation of security decisions
+
+Manual testing steps to verify functionality
+
+Do not break existing functionality.
+
+If uncertain about existing logic, search the codebase before modifying.
