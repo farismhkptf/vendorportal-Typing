@@ -30,8 +30,8 @@ function getRedirectForRole(role: string): string {
       return "/";
     case "Client Relationship Manager":
       return "/crm";
-    case "Medical Assistance Support":
-    case "Medical Assistance Support - Temporary Staff":
+    case "Medical Support":
+    case "Medical Support - Temporary":
       return "/medical";
     default:
       return "/";
@@ -44,8 +44,8 @@ function getRoleLabel(role: string): string {
   switch (role) {
     case "Admin": return "Admin";
     case "Client Relationship Manager": return "CRM";
-    case "Medical Assistance Support": return "Medical";
-    case "Medical Assistance Support - Temporary Staff": return "Medical (Temp)";
+    case "Medical Support": return "Medical";
+    case "Medical Support - Temporary": return "Medical (Temp)";
     default: return role;
   }
 }
@@ -54,8 +54,8 @@ function getRoleColor(role: string): string {
   switch (role) {
     case "Admin": return "bg-primary/10 text-primary";
     case "Client Relationship Manager": return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
-    case "Medical Assistance Support":
-    case "Medical Assistance Support - Temporary Staff":
+    case "Medical Support":
+    case "Medical Support - Temporary":
       return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400";
     default: return "bg-muted text-muted-foreground";
   }

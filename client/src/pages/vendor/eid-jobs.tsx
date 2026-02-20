@@ -112,7 +112,6 @@ export default function EidJobs() {
     all: jobs.length,
     SentToVendor: jobs.filter(j => j.status === "SentToVendor").length,
     InProgress: jobs.filter(j => j.status === "InProgress").length,
-    WaitingForDocs: jobs.filter(j => j.status === "WaitingForDocs").length,
     Completed: jobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned").length,
   };
 
@@ -137,7 +136,7 @@ export default function EidJobs() {
       {isLoading ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
+            {[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-md" />)}
           </div>
           <Skeleton className="h-12 rounded-md" />
           <Skeleton className="h-24 rounded-md" />
@@ -145,7 +144,7 @@ export default function EidJobs() {
         </div>
       ) : (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3" data-testid="section-eid-stats">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3" data-testid="section-eid-stats">
             <Card
               className="hover-elevate cursor-pointer h-full"
               onClick={() => setStatusFilter("SentToVendor")}
@@ -176,22 +175,6 @@ export default function EidJobs() {
                 </div>
                 <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-eid-progress-count">{statusCounts.InProgress}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Being worked on</p>
-              </CardContent>
-            </Card>
-            <Card
-              className="hover-elevate cursor-pointer h-full"
-              onClick={() => setStatusFilter("WaitingForDocs")}
-              data-testid="tile-eid-waiting"
-            >
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className="h-7 w-7 rounded-md bg-orange-500/10 flex items-center justify-center shrink-0">
-                    <Clock className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-                  </div>
-                  <span className="text-xs text-muted-foreground">Waiting</span>
-                </div>
-                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-eid-waiting-count">{statusCounts.WaitingForDocs}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Pending documents</p>
               </CardContent>
             </Card>
             <Card
@@ -250,7 +233,6 @@ export default function EidJobs() {
                statusFilter === "NeedsAction" ? "Jobs Needing Action" :
                statusFilter === "SentToVendor" ? "New Jobs" :
                statusFilter === "InProgress" ? "Active Jobs" :
-               statusFilter === "WaitingForDocs" ? "Waiting for Documents" :
                statusFilter === "Completed" ? "Completed Jobs" : "Jobs"}
               {` (${sortedJobs.length})`}
             </h2>

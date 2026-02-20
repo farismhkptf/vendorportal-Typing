@@ -5,14 +5,14 @@ import { z } from "zod";
 
 // Enums
 // User roles organized by category:
-// Our Team: Admin, Client Relationship Manager, Medical Assistance Support, Medical Assistance Support - Temporary Staff
-// Vendors: Vendor, Vendor Accountant, Vendor Manager
+// Our Team: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary
+// Vendors: Vendor
 // Clients: Client Coordinator, Client Manager, Client Accountant
 export const userRoleEnum = pgEnum("user_role", [
   "Admin",
   "Client Relationship Manager",
-  "Medical Assistance Support",
-  "Medical Assistance Support - Temporary Staff",
+  "Medical Support",
+  "Medical Support - Temporary",
   "Vendor",
   "Vendor Accountant",
   "Vendor Manager",
@@ -26,8 +26,8 @@ export const ROLE_CATEGORIES = {
   "Our Team": [
     "Admin",
     "Client Relationship Manager",
-    "Medical Assistance Support",
-    "Medical Assistance Support - Temporary Staff"
+    "Medical Support",
+    "Medical Support - Temporary"
   ],
   "Vendors": [
     "Vendor",
@@ -44,8 +44,8 @@ export const ROLE_CATEGORIES = {
 export const ALL_ROLES = [
   "Admin",
   "Client Relationship Manager",
-  "Medical Assistance Support",
-  "Medical Assistance Support - Temporary Staff",
+  "Medical Support",
+  "Medical Support - Temporary",
   "Vendor",
   "Vendor Accountant",
   "Vendor Manager",
@@ -63,7 +63,7 @@ export const appointmentTypeEnum = pgEnum("appointment_type", ["Medical", "EID"]
 export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled"]);
 export const rescheduleStatusEnum = pgEnum("reschedule_status", ["New", "Accepted", "Closed"]);
 export const typingJobStatusEnum = pgEnum("typing_job_status", [
-  "Draft", "SentToVendor", "InProgress", "WaitingForDocs", 
+  "Draft", "SentToVendor", "InProgress", "WaitingForDocs",
   "Returned", "ReadyToSchedule", "SentToClient", "VendorMistake", "Cancelled",
   "OnHold", "Rejected"
 ]);
@@ -131,7 +131,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: userRoleEnum("role").notNull().default("Medical Assistance Support"),
+  role: userRoleEnum("role").notNull().default("Medical Support"),
   staffId: varchar("staff_id"),
   vendorId: varchar("vendor_id"),
   active: boolean("active").notNull().default(true),

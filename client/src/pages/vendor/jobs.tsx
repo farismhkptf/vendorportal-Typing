@@ -49,13 +49,13 @@ export default function VendorJobs() {
     queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
   };
 
-  const acceptMutation = useMutation({
+  const startWorkMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      setPendingAction(`accept-${jobId}`);
-      return apiRequest("POST", `/api/vendor/jobs/${jobId}/accept`);
+      setPendingAction(`start-${jobId}`);
+      return apiRequest("POST", `/api/vendor/jobs/${jobId}/start-work`);
     },
     onSuccess: () => {
-      toast({ title: "Job accepted", description: "Job has been moved to In Progress" });
+      toast({ title: "Work started", description: "Job has been moved to In Progress" });
       invalidateJobs();
     },
     onError: (err: Error) => {
@@ -130,7 +130,6 @@ export default function VendorJobs() {
               <SelectItem value="all">All Jobs</SelectItem>
               <SelectItem value="SentToVendor">New</SelectItem>
               <SelectItem value="InProgress">In Progress</SelectItem>
-              <SelectItem value="WaitingForDocs">Waiting for Docs</SelectItem>
               <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Rejected">Rejected</SelectItem>
             </SelectContent>
@@ -138,7 +137,7 @@ export default function VendorJobs() {
         </div>
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 xs:grid-cols-3 gap-4">
           <Card className="border border-border/50">
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">New Jobs</p>
@@ -152,14 +151,6 @@ export default function VendorJobs() {
               <p className="text-sm text-muted-foreground">In Progress</p>
               <p className="text-2xl font-semibold text-foreground mt-1">
                 {jobs?.filter(j => j.status === "InProgress").length || 0}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="border border-border/50">
-            <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Waiting for Docs</p>
-              <p className="text-2xl font-semibold text-foreground mt-1">
-                {jobs?.filter(j => j.status === "WaitingForDocs").length || 0}
               </p>
             </CardContent>
           </Card>
@@ -240,18 +231,18 @@ export default function VendorJobs() {
                       </div>
                     </div>
 
-                    {(job.status === "SentToVendor" || job.status === "InProgress" || job.status === "WaitingForDocs") && (
+                    {(job.status === "SentToVendor" || job.status === "InProgress") && (
                       <div className="flex items-center gap-2 pt-3 border-t border-border/50 md:hidden" onClick={(e) => e.preventDefault()}>
                         {job.status === "SentToVendor" && (
                           <Button
                             size="sm"
                             className="flex-1 gap-1.5 bg-emerald-600 text-white"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
-                            disabled={pendingAction === `accept-${job.id}`}
-                            data-testid={`button-accept-job-${job.id}`}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); startWorkMutation.mutate(job.id); }}
+                            disabled={pendingAction === `start-${job.id}`}
+                            data-testid={`button-start-work-${job.id}`}
                           >
-                            {pendingAction === `accept-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                            Accept
+                            {pendingAction === `start-${job.id}` ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                            Start Work
                           </Button>
                         )}
                         {job.status === "InProgress" && (
@@ -273,9 +264,6 @@ export default function VendorJobs() {
                               </Button>
                             </Link>
                           </>
-                        )}
-                        {job.status === "WaitingForDocs" && (
-                          <p className="text-xs text-muted-foreground">Waiting for team to resubmit</p>
                         )}
                       </div>
                     )}

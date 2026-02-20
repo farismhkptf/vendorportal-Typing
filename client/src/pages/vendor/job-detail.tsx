@@ -98,7 +98,6 @@ function getActiveStep(status: string): WizardStep {
   switch (status) {
     case "SentToVendor": return 2;
     case "InProgress": return 3;
-    case "WaitingForDocs": return 2;
     case "ReadyToSchedule":
     case "Returned":
     case "SentToClient": return 3;
@@ -373,10 +372,10 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
 }
 
 function StepDocuments({ 
-  job, onAccept, onResubmit, onReject, isAccepting, inputFiles, openLightbox,
+  job, onStartWork, onResubmit, isStarting, inputFiles, openLightbox,
 }: { 
-  job: VendorJobDetails; onAccept: () => void; onResubmit: () => void; onReject: () => void;
-  isAccepting: boolean; inputFiles: FileType[]; openLightbox: (files: FileType[], index: number) => void;
+  job: VendorJobDetails; onStartWork: () => void; onResubmit: () => void;
+  isStarting: boolean; inputFiles: FileType[]; openLightbox: (files: FileType[], index: number) => void;
 }) {
   const filteredRequirements = useMemo(() => {
     if (!job.documentRequirements) return [];
@@ -392,7 +391,6 @@ function StepDocuments({
   }, [filteredRequirements, job.woDocuments]);
 
   const isSentToVendor = job.status === "SentToVendor";
-  const isWaitingForDocs = job.status === "WaitingForDocs";
 
   const allDownloadableFiles = useMemo(() => {
     const docs: { url: string; name: string }[] = [];
@@ -416,20 +414,6 @@ function StepDocuments({
       <p className="text-sm text-muted-foreground">
         Review the applicant's uploaded documents below. Verify all required documents are present and correct before proceeding.
       </p>
-
-      {isWaitingForDocs && (
-        <div className="p-4 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30">
-          <div className="flex items-start gap-3">
-            <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Waiting for Documents</p>
-              <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">
-                You requested document resubmission. Waiting for the team to upload corrected documents.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {allDownloadableFiles.length > 1 && (
         <div className="flex justify-end">
@@ -530,28 +514,13 @@ function StepDocuments({
 
       {isSentToVendor && (
         <div className="pt-4 border-t space-y-3">
-          <p className="text-sm font-semibold">Your Decision</p>
-          <p className="text-sm text-muted-foreground">
-            After reviewing all documents, choose an action below. Accept to begin working on this job, request resubmission if documents need corrections, or reject if this job cannot be processed.
-          </p>
-          {!allRequiredUploaded && filteredRequirements.some(r => r.isRequired) && (
-            <div className="p-3 rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/30">
-              <p className="text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                Some required documents are missing. Please request resubmission before accepting.
-              </p>
-            </div>
-          )}
           <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={onAccept} disabled={isAccepting || !allRequiredUploaded} className="gap-2 flex-1 sm:flex-initial" data-testid="button-accept-job">
-              {isAccepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              {isAccepting ? "Accepting..." : "Accept & Start Work"}
+            <Button onClick={onStartWork} disabled={isStarting} className="gap-2 flex-1 sm:flex-initial" data-testid="button-start-work">
+              {isStarting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {isStarting ? "Starting..." : "Start Work"}
             </Button>
             <Button variant="outline" onClick={onResubmit} className="gap-2 flex-1 sm:flex-initial" data-testid="button-resubmission">
               <RotateCcw className="h-4 w-4" /> Request Resubmission
-            </Button>
-            <Button variant="destructive" onClick={onReject} className="gap-2 flex-1 sm:flex-initial" data-testid="button-reject-job">
-              <XCircle className="h-4 w-4" /> Reject
             </Button>
           </div>
         </div>
@@ -764,8 +733,6 @@ export function JobWizardDialog({
   const [resubmissionScreenshotUrl, setResubmissionScreenshotUrl] = useState("");
   const [resubmissionScreenshotName, setResubmissionScreenshotName] = useState("");
   const [uploadingScreenshot, setUploadingScreenshot] = useState(false);
-  const [showRejectDialog, setShowRejectDialog] = useState(false);
-  const [rejectReason, setRejectReason] = useState("");
   const [bioRequired, setBioRequired] = useState(false);
   const [bioDate, setBioDate] = useState("");
   const [bioTime, setBioTime] = useState("");
@@ -838,15 +805,15 @@ export function JobWizardDialog({
     onError: () => { toast({ title: "Failed to add comment", variant: "destructive" }); },
   });
 
-  const acceptMutation = useMutation({
-    mutationFn: async () => apiRequest("POST", `/api/vendor/jobs/${jobId}/accept`),
+  const startWorkMutation = useMutation({
+    mutationFn: async () => apiRequest("POST", `/api/vendor/jobs/${jobId}/start-work`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs", jobId] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
-      toast({ title: "Job accepted - you can now start working" });
+      toast({ title: "Work started — you can now begin typing" });
     },
-    onError: (error: Error) => { toast({ title: error.message || "Failed to accept job", variant: "destructive" }); },
+    onError: (error: Error) => { toast({ title: error.message || "Failed to start work", variant: "destructive" }); },
   });
 
   const completeMutation = useMutation({
@@ -892,17 +859,6 @@ export function JobWizardDialog({
     }
   };
 
-  const rejectMutation = useMutation({
-    mutationFn: async (reason: string) => apiRequest("POST", `/api/vendor/jobs/${jobId}/reject`, { reason }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs", jobId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
-      setShowRejectDialog(false); setRejectReason("");
-      toast({ title: "Job rejected" });
-    },
-    onError: (error: Error) => { toast({ title: error.message || "Failed to reject job", variant: "destructive" }); },
-  });
 
   const biometricsMutation = useMutation({
     mutationFn: async (data: any) => apiRequest("PUT", `/api/vendor/jobs/${jobId}/biometrics`, data),
@@ -974,8 +930,8 @@ export function JobWizardDialog({
               {viewStep === 1 && <StepOverview job={job} />}
               {viewStep === 2 && (
                 <StepDocuments
-                  job={job} onAccept={() => acceptMutation.mutate()} onResubmit={() => setShowResubmissionDialog(true)}
-                  onReject={() => setShowRejectDialog(true)} isAccepting={acceptMutation.isPending}
+                  job={job} onStartWork={() => startWorkMutation.mutate()} onResubmit={() => setShowResubmissionDialog(true)}
+                  isStarting={startWorkMutation.isPending}
                   inputFiles={inputFiles} openLightbox={openLightbox}
                 />
               )}
@@ -1117,25 +1073,6 @@ export function JobWizardDialog({
               ...(resubmissionScreenshotUrl ? { screenshotUrl: resubmissionScreenshotUrl, screenshotName: resubmissionScreenshotName } : {})
             })} disabled={resubmissionDocs.length === 0 || !resubmissionRemarks.trim() || resubmissionMutation.isPending || uploadingScreenshot} data-testid="button-confirm-resubmission">
               {resubmissionMutation.isPending ? "Sending..." : "Send Request"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reject Job</DialogTitle>
-            <DialogDescription>Please provide a reason for rejecting this job. The team will be notified.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Reason</p>
-            <Textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Why are you rejecting this job?" className="min-h-20 resize-none" data-testid="input-reject-reason" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectDialog(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={() => rejectMutation.mutate(rejectReason)} disabled={!rejectReason.trim() || rejectMutation.isPending} data-testid="button-confirm-reject">
-              {rejectMutation.isPending ? "Rejecting..." : "Reject Job"}
             </Button>
           </DialogFooter>
         </DialogContent>

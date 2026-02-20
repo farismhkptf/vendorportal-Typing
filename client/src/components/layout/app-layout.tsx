@@ -10,10 +10,8 @@ import {
   Menu,
   X,
   Stethoscope,
-  Bot,
   Building2,
   Search,
-  Shield,
   BarChart3,
   KeyRound
 } from "lucide-react";
@@ -33,20 +31,18 @@ interface AppLayoutProps {
 
 function getDashboardHref(role?: string): string {
   if (role === "Client Relationship Manager") return "/crm";
-  if (role === "Medical Assistance Support" || role === "Medical Assistance Support - Temporary Staff") return "/medical";
+  if (role === "Medical Support" || role === "Medical Support - Temporary") return "/medical";
   return "/";
 }
 
 const allNavigation = [
   { name: "Dashboard", href: "__dashboard__", icon: LayoutDashboard, roles: null },
-  { name: "Work Orders", href: "/work-orders", icon: FileText, roles: null },
+  { name: "Work Orders", href: "/work-orders", icon: FileText, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Appointments", href: "/appointments", icon: Stethoscope, roles: null },
   { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Companies", href: "/companies", icon: Building2, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin"] as string[] },
-  { name: "Reports", href: "/reports", icon: BarChart3, roles: null },
-  { name: "Bots", href: "/bots", icon: Bot, roles: null },
-  { name: "Manager Console", href: "/manager-console", icon: Shield, roles: ["Client Relationship Manager"] as string[] },
+  { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin", "Client Relationship Manager"] as string[] },
+  { name: "Reports", href: "/reports", icon: BarChart3, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Admin Console", href: "/admin", icon: Settings, roles: ["Admin"] as string[] },
 ];
 

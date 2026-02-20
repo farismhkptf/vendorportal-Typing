@@ -34,7 +34,7 @@ type ViewMode = "compact" | "cards" | "table" | "kanban";
 type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc";
 type CategoryFilter = "all" | "Medical" | "EID";
 
-const STATUS_ORDER = ["Draft", "SentToVendor", "InProgress", "WaitingForDocs", "ReadyToSchedule", "Returned", "SentToClient", "VendorMistake", "Cancelled", "OnHold", "Rejected"] as const;
+const STATUS_ORDER = ["Draft", "SentToVendor", "InProgress", "ReadyToSchedule", "Returned", "SentToClient", "VendorMistake", "Cancelled", "OnHold", "Rejected"] as const;
 
 export default function TypingJobsList() {
   const [, navigate] = useLocation();
@@ -74,7 +74,7 @@ export default function TypingJobsList() {
     if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0, medical: 0, eid: 0 };
     return {
       pending: typingJobs.filter(j => j.status === "Draft" || j.status === "SentToVendor").length,
-      inProgress: typingJobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
+      inProgress: typingJobs.filter(j => j.status === "InProgress").length,
       completed: typingJobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient").length,
       issues: typingJobs.filter(j => j.status === "VendorMistake" || j.status === "Cancelled" || j.status === "Rejected" || j.status === "OnHold").length,
       medical: typingJobs.filter(j => j.jobType?.category === "Medical").length,
@@ -89,7 +89,7 @@ export default function TypingJobsList() {
         job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase()) ||
         job.jobCode?.toLowerCase().includes(search.toLowerCase());
       const pendingStatuses = ["Draft", "SentToVendor"];
-      const inProgressStatuses = ["InProgress", "WaitingForDocs"];
+      const inProgressStatuses = ["InProgress"];
       const completedStatuses = ["ReadyToSchedule", "Returned", "SentToClient"];
       const issueStatuses = ["VendorMistake", "Cancelled", "Rejected", "OnHold"];
       const matchesStatus = statusFilter === "all" || job.status === statusFilter
@@ -442,7 +442,6 @@ export default function TypingJobsList() {
           <SelectItem value="Draft">Draft</SelectItem>
           <SelectItem value="SentToVendor">Sent to Vendor</SelectItem>
           <SelectItem value="InProgress">In Progress (Active)</SelectItem>
-          <SelectItem value="WaitingForDocs">Waiting for Docs</SelectItem>
           <SelectItem value="ReadyToSchedule">Ready to Schedule</SelectItem>
           <SelectItem value="Returned">Returned</SelectItem>
           <SelectItem value="SentToClient">Sent to Client</SelectItem>

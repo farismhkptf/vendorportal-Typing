@@ -1,0 +1,206 @@
+Here are your final locked answers, strictly aligned with the original question numbers.
+
+⸻
+
+1.
+
+Admin → System oversight, wallet control, approvals, financial monitoring, reporting.
+
+CRM → Create and manage work orders, upload documents, send jobs to vendor, communicate with clients, schedule appointments, ensure Medical Support is assigned and present. (Main system user.)
+
+Medical Support → Assist clients on medical day, mark attendance, mark medical completed.
+
+Vendor → Click “Start Work”, type applications, upload typed files, complete jobs.
+
+⸻
+
+2.
+
+Rename role “Medical” to Medical Support.
+
+Permanent and Temporary Medical Support both can:
+	•	View appointment details
+	•	Mark attendance
+	•	Mark medical completed
+	•	NOT edit work orders
+
+Temporary Medical Support:
+	•	Cannot access financial or wallet data
+	•	Cannot see full client document history
+
+Permanent Medical Support:
+	•	Can see full client document history
+
+⸻
+
+3.
+
+Only one Vendor role.
+One Vendor entity can have multiple users.
+All users have the same permissions.
+
+⸻
+
+4.
+
+System must allow:
+	•	Medical only
+	•	EID only
+	•	Both
+
+Default selection per applicant = Both.
+
+⸻
+
+5.
+
+1 Work Order = 1 Applicant only.
+
+⸻
+
+6.
+
+Medical is marked done when Medical Support marks appointment as completed.
+
+Admin can move a completed medical to Medical Retest.
+
+Retest requires new scheduling and different email content.
+This email UX is pending and must be reminded when “what’s pending?” is asked.
+
+⸻
+
+7.
+
+Status discussion deferred.
+System must remind to define all statuses when “what’s pending?” is asked.
+
+⸻
+
+8.
+
+Remove “WaitingForDocs” status/feature from system.
+
+⸻
+
+9.
+
+VendorMistake logic deferred for future discussion.
+Must remind when “what’s pending?” is asked.
+
+⸻
+
+10.
+
+Vendor cannot reject jobs.
+No “Accept” wording required.
+
+Vendor must click a button when starting work (e.g., “Start Work”) to update system status.
+
+⸻
+
+11.
+
+Vendor wallet can go negative.
+System must allow completion even if balance is insufficient.
+
+⸻
+
+12.
+
+Vendor communication/messaging discussion deferred.
+Must remind when “what’s pending?” is asked.
+
+⸻
+
+13.
+
+“ReadyToSchedule” is a status, not a section.
+
+When vendor completes typing → status becomes ReadyToSchedule.
+
+CRM schedules medical using existing Medical Schedule module.
+After scheduling → appointment email is sent.
+Medical Support is assigned but does not schedule.
+
+⸻
+
+14.
+
+Remove appointment reschedule limit logic entirely.
+
+⸻
+
+15.
+
+Remove reschedule token page (/reschedule/:token) entirely.
+No client self-reschedule.
+
+⸻
+
+16.
+
+Admin and CRM can top up vendor wallets.
+Top-up reflects real-world payment already made.
+
+⸻
+
+17.
+
+Cancellation wallet logic and VendorMistake wallet behavior deferred.
+Must remind when “what’s pending?” is asked.
+
+⸻
+
+18.
+
+Bots section (Quick Paste WO, Appointment Scheduler):
+Disable for now.
+Do not remove.
+Move under Admin Console → Future Updates.
+
+⸻
+
+19.
+
+Manager Console with PIN access:
+Disable for now.
+Do not remove.
+Move under Admin Console → Future Updates.
+
+⸻
+
+20.
+
+Staff page (/staff):
+Not used.
+Remove from system.
+
+⸻
+
+21.
+
+Vendor notifications (in-app only) must trigger for:
+	•	New job assigned
+	•	Wallet top-up
+	•	Wallet deduction
+	•	Wallet negative
+	•	Job status updated by team (important ones only)
+
+⸻
+
+22.
+
+Team must have in-app notification system.
+
+Trigger for:
+	•	Vendor clicked Start Work
+	•	Vendor completed typing (ReadyToSchedule)
+	•	Appointment scheduled
+	•	Medical Support marked attendance
+	•	Medical completed
+	•	Medical Retest triggered
+	•	Vendor wallet negative
+	•	Wallet top-up recorded
+	•	Admin manual overrides
+
+No internal email spam. Dashboard notification center only.

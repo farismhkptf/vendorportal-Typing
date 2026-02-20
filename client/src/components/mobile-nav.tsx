@@ -7,11 +7,8 @@ import {
   ClipboardList,
   Building2,
   Wallet,
-  Bot,
   Settings,
-  Users,
-  X,
-  Shield
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -19,23 +16,20 @@ import { useAuth } from "@/hooks/use-auth";
 
 function getDashboardHref(role?: string): string {
   if (role === "Client Relationship Manager") return "/crm";
-  if (role === "Medical Assistance Support" || role === "Medical Assistance Support - Temporary Staff") return "/medical";
+  if (role === "Medical Support" || role === "Medical Support - Temporary") return "/medical";
   return "/";
 }
 
 const MAIN_TABS = [
-  { name: "Home", href: "__dashboard__", icon: LayoutDashboard },
-  { name: "WOs", href: "/work-orders", icon: FileText },
-  { name: "Appts", href: "/appointments", icon: Stethoscope },
-  { name: "Jobs", href: "/typing-jobs", icon: ClipboardList },
+  { name: "Home", href: "__dashboard__", icon: LayoutDashboard, roles: null as string[] | null },
+  { name: "WOs", href: "/work-orders", icon: FileText, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
+  { name: "Appts", href: "/appointments", icon: Stethoscope, roles: null as string[] | null },
+  { name: "Jobs", href: "/typing-jobs", icon: ClipboardList, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
 ];
 
 const MORE_ITEMS = [
   { name: "Companies", href: "/companies", icon: Building2, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
-  { name: "Staff", href: "/staff", icon: Users, roles: ["Admin"] as string[] | null },
-  { name: "Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin"] as string[] | null },
-  { name: "Bots", href: "/bots", icon: Bot, roles: null as string[] | null },
-  { name: "Manager", href: "/manager-console", icon: Shield, roles: ["Client Relationship Manager"] as string[] | null },
+  { name: "Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
   { name: "Admin", href: "/admin", icon: Settings, roles: ["Admin"] as string[] | null },
 ];
 
@@ -45,8 +39,9 @@ export function MobileBottomNav() {
   const { user } = useAuth();
   const dashboardHref = getDashboardHref(user?.role);
 
-  const resolvedTabs = MAIN_TABS.map(tab => 
-    tab.href === "__dashboard__" ? { ...tab, href: dashboardHref } : tab
+  const resolvedTabs = MAIN_TABS
+    .filter(tab => tab.roles === null || (user && tab.roles.includes(user.role)))
+    .map(tab => tab.href === "__dashboard__" ? { ...tab, href: dashboardHref } : tab
   );
 
   const isActive = (href: string) => {

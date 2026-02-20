@@ -27,7 +27,6 @@ import CompanyDetail from "@/pages/companies/detail";
 import TypingJobsList from "@/pages/typing-jobs/index";
 import NewTypingJob from "@/pages/typing-jobs/new";
 import TypingJobDetail from "@/pages/typing-jobs/detail";
-import StaffList from "@/pages/staff/index";
 import VendorWallet from "@/pages/vendor-wallet";
 import AdminPage from "@/pages/admin/index";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -38,7 +37,6 @@ import VendorEidJobs from "@/pages/vendor/eid-jobs";
 import VendorMedicalJobs from "@/pages/vendor/medical-jobs";
 import VendorJobDetail from "@/pages/vendor/job-detail";
 import VendorWalletPage from "@/pages/vendor/wallet";
-import ReschedulePage from "@/pages/reschedule";
 import AppointmentsIndex from "@/pages/appointments/index";
 import ScheduleMedical from "@/pages/appointments/schedule-medical";
 import ScheduleEid from "@/pages/appointments/schedule-eid";
@@ -169,14 +167,12 @@ function Router() {
           <Route path="/typing-jobs" component={TypingJobsList} />
           <Route path="/typing-jobs/new" component={NewTypingJob} />
           <Route path="/typing-jobs/:id" component={TypingJobDetail} />
-          <Route path="/staff" component={StaffList} />
           <Route path="/vendor-wallet" component={VendorWallet} />
           <Route path="/admin" component={AdminPage} />
           <Route path="/manager-console" component={ManagerConsole} />
           <Route path="/reports" component={ReportsPage} />
           <Route path="/vendor/login" component={VendorLogin} />
           <Route path="/vendor" nest component={VendorLayout} />
-          <Route path="/reschedule/:token" component={ReschedulePage} />
           <Route path="/appointments" component={AppointmentsIndex} />
           <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
           <Route path="/appointments/schedule-eid" component={ScheduleEid} />

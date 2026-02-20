@@ -390,7 +390,7 @@ export default function CompanyDetail() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Medical Assistance Support</Label>
+              <Label className="text-xs">Medical Support</Label>
               <Select
                 value={form.watch("assistStaffId") || "__none__"}
                 onValueChange={(v) => form.setValue("assistStaffId", v === "__none__" ? "" : v, { shouldDirty: true })}

@@ -112,6 +112,8 @@ function requireRole(...roles: string[]) {
   };
 }
 
+const requireOpsRole = requireRole("Admin", "Client Relationship Manager");
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -448,10 +450,9 @@ export async function registerRoutes(
 
   app.get("/api/dashboard/action-center", async (req, res) => {
     try {
-      const [readyToScheduleJobs, unacceptedJobs, waitingForDocs, workOrders] = await Promise.all([
+      const [readyToScheduleJobs, unacceptedJobs, workOrders] = await Promise.all([
         storage.getTypingJobs("ReadyToSchedule"),
         storage.getTypingJobs("SentToVendor"),
-        storage.getTypingJobs("WaitingForDocs"),
         storage.getWorkOrders(),
       ]);
 
@@ -464,7 +465,6 @@ export async function registerRoutes(
         pendingApprovals: 0,
         readyToSchedule: readyToScheduleJobs.length,
         unacceptedJobs: unacceptedJobs.length,
-        waitingForDocs: waitingForDocs.length,
         overdueItems: overdueItems.length,
       });
     } catch (error) {
@@ -556,9 +556,8 @@ export async function registerRoutes(
   app.get("/api/dashboard/stale-jobs", async (req, res) => {
     try {
       const now = Date.now();
-      const [sentToVendorJobs, waitingForDocsJobs, inProgressJobs, allJobTypes] = await Promise.all([
+      const [sentToVendorJobs, inProgressJobs, allJobTypes] = await Promise.all([
         storage.getTypingJobs("SentToVendor"),
-        storage.getTypingJobs("WaitingForDocs"),
         storage.getTypingJobs("InProgress"),
         storage.getJobTypes(),
       ]);
@@ -581,19 +580,6 @@ export async function registerRoutes(
         hoursWaiting: Math.round((now - new Date(job.sentAt!).getTime()) / 3600000),
       }));
 
-      const waitingForDocsOver48h = (await Promise.all(
-        waitingForDocsJobs
-          .filter(j => (now - new Date(j.createdAt).getTime()) > 48 * 3600000)
-          .map(enrichJob)
-      )).map(({ wo, job }) => ({
-        id: job.id,
-        jobCode: job.jobCode || "",
-        woNumber: wo?.woNumber || "N/A",
-        applicantName: wo?.applicantName || "N/A",
-        lastStatusChange: job.createdAt,
-        hoursWaiting: Math.round((now - new Date(job.createdAt).getTime()) / 3600000),
-      }));
-
       const inProgressOver72h = (await Promise.all(
         inProgressJobs
           .filter(j => (now - new Date(j.createdAt).getTime()) > 72 * 3600000)
@@ -607,7 +593,7 @@ export async function registerRoutes(
         hoursInProgress: Math.round((now - new Date(job.createdAt).getTime()) / 3600000),
       }));
 
-      res.json({ unacceptedOver24h, waitingForDocsOver48h, inProgressOver72h });
+      res.json({ unacceptedOver24h, inProgressOver72h });
     } catch (error) {
       console.error("Dashboard stale-jobs error:", error);
       res.status(500).json({ message: "Failed to fetch stale jobs" });
@@ -703,7 +689,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/work-orders/bulk-status", requireAuth, async (req, res) => {
+  app.post("/api/work-orders/bulk-status", requireOpsRole, async (req, res) => {
     try {
       const bulkStatusSchema = z.object({
         ids: z.array(z.string()).min(1),
@@ -841,7 +827,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/work-orders", requireAuth, async (req, res) => {
+  app.post("/api/work-orders", requireOpsRole, async (req, res) => {
     try {
       const validation = validateBody(insertWorkOrderSchema.omit({ status: true }), req.body);
       if ('error' in validation) {
@@ -920,7 +906,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/work-orders/:id", requireAuth, async (req, res) => {
+  app.put("/api/work-orders/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const validation = validateBody(insertWorkOrderSchema.partial(), req.body);
@@ -951,7 +937,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/work-orders/:id", requireAuth, async (req, res) => {
+  app.delete("/api/work-orders/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteWorkOrder(id);
@@ -1194,7 +1180,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/companies", requireAuth, async (req, res) => {
+  app.post("/api/companies", requireOpsRole, async (req, res) => {
     try {
       const validation = validateBody(insertCompanySchema, req.body);
       if ('error' in validation) {
@@ -1261,7 +1247,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/companies/:id", requireAuth, async (req, res) => {
+  app.put("/api/companies/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const validation = validateBody(insertCompanySchema.partial(), req.body);
@@ -1555,7 +1541,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vendors", requireAuth, async (req, res) => {
+  app.post("/api/vendors", requireOpsRole, async (req, res) => {
     try {
       const { name, contactPerson, phone, email } = req.body;
       if (!name) {
@@ -1574,7 +1560,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/vendors/:id", requireAuth, async (req, res) => {
+  app.put("/api/vendors/:id", requireOpsRole, async (req, res) => {
     try {
       const { name, contactPerson, phone, email, active } = req.body;
       const updateData: any = {};
@@ -1595,7 +1581,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/vendors/:id", requireAuth, async (req, res) => {
+  app.delete("/api/vendors/:id", requireOpsRole, async (req, res) => {
     try {
       await storage.deleteVendor(req.params.id);
       res.json({ success: true });
@@ -1770,7 +1756,7 @@ export async function registerRoutes(
   });
 
   // ========== Typing Jobs ==========
-  app.post("/api/typing-jobs", requireAuth, async (req, res) => {
+  app.post("/api/typing-jobs", requireOpsRole, async (req, res) => {
     try {
       const validation = validateBody(insertTypingJobSchema.omit({ jobCode: true }), req.body);
       if ("error" in validation) {
@@ -1824,7 +1810,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/typing-jobs/bulk-assign-vendor", requireAuth, async (req, res) => {
+  app.post("/api/typing-jobs/bulk-assign-vendor", requireOpsRole, async (req, res) => {
     try {
       const bulkAssignSchema = z.object({
         ids: z.array(z.string()).min(1),
@@ -1862,14 +1848,7 @@ export async function registerRoutes(
           const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
           const cost = jobType?.cost || 0;
 
-          const balance = await storage.getWalletBalance(vendorId);
-          if (balance < cost) {
-            failed++;
-            errors.push(`Insufficient balance for job ${job.jobCode || id}. Required: AED ${cost}, Available: AED ${balance}`);
-            continue;
-          }
-
-          // Wallet deduction happens at approval after vendor completes
+          // Wallet can go negative - no balance check needed
           await storage.updateTypingJob(id, {
             vendorId,
             status: "SentToVendor",
@@ -1941,7 +1920,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/typing-jobs/:id/reassign", requireAuth, async (req, res) => {
+  app.post("/api/typing-jobs/:id/reassign", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const { vendorId } = req.body;
@@ -2068,7 +2047,7 @@ export async function registerRoutes(
   });
 
   // Submit typing job to vendor
-  app.post("/api/typing-jobs/:id/submit-to-vendor", requireAuth, async (req, res) => {
+  app.post("/api/typing-jobs/:id/submit-to-vendor", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const { vendorId } = req.body;
@@ -2096,14 +2075,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Vendor not found" });
       }
       
-      const balance = await storage.getWalletBalance(vendorId);
-      if (balance < cost) {
-        return res.status(400).json({ 
-          message: `Insufficient vendor balance. Required: AED ${cost}, Available: AED ${balance}` 
-        });
-      }
-      
-      // Update job with vendor assignment and status (wallet deduction happens at approval after vendor completes)
+      // Wallet can go negative - no balance check needed
+      // Update job with vendor assignment and status
       const updatedJob = await storage.updateTypingJob(id, {
         vendorId,
         status: "SentToVendor",
@@ -2134,39 +2107,6 @@ export async function registerRoutes(
     }
   });
 
-  // Resubmit typing job to vendor
-  app.post("/api/typing-jobs/:id/resubmit", requireAuth, async (req, res) => {
-    try {
-      const { id } = req.params;
-      
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Typing job not found" });
-      }
-      
-      if (job.status !== "WaitingForDocs") {
-        return res.status(400).json({ message: "Only jobs waiting for documents can be resubmitted" });
-      }
-      
-      const updatedJob = await storage.updateTypingJob(id, {
-        status: "SentToVendor",
-        sentAt: new Date(),
-      });
-      
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "resubmitted_to_vendor",
-        details: {},
-      });
-      
-      res.json(updatedJob);
-    } catch (error) {
-      console.error("Resubmit error:", error);
-      res.status(500).json({ message: "Failed to resubmit job" });
-    }
-  });
-
   app.post("/api/typing-jobs/:id/on-hold", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
@@ -2177,7 +2117,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Typing job not found" });
       }
       
-      const activeStatuses = ["SentToVendor", "InProgress", "WaitingForDocs"];
+      const activeStatuses = ["SentToVendor", "InProgress"];
       if (!activeStatuses.includes(job.status)) {
         return res.status(400).json({ message: "Can only put active jobs on hold" });
       }
@@ -2259,7 +2199,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Typing job not found" });
       }
       
-      const abortableStatuses = ["Draft", "SentToVendor", "InProgress", "WaitingForDocs", "OnHold"];
+      const abortableStatuses = ["Draft", "SentToVendor", "InProgress", "OnHold"];
       if (!abortableStatuses.includes(job.status)) {
         return res.status(400).json({ message: "Cannot abort job in current status" });
       }
@@ -2444,6 +2384,12 @@ export async function registerRoutes(
         entryType: "Topup",
         amount,
         note: note || "Manual top-up",
+      });
+
+      await notifyVendorUsers(vendorId, {
+        type: "wallet_topup",
+        title: "Wallet Top-Up",
+        message: `Your wallet has been topped up with AED ${amount}.`,
       });
 
       res.status(201).json(entry);
@@ -3428,13 +3374,13 @@ export async function registerRoutes(
 
       const jobTypesAll = await storage.getJobTypes();
       const jobTypeMap = new Map(jobTypesAll.map(jt => [jt.id, jt]));
-      const activeStatuses = ["SentToVendor", "InProgress", "WaitingForDocs"];
+      const activeStatuses = ["SentToVendor", "InProgress"];
       const activeJobs = jobs.filter(j => activeStatuses.includes(j.status));
 
       const stats = {
         total: jobs.length,
         pending: jobs.filter(j => j.status === "SentToVendor").length,
-        inProgress: jobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
+        inProgress: jobs.filter(j => j.status === "InProgress").length,
         completed: jobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient").length,
         urgent: jobs.filter(j => {
           const sentTime = j.sentAt ? new Date(j.sentAt).getTime() : 0;
@@ -3468,10 +3414,8 @@ export async function registerRoutes(
       );
       
       const now12h = now - 12 * 3600000;
-      const now24h = now - 24 * 3600000;
       const staleAlerts = {
         unacceptedJobs: jobs.filter(j => j.status === "SentToVendor" && j.sentAt && new Date(j.sentAt).getTime() < now12h).length,
-        waitingForDocsJobs: jobs.filter(j => j.status === "WaitingForDocs" && new Date(j.createdAt).getTime() < now24h).length,
       };
 
       const activeJobsByWo = new Map<string, { woId: string; woNumber: string; applicantName: string; jobs: Array<{ id: string; category: string; status: string; priority: string; sentAt: string | null; costSnapshot: number | null }> }>();
@@ -3607,7 +3551,7 @@ export async function registerRoutes(
 
       const statusBreakdown = {
         pending: jobs.filter(j => j.status === "SentToVendor").length,
-        inProgress: jobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
+        inProgress: jobs.filter(j => j.status === "InProgress").length,
         completed: completedJobs.length,
         cancelled: jobs.filter(j => j.status === "Cancelled").length,
       };
@@ -3906,8 +3850,8 @@ export async function registerRoutes(
     }
   });
 
-  // Vendor accept job (SentToVendor → InProgress)
-  app.post("/api/vendor/jobs/:id/accept", requireVendorAuth, async (req, res) => {
+  // Vendor start work (SentToVendor → InProgress)
+  app.post("/api/vendor/jobs/:id/start-work", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
@@ -3915,67 +3859,17 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Job not found" });
       }
       if (job.status !== "SentToVendor") {
-        return res.status(400).json({ message: "Can only accept jobs that are sent to vendor" });
+        return res.status(400).json({ message: "Can only start work on jobs that are sent to vendor" });
       }
       const updated = await storage.updateTypingJob(jobId, { status: "InProgress" });
       await storage.createAuditLog({
         entityType: "typing_job", entityId: jobId,
-        action: "vendor_accepted", details: { vendorUserId: req.session.vendorUserId },
+        action: "vendor_started_work", details: { vendorUserId: req.session.vendorUserId },
       });
       res.json(updated);
     } catch (error) {
-      console.error("Vendor accept error:", error);
-      res.status(500).json({ message: "Failed to accept job" });
-    }
-  });
-
-  // Vendor request doc resubmission (InProgress or SentToVendor → WaitingForDocs)
-  const resubmissionSchema = z.object({
-    documentTypes: z.array(z.string()).min(1, "Select at least one document"),
-    remarks: z.string().min(1, "Remarks are required"),
-    screenshotUrl: z.string().optional(),
-    screenshotName: z.string().optional(),
-  });
-
-  app.post("/api/vendor/jobs/:id/resubmission", requireVendorAuth, async (req, res) => {
-    try {
-      const jobId = req.params.id;
-      const job = await storage.getTypingJobById(jobId);
-      if (!job || job.vendorId !== req.session.vendorId) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-      if (job.status !== "InProgress" && job.status !== "SentToVendor") {
-        return res.status(400).json({ message: "Cannot request resubmission in current status" });
-      }
-      const validation = validateBody(resubmissionSchema, req.body);
-      if ('error' in validation) {
-        return res.status(400).json({ message: validation.error });
-      }
-      const { documentTypes, remarks, screenshotUrl, screenshotName } = validation.data;
-
-      await storage.updateTypingJob(jobId, { status: "WaitingForDocs" });
-
-      const docLabels = documentTypes.join(", ");
-      let commentMessage = `Resubmission Required - Documents: ${docLabels}\nRemarks: ${remarks}`;
-      if (screenshotUrl) {
-        commentMessage += `\n[Screenshot: ${screenshotName || 'screenshot'}](${screenshotUrl})`;
-      }
-      await storage.createTypingJobComment({
-        typingJobId: jobId,
-        authorType: "Vendor",
-        message: commentMessage,
-      });
-
-      await storage.createAuditLog({
-        entityType: "typing_job", entityId: jobId,
-        action: "vendor_resubmission_requested",
-        details: { documentTypes, remarks, screenshotUrl, vendorUserId: req.session.vendorUserId },
-      });
-
-      res.json({ message: "Resubmission request sent" });
-    } catch (error) {
-      console.error("Vendor resubmission error:", error);
-      res.status(500).json({ message: "Failed to request resubmission" });
+      console.error("Vendor start work error:", error);
+      res.status(500).json({ message: "Failed to start work on job" });
     }
   });
 
@@ -4015,62 +3909,18 @@ export async function registerRoutes(
         action: "vendor_completed", details: { vendorUserId: req.session.vendorUserId, deductionAmount },
       });
 
-      const wo = await storage.getWorkOrderById(job.woId);
-      const allTeamUsers = await storage.getUsers();
-      const teamUsers = allTeamUsers.filter(u => 
-        ["Admin", "Client Relationship Manager", "Medical Assistance Support"].includes(u.role) && u.active
-      );
-      for (const user of teamUsers) {
-        console.log(`[Notification] Job ${job.jobCode || jobId} completed by vendor - notifying ${user.name}`);
+      if (deductionAmount > 0 && job.vendorId) {
+        await notifyVendorUsers(job.vendorId, {
+          type: "wallet_deduction",
+          title: "Wallet Deduction",
+          message: `AED ${deductionAmount} deducted for completing job ${job.jobCode || jobId}.`,
+        });
       }
 
       res.json(updated);
     } catch (error) {
       console.error("Vendor complete error:", error);
       res.status(500).json({ message: "Failed to complete job" });
-    }
-  });
-
-  const rejectSchema = z.object({
-    reason: z.string().min(1, "Reason is required"),
-  });
-
-  app.post("/api/vendor/jobs/:id/reject", requireVendorAuth, async (req, res) => {
-    try {
-      const jobId = req.params.id;
-      const job = await storage.getTypingJobById(jobId);
-      if (!job || job.vendorId !== req.session.vendorId) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-      if (job.status !== "SentToVendor") {
-        return res.status(400).json({ message: "Can only reject jobs that are sent to vendor" });
-      }
-      const validation = validateBody(rejectSchema, req.body);
-      if ('error' in validation) {
-        return res.status(400).json({ message: validation.error });
-      }
-      const { reason } = validation.data;
-
-      const updated = await storage.updateTypingJob(jobId, {
-        status: "Rejected",
-        rejectedReason: reason,
-      });
-
-      await storage.createTypingJobComment({
-        typingJobId: jobId,
-        authorType: "Vendor",
-        message: `Job rejected: ${reason}`,
-      });
-
-      await storage.createAuditLog({
-        entityType: "typing_job", entityId: jobId,
-        action: "vendor_rejected", details: { reason, vendorUserId: req.session.vendorUserId },
-      });
-
-      res.json(updated);
-    } catch (error) {
-      console.error("Vendor reject error:", error);
-      res.status(500).json({ message: "Failed to reject job" });
     }
   });
 

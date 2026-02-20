@@ -174,19 +174,6 @@ export default function TypingJobDetail() {
     },
   });
   
-  const resubmitMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/typing-jobs/${id}/resubmit`, {});
-    },
-    onSuccess: () => {
-      invalidateTypingJobQueries();
-      toast({ title: "Job resubmitted to vendor" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to resubmit", description: error.message, variant: "destructive" });
-    },
-  });
-  
   const deliverToClientMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/typing-jobs/${id}/deliver-to-client`, {});
@@ -384,23 +371,6 @@ export default function TypingJobDetail() {
                 </Button>
               )}
               
-              {job.status === "WaitingForDocs" && (
-                <Button 
-                  size="sm" 
-                  className="gap-2"
-                  onClick={() => resubmitMutation.mutate()}
-                  disabled={resubmitMutation.isPending}
-                  data-testid="button-resubmit"
-                >
-                  {resubmitMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                  Resubmit to Vendor
-                </Button>
-              )}
-              
               {(job.status === "ReadyToSchedule" || job.status === "Returned") && (
                 <Button 
                   size="sm" 
@@ -435,7 +405,7 @@ export default function TypingJobDetail() {
                 </Button>
               )}
               
-              {["SentToVendor", "InProgress", "WaitingForDocs"].includes(job.status) && (
+              {["SentToVendor", "InProgress"].includes(job.status) && (
                 <Button 
                   variant="outline"
                   size="sm" 
@@ -448,7 +418,7 @@ export default function TypingJobDetail() {
                 </Button>
               )}
 
-              {["Draft", "SentToVendor", "InProgress", "WaitingForDocs", "OnHold"].includes(job.status) && (
+              {["Draft", "SentToVendor", "InProgress", "OnHold"].includes(job.status) && (
                 <Button 
                   variant="destructive"
                   size="sm" 
