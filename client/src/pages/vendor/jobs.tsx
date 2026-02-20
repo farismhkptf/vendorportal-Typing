@@ -83,7 +83,8 @@ export default function VendorJobs() {
     const matchesSearch = !search || 
       job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
       job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || job.status === statusFilter;
+    const matchesStatus = statusFilter === "all" || 
+      (statusFilter === "Completed" ? (job.status === "ReadyToSchedule" || job.status === "Returned") : job.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -130,7 +131,7 @@ export default function VendorJobs() {
               <SelectItem value="SentToVendor">New</SelectItem>
               <SelectItem value="InProgress">In Progress</SelectItem>
               <SelectItem value="WaitingForDocs">Waiting for Docs</SelectItem>
-              <SelectItem value="Returned">Returned</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
@@ -164,9 +165,9 @@ export default function VendorJobs() {
           </Card>
           <Card className="border border-border/50">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Returned</p>
+              <p className="text-sm text-muted-foreground">Completed</p>
               <p className="text-2xl font-semibold text-foreground mt-1">
-                {jobs?.filter(j => j.status === "Returned").length || 0}
+                {jobs?.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned").length || 0}
               </p>
             </CardContent>
           </Card>

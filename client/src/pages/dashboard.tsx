@@ -41,7 +41,7 @@ import { DashboardSwitcher } from "@/components/dashboard-switcher";
 import { DevNotesDashboard } from "@/components/dev-notes-dashboard";
 
 function getStatusSummary(typing: string | null, appt: string | null): { label: string; color: string } {
-  if (appt === "Completed" && (typing === "SentToClient" || typing === "Returned")) {
+  if (appt === "Completed" && (typing === "SentToClient" || typing === "ReadyToSchedule" || typing === "Returned")) {
     return { label: "Done", color: "text-emerald-600 dark:text-emerald-400" };
   }
   if (appt === "Scheduled") {
@@ -49,6 +49,9 @@ function getStatusSummary(typing: string | null, appt: string | null): { label: 
   }
   if (typing === "SentToClient") {
     return { label: "Sent to Client", color: "text-emerald-600 dark:text-emerald-400" };
+  }
+  if (typing === "ReadyToSchedule") {
+    return { label: "Ready to Schedule", color: "text-teal-600 dark:text-teal-400" };
   }
   if (typing === "Returned") {
     return { label: "Returned", color: "text-violet-600 dark:text-violet-400" };

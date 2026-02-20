@@ -116,8 +116,8 @@ function needsAttention(wo: WorkOrderEnriched): boolean {
   if (wo.status === "Completed" || wo.status === "Cancelled") return false;
   const med = getMedicalStatus(wo);
   const eid = getEidStatus(wo);
-  if (med.hasMedical && med.typing === "Returned" && !med.appointment) return true;
-  if (eid.hasEid && eid.typing === "Returned" && !eid.appointment) return true;
+  if (med.hasMedical && (med.typing === "ReadyToSchedule" || med.typing === "Returned") && !med.appointment) return true;
+  if (eid.hasEid && (eid.typing === "ReadyToSchedule" || eid.typing === "Returned") && !eid.appointment) return true;
   if (med.hasMedical && med.typing === "SentToClient" && !med.appointment) return true;
   if (eid.hasEid && eid.typing === "SentToClient" && !eid.appointment) return true;
   const daysOld = Math.floor((Date.now() - new Date(wo.createdAt).getTime()) / 86400000);
@@ -132,13 +132,13 @@ function getProgressPercent(wo: WorkOrderEnriched): number {
   let done = 0;
   if (med.hasMedical) {
     total += 2;
-    if (med.typing === "SentToClient" || med.typing === "Returned") done += 1;
+    if (med.typing === "SentToClient" || med.typing === "ReadyToSchedule" || med.typing === "Returned") done += 1;
     if (med.appointment === "Completed") done += 1;
     else if (med.appointment === "Scheduled") done += 0.5;
   }
   if (eid.hasEid) {
     total += 2;
-    if (eid.typing === "SentToClient" || eid.typing === "Returned") done += 1;
+    if (eid.typing === "SentToClient" || eid.typing === "ReadyToSchedule" || eid.typing === "Returned") done += 1;
     if (eid.appointment === "Completed") done += 1;
     else if (eid.appointment === "Scheduled") done += 0.5;
   }
@@ -164,6 +164,7 @@ function TypingStatusPill({ status }: { status: string | null }) {
   const styles: Record<string, { bg: string; label: string }> = {
     Draft: { bg: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400", label: "Draft" },
     SentToVendor: { bg: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300", label: "At Vendor" },
+    ReadyToSchedule: { bg: "bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-300", label: "Ready to Schedule" },
     Returned: { bg: "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-300", label: "Returned" },
     SentToClient: { bg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300", label: "Sent to Client" },
     VendorMistake: { bg: "bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-300", label: "Mistake" },
@@ -287,8 +288,8 @@ export default function WorkOrdersList() {
       if (med.hasMedical && (!med.typing || med.typing === "Draft" || med.typing === "SentToVendor")) awaitingTyping++;
       if (eid.hasEid && (!eid.typing || eid.typing === "Draft" || eid.typing === "SentToVendor")) awaitingTyping++;
 
-      if (med.hasMedical && (med.typing === "Returned" || med.typing === "SentToClient") && !med.appointment) needScheduling++;
-      if (eid.hasEid && (eid.typing === "Returned" || eid.typing === "SentToClient") && !eid.appointment) needScheduling++;
+      if (med.hasMedical && (med.typing === "ReadyToSchedule" || med.typing === "Returned" || med.typing === "SentToClient") && !med.appointment) needScheduling++;
+      if (eid.hasEid && (eid.typing === "ReadyToSchedule" || eid.typing === "Returned" || eid.typing === "SentToClient") && !eid.appointment) needScheduling++;
 
       if (needsAttention(wo)) attentionNeeded++;
     });
@@ -330,8 +331,8 @@ export default function WorkOrdersList() {
             break;
           case "need_scheduling":
             matchesSpecial = 
-              (med.hasMedical && (med.typing === "Returned" || med.typing === "SentToClient") && !med.appointment) ||
-              (eid.hasEid && (eid.typing === "Returned" || eid.typing === "SentToClient") && !eid.appointment);
+              (med.hasMedical && (med.typing === "ReadyToSchedule" || med.typing === "Returned" || med.typing === "SentToClient") && !med.appointment) ||
+              (eid.hasEid && (eid.typing === "ReadyToSchedule" || eid.typing === "Returned" || eid.typing === "SentToClient") && !eid.appointment);
             break;
           case "vip":
             matchesSpecial = !!wo.isVip && wo.status !== "Completed" && wo.status !== "Cancelled";
@@ -538,10 +539,10 @@ export default function WorkOrdersList() {
     const showEid = eid.hasEid || (st && (st.requiresIdTyping2Years || st.requiresIdTyping1Year || st.requiresIdTyping10Years || st.requiresIdBiometrics));
 
     const medLabel = showMed
-      ? (med.hasMedical ? (med.appointment === "Completed" ? "Done" : med.appointment ? "Scheduled" : med.typing ? (med.typing === "SentToClient" || med.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
+      ? (med.hasMedical ? (med.appointment === "Completed" ? "Done" : med.appointment ? "Scheduled" : med.typing ? (med.typing === "SentToClient" || med.typing === "ReadyToSchedule" || med.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
       : null;
     const eidLabel = showEid
-      ? (eid.hasEid ? (eid.appointment === "Completed" ? "Done" : eid.appointment ? "Scheduled" : eid.typing ? (eid.typing === "SentToClient" || eid.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
+      ? (eid.hasEid ? (eid.appointment === "Completed" ? "Done" : eid.appointment ? "Scheduled" : eid.typing ? (eid.typing === "SentToClient" || eid.typing === "ReadyToSchedule" || eid.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
       : null;
 
     const isSelected = dt.selectedIds.has(wo.id);

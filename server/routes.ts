@@ -327,7 +327,7 @@ export async function registerRoutes(
         activeWorkOrders: allWorkOrders.filter(wo => wo.status !== "Completed" && wo.status !== "Cancelled").length,
         completedWorkOrders: allWorkOrders.filter(wo => wo.status === "Completed").length,
         totalTypingJobs: allTypingJobs.length,
-        completedTypingJobs: allTypingJobs.filter(j => j.status === "SentToClient" || j.status === "Returned").length,
+        completedTypingJobs: allTypingJobs.filter(j => j.status === "SentToClient" || j.status === "ReadyToSchedule" || j.status === "Returned").length,
         totalCompanies: allCompanies.length,
         totalVendors: allVendors.length,
       };
@@ -360,7 +360,7 @@ export async function registerRoutes(
 
       const turnaroundByVendor = allVendors.map(v => {
         const jobs = vendorJobsMap.get(v.id) || [];
-        const completedJobs = jobs.filter(j => j.status === "Returned" || j.status === "SentToClient");
+        const completedJobs = jobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient");
         let totalHours = 0;
         let countWithTime = 0;
         for (const j of completedJobs) {
@@ -511,11 +511,11 @@ export async function registerRoutes(
 
         const returnedMed = typingJobs.some(j => {
           const jt = jobTypeMap.get(j.jobTypeId);
-          return jt?.category === "Medical" && (j.status === "Returned" || j.status === "SentToClient");
+          return jt?.category === "Medical" && (j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient");
         });
         const returnedEid = typingJobs.some(j => {
           const jt = jobTypeMap.get(j.jobTypeId);
-          return jt?.category === "EID" && (j.status === "Returned" || j.status === "SentToClient");
+          return jt?.category === "EID" && (j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient");
         });
 
         if (returnedMed && !hasMedAppt) {
@@ -620,11 +620,12 @@ export async function registerRoutes(
       const allJobTypes = await storage.getJobTypes();
       const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
 
-      const [returnedJobs, sentToClientJobs] = await Promise.all([
+      const [readyToScheduleJobs, returnedJobs, sentToClientJobs] = await Promise.all([
+        storage.getTypingJobs("ReadyToSchedule"),
         storage.getTypingJobs("Returned"),
         storage.getTypingJobs("SentToClient"),
       ]);
-      const completedJobs = [...returnedJobs, ...sentToClientJobs];
+      const completedJobs = [...readyToScheduleJobs, ...returnedJobs, ...sentToClientJobs];
 
       const expiringMedical: Array<{ jobId: string; jobCode: string; woNumber: string; applicantName: string; completedAt: string; daysRemaining: number }> = [];
       const expiringEid: Array<{ jobId: string; jobCode: string; woNumber: string; applicantName: string; completedAt: string; daysRemaining: number }> = [];
@@ -1020,6 +1021,40 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Audit logs error:", error);
       res.status(500).json({ message: "Failed to fetch audit logs" });
+    }
+  });
+
+  // ========== Ready to Schedule (typing jobs completed by vendor) ==========
+  app.get("/api/typing-jobs/ready-to-schedule", requireAuth, async (req, res) => {
+    try {
+      const readyJobs = await storage.getTypingJobs("ReadyToSchedule");
+      const allJobTypes = await storage.getJobTypes();
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+      const allAppointments = await storage.getAllAppointments();
+      
+      const enriched = await Promise.all(readyJobs.map(async (job) => {
+        const wo = await storage.getWorkOrderById(job.woId);
+        const jobType = job.jobTypeId ? jobTypeMap.get(job.jobTypeId) : null;
+        const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+        const vendor = job.vendorId ? await storage.getVendorById(job.vendorId) : null;
+        const woAppointments = allAppointments.filter(a => a.woId === job.woId && a.status !== "Cancelled");
+        const hasAppointment = woAppointments.some(a => 
+          (jobType?.category === "Medical" && a.type === "Medical") ||
+          (jobType?.category === "EID" && a.type === "EID")
+        );
+        return {
+          ...job,
+          workOrder: wo ? { ...wo, company: company ? { name: company.name } : undefined } : undefined,
+          jobType: jobType || undefined,
+          vendor: vendor ? { name: vendor.name } : undefined,
+          hasAppointment,
+        };
+      }));
+      
+      res.json(enriched);
+    } catch (error) {
+      console.error("Ready to schedule error:", error);
+      res.status(500).json({ message: "Failed to fetch ready to schedule jobs" });
     }
   });
 
@@ -2264,8 +2299,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Typing job not found" });
       }
       
-      if (job.status !== "Returned") {
-        return res.status(400).json({ message: "Only returned jobs can be delivered to client" });
+      if (job.status !== "ReadyToSchedule" && job.status !== "Returned") {
+        return res.status(400).json({ message: "Only completed jobs can be delivered to client" });
       }
       
       // Update job status
@@ -3385,7 +3420,7 @@ export async function registerRoutes(
         total: jobs.length,
         pending: jobs.filter(j => j.status === "SentToVendor").length,
         inProgress: jobs.filter(j => j.status === "InProgress" || j.status === "WaitingForDocs").length,
-        completed: jobs.filter(j => j.status === "Returned" || j.status === "SentToClient").length,
+        completed: jobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient").length,
         urgent: jobs.filter(j => {
           const sentTime = j.sentAt ? new Date(j.sentAt).getTime() : 0;
           const hoursSinceSent = sentTime ? (now - sentTime) / 3600000 : 0;
@@ -3502,7 +3537,7 @@ export async function registerRoutes(
       const jobTypeMap = new Map(jobTypesAll.map(jt => [jt.id, jt]));
 
       const nonDraftJobs = jobs.filter(j => j.status !== "Draft");
-      const completedJobs = nonDraftJobs.filter(j => j.status === "Returned" || j.status === "SentToClient");
+      const completedJobs = nonDraftJobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient");
       const completionRate = nonDraftJobs.length > 0
         ? Math.round((completedJobs.length / nonDraftJobs.length) * 100)
         : 0;
@@ -3929,7 +3964,7 @@ export async function registerRoutes(
     }
   });
 
-  // Vendor mark job completed (InProgress → Returned)
+  // Vendor mark job completed (InProgress → ReadyToSchedule) + immediate wallet deduction
   app.post("/api/vendor/jobs/:id/complete", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
@@ -3940,25 +3975,40 @@ export async function registerRoutes(
       if (job.status !== "InProgress") {
         return res.status(400).json({ message: "Can only complete jobs that are in progress" });
       }
+
+      const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+      const deductionAmount = job.costSnapshot || jobType?.cost || 0;
+
       const updated = await storage.updateTypingJob(jobId, {
-        status: "Returned",
+        status: "ReadyToSchedule",
         returnedAt: new Date(),
       });
 
-      const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
-      const calculatedAmount = job.costSnapshot || jobType?.cost || 0;
-
-      await storage.createVendorApproval({
-        typingJobId: jobId,
-        vendorId: job.vendorId!,
-        calculatedAmount,
-        status: "Pending",
-      });
+      if (deductionAmount > 0) {
+        await storage.createWalletEntry({
+          vendorId: job.vendorId!,
+          entryType: "Debit",
+          typingJobId: jobId,
+          amount: -deductionAmount,
+          note: `Job completed - deduction for ${job.jobCode || jobId}`,
+          createdBy: req.session.vendorUserId,
+        });
+      }
 
       await storage.createAuditLog({
         entityType: "typing_job", entityId: jobId,
-        action: "vendor_completed", details: { vendorUserId: req.session.vendorUserId },
+        action: "vendor_completed", details: { vendorUserId: req.session.vendorUserId, deductionAmount },
       });
+
+      const wo = await storage.getWorkOrderById(job.woId);
+      const allTeamUsers = await storage.getUsers();
+      const teamUsers = allTeamUsers.filter(u => 
+        ["Admin", "Client Relationship Manager", "Medical Assistance Support"].includes(u.role) && u.active
+      );
+      for (const user of teamUsers) {
+        console.log(`[Notification] Job ${job.jobCode || jobId} completed by vendor - notifying ${user.name}`);
+      }
+
       res.json(updated);
     } catch (error) {
       console.error("Vendor complete error:", error);

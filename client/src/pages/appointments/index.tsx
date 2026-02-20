@@ -5,7 +5,8 @@ import {
   Calendar, Clock, Stethoscope, CreditCard,
   CheckCircle2, AlertCircle, Building2, User,
   MoreHorizontal, RefreshCw, XCircle, MapPin,
-  Mail, MessageCircle, Copy, Check, Maximize2, Download, Filter
+  Mail, MessageCircle, Copy, Check, Maximize2, Download, Filter,
+  CalendarPlus, FileText
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToCsv } from "@/lib/csv-export";
@@ -27,11 +28,20 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { toProperCase } from "@/lib/proper-case";
 import { generateMedicalAppointmentEmailHtml, MedicalAppointmentEmail } from "@/components/email-templates/medical-appointment-email";
 import { generateEidAppointmentEmailHtml, EidAppointmentEmail } from "@/components/email-templates/eid-appointment-email";
-import type { Appointment, WorkOrder, Center, Staff, Company, ServiceType } from "@shared/schema";
+import type { Appointment, WorkOrder, Center, Staff, Company, ServiceType, TypingJob, JobType, Vendor } from "@shared/schema";
+import { RelativeTime } from "@/components/ui/relative-time";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 interface AppointmentWithRelations extends Appointment {
   workOrder?: WorkOrder & { company?: { name: string } };
   center?: Center;
+}
+
+interface ReadyToScheduleJob extends TypingJob {
+  workOrder?: WorkOrder & { company?: { name: string } };
+  jobType?: JobType;
+  vendor?: { name: string };
+  hasAppointment: boolean;
 }
 
 interface AppointmentStats {
@@ -39,6 +49,7 @@ interface AppointmentStats {
   upcomingCount: number;
   completedCount: number;
   cancelledCount: number;
+  readyToScheduleCount: number;
 }
 
 const formatTime12h = (time24: string) => {
@@ -79,6 +90,10 @@ export default function AppointmentsIndex() {
 
   const { data: serviceTypes } = useQuery<ServiceType[]>({
     queryKey: ["/api/service-types"],
+  });
+
+  const { data: readyToScheduleJobs } = useQuery<ReadyToScheduleJob[]>({
+    queryKey: ["/api/typing-jobs/ready-to-schedule"],
   });
 
   useEffect(() => {
@@ -255,7 +270,13 @@ Thank you,
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
+  const readyJobsWithoutAppointment = useMemo(() => 
+    readyToScheduleJobs?.filter(j => !j.hasAppointment) || [],
+    [readyToScheduleJobs]
+  );
+
   const stats: AppointmentStats = {
+    readyToScheduleCount: readyJobsWithoutAppointment.length,
     todayCount: appointments?.filter(a => {
       const aptDate = new Date(a.datetime);
       return aptDate >= today && aptDate < tomorrow && a.status === "Scheduled";
@@ -551,11 +572,12 @@ Thank you,
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <StatCard title="Today" value={stats.todayCount} icon={<Calendar className="h-4 w-4" />} onClick={() => scrollToSection("section-today")} />
-          <StatCard title="Upcoming" value={stats.upcomingCount} icon={<Clock className="h-4 w-4" />} animationDelay={1} onClick={() => scrollToSection("section-upcoming")} />
-          <StatCard title="Completed" value={stats.completedCount} icon={<CheckCircle2 className="h-4 w-4" />} animationDelay={2} onClick={() => scrollToSection("section-completed")} />
-          <StatCard title="Cancelled" value={stats.cancelledCount} icon={<AlertCircle className="h-4 w-4" />} animationDelay={3} onClick={() => scrollToSection("section-cancelled")} />
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <StatCard title="Ready to Schedule" value={stats.readyToScheduleCount} icon={<CalendarPlus className="h-4 w-4" />} onClick={() => scrollToSection("section-ready")} />
+          <StatCard title="Today" value={stats.todayCount} icon={<Calendar className="h-4 w-4" />} animationDelay={1} onClick={() => scrollToSection("section-today")} />
+          <StatCard title="Upcoming" value={stats.upcomingCount} icon={<Clock className="h-4 w-4" />} animationDelay={2} onClick={() => scrollToSection("section-upcoming")} />
+          <StatCard title="Completed" value={stats.completedCount} icon={<CheckCircle2 className="h-4 w-4" />} animationDelay={3} onClick={() => scrollToSection("section-completed")} />
+          <StatCard title="Cancelled" value={stats.cancelledCount} icon={<AlertCircle className="h-4 w-4" />} animationDelay={4} onClick={() => scrollToSection("section-cancelled")} />
         </div>
 
         <DataTableToolbar
@@ -619,6 +641,108 @@ Thank you,
             </Button>
           }
         />
+
+        {readyJobsWithoutAppointment.length > 0 && (
+          <Card id="section-ready" className="border border-amber-200/50 dark:border-amber-800/30 bg-amber-50/30 dark:bg-amber-950/10 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <CalendarPlus className="h-5 w-5 text-amber-600" />
+                  Ready to Schedule
+                  <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 text-xs ml-1">
+                    {readyJobsWithoutAppointment.length}
+                  </Badge>
+                </CardTitle>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Vendor work completed — these jobs need appointments scheduled
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3 stagger-children">
+                {readyJobsWithoutAppointment.map((job) => (
+                  <div
+                    key={job.id}
+                    className="flex items-start gap-4 p-4 rounded-lg bg-background border border-border/30"
+                    data-testid={`ready-job-card-${job.id}`}
+                  >
+                    <div className="shrink-0">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        job.jobType?.category === "Medical" 
+                          ? "bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400"
+                          : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                      }`}>
+                        {job.jobType?.category === "Medical" ? (
+                          <Stethoscope className="h-4 w-4" />
+                        ) : (
+                          <CreditCard className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="font-medium text-sm text-foreground truncate">
+                          {job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "Unknown"}
+                        </span>
+                        <Badge variant="secondary" className="text-xs">
+                          {job.jobType?.category === "Medical" ? "Medical" : "Emirates ID"}
+                        </Badge>
+                        {job.priority === "Urgent" && (
+                          <Badge variant="destructive" className="text-xs">Urgent</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-sm text-muted-foreground truncate">
+                          {job.workOrder?.woNumber || "No WO"} · {job.jobCode || "No code"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-sm text-muted-foreground truncate">
+                          {job.workOrder?.company?.name ? toProperCase(job.workOrder.company.name) : "Unknown Company"}
+                        </span>
+                      </div>
+                      {job.vendor?.name && (
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="text-xs text-muted-foreground">
+                            Completed by {job.vendor.name}
+                          </span>
+                          {job.completedAt && (
+                            <span className="text-xs text-muted-foreground">
+                              · <RelativeTime date={job.completedAt} />
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-2">
+                      <Link href={
+                        job.jobType?.category === "Medical"
+                          ? `/appointments/schedule-medical?wo=${job.woId}`
+                          : `/appointments/schedule-eid?wo=${job.woId}`
+                      }>
+                        <Button size="sm" className="gap-1.5" data-testid={`button-schedule-${job.id}`}>
+                          <CalendarPlus className="h-3.5 w-3.5" />
+                          Schedule
+                        </Button>
+                      </Link>
+                      <Link href={`/work-orders/${job.woId}`}>
+                        <Button variant="ghost" size="sm" data-testid={`button-view-wo-ready-${job.id}`}>
+                          View WO
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card id="section-today" className="border border-border/50 shadow-sm rounded-xl scroll-mt-4 transition-all duration-300">
           <CardHeader className="pb-3">

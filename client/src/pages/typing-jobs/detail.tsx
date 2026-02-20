@@ -401,7 +401,7 @@ export default function TypingJobDetail() {
                 </Button>
               )}
               
-              {job.status === "Returned" && (
+              {(job.status === "ReadyToSchedule" || job.status === "Returned") && (
                 <Button 
                   size="sm" 
                   className="gap-2"
@@ -574,7 +574,7 @@ export default function TypingJobDetail() {
                 <p className="text-sm">{formatDateTime(job.sentAt)}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Returned</p>
+                <p className="text-xs text-muted-foreground">Completed by Vendor</p>
                 <p className="text-sm">{formatDateTime(job.returnedAt)}</p>
               </div>
             </div>

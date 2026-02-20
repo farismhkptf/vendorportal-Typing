@@ -97,7 +97,9 @@ export default function EidJobs() {
       job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
       job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "NeedsAction" ? (job.status === "SentToVendor" || job.priority === "urgent") : job.status === statusFilter);
+      (statusFilter === "NeedsAction" ? (job.status === "SentToVendor" || job.priority === "urgent") : 
+       statusFilter === "Completed" ? (job.status === "ReadyToSchedule" || job.status === "Returned") :
+       job.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -111,7 +113,7 @@ export default function EidJobs() {
     SentToVendor: jobs.filter(j => j.status === "SentToVendor").length,
     InProgress: jobs.filter(j => j.status === "InProgress").length,
     WaitingForDocs: jobs.filter(j => j.status === "WaitingForDocs").length,
-    Returned: jobs.filter(j => j.status === "Returned").length,
+    Completed: jobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned").length,
   };
 
   return (
@@ -194,18 +196,18 @@ export default function EidJobs() {
             </Card>
             <Card
               className="hover-elevate cursor-pointer h-full"
-              onClick={() => setStatusFilter("Returned")}
-              data-testid="tile-eid-returned"
+              onClick={() => setStatusFilter("Completed")}
+              data-testid="tile-eid-completed"
             >
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-1.5">
                   <div className="h-7 w-7 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-xs text-muted-foreground">Returned</span>
+                  <span className="text-xs text-muted-foreground">Completed</span>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-eid-returned-count">{statusCounts.Returned}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Sent back to team</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-eid-completed-count">{statusCounts.Completed}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Work submitted</p>
               </CardContent>
             </Card>
           </div>
@@ -249,7 +251,7 @@ export default function EidJobs() {
                statusFilter === "SentToVendor" ? "New Jobs" :
                statusFilter === "InProgress" ? "Active Jobs" :
                statusFilter === "WaitingForDocs" ? "Waiting for Documents" :
-               statusFilter === "Returned" ? "Returned Jobs" : "Jobs"}
+               statusFilter === "Completed" ? "Completed Jobs" : "Jobs"}
               {` (${sortedJobs.length})`}
             </h2>
             <div className="space-y-2">

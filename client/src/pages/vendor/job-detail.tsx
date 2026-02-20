@@ -99,6 +99,7 @@ function getActiveStep(status: string): WizardStep {
     case "SentToVendor": return 2;
     case "InProgress": return 3;
     case "WaitingForDocs": return 2;
+    case "ReadyToSchedule":
     case "Returned":
     case "SentToClient": return 3;
     default: return 1;
@@ -106,7 +107,7 @@ function getActiveStep(status: string): WizardStep {
 }
 
 function getStepState(step: WizardStep, activeStep: WizardStep, status: string): "completed" | "active" | "locked" {
-  const terminalStatuses = ["Returned", "SentToClient", "Cancelled", "Rejected", "OnHold", "VendorMistake"];
+  const terminalStatuses = ["ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "Rejected", "OnHold", "VendorMistake"];
   if (terminalStatuses.includes(status)) return "completed";
   if (step < activeStep) return "completed";
   if (step === activeStep) return "active";
@@ -578,7 +579,7 @@ function StepComplete({
   const isEid = job.jobType?.category === "EID";
   const isMedical = job.jobType?.category === "Medical";
   const isInProgress = job.status === "InProgress";
-  const isTerminal = ["Returned", "SentToClient", "Cancelled", "Rejected", "OnHold", "VendorMistake"].includes(job.status);
+  const isTerminal = ["ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "Rejected", "OnHold", "VendorMistake"].includes(job.status);
   const isVip = job.workOrder?.isVip;
 
   const eidCentersFiltered = useMemo(() => {
@@ -604,26 +605,28 @@ function StepComplete({
       {isTerminal && (
         <div className={cn(
           "p-4 rounded-md border",
-          job.status === "Returned" || job.status === "SentToClient"
+          job.status === "ReadyToSchedule" || job.status === "Returned" || job.status === "SentToClient"
             ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30"
             : "bg-muted/50"
         )}>
           <div className="flex items-start gap-3">
-            {job.status === "Returned" || job.status === "SentToClient" ? (
+            {job.status === "ReadyToSchedule" || job.status === "Returned" || job.status === "SentToClient" ? (
               <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             ) : (
               <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
             )}
             <div>
               <p className="text-sm font-medium">
-                {job.status === "Returned" ? "Job Completed - Pending Approval" :
+                {job.status === "ReadyToSchedule" ? "Job Completed - Ready to Schedule" :
+                 job.status === "Returned" ? "Job Completed" :
                  job.status === "SentToClient" ? "Job Completed & Delivered" :
                  job.status === "Cancelled" ? "Job Cancelled" :
                  job.status === "Rejected" ? "Job Rejected" :
                  job.status === "OnHold" ? "Job On Hold" : "Job Status: " + job.status}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {job.status === "Returned" ? "Your work has been submitted. The team will review and approve it shortly." :
+                {job.status === "ReadyToSchedule" ? "Your work has been submitted. The cost has been deducted from your wallet." :
+                 job.status === "Returned" ? "Your work has been submitted. The cost has been deducted from your wallet." :
                  job.status === "SentToClient" ? "This job has been completed and delivered to the client. Great work!" :
                  "No further actions required at this time."}
               </p>
