@@ -448,8 +448,8 @@ export async function registerRoutes(
 
   app.get("/api/dashboard/action-center", async (req, res) => {
     try {
-      const [pendingApprovals, unacceptedJobs, waitingForDocs, workOrders] = await Promise.all([
-        storage.getPendingVendorApprovals(),
+      const [readyToScheduleJobs, unacceptedJobs, waitingForDocs, workOrders] = await Promise.all([
+        storage.getTypingJobs("ReadyToSchedule"),
         storage.getTypingJobs("SentToVendor"),
         storage.getTypingJobs("WaitingForDocs"),
         storage.getWorkOrders(),
@@ -461,7 +461,8 @@ export async function registerRoutes(
       );
 
       res.json({
-        pendingApprovals: pendingApprovals.length,
+        pendingApprovals: 0,
+        readyToSchedule: readyToScheduleJobs.length,
         unacceptedJobs: unacceptedJobs.length,
         waitingForDocs: waitingForDocs.length,
         overdueItems: overdueItems.length,
@@ -2408,7 +2409,21 @@ export async function registerRoutes(
       }
 
       const ledger = await storage.getWalletLedger(vendorId);
-      res.json(ledger);
+      const enriched = await Promise.all(ledger.map(async (entry) => {
+        let typingJob = undefined;
+        if (entry.typingJobId) {
+          const job = await storage.getTypingJobById(entry.typingJobId);
+          if (job) {
+            const wo = await storage.getWorkOrderById(job.woId);
+            typingJob = {
+              woNumber: wo?.woNumber || null,
+              applicantName: wo?.applicantName || null,
+            };
+          }
+        }
+        return { ...entry, typingJob };
+      }));
+      res.json(enriched);
     } catch (error) {
       console.error("Wallet ledger error:", error);
       res.status(500).json({ message: "Failed to fetch wallet ledger" });

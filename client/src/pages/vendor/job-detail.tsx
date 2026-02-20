@@ -635,23 +635,6 @@ function StepComplete({
         </div>
       )}
 
-      {job.approval && (
-        <div className="p-4 rounded-md bg-muted/50 border">
-          <p className="text-sm font-medium mb-2 flex items-center gap-2"><Clock className="h-4 w-4" /> Approval Status</p>
-          <div className="flex items-center gap-3 flex-wrap">
-            <Badge variant={job.approval.status === "Pending" ? "secondary" : job.approval.status === "Approved" ? "default" : "destructive"} data-testid="badge-approval-status">
-              {job.approval.status === "Pending" ? "Pending Review" : job.approval.status === "Approved" ? "Approved" : "Rejected"}
-            </Badge>
-          </div>
-          {job.approval.status === "Rejected" && job.approval.rejectedReason && (
-            <div className="mt-3 p-3 rounded-md bg-destructive/10 border border-destructive/20">
-              <p className="text-sm font-medium text-destructive">Rejection reason:</p>
-              <p className="text-sm mt-1" data-testid="text-rejection-reason">{job.approval.rejectedReason}</p>
-            </div>
-          )}
-        </div>
-      )}
-
       <div className="space-y-3">
         <h3 className="text-sm font-semibold flex items-center gap-2"><FileText className="h-4 w-4" /> Application Reference Number</h3>
         <p className="text-xs text-muted-foreground">Enter the application reference number issued after submission.</p>
@@ -747,7 +730,7 @@ function StepComplete({
       {isInProgress && (
         <div className="pt-4 border-t space-y-3">
           <p className="text-sm text-muted-foreground">
-            When you're finished, click "Mark as Completed" to submit your work for review. The team will verify and approve.
+            When you're finished, click "Mark as Completed" to finalize. The cost will be deducted from your wallet automatically.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <Button onClick={onComplete} disabled={isCompleting} className="gap-2 flex-1 sm:flex-initial" data-testid="button-complete-job">
@@ -872,7 +855,7 @@ export function JobWizardDialog({
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs", jobId] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
-      toast({ title: "Job submitted for approval" });
+      toast({ title: "Job marked as completed", description: "Cost has been deducted from your wallet." });
     },
     onError: (error: Error) => { toast({ title: error.message || "Failed to complete job", variant: "destructive" }); },
   });

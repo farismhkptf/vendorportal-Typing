@@ -6,7 +6,7 @@ import {
   CheckCircle2, AlertCircle, Building2, User,
   MoreHorizontal, RefreshCw, XCircle, MapPin,
   Mail, MessageCircle, Copy, Check, Maximize2, Download, Filter,
-  CalendarPlus, FileText
+  CalendarPlus, FileText, ChevronLeft, ChevronRight, LayoutList, CalendarDays
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToCsv } from "@/lib/csv-export";
@@ -75,6 +75,12 @@ export default function AppointmentsIndex() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [calendarDate, setCalendarDate] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
 
   const { data: appointments, isLoading } = useQuery<AppointmentWithRelations[]>({
     queryKey: ["/api/appointments"],
@@ -340,6 +346,57 @@ Thank you,
     ...cancelledAppointments,
   ], [todayAppointments, upcomingAppointments, completedAppointments, cancelledAppointments]);
 
+  const calendarWeekDays = useMemo(() => {
+    const startOfWeek = new Date(calendarDate);
+    const day = startOfWeek.getDay();
+    startOfWeek.setDate(startOfWeek.getDate() - day);
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    const days: { date: Date; appointments: AppointmentWithRelations[] }[] = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(d.getDate() + i);
+      const dayStart = new Date(d);
+      const dayEnd = new Date(d);
+      dayEnd.setDate(dayEnd.getDate() + 1);
+      
+      const dayApts = (appointments || []).filter(a => {
+        if (typeFilter !== "all" && a.type !== typeFilter) return false;
+        if (a.status === "Cancelled" || a.status === "Rescheduled") return false;
+        const aptDate = new Date(a.datetime);
+        return aptDate >= dayStart && aptDate < dayEnd;
+      }).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+      
+      days.push({ date: d, appointments: dayApts });
+    }
+    return days;
+  }, [calendarDate, appointments, typeFilter]);
+
+  const calendarWeekLabel = useMemo(() => {
+    if (calendarWeekDays.length === 0) return "";
+    const first = calendarWeekDays[0].date;
+    const last = calendarWeekDays[6].date;
+    const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+    if (first.getMonth() === last.getMonth()) {
+      return `${first.toLocaleDateString("en-GB", { month: "long", year: "numeric" })} · ${first.getDate()} – ${last.getDate()}`;
+    }
+    return `${first.toLocaleDateString("en-GB", opts)} – ${last.toLocaleDateString("en-GB", { ...opts, year: "numeric" })}`;
+  }, [calendarWeekDays]);
+
+  const navigateCalendar = useCallback((direction: "prev" | "next" | "today") => {
+    if (direction === "today") {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      setCalendarDate(d);
+    } else {
+      setCalendarDate(prev => {
+        const d = new Date(prev);
+        d.setDate(d.getDate() + (direction === "next" ? 7 : -7));
+        return d;
+      });
+    }
+  }, []);
+
   const getId = useCallback((apt: AppointmentWithRelations) => apt.id, []);
 
   const dt = useDataTable(allFilteredAppointments, {
@@ -580,6 +637,108 @@ Thank you,
           <StatCard title="Cancelled" value={stats.cancelledCount} icon={<AlertCircle className="h-4 w-4" />} animationDelay={4} onClick={() => scrollToSection("section-cancelled")} />
         </div>
 
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/50 border border-border/30">
+            <Button
+              variant={viewMode === "list" ? "secondary" : "ghost"}
+              size="sm"
+              className="gap-1.5 h-8 px-3"
+              onClick={() => setViewMode("list")}
+              data-testid="button-view-list"
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+              List
+            </Button>
+            <Button
+              variant={viewMode === "calendar" ? "secondary" : "ghost"}
+              size="sm"
+              className="gap-1.5 h-8 px-3"
+              onClick={() => setViewMode("calendar")}
+              data-testid="button-view-calendar"
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              Calendar
+            </Button>
+          </div>
+          {viewMode === "calendar" && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => navigateCalendar("prev")} data-testid="button-cal-prev">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 px-3" onClick={() => navigateCalendar("today")} data-testid="button-cal-today">
+                Today
+              </Button>
+              <Button variant="outline" size="sm" className="h-8 px-2" onClick={() => navigateCalendar("next")} data-testid="button-cal-next">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium text-muted-foreground ml-1">{calendarWeekLabel}</span>
+            </div>
+          )}
+        </div>
+
+        {viewMode === "calendar" && (
+          <Card className="border border-border/50 shadow-sm rounded-xl overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-7 divide-x divide-border/30">
+                {calendarWeekDays.map(({ date, appointments: dayApts }) => {
+                  const isToday = date.toDateString() === new Date().toDateString();
+                  const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+                  const dayNum = date.getDate();
+                  return (
+                    <div key={date.toISOString()} className="min-h-[200px]" data-testid={`cal-day-${date.toISOString().slice(0,10)}`}>
+                      <div className={`px-2 py-2 text-center border-b border-border/30 ${
+                        isToday ? "bg-primary/10" : "bg-muted/20"
+                      }`}>
+                        <p className="text-xs text-muted-foreground">{dayName}</p>
+                        <p className={`text-lg font-bold ${isToday ? "text-primary" : "text-foreground"}`}>
+                          {dayNum}
+                        </p>
+                      </div>
+                      <div className="p-1.5 space-y-1">
+                        {dayApts.length === 0 && (
+                          <p className="text-xs text-muted-foreground/50 text-center py-4">—</p>
+                        )}
+                        {dayApts.map(apt => (
+                          <div
+                            key={apt.id}
+                            className={`p-1.5 rounded-md text-xs cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all ${
+                              apt.type === "Medical"
+                                ? "bg-rose-50 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-800/30"
+                                : "bg-blue-50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/30"
+                            } ${apt.status === "Completed" ? "opacity-60" : ""}`}
+                            onClick={() => navigate(`/work-orders/${apt.woId}`)}
+                            data-testid={`cal-apt-${apt.id}`}
+                          >
+                            <div className="flex items-center gap-1">
+                              {apt.type === "Medical" ? (
+                                <Stethoscope className="h-3 w-3 text-rose-500 shrink-0" />
+                              ) : (
+                                <CreditCard className="h-3 w-3 text-blue-500 shrink-0" />
+                              )}
+                              <span className="font-medium truncate">
+                                {new Date(apt.datetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}
+                              </span>
+                            </div>
+                            <p className="truncate mt-0.5 text-foreground/80">
+                              {apt.workOrder?.applicantName ? toProperCase(apt.workOrder.applicantName) : "Unknown"}
+                            </p>
+                            {apt.center?.name && (
+                              <p className="truncate text-muted-foreground">
+                                {apt.center.name}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {viewMode === "list" && (<>
         <DataTableToolbar
           search={search}
           onSearchChange={setSearch}
@@ -689,7 +848,7 @@ Thank you,
                         <Badge variant="secondary" className="text-xs">
                           {job.jobType?.category === "Medical" ? "Medical" : "Emirates ID"}
                         </Badge>
-                        {job.priority === "Urgent" && (
+                        {job.urgent && (
                           <Badge variant="destructive" className="text-xs">Urgent</Badge>
                         )}
                       </div>
@@ -711,9 +870,9 @@ Thank you,
                           <span className="text-xs text-muted-foreground">
                             Completed by {job.vendor.name}
                           </span>
-                          {job.completedAt && (
+                          {job.returnedAt && (
                             <span className="text-xs text-muted-foreground">
-                              · <RelativeTime date={job.completedAt} />
+                              · <RelativeTime date={job.returnedAt} />
                             </span>
                           )}
                         </div>
@@ -851,6 +1010,7 @@ Thank you,
             </CardContent>
           </Card>
         )}
+        </>)}
       </div>
 
       <Dialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog({ open: false, type: "complete", appointment: null })}>

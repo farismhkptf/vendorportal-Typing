@@ -60,7 +60,7 @@ import { z } from "zod";
 import type { Center, Staff, ServiceType, JobType, AppSettings, Company, CompanyEmail, Vendor } from "@shared/schema";
 import { toProperCase } from "@/lib/proper-case";
 import { formatDate } from "@/lib/format-date";
-import AdminApprovals from "@/pages/admin/approvals";
+
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -1545,7 +1545,7 @@ export default function AdminPage() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {activeSection === "organization" ? "Manage companies, centers, staff, and services" :
-               activeSection === "vendor" ? "Manage vendors, job types, and approvals" :
+               activeSection === "vendor" ? "Manage vendors and job types" :
                activeSection === "admin" ? "User accounts, data import/export, and change log" :
                activeSection === "settings" ? "Email and system configuration" :
                "System configuration and data management"}
@@ -1559,7 +1559,7 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
               { key: "organization", icon: Building2, title: "Organization", desc: "Companies, Centers, Staff, Services", defaultTab: "companies", count: null },
-              { key: "vendor", icon: Briefcase, title: "Vendor Management", desc: "Vendors, Vendor Jobs, Approvals", defaultTab: "vendors", count: null },
+              { key: "vendor", icon: Briefcase, title: "Vendor Management", desc: "Vendors, Job Types", defaultTab: "vendors", count: null },
               { key: "admin", icon: UserPlus, title: "Administration", desc: "User Accounts, Import / Export, Change Log", defaultTab: "accounts", count: null },
               { key: "settings", icon: Settings, title: "Settings", desc: "Email & system configuration", defaultTab: "settings", count: null },
             ].map((section) => (
@@ -1966,9 +1966,6 @@ export default function AdminPage() {
                     </TabsTrigger>
                     <TabsTrigger value="jobtypes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-jobtypes">
                       <Briefcase className="h-4 w-4 mr-2" /> Vendor Jobs
-                    </TabsTrigger>
-                    <TabsTrigger value="approvals" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-approvals">
-                      <CheckCircle2 className="h-4 w-4 mr-2" /> Approvals
                     </TabsTrigger>
                   </>
                 )}
@@ -4740,10 +4737,6 @@ export default function AdminPage() {
             </TabsContent>
 
             {/* User Accounts Tab */}
-            <TabsContent value="approvals" className="p-4">
-              <AdminApprovals />
-            </TabsContent>
-
             <TabsContent value="accounts" className="p-4">
               <div className="flex items-center justify-between gap-2 mb-4">
                 <h3 className="font-medium text-foreground" data-testid="text-user-accounts-title">User Accounts</h3>

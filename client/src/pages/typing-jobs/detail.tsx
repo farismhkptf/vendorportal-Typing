@@ -636,50 +636,6 @@ export default function TypingJobDetail() {
           </Card>
         )}
 
-        {job.approval && (
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Vendor Approval
-                </CardTitle>
-                <StatusBadge status={job.approval.status as any} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Calculated Amount:</span>{" "}
-                  <span className="font-medium">AED {job.approval.calculatedAmount.toLocaleString()}</span>
-                </div>
-                {job.approval.adjustedAmount !== null && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Adjusted Amount:</span>{" "}
-                    <span className="font-medium">AED {job.approval.adjustedAmount.toLocaleString()}</span>
-                  </div>
-                )}
-                {job.approval.rejectedReason && (
-                  <div className="text-sm sm:col-span-2">
-                    <span className="text-muted-foreground">Rejection Reason:</span>{" "}
-                    <span className="font-medium text-destructive">{job.approval.rejectedReason}</span>
-                  </div>
-                )}
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Submitted:</span>{" "}
-                  <span className="font-medium">{job.approval.createdAt ? formatDateTime(job.approval.createdAt) : ""}</span>
-                </div>
-                {job.approval.resolvedAt && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Resolved:</span>{" "}
-                    <span className="font-medium">{formatDateTime(job.approval.resolvedAt)}</span>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         <Tabs defaultValue="files" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="files" className="gap-2" data-testid="tab-files">
