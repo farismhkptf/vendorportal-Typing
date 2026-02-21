@@ -146,7 +146,7 @@ export async function registerRoutes(
   const walletService = new WalletService(storage, notifyVendorUsers);
 
   // ========== Dashboard ==========
-  app.get("/api/dashboard/stats", async (req, res) => {
+  app.get("/api/dashboard/stats", requireAuth, async (req, res) => {
     try {
       const workOrders = await storage.getWorkOrders();
       const todayAppointments = await storage.getTodayAppointments();
@@ -176,7 +176,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard/today-appointments", async (req, res) => {
+  app.get("/api/dashboard/today-appointments", requireAuth, async (req, res) => {
     try {
       const appointments = await storage.getTodayAppointments();
       const result = await Promise.all(
@@ -200,7 +200,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard/recent-work-orders", async (req, res) => {
+  app.get("/api/dashboard/recent-work-orders", requireAuth, async (req, res) => {
     try {
       const workOrders = await storage.getWorkOrders();
       const recent = workOrders.slice(0, 5);
@@ -246,7 +246,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/activity", async (req, res) => {
+  app.get("/api/activity", requireAuth, async (req, res) => {
     try {
       const logs = await storage.getRecentAuditLogs(15);
       res.json(logs);
@@ -256,7 +256,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/search", async (req, res) => {
+  app.get("/api/search", requireAuth, async (req, res) => {
     try {
       const q = ((req.query.q || req.query["0"] || "") as string).toLowerCase().trim();
       if (q.length < 2) {
@@ -316,7 +316,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/reports/summary", async (req, res) => {
+  app.get("/api/reports/summary", requireOpsRole, async (req, res) => {
     try {
       const [allWorkOrders, allTypingJobs, allCompanies, allVendors, allJobTypes] = await Promise.all([
         storage.getWorkOrders(),
@@ -428,7 +428,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard/pipeline", async (req, res) => {
+  app.get("/api/dashboard/pipeline", requireAuth, async (req, res) => {
     try {
       const workOrders = await storage.getWorkOrders();
       const pipeline = {
@@ -452,7 +452,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard/action-center", async (req, res) => {
+  app.get("/api/dashboard/action-center", requireAuth, async (req, res) => {
     try {
       const [readyToScheduleJobs, unacceptedJobs, workOrders] = await Promise.all([
         storage.getTypingJobs("ReadyToSchedule"),
@@ -477,7 +477,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard/needs-attention", async (req, res) => {
+  app.get("/api/dashboard/needs-attention", requireAuth, async (req, res) => {
     try {
       const workOrders = await storage.getWorkOrders();
       const items: Array<{
@@ -557,7 +557,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard/stale-jobs", async (req, res) => {
+  app.get("/api/dashboard/stale-jobs", requireAuth, async (req, res) => {
     try {
       const now = Date.now();
       const [sentToVendorJobs, inProgressJobs, allJobTypes] = await Promise.all([
@@ -604,7 +604,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard/expiring-documents", async (req, res) => {
+  app.get("/api/dashboard/expiring-documents", requireAuth, async (req, res) => {
     try {
       const now = Date.now();
       const DAY_MS = 86400000;
@@ -956,7 +956,7 @@ export async function registerRoutes(
   });
 
   // ========== Auto-fill Helpers ==========
-  app.get("/api/companies/:companyId/last-work-order", async (req, res) => {
+  app.get("/api/companies/:companyId/last-work-order", requireAuth, async (req, res) => {
     try {
       const { companyId } = req.params;
       const workOrder = await storage.getLastWorkOrderByCompany(companyId);
@@ -1004,7 +1004,7 @@ export async function registerRoutes(
   });
 
   // ========== Audit Logs ==========
-  app.get("/api/audit-logs/:entityType/:entityId", async (req, res) => {
+  app.get("/api/audit-logs/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
       const { entityType, entityId } = req.params;
       const logs = await storage.getAuditLogsByEntity(entityType, entityId);
@@ -1050,7 +1050,7 @@ export async function registerRoutes(
   });
 
   // ========== Appointments ==========
-  app.get("/api/appointments", async (req, res) => {
+  app.get("/api/appointments", requireAuth, async (req, res) => {
     try {
       const { woId } = req.query;
       let rawAppointments;
@@ -1079,7 +1079,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/appointments", async (req, res) => {
+  app.post("/api/appointments", requireAuth, async (req, res) => {
     try {
       // Convert datetime string to Date object
       const body = {
@@ -1120,7 +1120,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/appointments/:id", async (req, res) => {
+  app.patch("/api/appointments/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
@@ -1283,7 +1283,7 @@ export async function registerRoutes(
   });
 
   // ========== Staff ==========
-  app.get("/api/staff", async (req, res) => {
+  app.get("/api/staff", requireAuth, async (req, res) => {
     try {
       const staffList = await storage.getStaff();
       res.json(staffList);
@@ -1293,7 +1293,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/staff", async (req, res) => {
+  app.post("/api/staff", requireOpsRole, async (req, res) => {
     try {
       const validation = validateBody(insertStaffSchema, req.body);
       if ('error' in validation) {
@@ -1311,7 +1311,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/staff/:id", async (req, res) => {
+  app.put("/api/staff/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const validation = validateBody(insertStaffSchema.partial(), req.body);
@@ -1333,7 +1333,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/staff/:id", async (req, res) => {
+  app.delete("/api/staff/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteStaff(id);
@@ -1347,7 +1347,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/staff/bulk", async (req, res) => {
+  app.delete("/api/staff/bulk", requireOpsRole, async (req, res) => {
     try {
       const { ids } = req.body;
       if (!Array.isArray(ids) || ids.length === 0) {
@@ -1362,7 +1362,7 @@ export async function registerRoutes(
   });
 
   // ========== Centers ==========
-  app.get("/api/centers", async (req, res) => {
+  app.get("/api/centers", requireAuth, async (req, res) => {
     try {
       const centers = await storage.getCenters();
       res.json(centers);
@@ -1372,7 +1372,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/centers", async (req, res) => {
+  app.post("/api/centers", requireOpsRole, async (req, res) => {
     try {
       const validation = validateBody(insertCenterSchema, req.body);
       if ('error' in validation) {
@@ -1390,7 +1390,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/centers/:id", async (req, res) => {
+  app.put("/api/centers/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const updateData = {
@@ -1408,7 +1408,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/centers/:id", async (req, res) => {
+  app.delete("/api/centers/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteCenter(id);
@@ -1422,7 +1422,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/centers/bulk", async (req, res) => {
+  app.delete("/api/centers/bulk", requireOpsRole, async (req, res) => {
     try {
       const { ids } = req.body;
       if (!Array.isArray(ids) || ids.length === 0) {
@@ -1437,7 +1437,7 @@ export async function registerRoutes(
   });
 
   // ========== Scheduling Validation ==========
-  app.post("/api/centers/:centerId/validate-appointment", async (req, res) => {
+  app.post("/api/centers/:centerId/validate-appointment", requireAuth, async (req, res) => {
     try {
       const { centerId } = req.params;
       const { date, time } = req.body;
@@ -1472,7 +1472,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/centers/:centerId/available-times", async (req, res) => {
+  app.get("/api/centers/:centerId/available-times", requireAuth, async (req, res) => {
     try {
       const { centerId } = req.params;
       const { date, interval } = req.query;
@@ -1596,7 +1596,7 @@ export async function registerRoutes(
   });
 
   // ========== Service Types ==========
-  app.get("/api/service-types", async (req, res) => {
+  app.get("/api/service-types", requireAuth, async (req, res) => {
     try {
       const types = await storage.getServiceTypes();
       res.json(types);
@@ -1606,7 +1606,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/service-types", async (req, res) => {
+  app.post("/api/service-types", requireOpsRole, async (req, res) => {
     try {
       const validation = validateBody(insertServiceTypeSchema, req.body);
       if ('error' in validation) {
@@ -1624,7 +1624,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/service-types/:id", async (req, res) => {
+  app.put("/api/service-types/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const updateData = {
@@ -1642,7 +1642,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/service-types/:id", async (req, res) => {
+  app.delete("/api/service-types/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteServiceType(id);
@@ -1656,7 +1656,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/service-types/bulk", async (req, res) => {
+  app.post("/api/service-types/bulk", requireOpsRole, async (req, res) => {
     try {
       const { names } = req.body;
       if (!Array.isArray(names) || names.length === 0) {
@@ -1670,7 +1670,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/service-types/bulk", async (req, res) => {
+  app.delete("/api/service-types/bulk", requireOpsRole, async (req, res) => {
     try {
       const { ids } = req.body;
       if (!Array.isArray(ids) || ids.length === 0) {
@@ -1685,7 +1685,7 @@ export async function registerRoutes(
   });
 
   // ========== Job Types ==========
-  app.get("/api/job-types", async (req, res) => {
+  app.get("/api/job-types", requireAuth, async (req, res) => {
     try {
       const types = await storage.getJobTypes();
       res.json(types);
@@ -1695,7 +1695,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/job-types", async (req, res) => {
+  app.post("/api/job-types", requireOpsRole, async (req, res) => {
     try {
       const validation = validateBody(insertJobTypeSchema, req.body);
       if ('error' in validation) {
@@ -1713,7 +1713,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/job-types/:id", async (req, res) => {
+  app.put("/api/job-types/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const updateData = {
@@ -1731,7 +1731,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/job-types/:id", async (req, res) => {
+  app.delete("/api/job-types/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
       const success = await storage.deleteJobType(id);
@@ -1745,7 +1745,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/job-types/bulk", async (req, res) => {
+  app.delete("/api/job-types/bulk", requireOpsRole, async (req, res) => {
     try {
       const { ids } = req.body;
       if (!Array.isArray(ids) || ids.length === 0) {
@@ -2118,7 +2118,7 @@ export async function registerRoutes(
   });
 
   // Files API
-  app.get("/api/files/:relatedType/:relatedId", async (req, res) => {
+  app.get("/api/files/:relatedType/:relatedId", requireAuth, async (req, res) => {
     try {
       const { relatedType, relatedId } = req.params;
       const filesList = await storage.getFilesByRelated(relatedType, relatedId);
@@ -2239,7 +2239,7 @@ export async function registerRoutes(
   });
 
   // ========== Settings ==========
-  app.get("/api/settings", async (req, res) => {
+  app.get("/api/settings", requireAuth, async (req, res) => {
     try {
       const settings = await storage.getAppSettings();
       res.json(settings || {
@@ -2255,7 +2255,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/settings", async (req, res) => {
+  app.put("/api/settings", requireRole("Admin"), async (req, res) => {
     try {
       const settings = await storage.updateAppSettings(req.body);
       res.json(settings);
@@ -2266,7 +2266,7 @@ export async function registerRoutes(
   });
 
   // ========== Seed Real Companies (Development Only) ==========
-  app.post("/api/admin/seed-companies", async (req, res) => {
+  app.post("/api/admin/seed-companies", requireRole("Admin"), async (req, res) => {
     try {
       // Only allow in development environment
       if (process.env.NODE_ENV === 'production') {
@@ -2285,7 +2285,7 @@ export async function registerRoutes(
   });
 
   // ========== Seed Medical Centers (Development Only) ==========
-  app.post("/api/admin/seed-medical-centers", async (req, res) => {
+  app.post("/api/admin/seed-medical-centers", requireRole("Admin"), async (req, res) => {
     try {
       // Only allow in development environment
       if (process.env.NODE_ENV === 'production') {
@@ -2304,7 +2304,7 @@ export async function registerRoutes(
   });
 
   // ========== Seed Service Types (Development Only) ==========
-  app.post("/api/admin/seed-service-types", async (req, res) => {
+  app.post("/api/admin/seed-service-types", requireRole("Admin"), async (req, res) => {
     try {
       // Only allow in development environment
       if (process.env.NODE_ENV === 'production') {
@@ -2323,7 +2323,7 @@ export async function registerRoutes(
   });
 
   // Seed vendor jobs (development only)
-  app.post("/api/seed/vendor-jobs", async (req, res) => {
+  app.post("/api/seed/vendor-jobs", requireRole("Admin"), async (req, res) => {
     try {
       // Only allow in development environment
       if (process.env.NODE_ENV === 'production') {
@@ -2342,7 +2342,7 @@ export async function registerRoutes(
   });
 
   // Seed staff (development only)
-  app.post("/api/seed/staff", async (req, res) => {
+  app.post("/api/seed/staff", requireRole("Admin"), async (req, res) => {
     try {
       // Only allow in development environment
       if (process.env.NODE_ENV === 'production') {
@@ -3902,7 +3902,7 @@ export async function registerRoutes(
   });
 
   // ========== Document Requirements ==========
-  app.get("/api/document-requirements", async (req, res) => {
+  app.get("/api/document-requirements", requireAuth, async (req, res) => {
     try {
       const requirements = await storage.getDocumentRequirements();
       res.json(requirements);
@@ -3912,7 +3912,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/document-requirements/:category", async (req, res) => {
+  app.get("/api/document-requirements/:category", requireAuth, async (req, res) => {
     try {
       const { category } = req.params;
       const requirements = await storage.getDocumentRequirementsByCategory(category);
@@ -3923,7 +3923,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/document-requirements/seed", async (req, res) => {
+  app.post("/api/document-requirements/seed", requireRole("Admin"), async (req, res) => {
     try {
       const result = await storage.seedDocumentRequirements();
       res.json(result);
@@ -3933,7 +3933,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/service-types/update-categories", async (req, res) => {
+  app.post("/api/service-types/update-categories", requireOpsRole, async (req, res) => {
     try {
       const result = await storage.updateServiceTypeCategories();
       res.json(result);
@@ -3999,7 +3999,7 @@ export async function registerRoutes(
   });
 
   // ========== Admin Excel Template & Import ==========
-  app.get("/api/admin/template", async (req, res) => {
+  app.get("/api/admin/template", requireRole("Admin"), async (req, res) => {
     try {
       const workbook = XLSX.utils.book_new();
 
@@ -4061,7 +4061,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/import", upload.single('file'), async (req: any, res) => {
+  app.post("/api/admin/import", requireRole("Admin"), upload.single('file'), async (req: any, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
@@ -4227,7 +4227,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/preview-gsheet", async (req, res) => {
+  app.post("/api/admin/preview-gsheet", requireRole("Admin"), async (req, res) => {
     try {
       let { url } = req.body;
       if (!url || typeof url !== 'string') {
@@ -4433,7 +4433,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/import-gsheet", async (req, res) => {
+  app.post("/api/admin/import-gsheet", requireRole("Admin"), async (req, res) => {
     try {
       const { rows } = req.body;
       if (!Array.isArray(rows) || rows.length === 0) {

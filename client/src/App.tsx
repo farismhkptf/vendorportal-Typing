@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageTransition } from "@/components/ui/page-transition";
 import NotFound from "@/pages/not-found";
+import AccessDenied from "@/pages/access-denied";
 import { CommandPalette } from "@/components/command-palette";
 import { MobileBottomNav } from "@/components/mobile-nav";
 import { DevNotesButton } from "@/components/dev-notes";
@@ -74,6 +75,28 @@ function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
   );
 }
 
+const OPS_ROLES = ["Admin", "Client Relationship Manager"];
+
+const ROUTE_ACCESS: Array<{ path: string; exact?: boolean; roles: string[] }> = [
+  { path: "/work-orders", roles: OPS_ROLES },
+  { path: "/companies", roles: OPS_ROLES },
+  { path: "/typing-jobs", roles: OPS_ROLES },
+  { path: "/vendor-wallet", roles: OPS_ROLES },
+  { path: "/reports", roles: OPS_ROLES },
+  { path: "/admin", roles: ["Admin"] },
+  { path: "/manager-console", roles: OPS_ROLES },
+  { path: "/bots", roles: ["Admin"] },
+];
+
+function getRouteRoles(location: string): string[] | null {
+  for (const rule of ROUTE_ACCESS) {
+    if (rule.exact ? location === rule.path : location.startsWith(rule.path)) {
+      return rule.roles;
+    }
+  }
+  return null;
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
@@ -94,8 +117,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     return <Redirect to="/login" />;
   }
 
-  if (user && location.startsWith("/admin") && user.role !== "Admin") {
-    return <Redirect to="/" />;
+  if (user) {
+    const allowedRoles = getRouteRoles(location);
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+      return <AccessDenied />;
+    }
   }
 
   return <>{children}</>;
