@@ -151,7 +151,7 @@ interface NeedsAttentionItem {
 interface StaleJobsData {
   unacceptedOver24h: Array<{ id: string; jobCode: string; woNumber: string; applicantName: string; sentAt: string; hoursWaiting: number }>;
   waitingForDocsOver48h: Array<{ id: string; jobCode: string; woNumber: string; applicantName: string; lastStatusChange: string; hoursWaiting: number }>;
-  inProgressOver72h: Array<{ id: string; jobCode: string; woNumber: string; applicantName: string; startedAt: string; hoursInProgress: number }>;
+  delayed: Array<{ id: string; jobCode: string; woNumber: string; applicantName: string; sentAt: string; status: string }>;
 }
 
 interface UpcomingAppointment {
@@ -350,7 +350,7 @@ function StaleJobAlerts({ data }: { data: StaleJobsData }) {
   const [, navigate] = useLocation();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
 
-  const totalCount = data.unacceptedOver24h.length + data.waitingForDocsOver48h.length + data.inProgressOver72h.length;
+  const totalCount = data.unacceptedOver24h.length + data.waitingForDocsOver48h.length + data.delayed.length;
   if (totalCount === 0) return null;
 
   const toggleSection = (key: string) => {
@@ -358,9 +358,9 @@ function StaleJobAlerts({ data }: { data: StaleJobsData }) {
   };
 
   const sections = [
-    { key: "unaccepted", label: "Unaccepted Over 24h", items: data.unacceptedOver24h, getHours: (i: any) => i.hoursWaiting },
-    { key: "waitingDocs", label: "Waiting for Docs Over 48h", items: data.waitingForDocsOver48h, getHours: (i: any) => i.hoursWaiting },
-    { key: "inProgress", label: "In Progress Over 72h", items: data.inProgressOver72h, getHours: (i: any) => i.hoursInProgress },
+    { key: "unaccepted", label: "Unaccepted Over 24h", items: data.unacceptedOver24h, getHours: (i: any) => i.hoursWaiting, getStatus: null as any },
+    { key: "waitingDocs", label: "Waiting for Docs Over 48h", items: data.waitingForDocsOver48h, getHours: (i: any) => i.hoursWaiting, getStatus: null as any },
+    { key: "delayed", label: "Delayed", items: data.delayed, getHours: null as any, getStatus: (i: any) => i.status },
   ].filter(s => s.items.length > 0);
 
   return (
@@ -407,7 +407,11 @@ function StaleJobAlerts({ data }: { data: StaleJobsData }) {
                       <p className="text-xs text-muted-foreground truncate">{toProperCase(item.applicantName)}</p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-xs text-amber-600 dark:text-amber-400 font-medium tabular-nums">{section.getHours(item)}h</span>
+                      {section.getHours ? (
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium tabular-nums">{section.getHours(item)}h</span>
+                      ) : section.getStatus ? (
+                        <span className="text-xs text-amber-600 dark:text-amber-400 font-medium">{section.getStatus(item)}</span>
+                      ) : null}
                       <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
                     </div>
                   </div>
@@ -559,7 +563,7 @@ export default function Dashboard() {
         )}
 
         {staleJobs && (data => {
-          const total = data.unacceptedOver24h.length + data.waitingForDocsOver48h.length + data.inProgressOver72h.length;
+          const total = data.unacceptedOver24h.length + data.waitingForDocsOver48h.length + data.delayed.length;
           return total > 0 ? (
             <>
               <div className="section-divider" />

@@ -584,20 +584,24 @@ export async function registerRoutes(
         hoursWaiting: Math.round((now - new Date(job.sentAt!).getTime()) / 3600000),
       }));
 
-      const inProgressOver72h = (await Promise.all(
-        inProgressJobs
-          .filter(j => (now - new Date(j.createdAt).getTime()) > 72 * 3600000)
-          .map(enrichJob)
+      const today8am = new Date();
+      today8am.setHours(8, 0, 0, 0);
+
+      const delayedJobs = [...sentToVendorJobs, ...inProgressJobs]
+        .filter(j => j.sentAt && new Date(j.sentAt).getTime() < today8am.getTime());
+
+      const delayed = (await Promise.all(
+        delayedJobs.map(enrichJob)
       )).map(({ wo, job }) => ({
         id: job.id,
         jobCode: job.jobCode || "",
         woNumber: wo?.woNumber || "N/A",
         applicantName: wo?.applicantName || "N/A",
-        startedAt: job.createdAt,
-        hoursInProgress: Math.round((now - new Date(job.createdAt).getTime()) / 3600000),
+        sentAt: job.sentAt,
+        status: job.status,
       }));
 
-      res.json({ unacceptedOver24h, waitingForDocsOver48h: [], inProgressOver72h });
+      res.json({ unacceptedOver24h, waitingForDocsOver48h: [], delayed });
     } catch (error) {
       console.error("Dashboard stale-jobs error:", error);
       res.status(500).json({ message: "Failed to fetch stale jobs" });
