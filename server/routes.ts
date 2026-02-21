@@ -15,6 +15,8 @@ import {
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { toProperCase } from "./proper-case";
+import { executeTransition, validateTransition, type Actor } from "./typing-job-machine";
+import { WalletService } from "./wallet-service";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -140,6 +142,8 @@ export async function registerRoutes(
       console.error("Failed to create notification:", error);
     }
   }
+
+  const walletService = new WalletService(storage, notifyVendorUsers);
 
   // ========== Dashboard ==========
   app.get("/api/dashboard/stats", async (req, res) => {
@@ -1839,37 +1843,25 @@ export async function registerRoutes(
             errors.push(`Typing job ${id} not found`);
             continue;
           }
-          if (job.status !== "Draft") {
-            failed++;
-            errors.push(`Typing job ${id} is not in Draft status`);
-            continue;
-          }
 
           const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
           const cost = jobType?.cost || 0;
 
-          // Wallet can go negative - no balance check needed
-          await storage.updateTypingJob(id, {
-            vendorId,
-            status: "SentToVendor",
-            costSnapshot: cost,
-            sentAt: new Date(),
+          const result = await executeTransition({
+            action: "submit_to_vendor",
+            jobId: id,
+            actor: "team",
+            actorId: req.session?.userId,
+            storage,
+            notifyVendorUsers,
+            updateFields: { vendorId, costSnapshot: cost },
           });
 
-          await storage.createAuditLog({
-            entityType: "typing_job",
-            entityId: id,
-            action: "submitted_to_vendor",
-            details: { vendorId, cost, bulkAction: true },
-          });
-
-          await notifyVendorUsers(vendorId, {
-            type: "new_job",
-            title: "New Job Assigned",
-            message: `New typing job ${job.jobCode || ''} has been assigned to you.`,
-            relatedJobId: id,
-            isRead: false,
-          });
+          if (!result.success) {
+            failed++;
+            errors.push(`Job ${id}: ${result.error}`);
+            continue;
+          }
 
           updated++;
         } catch (err: any) {
@@ -1922,58 +1914,22 @@ export async function registerRoutes(
 
   app.post("/api/typing-jobs/:id/reassign", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
       const { vendorId } = req.body;
-      
       if (!vendorId) {
         return res.status(400).json({ message: "Vendor ID is required" });
       }
       
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Job not found" });
-      }
-      
-      if (job.status !== "Cancelled" && job.status !== "VendorMistake" && job.status !== "Rejected") {
-        return res.status(400).json({ message: "Can only re-assign cancelled, vendor mistake, or rejected jobs" });
-      }
-      
-      const updated = await storage.updateTypingJob(id, {
-        vendorId,
-        status: "SentToVendor",
-        sentAt: new Date(),
-        returnedAt: null,
-        vendorMistakeAt: null,
-        vendorMistakeReason: null,
+      const result = await executeTransition({
+        action: "reassign",
+        jobId: req.params.id,
+        actor: "team",
+        actorId: req.session?.userId,
+        storage,
+        notifyVendorUsers,
+        updateFields: { vendorId },
       });
-      
-      try {
-        const allUsers = await storage.getUsers();
-        const vendorUsers = allUsers.filter(u => u.vendorId === vendorId && u.active);
-        for (const user of vendorUsers) {
-          await storage.createVendorNotification({
-            vendorUserId: user.id,
-            vendorId: vendorId,
-            type: "new_job",
-            title: "New Job Assigned",
-            message: `Job ${job.jobCode || ''} has been reassigned to you.`,
-            relatedJobId: id,
-            isRead: false,
-          });
-        }
-      } catch (e) {
-        console.error("Failed to notify vendor:", e);
-      }
-      
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "reassigned",
-        userId: req.session?.userId,
-        details: { vendorId, previousStatus: job.status },
-      });
-      
-      res.json(updated);
+      if (!result.success) return res.status(400).json({ message: result.error });
+      res.json(result.job);
     } catch (error) {
       console.error("Reassign error:", error);
       res.status(500).json({ message: "Failed to reassign job" });
@@ -2056,51 +2012,31 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Vendor ID is required" });
       }
       
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Typing job not found" });
-      }
-      
-      if (job.status !== "Draft") {
-        return res.status(400).json({ message: "Only draft jobs can be submitted to vendor" });
-      }
-      
-      // Get job type to determine cost
-      const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
-      const cost = jobType?.cost || 0;
-      
-      // Get vendor and check balance
       const vendor = await storage.getVendorById(vendorId);
       if (!vendor) {
         return res.status(404).json({ message: "Vendor not found" });
       }
-      
-      // Wallet can go negative - no balance check needed
-      // Update job with vendor assignment and status
-      const updatedJob = await storage.updateTypingJob(id, {
-        vendorId,
-        status: "SentToVendor",
-        costSnapshot: cost,
-        sentAt: new Date(),
-      });
-      
-      // Create audit log
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "submitted_to_vendor",
-        details: { vendorId, vendorName: vendor.name, cost },
-      });
 
-      await notifyVendorUsers(vendorId, {
-        type: "new_job",
-        title: "New Job Assigned",
-        message: `New typing job ${job.jobCode || ''} has been assigned to you.`,
-        relatedJobId: id,
-        isRead: false,
+      const job = await storage.getTypingJobById(id);
+      const jobType = job?.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+      const cost = jobType?.cost || 0;
+      
+      const result = await executeTransition({
+        action: "submit_to_vendor",
+        jobId: id,
+        actor: "team",
+        actorId: req.session?.userId,
+        storage,
+        notifyVendorUsers,
+        updateFields: { vendorId, costSnapshot: cost },
+        reason: undefined,
       });
       
-      res.json(updatedJob);
+      if (!result.success) {
+        return res.status(400).json({ message: result.error });
+      }
+      
+      res.json(result.job);
     } catch (error) {
       console.error("Submit to vendor error:", error);
       res.status(500).json({ message: "Failed to submit job to vendor" });
@@ -2109,40 +2045,17 @@ export async function registerRoutes(
 
   app.post("/api/typing-jobs/:id/on-hold", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
-      const { reason } = req.body;
-      
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Typing job not found" });
-      }
-      
-      const activeStatuses = ["SentToVendor", "InProgress"];
-      if (!activeStatuses.includes(job.status)) {
-        return res.status(400).json({ message: "Can only put active jobs on hold" });
-      }
-      
-      const updatedJob = await storage.updateTypingJob(id, {
-        status: "OnHold",
-        previousStatus: job.status,
+      const result = await executeTransition({
+        action: "on_hold",
+        jobId: req.params.id,
+        actor: "team",
+        actorId: req.session?.userId,
+        storage,
+        notifyVendorUsers,
+        reason: req.body.reason,
       });
-      
-      if (reason) {
-        await storage.createTypingJobComment({
-          typingJobId: id,
-          authorType: "Internal",
-          message: `Job put on hold: ${reason}`,
-        });
-      }
-      
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "put_on_hold",
-        details: { reason, previousStatus: job.status },
-      });
-      
-      res.json(updatedJob);
+      if (!result.success) return res.status(400).json({ message: result.error });
+      res.json(result.job);
     } catch (error) {
       console.error("On hold error:", error);
       res.status(500).json({ message: "Failed to put job on hold" });
@@ -2151,38 +2064,16 @@ export async function registerRoutes(
 
   app.post("/api/typing-jobs/:id/resume", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
-      
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Typing job not found" });
-      }
-      
-      if (job.status !== "OnHold") {
-        return res.status(400).json({ message: "Only on-hold jobs can be resumed" });
-      }
-      
-      const resumeStatus = job.previousStatus || "SentToVendor";
-      
-      const updatedJob = await storage.updateTypingJob(id, {
-        status: resumeStatus,
-        previousStatus: null,
+      const result = await executeTransition({
+        action: "resume",
+        jobId: req.params.id,
+        actor: "team",
+        actorId: req.session?.userId,
+        storage,
+        notifyVendorUsers,
       });
-      
-      await storage.createTypingJobComment({
-        typingJobId: id,
-        authorType: "Internal",
-        message: `Job resumed from hold (restored to ${resumeStatus})`,
-      });
-      
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "resumed_from_hold",
-        details: { resumedToStatus: resumeStatus },
-      });
-      
-      res.json(updatedJob);
+      if (!result.success) return res.status(400).json({ message: result.error });
+      res.json(result.job);
     } catch (error) {
       console.error("Resume error:", error);
       res.status(500).json({ message: "Failed to resume job" });
@@ -2191,74 +2082,35 @@ export async function registerRoutes(
 
   app.post("/api/typing-jobs/:id/abort", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
-      const { reason } = req.body;
-      
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Typing job not found" });
-      }
-      
-      const abortableStatuses = ["Draft", "SentToVendor", "InProgress", "OnHold"];
-      if (!abortableStatuses.includes(job.status)) {
-        return res.status(400).json({ message: "Cannot abort job in current status" });
-      }
-      
-      const updatedJob = await storage.updateTypingJob(id, {
-        status: "Cancelled",
+      const result = await executeTransition({
+        action: "abort",
+        jobId: req.params.id,
+        actor: "team",
+        actorId: req.session?.userId,
+        storage,
+        notifyVendorUsers,
+        reason: req.body.reason,
       });
-      
-      if (reason) {
-        await storage.createTypingJobComment({
-          typingJobId: id,
-          authorType: "Internal",
-          message: `Job aborted: ${reason}`,
-        });
-      }
-      
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "team_aborted",
-        details: { reason },
-      });
-      
-      res.json(updatedJob);
+      if (!result.success) return res.status(400).json({ message: result.error });
+      res.json(result.job);
     } catch (error) {
       console.error("Abort error:", error);
       res.status(500).json({ message: "Failed to abort job" });
     }
   });
 
-  // Deliver typing job to client
   app.post("/api/typing-jobs/:id/deliver-to-client", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
-      
-      const job = await storage.getTypingJobById(id);
-      if (!job) {
-        return res.status(404).json({ message: "Typing job not found" });
-      }
-      
-      if (job.status !== "ReadyToSchedule" && job.status !== "Returned") {
-        return res.status(400).json({ message: "Only completed jobs can be delivered to client" });
-      }
-      
-      // Update job status
-      const updatedJob = await storage.updateTypingJob(id, {
-        status: "SentToClient",
-        sentToClientAt: new Date(),
+      const result = await executeTransition({
+        action: "deliver_to_client",
+        jobId: req.params.id,
+        actor: "team",
+        actorId: req.session?.userId,
+        storage,
+        notifyVendorUsers,
       });
-      
-      // Create audit log
-      await storage.createAuditLog({
-        entityType: "typing_job",
-        entityId: id,
-        action: "delivered_to_client",
-        details: {},
-      });
-      
-      res.json(updatedJob);
+      if (!result.success) return res.status(400).json({ message: result.error });
+      res.json(result.job);
     } catch (error) {
       console.error("Deliver to client error:", error);
       res.status(500).json({ message: "Failed to deliver to client" });
@@ -2325,16 +2177,9 @@ export async function registerRoutes(
         });
       }
 
-      const balance = await storage.getWalletBalance(vendorId);
-      const monthlyStats = await storage.getMonthlyStats(vendorId);
       const settings = await storage.getAppSettings();
-
-      res.json({
-        balance,
-        monthTopups: monthlyStats.topups,
-        monthSpend: monthlyStats.spend,
-        lowBalanceWarning: balance < (settings?.lowBalanceThreshold || 1000),
-      });
+      const summary = await walletService.getSummary(vendorId, settings?.lowBalanceThreshold || 1000);
+      res.json(summary);
     } catch (error) {
       console.error("Wallet summary error:", error);
       res.status(500).json({ message: "Failed to fetch wallet summary" });
@@ -2379,17 +2224,11 @@ export async function registerRoutes(
       
       const { vendorId, amount, note } = validation.data;
 
-      const entry = await storage.createWalletEntry({
+      const entry = await walletService.topup({
         vendorId,
-        entryType: "Topup",
         amount,
-        note: note || "Manual top-up",
-      });
-
-      await notifyVendorUsers(vendorId, {
-        type: "wallet_topup",
-        title: "Wallet Top-Up",
-        message: `Your wallet has been topped up with AED ${amount}.`,
+        note,
+        createdBy: req.session?.userId,
       });
 
       res.status(201).json(entry);
@@ -3310,7 +3149,7 @@ export async function registerRoutes(
     try {
       const vendorId = req.session.vendorId;
       if (!vendorId) return res.json({ balance: 0 });
-      const balance = await storage.getWalletBalance(vendorId);
+      const balance = await walletService.getBalance(vendorId);
       res.json({ balance });
     } catch (error) {
       console.error("Vendor wallet balance error:", error);
@@ -3858,15 +3697,16 @@ export async function registerRoutes(
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
       }
-      if (job.status !== "SentToVendor") {
-        return res.status(400).json({ message: "Can only start work on jobs that are sent to vendor" });
-      }
-      const updated = await storage.updateTypingJob(jobId, { status: "InProgress" });
-      await storage.createAuditLog({
-        entityType: "typing_job", entityId: jobId,
-        action: "vendor_started_work", details: { vendorUserId: req.session.vendorUserId },
+      const result = await executeTransition({
+        action: "start_work",
+        jobId,
+        actor: "vendor",
+        actorId: req.session.vendorUserId || undefined,
+        storage,
+        notifyVendorUsers,
       });
-      res.json(updated);
+      if (!result.success) return res.status(400).json({ message: result.error });
+      res.json(result.job);
     } catch (error) {
       console.error("Vendor start work error:", error);
       res.status(500).json({ message: "Failed to start work on job" });
@@ -3881,43 +3721,31 @@ export async function registerRoutes(
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
       }
-      if (job.status !== "InProgress") {
-        return res.status(400).json({ message: "Can only complete jobs that are in progress" });
-      }
 
       const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
       const deductionAmount = job.costSnapshot || jobType?.cost || 0;
 
-      const updated = await storage.updateTypingJob(jobId, {
-        status: "ReadyToSchedule",
-        returnedAt: new Date(),
+      const result = await executeTransition({
+        action: "complete",
+        jobId,
+        actor: "vendor",
+        actorId: req.session.vendorUserId || undefined,
+        storage,
+        notifyVendorUsers,
       });
-
-      if (deductionAmount > 0) {
-        await storage.createWalletEntry({
-          vendorId: job.vendorId!,
-          entryType: "Debit",
-          typingJobId: jobId,
-          amount: -deductionAmount,
-          note: `Job completed - deduction for ${job.jobCode || jobId}`,
-          createdBy: req.session.vendorUserId,
-        });
-      }
-
-      await storage.createAuditLog({
-        entityType: "typing_job", entityId: jobId,
-        action: "vendor_completed", details: { vendorUserId: req.session.vendorUserId, deductionAmount },
-      });
+      if (!result.success) return res.status(400).json({ message: result.error });
 
       if (deductionAmount > 0 && job.vendorId) {
-        await notifyVendorUsers(job.vendorId, {
-          type: "wallet_deduction",
-          title: "Wallet Deduction",
-          message: `AED ${deductionAmount} deducted for completing job ${job.jobCode || jobId}.`,
+        await walletService.debit({
+          vendorId: job.vendorId,
+          amount: deductionAmount,
+          typingJobId: jobId,
+          jobCode: job.jobCode || undefined,
+          createdBy: req.session.vendorUserId || undefined,
         });
       }
 
-      res.json(updated);
+      res.json(result.job);
     } catch (error) {
       console.error("Vendor complete error:", error);
       res.status(500).json({ message: "Failed to complete job" });
@@ -4744,12 +4572,10 @@ export async function registerRoutes(
       });
       
       if (finalAmount > 0) {
-        await storage.createWalletEntry({
+        await walletService.debit({
           vendorId: approvalRecord.vendorId,
-          entryType: "Debit",
+          amount: finalAmount,
           typingJobId: approvalRecord.typingJobId,
-          amount: -finalAmount,
-          note: `Job completed - deduction for ${approvalRecord.typingJobId}`,
           createdBy: (req as any).session.userId,
         });
       }
