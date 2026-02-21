@@ -65,7 +65,7 @@ export default function TypingJobsList() {
 
   const apiStatus = statusFilter.startsWith("_") ? "all" : statusFilter;
   const { data: typingJobs, isLoading } = useQuery<TypingJobWithRelations[]>({
-    queryKey: ["/api/typing-jobs", { status: apiStatus }],
+    queryKey: [`/api/typing-jobs?status=${apiStatus}`],
   });
 
   const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });

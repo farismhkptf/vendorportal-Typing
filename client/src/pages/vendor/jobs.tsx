@@ -41,7 +41,7 @@ export default function VendorJobs() {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   const { data: jobs, isLoading } = useQuery<VendorJob[]>({
-    queryKey: ["/api/vendor/jobs", { status: statusFilter }],
+    queryKey: [`/api/vendor/jobs?status=${statusFilter}`],
   });
 
   const invalidateJobs = () => {
