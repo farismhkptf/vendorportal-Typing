@@ -36,6 +36,7 @@ export interface IStorage {
   // Staff
   getStaff(): Promise<Staff[]>;
   getStaffById(id: string): Promise<Staff | undefined>;
+  getStaffByIds(ids: string[]): Promise<Staff[]>;
   createStaff(data: InsertStaff): Promise<Staff>;
   updateStaff(id: string, data: Partial<InsertStaff>): Promise<Staff | undefined>;
   deleteStaff(id: string): Promise<boolean>;
@@ -44,6 +45,7 @@ export interface IStorage {
   // Centers
   getCenters(): Promise<Center[]>;
   getCenterById(id: string): Promise<Center | undefined>;
+  getCentersByIds(ids: string[]): Promise<Center[]>;
   createCenter(data: InsertCenter): Promise<Center>;
   updateCenter(id: string, data: Partial<InsertCenter>): Promise<Center | undefined>;
   deleteCenter(id: string): Promise<boolean>;
@@ -51,15 +53,18 @@ export interface IStorage {
   
   // Companies
   getCompanies(): Promise<Company[]>;
+  getCompaniesByIds(ids: string[]): Promise<Company[]>;
   getCompanyById(id: string): Promise<Company | undefined>;
   createCompany(data: InsertCompany): Promise<Company>;
   updateCompany(id: string, data: Partial<InsertCompany>): Promise<Company | undefined>;
   getCompanyEmails(companyId: string): Promise<CompanyEmail[]>;
+  getAllCompanyEmails(): Promise<CompanyEmail[]>;
   createCompanyEmail(data: InsertCompanyEmail): Promise<CompanyEmail>;
   getWorkOrderCountsByCompany(): Promise<Record<string, number>>;
   
   // Service Types
   getServiceTypes(): Promise<ServiceType[]>;
+  getServiceTypesByIds(ids: string[]): Promise<ServiceType[]>;
   getServiceTypeById(id: string): Promise<ServiceType | undefined>;
   createServiceType(data: InsertServiceType): Promise<ServiceType>;
   updateServiceType(id: string, data: Partial<InsertServiceType>): Promise<ServiceType | undefined>;
@@ -70,6 +75,7 @@ export interface IStorage {
   // Work Orders
   getWorkOrders(search?: string, status?: string): Promise<WorkOrder[]>;
   getWorkOrderById(id: string): Promise<WorkOrder | undefined>;
+  getWorkOrdersByIds(ids: string[]): Promise<WorkOrder[]>;
   getWorkOrderByWoNumber(woNumber: string): Promise<WorkOrder | undefined>;
   createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder>;
   updateWorkOrder(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder | undefined>;
@@ -78,6 +84,7 @@ export interface IStorage {
   
   // Appointments
   getAppointmentsByWoId(woId: string): Promise<Appointment[]>;
+  getAppointmentsByWoIds(woIds: string[]): Promise<Appointment[]>;
   getAppointmentByToken(token: string): Promise<Appointment | undefined>;
   createAppointment(data: InsertAppointment): Promise<Appointment>;
   getTodayAppointments(): Promise<Appointment[]>;
@@ -107,6 +114,7 @@ export interface IStorage {
   getTypingJobs(status?: string): Promise<TypingJob[]>;
   getTypingJobById(id: string): Promise<TypingJob | undefined>;
   getTypingJobsByWoId(woId: string): Promise<TypingJob[]>;
+  getTypingJobsByWoIds(woIds: string[]): Promise<TypingJob[]>;
   getTypingJobsByVendorId(vendorId: string): Promise<TypingJob[]>;
   createTypingJob(data: InsertTypingJob): Promise<TypingJob>;
   updateTypingJob(id: string, data: Partial<InsertTypingJob>): Promise<TypingJob | undefined>;
@@ -239,6 +247,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(staff).where(eq(staff.active, true));
   }
 
+  async getStaffByIds(ids: string[]): Promise<Staff[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(staff).where(inArray(staff.id, ids));
+  }
+
   async getStaffById(id: string): Promise<Staff | undefined> {
     const [member] = await db.select().from(staff).where(eq(staff.id, id));
     return member || undefined;
@@ -270,6 +283,11 @@ export class DatabaseStorage implements IStorage {
   // Centers
   async getCenters(): Promise<Center[]> {
     return db.select().from(centers).where(eq(centers.active, true));
+  }
+
+  async getCentersByIds(ids: string[]): Promise<Center[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(centers).where(inArray(centers.id, ids));
   }
 
   async getCenterById(id: string): Promise<Center | undefined> {
@@ -305,6 +323,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(companies).where(eq(companies.active, true));
   }
 
+  async getCompaniesByIds(ids: string[]): Promise<Company[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(companies).where(inArray(companies.id, ids));
+  }
+
   async getCompanyById(id: string): Promise<Company | undefined> {
     const [company] = await db.select().from(companies).where(eq(companies.id, id));
     return company || undefined;
@@ -322,6 +345,10 @@ export class DatabaseStorage implements IStorage {
 
   async getCompanyEmails(companyId: string): Promise<CompanyEmail[]> {
     return db.select().from(companyEmails).where(eq(companyEmails.companyId, companyId));
+  }
+
+  async getAllCompanyEmails(): Promise<CompanyEmail[]> {
+    return db.select().from(companyEmails);
   }
 
   async createCompanyEmail(data: InsertCompanyEmail): Promise<CompanyEmail> {
@@ -357,6 +384,11 @@ export class DatabaseStorage implements IStorage {
   async createServiceType(data: InsertServiceType): Promise<ServiceType> {
     const [type] = await db.insert(serviceTypes).values(data).returning();
     return type;
+  }
+
+  async getServiceTypesByIds(ids: string[]): Promise<ServiceType[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(serviceTypes).where(inArray(serviceTypes.id, ids));
   }
 
   async getServiceTypeById(id: string): Promise<ServiceType | undefined> {
@@ -419,6 +451,11 @@ export class DatabaseStorage implements IStorage {
     return wo || undefined;
   }
 
+  async getWorkOrdersByIds(ids: string[]): Promise<WorkOrder[]> {
+    if (ids.length === 0) return [];
+    return db.select().from(workOrders).where(inArray(workOrders.id, ids));
+  }
+
   async getWorkOrderByWoNumber(woNumber: string): Promise<WorkOrder | undefined> {
     const [wo] = await db.select().from(workOrders).where(eq(workOrders.woNumber, woNumber));
     return wo || undefined;
@@ -458,6 +495,11 @@ export class DatabaseStorage implements IStorage {
   // Appointments
   async getAppointmentsByWoId(woId: string): Promise<Appointment[]> {
     return db.select().from(appointments).where(eq(appointments.woId, woId));
+  }
+
+  async getAppointmentsByWoIds(woIds: string[]): Promise<Appointment[]> {
+    if (woIds.length === 0) return [];
+    return db.select().from(appointments).where(inArray(appointments.woId, woIds));
   }
 
   async getAppointmentByToken(token: string): Promise<Appointment | undefined> {
@@ -579,6 +621,11 @@ export class DatabaseStorage implements IStorage {
 
   async getTypingJobsByWoId(woId: string): Promise<TypingJob[]> {
     return db.select().from(typingJobs).where(eq(typingJobs.woId, woId));
+  }
+
+  async getTypingJobsByWoIds(woIds: string[]): Promise<TypingJob[]> {
+    if (woIds.length === 0) return [];
+    return db.select().from(typingJobs).where(inArray(typingJobs.woId, woIds));
   }
 
   async getTypingJobsByVendorId(vendorId: string): Promise<TypingJob[]> {

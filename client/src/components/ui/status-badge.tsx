@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 type StatusType = 
   | "Draft" | "Scheduled" | "Sent" | "Completed" | "Cancelled" | "Rescheduled"
-  | "SentToVendor" | "InProgress" | "Returned" | "ReadyToSchedule"
+  | "SentToVendor" | "InProgress" | "WaitingForDocs" | "Returned" | "ReadyToSchedule"
   | "SentToClient" | "VendorMistake" | "OnHold" | "Rejected"
   | "New" | "Accepted" | "Closed"
   | "Medical" | "EID"
@@ -23,6 +23,7 @@ const statusStyles: Record<StatusType, string> = {
   Rescheduled: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300",
   SentToVendor: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300",
   InProgress: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
+  WaitingForDocs: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300",
   Returned: "bg-violet-50 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300",
   ReadyToSchedule: "bg-teal-50 text-teal-600 dark:bg-teal-900/40 dark:text-teal-300",
   SentToClient: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
@@ -48,6 +49,7 @@ const statusLabels: Record<StatusType, string> = {
   Rescheduled: "Rescheduled",
   SentToVendor: "Sent to Vendor",
   InProgress: "In Progress",
+  WaitingForDocs: "Waiting for Docs",
   Returned: "Returned",
   ReadyToSchedule: "Ready to Schedule",
   SentToClient: "Sent to Client",

@@ -663,29 +663,51 @@ export async function registerRoutes(
   app.get("/api/work-orders", requireAuth, async (req, res) => {
     try {
       const { search, status } = req.query;
-      const workOrders = await storage.getWorkOrders(
+      const workOrdersList = await storage.getWorkOrders(
         search as string | undefined,
         status as string | undefined
       );
-      
-      const result = await Promise.all(
-        workOrders.map(async (wo) => {
-          const [company, typingJobsRaw, appointmentsRaw, serviceType] = await Promise.all([
-            storage.getCompanyById(wo.companyId),
-            storage.getTypingJobsByWoId(wo.id),
-            storage.getAppointmentsByWoId(wo.id),
-            wo.serviceTypeId ? storage.getServiceTypeById(wo.serviceTypeId) : Promise.resolve(undefined),
-          ]);
-          const typingJobs = await Promise.all(
-            typingJobsRaw.map(async (job) => {
-              const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
-              return { ...job, jobType };
-            })
-          );
-          return { ...wo, company, serviceType, typingJobs, appointments: appointmentsRaw };
-        })
-      );
-      
+
+      if (workOrdersList.length === 0) {
+        return res.json([]);
+      }
+
+      const woIds = workOrdersList.map(wo => wo.id);
+      const companyIds = Array.from(new Set(workOrdersList.map(wo => wo.companyId).filter(Boolean)));
+      const serviceTypeIds = Array.from(new Set(workOrdersList.map(wo => wo.serviceTypeId).filter((id): id is string => !!id)));
+
+      const [allCompanies, allServiceTypes, allTypingJobs, allAppointments, allJobTypes] = await Promise.all([
+        companyIds.length > 0 ? storage.getCompaniesByIds(companyIds) : Promise.resolve([]),
+        serviceTypeIds.length > 0 ? storage.getServiceTypesByIds(serviceTypeIds) : Promise.resolve([]),
+        storage.getTypingJobsByWoIds(woIds),
+        storage.getAppointmentsByWoIds(woIds),
+        storage.getJobTypes(),
+      ]);
+
+      const companyMap = new Map(allCompanies.map(c => [c.id, c]));
+      const serviceTypeMap = new Map(allServiceTypes.map(st => [st.id, st]));
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+      const typingJobsByWo = new Map<string, any[]>();
+      for (const job of allTypingJobs) {
+        const list = typingJobsByWo.get(job.woId) || [];
+        list.push({ ...job, jobType: job.jobTypeId ? jobTypeMap.get(job.jobTypeId) || null : null });
+        typingJobsByWo.set(job.woId, list);
+      }
+      const appointmentsByWo = new Map<string, any[]>();
+      for (const apt of allAppointments) {
+        const list = appointmentsByWo.get(apt.woId) || [];
+        list.push(apt);
+        appointmentsByWo.set(apt.woId, list);
+      }
+
+      const result = workOrdersList.map(wo => ({
+        ...wo,
+        company: companyMap.get(wo.companyId),
+        serviceType: wo.serviceTypeId ? serviceTypeMap.get(wo.serviceTypeId) : undefined,
+        typingJobs: typingJobsByWo.get(wo.id) || [],
+        appointments: appointmentsByWo.get(wo.id) || [],
+      }));
+
       res.json(result);
     } catch (error) {
       console.error("Work orders error:", error);
@@ -1144,39 +1166,50 @@ export async function registerRoutes(
   // ========== Companies ==========
   app.get("/api/companies", requireAuth, async (req, res) => {
     try {
-      const companies = await storage.getCompanies();
-      const workOrderCounts = await storage.getWorkOrderCountsByCompany();
-      const result = await Promise.all(
-        companies.map(async (company) => {
-          const emails = await storage.getCompanyEmails(company.id);
-          const rmStaff = company.rmStaffId ? await storage.getStaffById(company.rmStaffId) : null;
-          const assistStaff = company.assistStaffId ? await storage.getStaffById(company.assistStaffId) : null;
-          const preferredMedicalCenter = company.preferredMedicalCenterId 
-            ? await storage.getCenterById(company.preferredMedicalCenterId) 
-            : null;
-          const preferredMedicalCenterVip = company.preferredMedicalCenterVipId 
-            ? await storage.getCenterById(company.preferredMedicalCenterVipId) 
-            : null;
-          const preferredBiometricsCenter = company.preferredBiometricsCenterId 
-            ? await storage.getCenterById(company.preferredBiometricsCenterId) 
-            : null;
-          const preferredBiometricsCenterVip = company.preferredBiometricsCenterVipId 
-            ? await storage.getCenterById(company.preferredBiometricsCenterVipId) 
-            : null;
-          
-          return {
-            ...company,
-            emails,
-            rmStaff,
-            assistStaff,
-            preferredMedicalCenter,
-            preferredMedicalCenterVip,
-            preferredBiometricsCenter,
-            preferredBiometricsCenterVip,
-            workOrderCount: workOrderCounts[company.id] || 0,
-          };
-        })
-      );
+      const companiesList = await storage.getCompanies();
+
+      if (companiesList.length === 0) {
+        return res.json([]);
+      }
+
+      const staffIds = Array.from(new Set(
+        companiesList.flatMap(c => [c.rmStaffId, c.assistStaffId].filter(Boolean) as string[])
+      ));
+      const centerIds = Array.from(new Set(
+        companiesList.flatMap(c => [
+          c.preferredMedicalCenterId, c.preferredMedicalCenterVipId,
+          c.preferredBiometricsCenterId, c.preferredBiometricsCenterVipId,
+        ].filter(Boolean) as string[])
+      ));
+
+      const [workOrderCounts, allStaff, allCenters, allEmails] = await Promise.all([
+        storage.getWorkOrderCountsByCompany(),
+        storage.getStaffByIds(staffIds),
+        storage.getCentersByIds(centerIds),
+        storage.getAllCompanyEmails(),
+      ]);
+
+      const staffMap = new Map(allStaff.map(s => [s.id, s]));
+      const centerMap = new Map(allCenters.map(c => [c.id, c]));
+      const emailsByCompany = new Map<string, typeof allEmails>();
+      for (const email of allEmails) {
+        const list = emailsByCompany.get(email.companyId) || [];
+        list.push(email);
+        emailsByCompany.set(email.companyId, list);
+      }
+
+      const result = companiesList.map(company => ({
+        ...company,
+        emails: emailsByCompany.get(company.id) || [],
+        rmStaff: company.rmStaffId ? staffMap.get(company.rmStaffId) || null : null,
+        assistStaff: company.assistStaffId ? staffMap.get(company.assistStaffId) || null : null,
+        preferredMedicalCenter: company.preferredMedicalCenterId ? centerMap.get(company.preferredMedicalCenterId) || null : null,
+        preferredMedicalCenterVip: company.preferredMedicalCenterVipId ? centerMap.get(company.preferredMedicalCenterVipId) || null : null,
+        preferredBiometricsCenter: company.preferredBiometricsCenterId ? centerMap.get(company.preferredBiometricsCenterId) || null : null,
+        preferredBiometricsCenterVip: company.preferredBiometricsCenterVipId ? centerMap.get(company.preferredBiometricsCenterVipId) || null : null,
+        workOrderCount: workOrderCounts[company.id] || 0,
+      }));
+
       res.json(result);
     } catch (error) {
       console.error("Companies error:", error);
@@ -1798,15 +1831,26 @@ export async function registerRoutes(
     try {
       const { status } = req.query;
       const jobs = await storage.getTypingJobs(status as string | undefined);
-      
-      const result = await Promise.all(
-        jobs.map(async (job) => {
-          const wo = await storage.getWorkOrderById(job.woId);
-          const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
-          return { ...job, workOrder: wo, jobType };
-        })
-      );
-      
+
+      if (jobs.length === 0) {
+        return res.json([]);
+      }
+
+      const woIds = Array.from(new Set(jobs.map(j => j.woId)));
+      const [allWorkOrders, allJobTypes] = await Promise.all([
+        storage.getWorkOrdersByIds(woIds),
+        storage.getJobTypes(),
+      ]);
+
+      const woMap = new Map(allWorkOrders.map(wo => [wo.id, wo]));
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+
+      const result = jobs.map(job => ({
+        ...job,
+        workOrder: woMap.get(job.woId),
+        jobType: job.jobTypeId ? jobTypeMap.get(job.jobTypeId) || null : null,
+      }));
+
       res.json(result);
     } catch (error) {
       console.error("Typing jobs error:", error);
