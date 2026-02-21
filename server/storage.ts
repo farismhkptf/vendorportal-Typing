@@ -22,7 +22,7 @@ import {
   type PasswordResetRequest, type InsertPasswordResetRequest
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql, or, ilike, inArray } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -88,6 +88,7 @@ export interface IStorage {
   getAppointmentByToken(token: string): Promise<Appointment | undefined>;
   createAppointment(data: InsertAppointment): Promise<Appointment>;
   getTodayAppointments(): Promise<Appointment[]>;
+  getUpcomingAppointments(days: number): Promise<Appointment[]>;
   getAllAppointments(): Promise<Appointment[]>;
   updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined>;
   getActiveAppointmentByWoAndType(woId: string, type: string): Promise<Appointment | undefined>;
@@ -525,6 +526,22 @@ export class DatabaseStorage implements IStorage {
         eq(appointments.status, "Scheduled")
       )
     );
+  }
+
+  async getUpcomingAppointments(days: number): Promise<Appointment[]> {
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const endDate = new Date(tomorrow);
+    endDate.setDate(endDate.getDate() + days);
+
+    return db.select().from(appointments).where(
+      and(
+        gte(appointments.datetime, tomorrow),
+        lt(appointments.datetime, endDate),
+        eq(appointments.status, "Scheduled")
+      )
+    ).orderBy(appointments.datetime);
   }
 
   async getAllAppointments(): Promise<Appointment[]> {

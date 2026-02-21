@@ -464,7 +464,7 @@ export const appSettings = pgTable("app_settings", {
   defaultVendorId: varchar("default_vendor_id"),
   maintenanceMode: boolean("maintenance_mode").notNull().default(false),
   maintenanceMessage: text("maintenance_message"),
-  whatsappNumber: text("whatsapp_number").default("+971000000000"),
+  whatsappNumber: text("whatsapp_number").default("+971509161815"),
   privacyPolicyHtml: text("privacy_policy_html"),
   termsOfServiceHtml: text("terms_of_service_html"),
 });

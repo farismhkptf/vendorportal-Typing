@@ -184,7 +184,7 @@ export async function registerRoutes(
           const wo = await storage.getWorkOrderById(apt.woId);
           const center = apt.centerId ? await storage.getCenterById(apt.centerId) : null;
           return {
-            id: apt.id,
+            id: wo?.id || apt.id,
             woNumber: wo?.woNumber || "N/A",
             applicantName: wo?.applicantName || "N/A",
             type: apt.type,
@@ -604,58 +604,33 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/dashboard/expiring-documents", requireAuth, async (req, res) => {
+  app.get("/api/dashboard/upcoming-appointments", requireAuth, async (req, res) => {
     try {
-      const now = Date.now();
-      const DAY_MS = 86400000;
-      const allJobTypes = await storage.getJobTypes();
-      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
-
-      const [readyToScheduleJobs, returnedJobs, sentToClientJobs] = await Promise.all([
-        storage.getTypingJobs("ReadyToSchedule"),
-        storage.getTypingJobs("Returned"),
-        storage.getTypingJobs("SentToClient"),
-      ]);
-      const completedJobs = [...readyToScheduleJobs, ...returnedJobs, ...sentToClientJobs];
-
-      const expiringMedical: Array<{ jobId: string; jobCode: string; woNumber: string; applicantName: string; completedAt: string; daysRemaining: number }> = [];
-      const expiringEid: Array<{ jobId: string; jobCode: string; woNumber: string; applicantName: string; completedAt: string; daysRemaining: number }> = [];
-
-      for (const job of completedJobs) {
-        const jt = jobTypeMap.get(job.jobTypeId);
-        if (!jt) continue;
-        const completedAt = job.sentToClientAt || job.returnedAt;
-        if (!completedAt) continue;
-        const completedTime = new Date(completedAt).getTime();
-        const daysSinceCompleted = (now - completedTime) / DAY_MS;
-
-        if (jt.category === "Medical" && daysSinceCompleted >= 25 && daysSinceCompleted <= 30) {
-          const wo = await storage.getWorkOrderById(job.woId);
-          expiringMedical.push({
-            jobId: job.id,
-            jobCode: job.jobCode || "",
+      const upcomingAppts = await storage.getUpcomingAppointments(5);
+      const result = await Promise.all(
+        upcomingAppts.map(async (apt) => {
+          const wo = await storage.getWorkOrderById(apt.woId);
+          const center = apt.centerId ? await storage.getCenterById(apt.centerId) : null;
+          const aptDate = new Date(apt.datetime);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const daysFromNow = Math.ceil((aptDate.getTime() - today.getTime()) / 86400000);
+          return {
+            id: wo?.id || apt.id,
             woNumber: wo?.woNumber || "N/A",
             applicantName: wo?.applicantName || "N/A",
-            completedAt: new Date(completedAt).toISOString(),
-            daysRemaining: Math.max(0, Math.round(30 - daysSinceCompleted)),
-          });
-        } else if (jt.category === "EID" && daysSinceCompleted >= 55 && daysSinceCompleted <= 60) {
-          const wo = await storage.getWorkOrderById(job.woId);
-          expiringEid.push({
-            jobId: job.id,
-            jobCode: job.jobCode || "",
-            woNumber: wo?.woNumber || "N/A",
-            applicantName: wo?.applicantName || "N/A",
-            completedAt: new Date(completedAt).toISOString(),
-            daysRemaining: Math.max(0, Math.round(60 - daysSinceCompleted)),
-          });
-        }
-      }
-
-      res.json({ expiringMedical, expiringEid });
+            type: apt.type,
+            time: aptDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+            date: aptDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+            center: center?.name || "TBD",
+            daysFromNow,
+          };
+        })
+      );
+      res.json(result);
     } catch (error) {
-      console.error("Dashboard expiring-documents error:", error);
-      res.status(500).json({ message: "Failed to fetch expiring documents" });
+      console.error("Upcoming appointments error:", error);
+      res.status(500).json({ message: "Failed to fetch upcoming appointments" });
     }
   });
 
@@ -4556,7 +4531,7 @@ export async function registerRoutes(
   });
 
   // ========== Admin Approvals ==========
-  app.get("/api/admin/approvals", requireAuth, async (req, res) => {
+  app.get("/api/admin/approvals", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
       const approvals = await storage.getPendingVendorApprovals();
       
@@ -4585,7 +4560,7 @@ export async function registerRoutes(
     adjustedAmount: z.number().optional(),
   });
 
-  app.post("/api/admin/approvals/:id/approve", requireAuth, async (req, res) => {
+  app.post("/api/admin/approvals/:id/approve", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
       const approvalId = req.params.id;
       const approvalRecord = await storage.getVendorApprovalById(approvalId);
@@ -4649,7 +4624,7 @@ export async function registerRoutes(
     reason: z.string().min(1, "Reason required"),
   });
 
-  app.post("/api/admin/approvals/:id/reject", requireAuth, async (req, res) => {
+  app.post("/api/admin/approvals/:id/reject", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
       const approvalId = req.params.id;
       const approvalRecord = await storage.getVendorApprovalById(approvalId);

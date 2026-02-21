@@ -752,7 +752,7 @@ export default function WorkOrdersList() {
                     {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                   </div>
                 </TableCell>}
-                {cv("applicant") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>{toProperCase(wo.applicantName)}</TableCell>}
+                {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/work-orders/${wo.id}`)}><span className="block truncate">{toProperCase(wo.applicantName)}</span></TableCell>}
                 {cv("company") && <TableCell className={`hidden sm:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {wo.company?.name ? toProperCase(wo.company.name) : "-"}
                 </TableCell>}

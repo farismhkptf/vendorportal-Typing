@@ -325,7 +325,7 @@ export default function TypingJobsList() {
                 {cv("woNumber") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
                 </TableCell>}
-                {cv("applicant") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</TableCell>}
+                {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/typing-jobs/${job.id}`)}><span className="block truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</span></TableCell>}
                 {cv("jobType") && <TableCell className={`hidden sm:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   {job.jobType?.name || "-"}
                 </TableCell>}
