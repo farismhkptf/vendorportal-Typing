@@ -24,7 +24,10 @@ The PostgreSQL database includes core entities such as Users (with roles: Admin,
 
 ### Authentication and Authorization
 
-Session-based authentication uses `express-session` + `connect-pg-simple` for PostgreSQL session storage, with passwords hashed via `bcryptjs`. Role-Based Access Control (RBAC) is implemented with `requireRole()` and `requireOpsRole` middleware for server-side protection and navigation filtering for client-side route protection. A separate session-based authentication system exists for vendors.
+Session-based authentication uses `express-session` + `connect-pg-simple` for PostgreSQL session storage, with passwords hashed via `bcryptjs`. Role-Based Access Control (RBAC) is enforced at both layers:
+-   **Frontend**: Centralized `ROUTE_ACCESS` config in `App.tsx` maps URL path prefixes to allowed roles. `AuthGuard` renders an `AccessDenied` page for unauthorized routes. Navigation filtering in `app-layout.tsx` hides inaccessible links.
+-   **Backend**: All API routes are protected with `requireAuth`, `requireRole()`, or `requireOpsRole` middleware. Only `/api/public/*`, `/api/reschedule/:token`, and auth endpoints are publicly accessible.
+A separate session-based authentication system exists for vendors with `requireVendorAuth` middleware.
 
 #### Staff Roles
 -   **Admin**: Full system access, admin console, user management.
