@@ -597,7 +597,7 @@ export async function registerRoutes(
         hoursInProgress: Math.round((now - new Date(job.createdAt).getTime()) / 3600000),
       }));
 
-      res.json({ unacceptedOver24h, inProgressOver72h });
+      res.json({ unacceptedOver24h, waitingForDocsOver48h: [], inProgressOver72h });
     } catch (error) {
       console.error("Dashboard stale-jobs error:", error);
       res.status(500).json({ message: "Failed to fetch stale jobs" });
