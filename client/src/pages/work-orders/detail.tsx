@@ -744,50 +744,50 @@ export default function WorkOrderDetail() {
         {/* Tabs */}
         <Card className="border border-border/50 shadow-sm">
           <Tabs defaultValue="typing" className="w-full">
-            <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 h-auto">
+            <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 h-auto overflow-x-auto">
               <TabsTrigger 
                 value="typing" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 sm:px-6 py-3 text-xs sm:text-sm"
                 data-testid="tab-typing"
               >
-                <FileText className="h-4 w-4 mr-2" />
-                Create Typing Job
+                <FileText className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Create </span>Typing
               </TabsTrigger>
               <TabsTrigger 
                 value="appointments" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 sm:px-6 py-3 text-xs sm:text-sm"
                 data-testid="tab-appointments"
               >
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Appointment
+                <Calendar className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Schedule </span>Appt
               </TabsTrigger>
               <TabsTrigger 
                 value="notes" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 sm:px-6 py-3 text-xs sm:text-sm"
                 data-testid="tab-notes"
               >
-                <StickyNote className="h-4 w-4 mr-2" />
-                Internal Notes
+                <StickyNote className="h-4 w-4 mr-1 sm:mr-2" />
+                Notes
               </TabsTrigger>
               <TabsTrigger 
                 value="activity" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 sm:px-6 py-3 text-xs sm:text-sm"
                 data-testid="tab-activity"
               >
-                <History className="h-4 w-4 mr-2" />
+                <History className="h-4 w-4 mr-1 sm:mr-2" />
                 Timeline
               </TabsTrigger>
               <TabsTrigger 
                 value="documents" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-6 py-3"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 sm:px-6 py-3 text-xs sm:text-sm"
                 data-testid="tab-documents"
               >
-                <FileText className="h-4 w-4 mr-2" />
-                Documents
+                <FileText className="h-4 w-4 mr-1 sm:mr-2" />
+                Docs
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="appointments" className="p-6">
+            <TabsContent value="appointments" className="p-3 sm:p-6">
               <div className="flex items-center justify-between gap-2 mb-4">
                 <h3 className="font-medium text-foreground">Scheduled Appointments</h3>
                 <div className="flex gap-2">
@@ -885,7 +885,7 @@ export default function WorkOrderDetail() {
               )}
             </TabsContent>
 
-            <TabsContent value="typing" className="p-6">
+            <TabsContent value="typing" className="p-3 sm:p-6">
               <div className="flex items-center justify-between gap-2 flex-wrap mb-4">
                 <h3 className="font-medium text-foreground">Typing Jobs</h3>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1029,15 +1029,15 @@ export default function WorkOrderDetail() {
               )}
             </TabsContent>
 
-            <TabsContent value="notes" className="p-6">
+            <TabsContent value="notes" className="p-3 sm:p-6">
               <InternalNotesSection workOrderId={id || ""} />
             </TabsContent>
 
-            <TabsContent value="activity" className="p-6">
+            <TabsContent value="activity" className="p-3 sm:p-6">
               <ActivityTimelineSection workOrderId={id || ""} />
             </TabsContent>
 
-            <TabsContent value="documents" className="p-6">
+            <TabsContent value="documents" className="p-3 sm:p-6">
               <DocumentPanel 
                 woId={id || ""}
                 serviceCategory={serviceTypes?.find(st => st.id === workOrder.serviceTypeId)?.category as ServiceCategory | undefined}

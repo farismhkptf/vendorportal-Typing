@@ -298,7 +298,7 @@ export default function MedicalJobs() {
                 ))
               ) : (
                 <Card>
-                  <CardContent className="p-8">
+                  <CardContent className="p-4 sm:p-8">
                     <EmptyState
                       icon={<Stethoscope className="h-6 w-6" />}
                       title="No medical jobs found"

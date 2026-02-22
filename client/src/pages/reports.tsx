@@ -43,7 +43,7 @@ export default function ReportsPage() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="p-6 lg:p-10 space-y-6">
+        <div className="p-4 sm:p-6 lg:p-10 space-y-6">
           <div>
             <Skeleton className="h-8 w-48 mb-2" />
             <Skeleton className="h-4 w-72" />
@@ -65,9 +65,9 @@ export default function ReportsPage() {
 
   return (
     <AppLayout>
-      <div className="p-6 lg:p-10 space-y-8">
+      <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-reports-title">Reports & Analytics</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight" data-testid="text-reports-title">Reports & Analytics</h1>
           <p className="text-sm text-muted-foreground mt-1">Overview of work orders, typing jobs, and vendor performance</p>
         </div>
 
@@ -78,7 +78,7 @@ export default function ReportsPage() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-wo">{data.overview.totalWorkOrders}</div>
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-total-wo">{data.overview.totalWorkOrders}</div>
               <p className="text-xs text-muted-foreground mt-1">{data.overview.completedWorkOrders} completed</p>
             </CardContent>
           </Card>
@@ -88,7 +88,7 @@ export default function ReportsPage() {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-active-wo">{data.overview.activeWorkOrders}</div>
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-active-wo">{data.overview.activeWorkOrders}</div>
               <p className="text-xs text-muted-foreground mt-1">In progress</p>
             </CardContent>
           </Card>
@@ -98,7 +98,7 @@ export default function ReportsPage() {
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-tj">{data.overview.totalTypingJobs}</div>
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-total-tj">{data.overview.totalTypingJobs}</div>
               <p className="text-xs text-muted-foreground mt-1">{data.overview.completedTypingJobs} completed</p>
             </CardContent>
           </Card>
@@ -108,7 +108,7 @@ export default function ReportsPage() {
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold" data-testid="text-total-companies">{data.overview.totalCompanies}</div>
+              <div className="text-xl sm:text-2xl font-bold" data-testid="text-total-companies">{data.overview.totalCompanies}</div>
               <p className="text-xs text-muted-foreground mt-1">{data.overview.totalVendors} vendor{data.overview.totalVendors !== 1 ? "s" : ""}</p>
             </CardContent>
           </Card>

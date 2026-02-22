@@ -118,7 +118,7 @@ export default function CrmDashboard() {
     return (
       <AppLayout>
         <div className="flex items-center justify-center min-h-[60vh] px-4">
-          <Card className="p-8 max-w-md text-center space-y-4">
+          <Card className="p-4 sm:p-8 max-w-md text-center space-y-4">
             <div className="h-12 w-12 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center mx-auto">
               <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
             </div>

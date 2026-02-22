@@ -95,7 +95,7 @@ export default function VendorLogin() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <img src={vendorLogo} alt="Advanced Solutions" className="h-16 w-16 rounded-2xl object-cover mb-4 shadow-lg" data-testid="img-vendor-logo" />
-          <h1 className="text-2xl font-semibold text-foreground">Advanced Solutions</h1>
+          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Advanced Solutions</h1>
           <p className="text-sm text-muted-foreground mt-1">Vendor Portal · <CompanyName /></p>
         </div>
 

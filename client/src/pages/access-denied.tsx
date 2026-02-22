@@ -19,7 +19,7 @@ export default function AccessDenied() {
       <div className="fixed inset-0 gradient-header opacity-30" />
 
       <Card className="relative z-10 glass-strong border-0 shadow-xl max-w-md w-full">
-        <CardContent className="p-8 text-center">
+        <CardContent className="p-4 sm:p-8 text-center">
           <div className="flex justify-center mb-4">
             <ShieldX className="h-16 w-16 text-destructive/40" />
           </div>

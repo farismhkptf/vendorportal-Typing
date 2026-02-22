@@ -141,7 +141,7 @@ export default function VendorJobs() {
           <Card className="border border-border/50">
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">New Jobs</p>
-              <p className="text-2xl font-semibold text-foreground mt-1">
+              <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
                 {jobs?.filter(j => j.status === "SentToVendor").length || 0}
               </p>
             </CardContent>
@@ -149,7 +149,7 @@ export default function VendorJobs() {
           <Card className="border border-border/50">
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">In Progress</p>
-              <p className="text-2xl font-semibold text-foreground mt-1">
+              <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
                 {jobs?.filter(j => j.status === "InProgress").length || 0}
               </p>
             </CardContent>
@@ -157,7 +157,7 @@ export default function VendorJobs() {
           <Card className="border border-border/50">
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Completed</p>
-              <p className="text-2xl font-semibold text-foreground mt-1">
+              <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
                 {jobs?.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned").length || 0}
               </p>
             </CardContent>

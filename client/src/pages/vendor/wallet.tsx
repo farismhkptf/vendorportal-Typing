@@ -128,7 +128,7 @@ export default function VendorWallet() {
           </div>
         ) : (
           <Card>
-            <CardContent className="p-8">
+            <CardContent className="p-4 sm:p-8">
               <EmptyState
                 icon={<CreditCard className="h-5 w-5" />}
                 title="No transactions"

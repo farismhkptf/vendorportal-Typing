@@ -315,7 +315,7 @@ export default function VendorDashboard() {
                   </Card>
                 ) : (
                   <Card>
-                    <CardContent className="p-8 text-center">
+                    <CardContent className="p-4 sm:p-8 text-center">
                       <CheckCircle2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
                       <p className="text-sm font-medium text-foreground">No active work orders</p>
                       <p className="text-xs text-muted-foreground mt-1">New jobs will appear here when assigned</p>

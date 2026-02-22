@@ -678,8 +678,8 @@ Thank you,
 
         {viewMode === "calendar" && (
           <Card className="border border-border/50 shadow-sm rounded-xl overflow-hidden">
-            <CardContent className="p-0">
-              <div className="grid grid-cols-7 divide-x divide-border/30">
+            <CardContent className="p-0 overflow-x-auto">
+              <div className="grid grid-cols-7 divide-x divide-border/30 min-w-[700px]">
                 {calendarWeekDays.map(({ date, appointments: dayApts }) => {
                   const isToday = date.toDateString() === new Date().toDateString();
                   const dayName = date.toLocaleDateString("en-US", { weekday: "short" });

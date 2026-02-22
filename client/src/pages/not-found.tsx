@@ -9,7 +9,7 @@ export default function NotFound() {
       <div className="fixed inset-0 gradient-header opacity-30" />
       
       <Card className="relative z-10 glass-strong border-0 shadow-xl max-w-md w-full">
-        <CardContent className="p-8 text-center">
+        <CardContent className="p-4 sm:p-8 text-center">
           <div className="text-6xl font-bold text-primary/20 mb-4">404</div>
           <h1 className="text-xl font-semibold text-foreground mb-2">Page Not Found</h1>
           <p className="text-muted-foreground mb-8">

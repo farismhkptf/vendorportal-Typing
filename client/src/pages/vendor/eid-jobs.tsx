@@ -310,7 +310,7 @@ export default function EidJobs() {
                 ))
               ) : (
                 <Card>
-                  <CardContent className="p-8">
+                  <CardContent className="p-4 sm:p-8">
                     <EmptyState
                       icon={<Shield className="h-6 w-6" />}
                       title="No EID jobs found"
