@@ -1783,6 +1783,17 @@ export async function registerRoutes(
       const jobType = await storage.getJobTypeById(validation.data.jobTypeId);
       const category = jobType?.category || "Medical";
       
+      // Check for existing active job of same type for this work order
+      const existingJobs = await storage.getTypingJobsByWoId(validation.data.woId);
+      const activeJobOfSameType = existingJobs.find(
+        j => j.jobTypeId === validation.data.jobTypeId && j.status !== "Cancelled"
+      );
+      if (activeJobOfSameType) {
+        return res.status(409).json({ 
+          message: `A ${category} typing job already exists for this work order (${activeJobOfSameType.jobCode}). Only one per type is allowed.` 
+        });
+      }
+      
       // Auto-generate job code based on category
       const jobCode = await storage.generateNextJobCode(category as "Medical" | "EID");
       

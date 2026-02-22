@@ -308,6 +308,9 @@ export default function WorkOrderDetail() {
   const [sendVendorId, setSendVendorId] = useState("");
 
   const draftTypingJobs = workOrder?.typingJobs?.filter(j => j.status === "Draft") || [];
+  const existingMedicalJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "Medical" && j.status !== "Cancelled") || null;
+  const existingEidJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "EID" && j.status !== "Cancelled") || null;
+  const canCreateNewJob = !existingMedicalJob || !existingEidJob;
 
   const sendToVendorMutation = useMutation({
     mutationFn: async () => {
@@ -901,12 +904,16 @@ export default function WorkOrderDetail() {
                       Send {draftTypingJobs.length > 1 ? `${draftTypingJobs.length} Jobs` : "to Vendor"}
                     </Button>
                   )}
-                  {(!workOrder.typingJobs || workOrder.typingJobs.length === 0) && !showNewTypingJobForm && (
+                  {canCreateNewJob && !showNewTypingJobForm && (
                     <Button 
                       variant="outline" 
                       size="sm" 
                       className="gap-2" 
-                      onClick={() => setShowNewTypingJobForm(true)}
+                      onClick={() => {
+                        setTypeMedical(!existingMedicalJob);
+                        setTypeEid(!existingEidJob);
+                        setShowNewTypingJobForm(true);
+                      }}
                       data-testid="button-new-typing-job"
                     >
                       <Plus className="h-4 w-4" />
@@ -930,12 +937,19 @@ export default function WorkOrderDetail() {
                           id="typeMedical"
                           checked={typeMedical}
                           onCheckedChange={(checked) => setTypeMedical(checked === true)}
+                          disabled={!!existingMedicalJob}
                           data-testid="checkbox-type-medical"
                         />
-                        <Label htmlFor="typeMedical" className="text-sm font-medium cursor-pointer">
+                        <Label htmlFor="typeMedical" className={`text-sm font-medium ${existingMedicalJob ? "text-muted-foreground" : "cursor-pointer"}`}>
                           Medical Application
                         </Label>
-                        {medicalJobType && (
+                        {existingMedicalJob ? (
+                          <Link href={`/typing-jobs/${existingMedicalJob.id}`}>
+                            <span className="text-xs text-primary hover:underline cursor-pointer">
+                              Already exists ({existingMedicalJob.jobCode} · {existingMedicalJob.status})
+                            </span>
+                          </Link>
+                        ) : medicalJobType && (
                           <span className="text-xs text-muted-foreground">
                             (AED {medicalJobType.cost || 0})
                           </span>
@@ -947,12 +961,19 @@ export default function WorkOrderDetail() {
                           id="typeEid"
                           checked={typeEid}
                           onCheckedChange={(checked) => setTypeEid(checked === true)}
+                          disabled={!!existingEidJob}
                           data-testid="checkbox-type-eid"
                         />
-                        <Label htmlFor="typeEid" className="text-sm font-medium cursor-pointer">
+                        <Label htmlFor="typeEid" className={`text-sm font-medium ${existingEidJob ? "text-muted-foreground" : "cursor-pointer"}`}>
                           Emirates ID Application
                         </Label>
-                        {eidJobType && (
+                        {existingEidJob ? (
+                          <Link href={`/typing-jobs/${existingEidJob.id}`}>
+                            <span className="text-xs text-primary hover:underline cursor-pointer">
+                              Already exists ({existingEidJob.jobCode} · {existingEidJob.status})
+                            </span>
+                          </Link>
+                        ) : eidJobType && (
                           <span className="text-xs text-muted-foreground">
                             (AED {eidJobType.cost || 0})
                           </span>
