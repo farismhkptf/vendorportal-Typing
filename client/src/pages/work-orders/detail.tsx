@@ -27,7 +27,9 @@ import {
   Home,
   CheckCircle2,
   RefreshCw,
-  XCircle
+  XCircle,
+  PauseCircle,
+  PlayCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -339,6 +341,32 @@ export default function WorkOrderDetail() {
     },
     onError: (error: Error) => {
       toast({ title: "Failed to send jobs", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const jobOnHoldMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      return apiRequest("POST", `/api/typing-jobs/${jobId}/on-hold`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      toast({ title: "Job placed on hold" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to put job on hold", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const jobResumeMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      return apiRequest("POST", `/api/typing-jobs/${jobId}/resume`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      toast({ title: "Job resumed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to resume job", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1034,7 +1062,33 @@ export default function WorkOrderDetail() {
                                 Created {formatDate(job.createdAt)}
                               </p>
                             </div>
-                            <StatusBadge status={job.status} />
+                            <div className="flex items-center gap-2 shrink-0">
+                              {(job.status === "SentToVendor" || job.status === "InProgress") && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); jobOnHoldMutation.mutate(job.id); }}
+                                  disabled={jobOnHoldMutation.isPending}
+                                  data-testid={`button-hold-${job.id}`}
+                                >
+                                  <PauseCircle className="h-3.5 w-3.5 mr-1.5" />
+                                  Hold
+                                </Button>
+                              )}
+                              {job.status === "OnHold" && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); jobResumeMutation.mutate(job.id); }}
+                                  disabled={jobResumeMutation.isPending}
+                                  data-testid={`button-resume-${job.id}`}
+                                >
+                                  <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
+                                  Resume
+                                </Button>
+                              )}
+                              <StatusBadge status={job.status} />
+                            </div>
                           </div>
                         </CardContent>
                       </Card>
