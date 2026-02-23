@@ -92,7 +92,7 @@ These features have code preserved but are not active in the current UI:
 
 ### Integrations
 
--   **Zoho WorkDrive**: Used for file storage (stores file IDs and share links).
+-   **Zoho WorkDrive**: Integrated for document storage with hierarchical folder structure (Parent → Company → Applicant). Service module in `server/zoho-workdrive.ts` handles OAuth token refresh, folder creation, and file upload. Documents uploaded through the document panel are automatically synced to WorkDrive in the background. Manual sync available via `/api/documents/:id/sync-workdrive`. Connection status at `/api/workdrive/status`. Environment variables: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ACCOUNT_DOMAIN`, `ZOHO_API_DOMAIN`, `ZOHO_WORKDRIVE_PARENT_FOLDER_ID`. The `wo_documents` table has `workdriveFileId` and `workdriveLink` columns for tracking sync status.
 -   **Email Service**: Configured for notifications (`notifications@procompany.ae`).
 -   **WhatsApp**: Used for generating client communication messages.
 -   **Replit Object Storage**: Utilized for presigned URL document upload flows.

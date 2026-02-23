@@ -228,6 +228,8 @@ export const woDocuments = pgTable("wo_documents", {
   status: documentStatusEnum("status").notNull().default("Uploaded"),
   uploadedBy: varchar("uploaded_by"),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  workdriveFileId: text("workdrive_file_id"),
+  workdriveLink: text("workdrive_link"),
 });
 
 // Document Requirements table - defines which documents are required/optional per service category

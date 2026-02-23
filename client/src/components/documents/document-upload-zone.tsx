@@ -1,8 +1,10 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Upload, X, File, FileText, Image, CheckCircle, AlertCircle, Loader2, RotateCcw } from "lucide-react";
+import { Upload, X, File, FileText, Image, CheckCircle, AlertCircle, Loader2, RotateCcw, ExternalLink, Cloud, CloudOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "./document-types";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -17,6 +19,8 @@ interface WoDocument {
   fileSize: number | null;
   status: "Pending" | "Uploaded" | "Verified";
   uploadedAt: string;
+  workdriveFileId?: string | null;
+  workdriveLink?: string | null;
 }
 
 interface DocumentUploadZoneProps {
@@ -66,6 +70,14 @@ export function DocumentUploadZone({
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const existingDoc = documents.find((d) => d.documentType === documentType);
+
+  const syncMutation = useMutation({
+    mutationFn: (documentId: string) =>
+      apiRequest("POST", `/api/documents/${documentId}/sync-workdrive`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", woId, "documents"] });
+    },
+  });
 
   const isUploading = uploadStatus === "uploading" || externalUploading;
   const displayProgress = externalProgress !== null && externalProgress !== undefined ? externalProgress : uploadProgress;
@@ -227,11 +239,44 @@ export function DocumentUploadZone({
             )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{existingDoc.fileName}</p>
-              {existingDoc.fileSize && (
-                <p className="text-xs text-muted-foreground">
-                  {formatFileSize(existingDoc.fileSize)}
-                </p>
-              )}
+              <div className="flex items-center gap-2">
+                {existingDoc.fileSize && (
+                  <p className="text-xs text-muted-foreground">
+                    {formatFileSize(existingDoc.fileSize)}
+                  </p>
+                )}
+                {existingDoc.workdriveLink ? (
+                  <a
+                    href={existingDoc.workdriveLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                    onClick={(e) => e.stopPropagation()}
+                    data-testid={`link-workdrive-${documentType}`}
+                  >
+                    <Cloud className="h-3 w-3" />
+                    WorkDrive
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                ) : (
+                  <button
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      syncMutation.mutate(existingDoc.id);
+                    }}
+                    disabled={syncMutation.isPending}
+                    data-testid={`button-sync-workdrive-${documentType}`}
+                  >
+                    {syncMutation.isPending ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <CloudOff className="h-3 w-3" />
+                    )}
+                    {syncMutation.isPending ? "Syncing..." : "Sync to WorkDrive"}
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button

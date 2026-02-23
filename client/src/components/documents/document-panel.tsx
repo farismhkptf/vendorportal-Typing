@@ -19,6 +19,8 @@ interface WoDocument {
   fileSize: number | null;
   status: "Pending" | "Uploaded" | "Verified";
   uploadedAt: string;
+  workdriveFileId?: string | null;
+  workdriveLink?: string | null;
 }
 
 interface DocumentRequirement {

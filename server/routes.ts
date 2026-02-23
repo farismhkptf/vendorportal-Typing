@@ -17,6 +17,8 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { toProperCase } from "./proper-case";
 import { executeTransition, validateTransition, type Actor } from "./typing-job-machine";
 import { WalletService } from "./wallet-service";
+import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection } from "./zoho-workdrive";
+import { ObjectStorageService } from "./replit_integrations/object_storage/objectStorage";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -3875,6 +3877,37 @@ export async function registerRoutes(
         details: { documentType, fileName },
       });
 
+      if (isWorkDriveConfigured()) {
+        (async () => {
+          try {
+            const wo = await storage.getWorkOrderById(id);
+            if (!wo) return;
+            const company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
+            if (!company) return;
+
+            const objectStorageService = new ObjectStorageService();
+            const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
+            const [fileBuffer] = await objectFile.download();
+
+            const result = await syncFileToWorkDrive(
+              company.name,
+              wo.applicantName,
+              fileBuffer,
+              fileName,
+            );
+
+            await storage.updateWoDocument(document.id, {
+              workdriveFileId: result.fileId,
+              workdriveLink: result.permalink,
+            });
+
+            console.log(`WorkDrive sync complete for document ${document.id}: ${result.permalink}`);
+          } catch (err) {
+            console.error(`WorkDrive sync failed for document ${document.id}:`, err);
+          }
+        })();
+      }
+
       res.status(201).json(document);
     } catch (error) {
       console.error("Create document error:", error);
@@ -3932,6 +3965,63 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete document error:", error);
       res.status(500).json({ message: "Failed to delete document" });
+    }
+  });
+
+  app.get("/api/workdrive/status", requireRole("Admin"), async (req, res) => {
+    try {
+      const configured = isWorkDriveConfigured();
+      if (!configured) {
+        return res.json({ configured: false, connected: false, error: "WorkDrive credentials not configured" });
+      }
+      const result = await testWorkDriveConnection();
+      res.json({ configured: true, connected: result.success, error: result.error });
+    } catch (error: any) {
+      res.json({ configured: true, connected: false, error: error.message });
+    }
+  });
+
+  app.post("/api/documents/:id/sync-workdrive", requireAuth, async (req, res) => {
+    try {
+      if (!isWorkDriveConfigured()) {
+        return res.status(400).json({ message: "WorkDrive not configured" });
+      }
+
+      const document = await storage.getWoDocumentById(req.params.id);
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      const wo = await storage.getWorkOrderById(document.woId);
+      if (!wo) {
+        return res.status(404).json({ message: "Work order not found" });
+      }
+
+      const company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
+      if (!company) {
+        return res.status(400).json({ message: "Company not found for work order" });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      const objectFile = await objectStorageService.getObjectEntityFile(document.fileUrl);
+      const [fileBuffer] = await objectFile.download();
+
+      const result = await syncFileToWorkDrive(
+        company.name,
+        wo.applicantName,
+        fileBuffer,
+        document.fileName,
+      );
+
+      const updated = await storage.updateWoDocument(document.id, {
+        workdriveFileId: result.fileId,
+        workdriveLink: result.permalink,
+      });
+
+      res.json(updated);
+    } catch (error: any) {
+      console.error("WorkDrive sync error:", error);
+      res.status(500).json({ message: `WorkDrive sync failed: ${error.message}` });
     }
   });
 
