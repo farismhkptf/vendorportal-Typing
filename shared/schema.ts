@@ -64,7 +64,7 @@ export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", 
 export const rescheduleStatusEnum = pgEnum("reschedule_status", ["New", "Accepted", "Closed"]);
 export const typingJobStatusEnum = pgEnum("typing_job_status", [
   "Draft", "SentToVendor", "InProgress", "WaitingForDocs",
-  "Returned", "ReadyToSchedule", "SentToClient", "VendorMistake", "Cancelled",
+  "Returned", "ReadyToSchedule", "SentToClient", "Cancelled",
   "OnHold", "Rejected"
 ]);
 export const jobCategoryEnum = pgEnum("job_category", ["Medical", "EID"]);

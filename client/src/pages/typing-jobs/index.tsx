@@ -34,7 +34,7 @@ type ViewMode = "compact" | "cards" | "table" | "kanban";
 type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc";
 type CategoryFilter = "all" | "Medical" | "EID";
 
-const STATUS_ORDER = ["Draft", "SentToVendor", "InProgress", "ReadyToSchedule", "Returned", "SentToClient", "VendorMistake", "Cancelled", "OnHold", "Rejected"] as const;
+const STATUS_ORDER = ["Draft", "SentToVendor", "InProgress", "ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "OnHold", "Rejected"] as const;
 
 export default function TypingJobsList() {
   const [, navigate] = useLocation();
@@ -76,7 +76,7 @@ export default function TypingJobsList() {
       pending: typingJobs.filter(j => j.status === "Draft" || j.status === "SentToVendor").length,
       inProgress: typingJobs.filter(j => j.status === "InProgress").length,
       completed: typingJobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient").length,
-      issues: typingJobs.filter(j => j.status === "VendorMistake" || j.status === "Cancelled" || j.status === "Rejected" || j.status === "OnHold").length,
+      issues: typingJobs.filter(j => j.status === "Cancelled" || j.status === "Rejected" || j.status === "OnHold").length,
       medical: typingJobs.filter(j => j.jobType?.category === "Medical").length,
       eid: typingJobs.filter(j => j.jobType?.category === "EID").length,
     };
@@ -91,7 +91,7 @@ export default function TypingJobsList() {
       const pendingStatuses = ["Draft", "SentToVendor"];
       const inProgressStatuses = ["InProgress"];
       const completedStatuses = ["ReadyToSchedule", "Returned", "SentToClient"];
-      const issueStatuses = ["VendorMistake", "Cancelled", "Rejected", "OnHold"];
+      const issueStatuses = ["Cancelled", "Rejected", "OnHold"];
       const matchesStatus = statusFilter === "all" || job.status === statusFilter
         || (statusFilter === "_pending" && pendingStatuses.includes(job.status))
         || (statusFilter === "_inprogress" && inProgressStatuses.includes(job.status))
@@ -445,7 +445,6 @@ export default function TypingJobsList() {
           <SelectItem value="ReadyToSchedule">Ready to Schedule</SelectItem>
           <SelectItem value="Returned">Returned</SelectItem>
           <SelectItem value="SentToClient">Sent to Client</SelectItem>
-          <SelectItem value="VendorMistake">Vendor Mistake</SelectItem>
           <SelectItem value="Cancelled">Cancelled</SelectItem>
           <SelectItem value="OnHold">On Hold</SelectItem>
           <SelectItem value="Rejected">Rejected</SelectItem>

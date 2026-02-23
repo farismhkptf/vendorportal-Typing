@@ -106,7 +106,7 @@ function getActiveStep(status: string): WizardStep {
 }
 
 function getStepState(step: WizardStep, activeStep: WizardStep, status: string): "completed" | "active" | "locked" {
-  const terminalStatuses = ["ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "Rejected", "OnHold", "VendorMistake"];
+  const terminalStatuses = ["ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "Rejected", "OnHold"];
   if (terminalStatuses.includes(status)) return "completed";
   if (step < activeStep) return "completed";
   if (step === activeStep) return "active";
@@ -548,7 +548,7 @@ function StepComplete({
   const isEid = job.jobType?.category === "EID";
   const isMedical = job.jobType?.category === "Medical";
   const isInProgress = job.status === "InProgress";
-  const isTerminal = ["ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "Rejected", "OnHold", "VendorMistake"].includes(job.status);
+  const isTerminal = ["ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "Rejected", "OnHold"].includes(job.status);
   const isVip = job.workOrder?.isVip;
 
   const eidCentersFiltered = useMemo(() => {

@@ -8,7 +8,6 @@ export type TypingJobStatus =
   | "Returned"
   | "ReadyToSchedule"
   | "SentToClient"
-  | "VendorMistake"
   | "Cancelled"
   | "OnHold"
   | "Rejected";
@@ -113,7 +112,7 @@ const TRANSITIONS: Record<string, TransitionDef> = {
   },
 
   reassign: {
-    from: ["Cancelled", "VendorMistake", "Rejected"],
+    from: ["Cancelled", "Rejected"],
     to: "SentToVendor",
     actor: ["team"],
     sideEffects: [
@@ -228,8 +227,6 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
   if (action === "reassign") {
     baseUpdate.sentAt = new Date();
     baseUpdate.returnedAt = null;
-    baseUpdate.vendorMistakeAt = null;
-    baseUpdate.vendorMistakeReason = null;
   }
   if (action === "deliver_to_client") {
     baseUpdate.sentToClientAt = new Date();

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 type StatusType = 
   | "Draft" | "Scheduled" | "Sent" | "Completed" | "Cancelled" | "Rescheduled"
   | "SentToVendor" | "InProgress" | "WaitingForDocs" | "Returned" | "ReadyToSchedule"
-  | "SentToClient" | "VendorMistake" | "OnHold" | "Rejected"
+  | "SentToClient" | "OnHold" | "Rejected"
   | "New" | "Accepted" | "Closed"
   | "Medical" | "EID"
   | "MedScheduled" | "EIDScheduled" | "BothScheduled";
@@ -27,7 +27,6 @@ const statusStyles: Record<StatusType, string> = {
   Returned: "bg-violet-50 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300",
   ReadyToSchedule: "bg-teal-50 text-teal-600 dark:bg-teal-900/40 dark:text-teal-300",
   SentToClient: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
-  VendorMistake: "bg-orange-50 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300",
   OnHold: "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
   Rejected: "bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300",
   New: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
@@ -53,7 +52,6 @@ const statusLabels: Record<StatusType, string> = {
   Returned: "Returned",
   ReadyToSchedule: "Ready to Schedule",
   SentToClient: "Sent to Client",
-  VendorMistake: "Vendor Mistake",
   OnHold: "On Hold",
   Rejected: "Rejected",
   New: "New",

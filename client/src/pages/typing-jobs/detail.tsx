@@ -459,24 +459,6 @@ export default function TypingJobDetail() {
                 </>
               )}
               
-              {job.status === "VendorMistake" && (
-                <>
-                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                    <AlertCircle className="h-3.5 w-3.5 mr-1.5" />
-                    Vendor Mistake
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowReassignDialog(true)}
-                    className="gap-2"
-                    data-testid="button-reassign-job"
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    Re-assign to Vendor
-                  </Button>
-                </>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -548,12 +530,6 @@ export default function TypingJobDetail() {
                 <p className="text-sm">{formatDateTime(job.returnedAt)}</p>
               </div>
             </div>
-            {job.status === "VendorMistake" && job.vendorMistakeReason && (
-              <div className="pt-2 border-t border-border/50">
-                <p className="text-xs text-muted-foreground">Vendor Mistake Reason</p>
-                <p className="text-sm text-red-600">{job.vendorMistakeReason}</p>
-              </div>
-            )}
           </CardContent>
         </Card>
 

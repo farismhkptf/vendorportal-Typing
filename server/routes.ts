@@ -3507,7 +3507,7 @@ export async function registerRoutes(
         });
 
       const getLatestTimestamp = (job: typeof jobs[0]) => {
-        const dates = [job.createdAt, job.sentAt, job.returnedAt, job.sentToClientAt, job.vendorMistakeAt].filter(Boolean).map(d => new Date(d!).getTime());
+        const dates = [job.createdAt, job.sentAt, job.returnedAt, job.sentToClientAt].filter(Boolean).map(d => new Date(d!).getTime());
         return Math.max(...dates, 0);
       };
       const allJobsSorted = [...jobs].sort((a, b) => getLatestTimestamp(b) - getLatestTimestamp(a)).slice(0, 15);

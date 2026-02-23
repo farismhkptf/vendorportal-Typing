@@ -167,7 +167,6 @@ function TypingStatusPill({ status }: { status: string | null }) {
     ReadyToSchedule: { bg: "bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-300", label: "Ready to Schedule" },
     Returned: { bg: "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-300", label: "Returned" },
     SentToClient: { bg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300", label: "Sent to Client" },
-    VendorMistake: { bg: "bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-300", label: "Mistake" },
   };
   const s = styles[status] || { bg: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400", label: status };
   return (

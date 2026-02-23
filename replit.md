@@ -48,7 +48,7 @@ The design adopts an Apple-inspired glassmorphism aesthetic with soft gradients,
 
 -   **Work Order Management**: Unique WO numbers, applicant details, company linking. Restricted to Admin and CRM roles.
 -   **Appointment Scheduling**: Dedicated scheduling pages for Medical and Emirates ID, featuring a multi-step wizard or quick mode, center filtering, application number auto-fill from typing jobs, preferred center detection, and generation of HTML email templates/WhatsApp messages. Includes robust handling for scheduling conflicts, rescheduling, status updates, a "Ready to Schedule" section for jobs completed by vendors, and a weekly calendar view. Medical Support can view and mark attendance/completion.
--   **Typing Job Workflow**: Auto-creation of Medical/EID jobs, vendor assignment, immediate wallet deductions on completion, and status tracking (Draft, SentToVendor, InProgress, ReadyToSchedule, SentToClient, OnHold, Rejected, Cancelled, VendorMistake) with unique job codes. Team actions: Submit, On Hold, Resume, Abort, Deliver to Client, Re-assign. Vendor actions: Start Work, Complete.
+-   **Typing Job Workflow**: Auto-creation of Medical/EID jobs, vendor assignment, immediate wallet deductions on completion, and status tracking (Draft, SentToVendor, InProgress, ReadyToSchedule, SentToClient, OnHold, Rejected, Cancelled) with unique job codes. Team actions: Submit, On Hold, Resume, Abort, Deliver to Client, Re-assign. Vendor actions: Start Work, Complete.
 -   **Vendor Management**: CRUD operations for vendors, restricted to Admin and CRM roles.
 -   **Wallet Flow**: Vendor wallet uses a ledger system. Topups are positive, debits negative. Balance is the sum of all entries. Wallet can go negative (no blocking checks). Deductions happen immediately when vendor marks job as completed (status → ReadyToSchedule). Wallet top-up access is available to both Admin and CRM roles.
 -   **Document Management**: Supports presigned URL upload flows to object storage, document status updates, and context-based filtering of requirements.
@@ -68,9 +68,7 @@ These features have code preserved but are not active in the current UI:
 -   **Bots System**: "Quick Paste WO" and "Appointment Scheduler" bots. Code preserved, listed under Admin Console → Future Updates.
 -   **Manager Console**: PIN-protected CRM console for managing entities. Code preserved, listed under Admin Console → Future Updates.
 -   **Staff Management Page**: Removed from navigation. User management available through Admin Console.
--   **VendorMistake Status Logic**: Full handling for the VendorMistake status (reversals, penalty workflows) not yet implemented.
 -   **Vendor Messaging/Communication**: Direct messaging between team and vendor not yet implemented.
--   **Cancellation Wallet Reversal**: Automatic wallet reversal when a job is cancelled after deduction not yet implemented.
 -   **Medical Retest Email UX**: Specialized email template for medical retest scenarios not yet implemented.
 -   **Full Status Definitions**: Detailed business rules for each typing job status transition not yet documented.
 -   **Reschedule Token Page**: Public reschedule link functionality removed from navigation.
