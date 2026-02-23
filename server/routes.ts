@@ -640,6 +640,188 @@ export async function registerRoutes(
     }
   });
 
+  // ========== Dashboard: Typing Jobs Summary ==========
+  app.get("/api/dashboard/typing-jobs-summary", requireAuth, async (req, res) => {
+    try {
+      const now = Date.now();
+      const [sentToVendorJobs, inProgressJobs, readyToScheduleJobs, allJobTypes, allVendors] = await Promise.all([
+        storage.getTypingJobs("SentToVendor"),
+        storage.getTypingJobs("InProgress"),
+        storage.getTypingJobs("ReadyToSchedule"),
+        storage.getJobTypes(),
+        storage.getVendors(),
+      ]);
+
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+      const vendorMap = new Map(allVendors.map(v => [v.id, v]));
+
+      const enrichJob = async (job: typeof sentToVendorJobs[0]) => {
+        const wo = await storage.getWorkOrderById(job.woId);
+        const vendor = job.vendorId ? vendorMap.get(job.vendorId) : null;
+        const jt = jobTypeMap.get(job.jobTypeId);
+        return { wo, vendor, job, category: jt?.category || "Unknown" };
+      };
+
+      const unaccepted = (await Promise.all(sentToVendorJobs.map(enrichJob))).map(({ wo, vendor, job, category }) => ({
+        id: job.id,
+        jobCode: job.jobCode || "",
+        woId: wo?.id || "",
+        woNumber: wo?.woNumber || "N/A",
+        applicantName: wo?.applicantName || "N/A",
+        vendorName: vendor?.name || "Unassigned",
+        type: category as "Medical" | "EID",
+        sentAt: job.sentAt,
+        hoursWaiting: job.sentAt ? Math.round((now - new Date(job.sentAt).getTime()) / 3600000) : 0,
+        urgent: job.urgent || false,
+      }));
+
+      const inProgress = (await Promise.all(inProgressJobs.map(enrichJob))).map(({ wo, vendor, job, category }) => ({
+        id: job.id,
+        jobCode: job.jobCode || "",
+        woId: wo?.id || "",
+        woNumber: wo?.woNumber || "N/A",
+        applicantName: wo?.applicantName || "N/A",
+        vendorName: vendor?.name || "Unassigned",
+        type: category as "Medical" | "EID",
+        sentAt: job.sentAt,
+        hoursElapsed: job.sentAt ? Math.round((now - new Date(job.sentAt).getTime()) / 3600000) : 0,
+        urgent: job.urgent || false,
+      }));
+
+      const readyWoIds = readyToScheduleJobs.map(j => j.woId);
+      const readyAppointments = readyWoIds.length > 0 ? await storage.getAppointmentsByWoIds(readyWoIds) : [];
+      const appointedWoTypes = new Set(
+        readyAppointments
+          .filter(a => a.status !== "Cancelled" && a.status !== "Rescheduled")
+          .map(a => `${a.woId}-${a.type}`)
+      );
+
+      const readyToSchedule = (await Promise.all(readyToScheduleJobs.map(enrichJob)))
+        .filter(({ wo, job, category }) => {
+          const apptType = category === "Medical" ? "Medical" : "EID";
+          return !appointedWoTypes.has(`${job.woId}-${apptType}`);
+        })
+        .map(({ wo, job, category }) => ({
+          id: job.id,
+          jobCode: job.jobCode || "",
+          woId: wo?.id || "",
+          woNumber: wo?.woNumber || "N/A",
+          applicantName: wo?.applicantName || "N/A",
+          type: category as "Medical" | "EID",
+          completedAt: job.returnedAt || job.createdAt,
+        }));
+
+      res.json({
+        unaccepted,
+        inProgress,
+        readyToSchedule,
+        counts: {
+          unaccepted: unaccepted.length,
+          inProgress: inProgress.length,
+          readyToSchedule: readyToSchedule.length,
+        },
+      });
+    } catch (error) {
+      console.error("Dashboard typing-jobs-summary error:", error);
+      res.status(500).json({ message: "Failed to fetch typing jobs summary" });
+    }
+  });
+
+  // ========== Dashboard: Appointments Summary ==========
+  app.get("/api/dashboard/appointments-summary", requireAuth, async (req, res) => {
+    try {
+      const [todayAppts, upcomingAppts, readyToScheduleJobs, allJobTypes] = await Promise.all([
+        storage.getTodayAppointments(),
+        storage.getUpcomingAppointments(5),
+        storage.getTypingJobs("ReadyToSchedule"),
+        storage.getJobTypes(),
+      ]);
+
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+
+      const enrichAppointment = async (apt: typeof todayAppts[0]) => {
+        const wo = await storage.getWorkOrderById(apt.woId);
+        const center = apt.centerId ? await storage.getCenterById(apt.centerId) : null;
+        return { apt, wo, center };
+      };
+
+      const today = (await Promise.all(todayAppts.map(enrichAppointment))).map(({ apt, wo, center }) => ({
+        id: apt.id,
+        woId: wo?.id || "",
+        woNumber: wo?.woNumber || "N/A",
+        applicantName: wo?.applicantName || "N/A",
+        type: apt.type,
+        time: new Date(apt.datetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+        center: center?.name || "TBD",
+        status: apt.status,
+      }));
+
+      const upcoming = (await Promise.all(upcomingAppts.map(enrichAppointment))).map(({ apt, wo, center }) => {
+        const aptDate = new Date(apt.datetime);
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+        const daysFromNow = Math.ceil((aptDate.getTime() - todayDate.getTime()) / 86400000);
+        return {
+          id: apt.id,
+          woId: wo?.id || "",
+          woNumber: wo?.woNumber || "N/A",
+          applicantName: wo?.applicantName || "N/A",
+          type: apt.type,
+          time: aptDate.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+          date: aptDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }),
+          center: center?.name || "TBD",
+          status: apt.status,
+          daysFromNow,
+        };
+      });
+
+      const readyWoIds = readyToScheduleJobs.map(j => j.woId);
+      const readyAppointments = readyWoIds.length > 0 ? await storage.getAppointmentsByWoIds(readyWoIds) : [];
+      const appointedWoTypes = new Set(
+        readyAppointments
+          .filter(a => a.status !== "Cancelled" && a.status !== "Rescheduled")
+          .map(a => `${a.woId}-${a.type}`)
+      );
+
+      const needsSchedulingMap = new Map<string, { woId: string; woNumber: string; applicantName: string; companyName: string; types: string[] }>();
+
+      for (const job of readyToScheduleJobs) {
+        const jt = jobTypeMap.get(job.jobTypeId);
+        const apptType = jt?.category === "Medical" ? "Medical" : "EID";
+        if (appointedWoTypes.has(`${job.woId}-${apptType}`)) continue;
+
+        if (!needsSchedulingMap.has(job.woId)) {
+          const wo = await storage.getWorkOrderById(job.woId);
+          const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+          needsSchedulingMap.set(job.woId, {
+            woId: wo?.id || job.woId,
+            woNumber: wo?.woNumber || "N/A",
+            applicantName: wo?.applicantName || "N/A",
+            companyName: company?.name || "N/A",
+            types: [],
+          });
+        }
+        needsSchedulingMap.get(job.woId)!.types.push(apptType);
+      }
+
+      const needsScheduling = Array.from(needsSchedulingMap.values());
+
+      res.json({
+        today,
+        upcoming,
+        needsScheduling,
+        counts: {
+          today: today.length,
+          upcoming: upcoming.length,
+          needsScheduling: needsScheduling.length,
+        },
+      });
+    } catch (error) {
+      console.error("Dashboard appointments-summary error:", error);
+      res.status(500).json({ message: "Failed to fetch appointments summary" });
+    }
+  });
+
   // ========== Work Orders ==========
   app.get("/api/work-orders", requireAuth, async (req, res) => {
     try {
