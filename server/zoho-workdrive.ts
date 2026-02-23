@@ -146,6 +146,14 @@ export async function getApplicantFolderId(
   return applicantFolderId;
 }
 
+export async function getOrCreateExportFolder(): Promise<string> {
+  const parentFolderId = process.env.ZOHO_WORKDRIVE_PARENT_FOLDER_ID;
+  if (!parentFolderId) {
+    throw new Error("ZOHO_WORKDRIVE_PARENT_FOLDER_ID not configured");
+  }
+  return getOrCreateFolder(parentFolderId, "Data Exports");
+}
+
 export async function uploadFileToWorkDrive(
   folderId: string,
   fileBuffer: Buffer,

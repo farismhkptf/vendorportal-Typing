@@ -17,7 +17,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { toProperCase } from "./proper-case";
 import { executeTransition, validateTransition, type Actor } from "./typing-job-machine";
 import { WalletService } from "./wallet-service";
-import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection } from "./zoho-workdrive";
+import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "./zoho-workdrive";
 import { ObjectStorageService } from "./replit_integrations/object_storage/objectStorage";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -3978,6 +3978,162 @@ export async function registerRoutes(
       res.json({ configured: true, connected: result.success, error: result.error });
     } catch (error: any) {
       res.json({ configured: true, connected: false, error: error.message });
+    }
+  });
+
+  app.get("/api/workdrive/document-stats", requireRole("Admin"), async (req, res) => {
+    try {
+      const allDocs = await storage.getAllWoDocuments();
+      const synced = allDocs.filter(d => d.workdriveLink);
+      const unsynced = allDocs.filter(d => !d.workdriveLink);
+      res.json({ total: allDocs.length, synced: synced.length, unsynced: unsynced.length });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/sync-all-documents", requireRole("Admin"), async (req, res) => {
+    try {
+      if (!isWorkDriveConfigured()) {
+        return res.status(400).json({ message: "WorkDrive not configured" });
+      }
+
+      const unsyncedDocs = await storage.getUnsyncedWoDocuments();
+      if (unsyncedDocs.length === 0) {
+        return res.json({ total: 0, synced: 0, failed: 0, errors: [] });
+      }
+
+      const objectStorageService = new ObjectStorageService();
+      let synced = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (const doc of unsyncedDocs) {
+        try {
+          const wo = await storage.getWorkOrderById(doc.woId);
+          if (!wo) { errors.push(`${doc.fileName}: work order not found`); failed++; continue; }
+          const company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
+          if (!company) { errors.push(`${doc.fileName}: company not found`); failed++; continue; }
+
+          const objectFile = await objectStorageService.getObjectEntityFile(doc.fileUrl);
+          const [fileBuffer] = await objectFile.download();
+
+          const result = await syncFileToWorkDrive(company.name, wo.applicantName, fileBuffer, doc.fileName);
+
+          await storage.updateWoDocument(doc.id, {
+            workdriveFileId: result.fileId,
+            workdriveLink: result.permalink,
+          });
+
+          synced++;
+        } catch (err: any) {
+          failed++;
+          errors.push(`${doc.fileName}: ${err.message}`);
+        }
+      }
+
+      res.json({ total: unsyncedDocs.length, synced, failed, errors: errors.slice(0, 20) });
+    } catch (error: any) {
+      console.error("Bulk sync error:", error);
+      res.status(500).json({ message: `Bulk sync failed: ${error.message}` });
+    }
+  });
+
+  app.post("/api/admin/export-data-to-workdrive", requireRole("Admin"), async (req, res) => {
+    try {
+      if (!isWorkDriveConfigured()) {
+        return res.status(400).json({ message: "WorkDrive not configured" });
+      }
+
+      const parentFolderId = process.env.ZOHO_WORKDRIVE_PARENT_FOLDER_ID;
+      if (!parentFolderId) {
+        return res.status(400).json({ message: "Parent folder ID not configured" });
+      }
+
+      const [workOrders, companies, typingJobs, appointments, vendors] = await Promise.all([
+        storage.getWorkOrders(),
+        storage.getCompanies(),
+        storage.getTypingJobs(),
+        storage.getAllAppointments(),
+        storage.getVendors(),
+      ]);
+
+      const companyMap = new Map(companies.map(c => [c.id, c.name]));
+      const vendorMap = new Map(vendors.map(v => [v.id, v.name]));
+      const serviceTypes = await storage.getServiceTypes();
+      const serviceTypeMap = new Map(serviceTypes.map(s => [s.id, s.name]));
+      const centers = await storage.getCenters();
+      const centerMap = new Map(centers.map(c => [c.id, c.name]));
+
+      const woSheet = workOrders.map(wo => ({
+        "WO Number": wo.woNumber,
+        "Applicant": wo.applicantName,
+        "Phone": wo.applicantPhone || "",
+        "Email": wo.applicantEmail || "",
+        "Company": companyMap.get(wo.companyId) || "",
+        "Service Type": wo.serviceTypeId ? serviceTypeMap.get(wo.serviceTypeId) || "" : "",
+        "Status": wo.status,
+        "VIP": wo.isVip ? "Yes" : "No",
+        "Created": wo.createdAt ? new Date(wo.createdAt).toLocaleDateString() : "",
+      }));
+
+      const companySheet = companies.map(c => ({
+        "Name": c.name,
+        "Trade License": c.tradeLicenseNumber || "",
+        "Coordinator": (c.clientCoordinator as any)?.name || "",
+        "Coordinator Phone": (c.clientCoordinator as any)?.mobile || "",
+        "Manager": (c.clientManager as any)?.name || "",
+        "Delivery Address": c.deliveryAddress || "",
+      }));
+
+      const jobSheet = typingJobs.map(j => ({
+        "Job Code": j.jobCode || "",
+        "WO Number": workOrders.find(w => w.id === j.woId)?.woNumber || "",
+        "Applicant": workOrders.find(w => w.id === j.woId)?.applicantName || "",
+        "Vendor": j.vendorId ? vendorMap.get(j.vendorId) || "" : "",
+        "Status": j.status,
+        "Cost": j.costSnapshot || "",
+        "Sent At": j.sentAt ? new Date(j.sentAt).toLocaleDateString() : "",
+        "Returned At": j.returnedAt ? new Date(j.returnedAt).toLocaleDateString() : "",
+      }));
+
+      const apptSheet = appointments.map(a => ({
+        "WO Number": workOrders.find(w => w.id === a.woId)?.woNumber || "",
+        "Applicant": workOrders.find(w => w.id === a.woId)?.applicantName || "",
+        "Type": a.type,
+        "Date": a.datetime ? new Date(a.datetime).toLocaleDateString() : "",
+        "Time": a.datetime ? new Date(a.datetime).toLocaleTimeString() : "",
+        "Center": a.centerId ? centerMap.get(a.centerId) || "" : "",
+        "Status": a.status,
+        "Application #": a.applicationNumber || "",
+      }));
+
+      const vendorSheet = vendors.map(v => ({
+        "Name": v.name,
+        "Contact Person": v.contactPerson || "",
+        "Phone": v.phone || "",
+        "Email": v.email || "",
+        "Active": v.active ? "Yes" : "No",
+      }));
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(woSheet), "Work Orders");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(companySheet), "Companies");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(jobSheet), "Typing Jobs");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(apptSheet), "Appointments");
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(vendorSheet), "Vendors");
+
+      const buffer = Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+      const dateStr = new Date().toISOString().split("T")[0];
+      const fileName = `PRO_Data_Export_${dateStr}.xlsx`;
+
+      const exportFolderId = await getOrCreateExportFolder();
+      const result = await uploadFileToWorkDrive(exportFolderId, buffer, fileName);
+
+      res.json({ success: true, fileName, permalink: result.permalink, fileId: result.fileId });
+    } catch (error: any) {
+      console.error("Data export to WorkDrive error:", error);
+      res.status(500).json({ message: `Export failed: ${error.message}` });
     }
   });
 

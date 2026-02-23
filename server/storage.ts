@@ -22,7 +22,7 @@ import {
   type PasswordResetRequest, type InsertPasswordResetRequest
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -164,6 +164,8 @@ export interface IStorage {
   
   // Work Order Documents
   getWoDocuments(woId: string): Promise<WoDocument[]>;
+  getAllWoDocuments(): Promise<WoDocument[]>;
+  getUnsyncedWoDocuments(): Promise<WoDocument[]>;
   getWoDocumentById(id: string): Promise<WoDocument | undefined>;
   createWoDocument(data: InsertWoDocument): Promise<WoDocument>;
   updateWoDocument(id: string, data: Partial<InsertWoDocument>): Promise<WoDocument | undefined>;
@@ -1392,6 +1394,14 @@ export class DatabaseStorage implements IStorage {
   // Work Order Documents
   async getWoDocuments(woId: string): Promise<WoDocument[]> {
     return db.select().from(woDocuments).where(eq(woDocuments.woId, woId)).orderBy(desc(woDocuments.uploadedAt));
+  }
+
+  async getAllWoDocuments(): Promise<WoDocument[]> {
+    return db.select().from(woDocuments).orderBy(desc(woDocuments.uploadedAt));
+  }
+
+  async getUnsyncedWoDocuments(): Promise<WoDocument[]> {
+    return db.select().from(woDocuments).where(isNull(woDocuments.workdriveLink)).orderBy(desc(woDocuments.uploadedAt));
   }
 
   async getWoDocumentById(id: string): Promise<WoDocument | undefined> {
