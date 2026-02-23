@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation, useSearch } from "wouter";
-import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download } from "lucide-react";
+import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download, CalendarCheck, CalendarX2, CalendarClock, CalendarMinus } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
@@ -23,7 +23,13 @@ import { ColumnVisibilityDropdown } from "@/components/ui/column-visibility";
 import { toProperCase } from "@/lib/proper-case";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { TypingJob, WorkOrder, JobType, Vendor } from "@shared/schema";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { TypingJob, WorkOrder, JobType, Vendor, Appointment } from "@shared/schema";
+
+interface AppointmentWithCenter extends Appointment {
+  center?: { name: string } | null;
+}
 
 interface TypingJobWithRelations extends TypingJob {
   workOrder?: WorkOrder;
@@ -69,6 +75,34 @@ export default function TypingJobsList() {
   });
 
   const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
+
+  const { data: allAppointments } = useQuery<AppointmentWithCenter[]>({ queryKey: ["/api/appointments"] });
+
+  const appointmentsByWoId = useMemo(() => {
+    const map = new Map<string, AppointmentWithCenter[]>();
+    if (!allAppointments) return map;
+    for (const apt of allAppointments) {
+      const list = map.get(apt.woId) || [];
+      list.push(apt);
+      map.set(apt.woId, list);
+    }
+    return map;
+  }, [allAppointments]);
+
+  const getAppointmentStatus = useCallback((job: TypingJobWithRelations) => {
+    if (!job.workOrder) return null;
+    const category = job.jobType?.category;
+    const apts = appointmentsByWoId.get(job.workOrder.id);
+    if (!apts || apts.length === 0) return { status: "none" as const, appointment: null };
+    const relevant = category ? apts.filter(a => a.type === category) : apts;
+    if (relevant.length === 0) return { status: "none" as const, appointment: null };
+    const sorted = [...relevant].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const latest = sorted[0];
+    if (latest.status === "Completed") return { status: "completed" as const, appointment: latest };
+    if (latest.status === "Cancelled") return { status: "cancelled" as const, appointment: latest };
+    if (latest.status === "Rescheduled") return { status: "rescheduled" as const, appointment: latest };
+    return { status: "scheduled" as const, appointment: latest };
+  }, [appointmentsByWoId]);
 
   const stats = useMemo(() => {
     if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0, medical: 0, eid: 0 };
@@ -144,6 +178,7 @@ export default function TypingJobsList() {
     { id: "applicant", label: "Applicant" },
     { id: "jobType", label: "Job Type" },
     { id: "status", label: "Status" },
+    { id: "appointment", label: "Appointment" },
     { id: "cost", label: "Cost" },
   ], []);
 
@@ -197,6 +232,76 @@ export default function TypingJobsList() {
     setSearch("");
   }, []);
 
+  const AppointmentIndicator = useCallback(({ job, compact = false }: { job: TypingJobWithRelations; compact?: boolean }) => {
+    const aptInfo = getAppointmentStatus(job);
+    if (!aptInfo) return null;
+    const { status, appointment } = aptInfo;
+
+    if (status === "none") {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className="gap-1 text-muted-foreground no-default-hover-elevate no-default-active-elevate" data-testid={`apt-status-none-${job.id}`}>
+              <CalendarMinus className="h-3 w-3" />
+              {!compact && <span>Not Scheduled</span>}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>No appointment scheduled</TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    if (status === "completed") {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className="gap-1 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 no-default-hover-elevate no-default-active-elevate" data-testid={`apt-status-completed-${job.id}`}>
+              <CalendarCheck className="h-3 w-3" />
+              {!compact && <span>Completed</span>}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            Appointment completed
+            {appointment?.center?.name && <> at {appointment.center.name}</>}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    if (status === "cancelled") {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className="gap-1 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800 no-default-hover-elevate no-default-active-elevate" data-testid={`apt-status-cancelled-${job.id}`}>
+              <CalendarX2 className="h-3 w-3" />
+              {!compact && <span>Cancelled</span>}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>Appointment cancelled</TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    const dateStr = appointment?.datetime
+      ? new Date(appointment.datetime).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+      : "";
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="outline" className="gap-1 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800 no-default-hover-elevate no-default-active-elevate" data-testid={`apt-status-scheduled-${job.id}`}>
+            <CalendarClock className="h-3 w-3" />
+            {!compact && <span>{dateStr}</span>}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent>
+          {status === "rescheduled" ? "Rescheduled" : "Scheduled"}: {appointment?.datetime ? new Date(appointment.datetime).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
+          {appointment?.center?.name && <> at {appointment.center.name}</>}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }, [getAppointmentStatus]);
+
   const renderCompactList = (items: TypingJobWithRelations[]) => (
     <div className="space-y-1 stagger-children">
       {items.map((job, index) => {
@@ -225,6 +330,7 @@ export default function TypingJobsList() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <StatusBadge status={job.status} />
+                  <AppointmentIndicator job={job} compact />
                   {job.costSnapshot && (
                     <span className="text-xs font-medium text-foreground">AED {job.costSnapshot}</span>
                   )}
@@ -256,6 +362,7 @@ export default function TypingJobsList() {
                     <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
                     <span className="font-semibold text-sm text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
                     <StatusBadge status={job.status} />
+                    <AppointmentIndicator job={job} />
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : ""}</p>
                   {job.jobType && (
@@ -297,6 +404,7 @@ export default function TypingJobsList() {
             {cv("applicant") && <SortableHeader sortKey="applicant" sort={columnSort} onToggle={toggleColumnSort}>Applicant</SortableHeader>}
             {cv("jobType") && <TableHead className="hidden sm:table-cell">Job Type</TableHead>}
             {cv("status") && <SortableHeader sortKey="status" sort={columnSort} onToggle={toggleColumnSort} className="w-32">Status</SortableHeader>}
+            {cv("appointment") && <TableHead className="w-36">Appointment</TableHead>}
             {cv("cost") && <SortableHeader sortKey="cost" sort={columnSort} onToggle={toggleColumnSort} className="w-24 text-right">Cost</SortableHeader>}
           </TableRow>
         </TableHeader>
@@ -331,6 +439,9 @@ export default function TypingJobsList() {
                 </TableCell>}
                 {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   <StatusBadge status={job.status} />
+                </TableCell>}
+                {cv("appointment") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                  <AppointmentIndicator job={job} />
                 </TableCell>}
                 {cv("cost") && <TableCell className={`text-right font-medium ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
                   {job.costSnapshot ? `AED ${job.costSnapshot}` : "-"}
@@ -371,9 +482,12 @@ export default function TypingJobsList() {
                     {job.jobType && (
                       <div className="text-xs text-muted-foreground mt-1">{job.jobType.name}</div>
                     )}
-                    {job.costSnapshot && (
-                      <div className="text-xs font-medium text-foreground mt-1">AED {job.costSnapshot}</div>
-                    )}
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <AppointmentIndicator job={job} />
+                      {job.costSnapshot && (
+                        <span className="text-xs font-medium text-foreground">AED {job.costSnapshot}</span>
+                      )}
+                    </div>
                   </div>
                 </Link>
               ))}
@@ -608,6 +722,14 @@ export default function TypingJobsList() {
                     { header: "Applicant", accessor: (j: TypingJobWithRelations) => j.workOrder?.applicantName || "" },
                     { header: "Job Type", accessor: (j: TypingJobWithRelations) => j.jobType?.name || "" },
                     { header: "Status", accessor: (j: TypingJobWithRelations) => j.status },
+                    { header: "Appointment", accessor: (j: TypingJobWithRelations) => {
+                      const info = getAppointmentStatus(j);
+                      if (!info) return "";
+                      if (info.status === "none") return "Not Scheduled";
+                      if (info.status === "completed") return "Completed";
+                      if (info.status === "cancelled") return "Cancelled";
+                      return info.appointment?.datetime ? `Scheduled ${new Date(info.appointment.datetime).toLocaleDateString("en-GB")}` : "Scheduled";
+                    }},
                     { header: "Vendor", accessor: (j: TypingJobWithRelations) => (j.vendorId && vendors ? vendors.find(v => v.id === j.vendorId)?.name : "") || "" },
                     { header: "Cost", accessor: (j: TypingJobWithRelations) => j.costSnapshot || "" },
                   ], "typing-jobs-export");

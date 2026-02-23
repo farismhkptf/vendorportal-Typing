@@ -37,12 +37,22 @@ interface AppointmentWithRelations extends Appointment {
   center?: Center;
 }
 
+interface TypingJobWithRelations extends TypingJob {
+  workOrder?: WorkOrder;
+  jobType?: JobType | null;
+}
+
 interface ReadyToScheduleJob extends TypingJob {
   workOrder?: WorkOrder & { company?: { name: string } };
   jobType?: JobType;
   vendor?: { name: string };
   hasAppointment: boolean;
 }
+
+type WoTypingStatus = {
+  medical: { status: string; completedAt?: string | Date | null } | null;
+  eid: { status: string; completedAt?: string | Date | null } | null;
+};
 
 interface AppointmentStats {
   todayCount: number;
@@ -101,6 +111,33 @@ export default function AppointmentsIndex() {
   const { data: readyToScheduleJobs } = useQuery<ReadyToScheduleJob[]>({
     queryKey: ["/api/typing-jobs/ready-to-schedule"],
   });
+
+  const { data: allTypingJobs } = useQuery<TypingJobWithRelations[]>({
+    queryKey: ["/api/typing-jobs"],
+  });
+
+  const woTypingStatusMap = useMemo(() => {
+    const map = new Map<string, WoTypingStatus>();
+    if (!allTypingJobs) return map;
+    for (const job of allTypingJobs) {
+      const category = job.jobType?.category;
+      if (!category) continue;
+      const existing = map.get(job.woId) || { medical: null, eid: null };
+      const track = category === "Medical" ? "medical" : "eid";
+      const completedStatuses = ["ReadyToSchedule", "SentToClient"];
+      const inProgressStatuses = ["SentToVendor", "InProgress", "WaitingForDocs", "Returned"];
+      let statusLabel = "Not Started";
+      if (completedStatuses.includes(job.status)) statusLabel = "Complete";
+      else if (inProgressStatuses.includes(job.status)) statusLabel = "In Progress";
+      else if (job.status === "Draft") statusLabel = "Draft";
+      else if (job.status === "OnHold") statusLabel = "On Hold";
+      else if (job.status === "Rejected") statusLabel = "Rejected";
+      else if (job.status === "Cancelled") statusLabel = "Cancelled";
+      existing[track] = { status: statusLabel, completedAt: job.returnedAt };
+      map.set(job.woId, existing);
+    }
+    return map;
+  }, [allTypingJobs]);
 
   useEffect(() => {
     if (!appointments || !searchParams) return;
@@ -541,6 +578,34 @@ Thank you,
               </span>
             </div>
           )}
+          {(() => {
+            const typingStatus = woTypingStatusMap.get(apt.woId);
+            const track = apt.type === "Medical" ? typingStatus?.medical : typingStatus?.eid;
+            if (!track && !typingStatus) {
+              return (
+                <div className="flex items-center gap-1.5" data-testid={`typing-status-${apt.id}`}>
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <span className="text-xs text-muted-foreground">Typing: Not Started</span>
+                </div>
+              );
+            }
+            if (!track) return null;
+            const statusColor = track.status === "Complete" ? "text-emerald-600 dark:text-emerald-400" :
+              track.status === "In Progress" ? "text-blue-600 dark:text-blue-400" :
+              track.status === "On Hold" || track.status === "Rejected" ? "text-destructive" :
+              "text-muted-foreground";
+            return (
+              <div className="flex items-center gap-1.5" data-testid={`typing-status-${apt.id}`}>
+                <FileText className={`h-3.5 w-3.5 shrink-0 ${statusColor}`} />
+                <span className={`text-xs ${statusColor}`}>Typing: {track.status}</span>
+                {track.status === "Complete" && track.completedAt && (
+                  <span className="text-xs text-muted-foreground">
+                    · <RelativeTime date={track.completedAt} />
+                  </span>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

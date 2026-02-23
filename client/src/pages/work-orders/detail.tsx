@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toProperCase } from "@/lib/proper-case";
 import { formatDate, formatDateWithWeekday } from "@/lib/format-date";
+import { getPipelineInfo, getNextAction, STAGE_CONFIG, PIPELINE_STEPS, type PipelineInfo } from "@/lib/pipeline-stage";
+import { cn } from "@/lib/utils";
 import { 
   ArrowLeft, 
   Building2, 
@@ -29,7 +31,17 @@ import {
   RefreshCw,
   XCircle,
   PauseCircle,
-  PlayCircle
+  PlayCircle,
+  Stethoscope,
+  CreditCard,
+  AlertTriangle,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  MessageSquare,
+  Package,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +69,310 @@ import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, Service
 import { DocumentPanel } from "@/components/documents/document-panel";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { CopyableText } from "@/components/ui/copy-button";
+import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
+function PipelineBar({ pipeline }: { pipeline: PipelineInfo }) {
+  return (
+    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-sm" data-testid="pipeline-bar">
+      <div className="flex items-center gap-2 mb-3">
+        <Package className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium text-foreground">Workflow Progress</span>
+      </div>
+      {pipeline.medical.exists && (
+        <TrackRow label="Medical" icon={<Stethoscope className="h-3.5 w-3.5" />} track={pipeline.medical} />
+      )}
+      {pipeline.eid.exists && (
+        <TrackRow label="Emirates ID" icon={<CreditCard className="h-3.5 w-3.5" />} track={pipeline.eid} />
+      )}
+      {!pipeline.medical.exists && !pipeline.eid.exists && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
+          <span>No typing jobs created yet</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TrackRow({ label, icon, track }: { label: string; icon: React.ReactNode; track: import("@/lib/pipeline-stage").TrackStatus }) {
+  const currentIdx = PIPELINE_STEPS.indexOf(track.stage as any);
+  const isAttention = track.stage === "needs_attention";
+
+  return (
+    <div className="flex items-center gap-3 py-2" data-testid={`track-${label.toLowerCase().replace(/\s/g, "-")}`}>
+      <div className="flex items-center gap-1.5 w-24 shrink-0">
+        {icon}
+        <span className="text-xs font-medium text-foreground">{label}</span>
+      </div>
+      <div className="flex items-center gap-1 flex-1">
+        {PIPELINE_STEPS.map((step, idx) => {
+          const config = STAGE_CONFIG[step];
+          const isComplete = !isAttention && idx <= currentIdx;
+          const isCurrent = !isAttention && idx === currentIdx;
+          return (
+            <div key={step} className="flex items-center flex-1">
+              <div className={cn(
+                "h-2 rounded-full flex-1 transition-all",
+                isComplete ? "bg-primary" : "bg-muted",
+                isCurrent && "ring-1 ring-primary/50 ring-offset-1 ring-offset-background"
+              )} />
+              {idx < PIPELINE_STEPS.length - 1 && <div className="w-0.5" />}
+            </div>
+          );
+        })}
+      </div>
+      <Badge
+        variant="outline"
+        className={cn(
+          "text-xs shrink-0 min-w-[90px] justify-center",
+          isAttention
+            ? "bg-red-50 text-red-600 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+            : track.stage === "complete"
+              ? "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800"
+              : "bg-primary/5 text-primary border-primary/20"
+        )}
+        data-testid={`badge-track-${label.toLowerCase().replace(/\s/g, "-")}`}
+      >
+        {track.label}
+      </Badge>
+    </div>
+  );
+}
+
+function NextActionBanner({ 
+  pipeline, typingJobs, appointments, onAction 
+}: { 
+  pipeline: PipelineInfo; 
+  typingJobs: any[]; 
+  appointments: any[]; 
+  onAction: (type: string) => void;
+}) {
+  const action = getNextAction(typingJobs, appointments, pipeline);
+
+  const variantStyles = {
+    info: "bg-blue-50/80 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800",
+    action: "bg-amber-50/80 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800",
+    warning: "bg-red-50/80 border-red-200 dark:bg-red-900/20 dark:border-red-800",
+    success: "bg-emerald-50/80 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800",
+  };
+
+  const iconStyles = {
+    info: "text-blue-600 dark:text-blue-400",
+    action: "text-amber-600 dark:text-amber-400",
+    warning: "text-red-600 dark:text-red-400",
+    success: "text-emerald-600 dark:text-emerald-400",
+  };
+
+  const icons = {
+    info: <Clock className="h-4 w-4" />,
+    action: <ArrowRight className="h-4 w-4" />,
+    warning: <AlertTriangle className="h-4 w-4" />,
+    success: <CheckCircle2 className="h-4 w-4" />,
+  };
+
+  return (
+    <div className={cn("rounded-xl border px-4 py-3 flex items-center justify-between gap-3", variantStyles[action.variant])} data-testid="next-action-banner">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className={iconStyles[action.variant]}>{icons[action.variant]}</span>
+        <span className="text-sm font-medium text-foreground">{action.message}</span>
+      </div>
+      {action.actionLabel && action.actionType && (
+        <Button
+          size="sm"
+          variant={action.variant === "warning" ? "destructive" : "default"}
+          className="gap-1.5 shrink-0"
+          onClick={() => onAction(action.actionType!)}
+          data-testid="button-next-action"
+        >
+          {action.actionLabel}
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: string; onRefresh: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const { toast } = useToast();
+
+  const { data: jobDetail } = useQuery<any>({
+    queryKey: ["/api/typing-jobs", job.id],
+    enabled: expanded,
+  });
+
+  const deliverMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/typing-jobs/${job.id}/deliver`),
+    onSuccess: () => {
+      onRefresh();
+      toast({ title: "Job delivered to client" });
+    },
+    onError: (err: Error) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+  });
+
+  const abortMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/typing-jobs/${job.id}/abort`, { reason: "Cancelled from WO detail" }),
+    onSuccess: () => {
+      onRefresh();
+      toast({ title: "Job cancelled" });
+    },
+    onError: (err: Error) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
+  });
+
+  const category = job.jobType?.category;
+  const result = jobDetail?.result || job.result;
+  const vendor = jobDetail?.vendor;
+  const files = jobDetail?.files || [];
+  const comments = jobDetail?.comments || [];
+
+  return (
+    <Card className="border border-border/50" data-testid={`typing-job-card-${job.id}`}>
+      <Collapsible open={expanded} onOpenChange={setExpanded}>
+        <div className="p-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={cn(
+                "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+                category === "Medical" ? "bg-rose-50 dark:bg-rose-900/30" : "bg-cyan-50 dark:bg-cyan-900/30"
+              )}>
+                {category === "Medical" ? (
+                  <Stethoscope className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                ) : (
+                  <CreditCard className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-sm">
+                    {category === "Medical" ? "Medical" : category === "EID" ? "Emirates ID" : "Typing"}
+                  </span>
+                  {job.jobCode && <span className="text-xs text-muted-foreground font-mono">{job.jobCode}</span>}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {vendor && <span>Vendor: {vendor.name}</span>}
+                  {!vendor && job.vendorId && <span>Assigned to vendor</span>}
+                  {job.sentAt && <span>Sent {formatDate(job.sentAt)}</span>}
+                  {!job.sentAt && <span>Created {formatDate(job.createdAt)}</span>}
+                  {job.jobType?.cost > 0 && <span>AED {job.jobType.cost}</span>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {job.status === "ReadyToSchedule" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-xs"
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); deliverMutation.mutate(); }}
+                  disabled={deliverMutation.isPending}
+                  data-testid={`button-deliver-${job.id}`}
+                >
+                  <Send className="h-3 w-3" />
+                  Deliver
+                </Button>
+              )}
+              {(job.status === "SentToVendor" || job.status === "InProgress") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1 text-xs"
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); abortMutation.mutate(); }}
+                  disabled={abortMutation.isPending}
+                  data-testid={`button-abort-${job.id}`}
+                >
+                  <XCircle className="h-3 w-3" />
+                  Abort
+                </Button>
+              )}
+              <StatusBadge status={job.status} />
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" data-testid={`button-expand-${job.id}`}>
+                  {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+          </div>
+
+          {result && (
+            <div className="mt-3 pt-3 border-t border-border/50">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                {result.applicationNumber && (
+                  <div>
+                    <span className="text-muted-foreground">Application No</span>
+                    <p className="font-medium text-primary">{result.applicationNumber}</p>
+                  </div>
+                )}
+                {result.centerName && (
+                  <div>
+                    <span className="text-muted-foreground">Center</span>
+                    <p className="font-medium">{result.centerName}</p>
+                  </div>
+                )}
+                {result.biometricsRequired && result.biometricsDate && (
+                  <div>
+                    <span className="text-muted-foreground">Biometrics</span>
+                    <p className="font-medium">{formatDate(result.biometricsDate)}</p>
+                  </div>
+                )}
+                {result.vendorNotes && (
+                  <div className="col-span-full">
+                    <span className="text-muted-foreground">Vendor Notes</span>
+                    <p className="font-medium">{result.vendorNotes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <CollapsibleContent>
+          <div className="px-4 pb-4 space-y-3">
+            {files.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Documents ({files.length})</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {files.slice(0, 6).map((f: any) => (
+                    <div key={f.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-muted/50">
+                      <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      <span className="truncate">{f.originalName || f.filename}</span>
+                      <Badge variant="outline" className="text-[10px] shrink-0">{f.direction}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {comments.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Comments ({comments.length})</p>
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {comments.slice(0, 3).map((c: any) => (
+                    <div key={c.id} className="text-xs p-2 rounded-lg bg-muted/50">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-medium">{c.authorName || "Team"}</span>
+                        <span className="text-muted-foreground">{formatDate(c.createdAt)}</span>
+                      </div>
+                      <p className="text-muted-foreground">{c.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end pt-1">
+              <Link href={`/typing-jobs/${job.id}`}>
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs" data-testid={`button-view-full-${job.id}`}>
+                  View Full Details
+                  <ExternalLink className="h-3 w-3" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+}
 
 const editWorkOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits"),
@@ -313,6 +629,44 @@ export default function WorkOrderDetail() {
   const existingMedicalJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "Medical" && j.status !== "Cancelled") || null;
   const existingEidJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "EID" && j.status !== "Cancelled") || null;
   const canCreateNewJob = !existingMedicalJob || !existingEidJob;
+
+  const pipeline = workOrder ? getPipelineInfo(workOrder.typingJobs || [], workOrder.appointments || []) : null;
+
+  const [activeTab, setActiveTab] = useState("typing");
+
+  const handleNextAction = (actionType: string) => {
+    switch (actionType) {
+      case "create_typing":
+        setActiveTab("typing");
+        setTypeMedical(!existingMedicalJob);
+        setTypeEid(!existingEidJob);
+        setShowNewTypingJobForm(true);
+        break;
+      case "send_vendor":
+        setActiveTab("typing");
+        setShowSendToVendorDialog(true);
+        break;
+      case "schedule_medical":
+        setActiveTab("appointments");
+        setLocation(`/appointments/schedule-medical?wo=${id}`);
+        break;
+      case "schedule_eid":
+        setActiveTab("appointments");
+        setLocation(`/appointments/schedule-eid?wo=${id}`);
+        break;
+      case "deliver":
+        setActiveTab("typing");
+        break;
+      case "attention":
+        setActiveTab("typing");
+        break;
+    }
+  };
+
+  const handleRefreshWo = () => {
+    queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+    queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
+  };
 
   const sendToVendorMutation = useMutation({
     mutationFn: async () => {
@@ -617,6 +971,18 @@ export default function WorkOrderDetail() {
       />
 
       <div className="p-4 lg:p-8 space-y-6">
+        {pipeline && (
+          <div className="space-y-3">
+            <PipelineBar pipeline={pipeline} />
+            <NextActionBanner
+              pipeline={pipeline}
+              typingJobs={workOrder.typingJobs || []}
+              appointments={workOrder.appointments || []}
+              onAction={handleNextAction}
+            />
+          </div>
+        )}
+
         {/* Summary Cards */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Work Order Summary */}
@@ -774,7 +1140,7 @@ export default function WorkOrderDetail() {
 
         {/* Tabs */}
         <Card className="border border-border/50 shadow-sm">
-          <Tabs defaultValue="typing" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full justify-start border-b border-border rounded-none bg-transparent p-0 h-auto overflow-x-auto">
               <TabsTrigger 
                 value="typing" 
@@ -1049,50 +1415,7 @@ export default function WorkOrderDetail() {
               {workOrder.typingJobs && workOrder.typingJobs.length > 0 ? (
                 <div className="space-y-3">
                   {workOrder.typingJobs.map((job: any) => (
-                    <Link key={job.id} href={`/typing-jobs/${job.id}`}>
-                      <Card className="border border-border/50 hover-elevate cursor-pointer">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="font-medium text-foreground">
-                                {job.jobType?.category === "Medical" ? "Medical" : job.jobType?.category === "EID" ? "Emirates ID" : "Typing"} Job
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {job.jobCode && <span className="font-mono mr-2">{job.jobCode}</span>}
-                                Created {formatDate(job.createdAt)}
-                              </p>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              {(job.status === "SentToVendor" || job.status === "InProgress") && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); jobOnHoldMutation.mutate(job.id); }}
-                                  disabled={jobOnHoldMutation.isPending}
-                                  data-testid={`button-hold-${job.id}`}
-                                >
-                                  <PauseCircle className="h-3.5 w-3.5 mr-1.5" />
-                                  Hold
-                                </Button>
-                              )}
-                              {job.status === "OnHold" && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); jobResumeMutation.mutate(job.id); }}
-                                  disabled={jobResumeMutation.isPending}
-                                  data-testid={`button-resume-${job.id}`}
-                                >
-                                  <PlayCircle className="h-3.5 w-3.5 mr-1.5" />
-                                  Resume
-                                </Button>
-                              )}
-                              <StatusBadge status={job.status} />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                    <ExpandedTypingJobCard key={job.id} job={job} woId={id || ""} onRefresh={handleRefreshWo} />
                   ))}
                 </div>
               ) : !showNewTypingJobForm && (

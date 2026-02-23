@@ -6,7 +6,7 @@ import {
   List, LayoutGrid, Columns3, Table2, Star, Tag,
   Clock, AlertTriangle, CheckCircle2, CircleDot, 
   Stethoscope, Fingerprint, CalendarCheck, Send as SendIcon,
-  Loader2, Download
+  Loader2, Download, Circle, ArrowRight
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { useDataTable, type SortState, type ColumnDef } from "@/hooks/use-data-table";
 import { ColumnVisibilityDropdown } from "@/components/ui/column-visibility";
 import { toProperCase } from "@/lib/proper-case";
+import { getPipelineInfo, getNextAction, STAGE_CONFIG, PIPELINE_STEPS, type PipelineStage } from "@/lib/pipeline-stage";
 import type { WorkOrder, Company, Appointment, TypingJob, JobType, ServiceType } from "@shared/schema";
 
 interface TypingJobWithType extends TypingJob {
@@ -191,6 +192,32 @@ function AppointmentStatusPill({ status }: { status: string | null }) {
   );
 }
 
+function PipelineStageBadge({ stage }: { stage: PipelineStage }) {
+  const config = STAGE_CONFIG[stage];
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold ${config.bgColor} ${config.color}`}
+      data-testid={`badge-pipeline-${stage}`}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+function NextActionIndicator({ message, variant }: { message: string; variant: string }) {
+  const variantStyles: Record<string, string> = {
+    action: "text-blue-600 dark:text-blue-400",
+    warning: "text-red-600 dark:text-red-400",
+    success: "text-emerald-600 dark:text-emerald-400",
+    info: "text-muted-foreground",
+  };
+  return (
+    <span className={`text-[10px] ${variantStyles[variant] || variantStyles.info} truncate`} data-testid="text-next-action">
+      {message}
+    </span>
+  );
+}
+
 function MedEidStatusRow({ icon: Icon, label, typing, appointment, hasData, summaryLabel }: {
   icon: typeof Stethoscope;
   label: string;
@@ -237,6 +264,7 @@ export default function WorkOrdersList() {
   const searchString = useSearch();
   const urlParams = new URLSearchParams(searchString);
   const initialStatus = urlParams.get("status") || "all";
+  const initialPipeline = (urlParams.get("pipeline") || "all") as PipelineStage | "all";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
 
@@ -244,7 +272,10 @@ export default function WorkOrdersList() {
     const params = new URLSearchParams(searchString);
     const s = params.get("status");
     if (s) setStatusFilter(s);
+    const p = params.get("pipeline");
+    if (p) setPipelineFilter(p as PipelineStage | "all");
   }, [searchString]);
+  const [pipelineFilter, setPipelineFilter] = useState<PipelineStage | "all">(initialPipeline);
   const [specialFilter, setSpecialFilter] = useState<SpecialFilter>("all");
   const [sortBy, setSortBy] = useState<SortByOption>("newest");
   const [columnSort, setColumnSort] = useState<SortState>({ key: null, direction: null });
@@ -296,12 +327,46 @@ export default function WorkOrdersList() {
     return { awaitingTyping, needScheduling, attentionNeeded, totalActive, vipCount };
   }, [workOrders]);
 
+  const pipelineCounts = useMemo(() => {
+    if (!workOrders) return null;
+    const counts: Record<PipelineStage | "all", number> = {
+      all: 0,
+      new: 0,
+      at_vendor: 0,
+      ready_to_schedule: 0,
+      scheduled: 0,
+      complete: 0,
+      needs_attention: 0,
+    };
+    workOrders.forEach((wo) => {
+      if (wo.status === "Cancelled") return;
+      counts.all++;
+      const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+      if (wo.status === "Completed") {
+        counts.complete++;
+      } else {
+        counts[pipeline.overall]++;
+      }
+    });
+    return counts;
+  }, [workOrders]);
+
   const filteredAndSortedWorkOrders = useMemo(() => {
     let result = workOrders?.filter((wo) => {
       const matchesSearch = !search || 
         wo.woNumber.toLowerCase().includes(search.toLowerCase()) ||
         wo.applicantName.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || wo.status === statusFilter;
+
+      let matchesPipeline = true;
+      if (pipelineFilter !== "all") {
+        const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+        if (pipelineFilter === "complete") {
+          matchesPipeline = wo.status === "Completed" || pipeline.overall === "complete";
+        } else {
+          matchesPipeline = pipeline.overall === pipelineFilter && wo.status !== "Completed" && wo.status !== "Cancelled";
+        }
+      }
 
       let matchesSpecial = true;
       if (specialFilter !== "all") {
@@ -342,7 +407,7 @@ export default function WorkOrdersList() {
         }
       }
 
-      return matchesSearch && matchesStatus && matchesSpecial;
+      return matchesSearch && matchesStatus && matchesPipeline && matchesSpecial;
     });
     
     if (result) {
@@ -382,7 +447,7 @@ export default function WorkOrdersList() {
     }
     
     return result;
-  }, [workOrders, search, statusFilter, specialFilter, sortBy, columnSort]);
+  }, [workOrders, search, statusFilter, pipelineFilter, specialFilter, sortBy, columnSort]);
 
   const getId = useCallback((wo: WorkOrderEnriched) => wo.id, []);
 
@@ -391,10 +456,12 @@ export default function WorkOrdersList() {
     { id: "applicant", label: "Applicant" },
     { id: "company", label: "Company" },
     { id: "service", label: "Service" },
+    { id: "pipeline", label: "Pipeline" },
     { id: "status", label: "Status" },
     { id: "medical", label: "Medical" },
     { id: "eid", label: "EID" },
     { id: "age", label: "Age" },
+    { id: "nextAction", label: "Next Action" },
   ], []);
 
   const dt = useDataTable(filteredAndSortedWorkOrders, {
@@ -440,13 +507,52 @@ export default function WorkOrdersList() {
     return groups;
   }, [filteredAndSortedWorkOrders]);
 
-  const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (specialFilter !== "all" ? 1 : 0);
+  const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (specialFilter !== "all" ? 1 : 0) + (pipelineFilter !== "all" ? 1 : 0);
 
   const clearAllFilters = useCallback(() => {
     setStatusFilter("all");
+    setPipelineFilter("all");
     setSpecialFilter("all");
     setSearch("");
   }, []);
+
+  const renderPipelineButtons = () => {
+    if (!pipelineCounts) return null;
+    const stages: { key: PipelineStage | "all"; label: string; icon: typeof Circle; color: string; bgColor: string }[] = [
+      { key: "all", label: "All", icon: FileText, color: "text-foreground", bgColor: "bg-muted" },
+      { key: "new", label: "New", icon: Circle, color: STAGE_CONFIG.new.color, bgColor: STAGE_CONFIG.new.bgColor },
+      { key: "at_vendor", label: "At Vendor", icon: SendIcon, color: STAGE_CONFIG.at_vendor.color, bgColor: STAGE_CONFIG.at_vendor.bgColor },
+      { key: "ready_to_schedule", label: "Ready to Schedule", icon: CalendarCheck, color: STAGE_CONFIG.ready_to_schedule.color, bgColor: STAGE_CONFIG.ready_to_schedule.bgColor },
+      { key: "scheduled", label: "Scheduled", icon: CheckCircle2, color: STAGE_CONFIG.scheduled.color, bgColor: STAGE_CONFIG.scheduled.bgColor },
+      { key: "complete", label: "Complete", icon: CheckCircle2, color: STAGE_CONFIG.complete.color, bgColor: STAGE_CONFIG.complete.bgColor },
+      { key: "needs_attention", label: "Attention", icon: AlertTriangle, color: STAGE_CONFIG.needs_attention.color, bgColor: STAGE_CONFIG.needs_attention.bgColor },
+    ];
+
+    return (
+      <div className="flex items-center gap-2 overflow-x-auto pb-1" data-testid="pipeline-filter-buttons">
+        {stages.map((s) => {
+          const count = pipelineCounts[s.key];
+          const isActive = pipelineFilter === s.key;
+          return (
+            <Button
+              key={s.key}
+              variant={isActive ? "secondary" : "ghost"}
+              size="sm"
+              className={`gap-1.5 shrink-0 ${isActive ? "ring-1 ring-primary/20" : ""}`}
+              onClick={() => setPipelineFilter(isActive ? "all" : s.key)}
+              data-testid={`button-pipeline-${s.key}`}
+            >
+              <s.icon className={`h-3.5 w-3.5 ${s.color}`} />
+              <span>{s.label}</span>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isActive ? s.bgColor : "bg-muted"}`}>
+                {count}
+              </span>
+            </Button>
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderStatTiles = () => {
     if (!stats) return null;
@@ -532,6 +638,8 @@ export default function WorkOrdersList() {
     const attention = needsAttention(wo);
     const progress = getProgressPercent(wo);
     const borderColor = getCardBorderColor(wo);
+    const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+    const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
 
     const st = wo.serviceType;
     const showMed = med.hasMedical || (st && (st.requiresMedicalTyping || st.requiresMedicalScheduling));
@@ -567,7 +675,7 @@ export default function WorkOrdersList() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono font-semibold text-sm text-foreground">{wo.woNumber}</span>
-                  <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
+                  <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
                   {wo.isVip && (
                     <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 rounded-full px-1.5 py-0 text-[10px]">
                       <Star className="h-2.5 w-2.5 mr-0.5 fill-current" />
@@ -596,6 +704,12 @@ export default function WorkOrdersList() {
                     </div>
                   )}
                 </div>
+                {nextAction.variant !== "success" && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    <NextActionIndicator message={nextAction.message} variant={nextAction.variant} />
+                  </div>
+                )}
               </div>
               <div className="text-right shrink-0 space-y-1">
                 <div className="flex items-center gap-1 text-xs text-muted-foreground justify-end">
@@ -650,6 +764,7 @@ export default function WorkOrdersList() {
         const attention = needsAttention(wo);
         const borderColor = getCardBorderColor(wo);
         const isSelected = dt.selectedIds.has(wo.id);
+        const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
         return (
           <div key={wo.id} className="flex items-center gap-2">
             <Checkbox
@@ -667,6 +782,7 @@ export default function WorkOrdersList() {
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
                   <span className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</span>
+                  <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
                   {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
                   {attention && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}
                 </div>
@@ -685,7 +801,6 @@ export default function WorkOrdersList() {
                       <AppointmentStatusPill status={eid.appointment} />
                     </div>
                   )}
-                  <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
                 </div>
               </div>
             </Link>
@@ -715,10 +830,12 @@ export default function WorkOrdersList() {
             {cv("applicant") && <SortableHeader sortKey="applicant" sort={columnSort} onToggle={toggleColumnSort}>Applicant</SortableHeader>}
             {cv("company") && <SortableHeader sortKey="company" sort={columnSort} onToggle={toggleColumnSort} className="hidden sm:table-cell">Company</SortableHeader>}
             {cv("service") && <TableHead className="hidden lg:table-cell">Service</TableHead>}
+            {cv("pipeline") && <TableHead className="w-32">Pipeline</TableHead>}
             {cv("status") && <SortableHeader sortKey="status" sort={columnSort} onToggle={toggleColumnSort} className="w-20">Status</SortableHeader>}
             {cv("medical") && <TableHead className="hidden md:table-cell w-40">Medical</TableHead>}
             {cv("eid") && <TableHead className="hidden md:table-cell w-40">EID</TableHead>}
             {cv("age") && <SortableHeader sortKey="age" sort={columnSort} onToggle={toggleColumnSort} className="w-16 text-right">Age</SortableHeader>}
+            {cv("nextAction") && <TableHead className="hidden lg:table-cell w-48">Next Action</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -729,6 +846,8 @@ export default function WorkOrdersList() {
             const attention = needsAttention(wo);
             const isSelected = dt.selectedIds.has(wo.id);
             const cellPadding = dt.density === "compact" ? "py-1.5" : "";
+            const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+            const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
             return (
               <TableRow 
                 key={wo.id} 
@@ -758,6 +877,9 @@ export default function WorkOrdersList() {
                 {cv("service") && <TableCell className={`hidden lg:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {wo.serviceType?.name || "-"}
                 </TableCell>}
+                {cv("pipeline") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                  <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
+                </TableCell>}
                 {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
                 </TableCell>}
@@ -783,6 +905,9 @@ export default function WorkOrdersList() {
                 </TableCell>}
                 {cv("age") && <TableCell className={`text-right text-xs text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {daysOld === 0 ? "Today" : `${daysOld}d`}
+                </TableCell>}
+                {cv("nextAction") && <TableCell className={`hidden lg:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                  <NextActionIndicator message={nextAction.message} variant={nextAction.variant} />
                 </TableCell>}
               </TableRow>
             );
@@ -810,6 +935,8 @@ export default function WorkOrdersList() {
                 const eid = getEidStatus(wo);
                 const borderColor = getCardBorderColor(wo);
                 const attention = needsAttention(wo);
+                const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+                const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
                 return (
                   <Link key={wo.id} href={`/work-orders/${wo.id}`}>
                     <div 
@@ -817,8 +944,9 @@ export default function WorkOrdersList() {
                       style={{ animationDelay: `${index * 0.03}s` }}
                       data-testid={`work-order-kanban-${wo.woNumber}`}
                     >
-                      <div className="flex items-center gap-1.5 mb-1">
+                      <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                         <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
+                        <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
                         {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                         {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                       </div>
@@ -833,6 +961,12 @@ export default function WorkOrdersList() {
                         <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
                           <MedEidStatusRow icon={Stethoscope} label="Med" typing={med.typing} appointment={med.appointment} hasData={med.hasMedical} />
                           <MedEidStatusRow icon={Fingerprint} label="EID" typing={eid.typing} appointment={eid.appointment} hasData={eid.hasEid} />
+                        </div>
+                      )}
+                      {nextAction.variant !== "success" && (
+                        <div className="flex items-center gap-1 mt-1.5 pt-1.5 border-t border-border/20">
+                          <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <NextActionIndicator message={nextAction.message} variant={nextAction.variant} />
                         </div>
                       )}
                     </div>
@@ -959,6 +1093,7 @@ export default function WorkOrdersList() {
       </div>
 
       <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
+        {!isLoading && renderPipelineButtons()}
         {!isLoading && renderStatTiles()}
 
         <DataTableToolbar
