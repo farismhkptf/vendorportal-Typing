@@ -7,7 +7,7 @@ import {
   ArrowLeft, ArrowRight, Check, Building2, User, Calendar, Clock, MapPin, 
   Phone, Mail, Star, Copy, Send, AlertTriangle, Zap, ListOrdered,
   CreditCard, FileText, UserCheck, MessageSquare, CheckCircle2, Pencil,
-  Maximize2, X, Home
+  Maximize2, X, Home, Shield, Activity, Stethoscope
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WorkOrder, Company, Center, Staff, Appointment, ServiceType } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { getPipelineInfo, STAGE_CONFIG, PIPELINE_STEPS, type PipelineInfo, type TrackStatus } from "@/lib/pipeline-stage";
 import { toProperCase } from "@/lib/proper-case";
 import { EidAppointmentEmail, generateEidAppointmentEmailHtml } from "@/components/email-templates/eid-appointment-email";
 
@@ -83,6 +84,8 @@ interface TypingJobWithResult {
 interface WorkOrderWithDetails extends WorkOrder {
   company?: Company;
   typingJobs?: TypingJobWithResult[];
+  appointments?: Appointment[];
+  vendors?: any[];
 }
 
 export default function ScheduleEid() {
@@ -204,6 +207,7 @@ export default function ScheduleEid() {
       const response = await fetch(`/api/work-orders/${wo.id}`);
       if (response.ok) {
         const woDetails = await response.json() as WorkOrderWithDetails;
+        setSelectedWo(prev => prev ? { ...prev, typingJobs: woDetails.typingJobs, appointments: woDetails.appointments || [] } : prev);
         
         if (woDetails.typingJobs) {
           const eidJob = woDetails.typingJobs.find(
@@ -495,26 +499,36 @@ Thank you,
 
   const selectedCenter = centers?.find(c => c.id === form.getValues("centerId"));
 
+  const STEP_LABELS = ["Select WO", "Details", "Review"];
+
   const renderStepIndicator = () => (
-    <div className="flex items-center justify-center gap-2 mb-6">
+    <div className="flex items-center justify-center gap-1 mb-6" data-testid="eid-step-indicator">
       {[1, 2, 3].map((step) => (
         <div key={step} className="flex items-center">
-          <div
-            className={cn(
-              "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all",
-              currentStep === step
-                ? "bg-primary text-primary-foreground"
-                : currentStep > step
-                ? "bg-emerald-500 text-white"
-                : "bg-muted text-muted-foreground"
-            )}
-          >
-            {currentStep > step ? <Check className="h-4 w-4" /> : step}
+          <div className="flex flex-col items-center gap-1">
+            <div
+              className={cn(
+                "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all",
+                currentStep === step
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : currentStep > step
+                  ? "bg-emerald-500 text-white"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {currentStep > step ? <Check className="h-4 w-4" /> : step}
+            </div>
+            <span className={cn(
+              "text-[10px] font-medium",
+              currentStep === step ? "text-primary" : currentStep > step ? "text-emerald-600" : "text-muted-foreground"
+            )}>
+              {STEP_LABELS[step - 1]}
+            </span>
           </div>
           {step < 3 && (
             <div
               className={cn(
-                "w-12 h-0.5 mx-1",
+                "w-8 sm:w-12 h-0.5 mx-1 mt-[-12px]",
                 currentStep > step ? "bg-emerald-500" : "bg-muted"
               )}
             />
@@ -582,7 +596,7 @@ Thank you,
         </div>
       )}
 
-      {selectedWo && (
+      {selectedWo && (<>
         <Card className="mt-6 border-primary/20 bg-primary/5">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between gap-3">
@@ -675,7 +689,107 @@ Thank you,
             )}
           </CardContent>
         </Card>
-      )}
+
+        {selectedWo?.typingJobs && selectedWo.typingJobs.length > 0 && (() => {
+          const woAppts = (selectedWo as any).appointments || existingAppointments || [];
+          const pipeline = getPipelineInfo(selectedWo.typingJobs || [], woAppts);
+          const medJobs = (selectedWo.typingJobs || []).filter((j: any) => j.jobType?.category === "Medical" && j.status !== "Cancelled");
+          const eidJobs = (selectedWo.typingJobs || []).filter((j: any) => j.jobType?.category === "EID" && j.status !== "Cancelled");
+          const latestEidJob = eidJobs.length > 0 ? eidJobs[0] : null;
+          const medReadyToSchedule = pipeline.medical.stage === "ready_to_schedule" && !pipeline.medical.appointmentStatus;
+
+          return (
+            <Card className="mt-3 border-muted" data-testid="card-eid-pipeline-context">
+              <CardContent className="p-3 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center">
+                    <Activity className="h-3 w-3 text-primary" />
+                  </div>
+                  <span className="text-xs font-medium text-foreground">Pipeline Status</span>
+                </div>
+                
+                <div className="space-y-2">
+                  {pipeline.medical.exists && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 w-16 shrink-0">
+                        <Stethoscope className="h-3 w-3 text-blue-500" />
+                        <span className="text-[11px] text-muted-foreground">Med</span>
+                      </div>
+                      <div className="flex items-center gap-0.5 flex-1">
+                        {PIPELINE_STEPS.map((step, idx) => {
+                          const currentIdx = PIPELINE_STEPS.indexOf(pipeline.medical.stage as any);
+                          const isComplete = pipeline.medical.stage !== "needs_attention" && idx <= currentIdx;
+                          return (
+                            <div key={step} className="flex items-center flex-1">
+                              <div className={cn("h-1.5 rounded-full flex-1", isComplete ? "bg-blue-500" : "bg-muted")} />
+                              {idx < PIPELINE_STEPS.length - 1 && <div className="w-px" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", STAGE_CONFIG[pipeline.medical.stage].color)}>
+                        {pipeline.medical.label}
+                      </Badge>
+                    </div>
+                  )}
+                  {pipeline.eid.exists && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 w-16 shrink-0">
+                        <Shield className="h-3 w-3 text-amber-500" />
+                        <span className="text-[11px] text-muted-foreground">EID</span>
+                      </div>
+                      <div className="flex items-center gap-0.5 flex-1">
+                        {PIPELINE_STEPS.map((step, idx) => {
+                          const currentIdx = PIPELINE_STEPS.indexOf(pipeline.eid.stage as any);
+                          const isComplete = pipeline.eid.stage !== "needs_attention" && idx <= currentIdx;
+                          return (
+                            <div key={step} className="flex items-center flex-1">
+                              <div className={cn("h-1.5 rounded-full flex-1", isComplete ? "bg-amber-500" : "bg-muted")} />
+                              {idx < PIPELINE_STEPS.length - 1 && <div className="w-px" />}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0 h-5", STAGE_CONFIG[pipeline.eid.stage].color)}>
+                        {pipeline.eid.label}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {latestEidJob && (
+                  <div className="p-2 rounded-md bg-amber-500/5 border border-amber-500/10 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-amber-700 dark:text-amber-300">EID Typing Job</span>
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5">{latestEidJob.status}</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
+                      {latestEidJob.result?.applicationRefNo && (
+                        <span>App#: <span className="text-foreground font-medium">{latestEidJob.result.applicationRefNo}</span></span>
+                      )}
+                      {(latestEidJob as any).vendor?.name && (
+                        <span>Vendor: <span className="text-foreground">{(latestEidJob as any).vendor.name}</span></span>
+                      )}
+                      {(latestEidJob as any).completedAt && (
+                        <span>Completed: <span className="text-foreground">{new Date((latestEidJob as any).completedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</span></span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {medReadyToSchedule && (
+                  <div className="flex items-center gap-2 p-2 rounded-md bg-blue-500/10 border border-blue-500/20">
+                    <Stethoscope className="h-3.5 w-3.5 text-blue-600" />
+                    <span className="text-xs text-blue-700 dark:text-blue-300">
+                      Medical typing is also complete — schedule after this
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+      </>)}
     </div>
   );
 
