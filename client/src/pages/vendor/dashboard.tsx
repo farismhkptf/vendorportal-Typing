@@ -191,30 +191,36 @@ export default function VendorDashboard() {
       {hasStaleAlerts && (
         <div className="mb-6 flex flex-col sm:flex-row gap-2">
           {staleAlerts.unacceptedJobs > 0 && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 flex-1" data-testid="alert-unaccepted">
-              <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-                <Inbox className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <Link href="/eid" className="flex-1">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 cursor-pointer hover:shadow-md transition-shadow duration-200" data-testid="alert-unaccepted">
+                <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                  <Inbox className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {staleAlerts.unacceptedJobs} {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} awaiting acceptance
+                  </p>
+                  <p className="text-xs text-muted-foreground">Pending over 12 hours</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {staleAlerts.unacceptedJobs} {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} awaiting acceptance
-                </p>
-                <p className="text-xs text-muted-foreground">Pending over 12 hours</p>
-              </div>
-            </div>
+            </Link>
           )}
           {staleAlerts.waitingForDocsJobs > 0 && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 flex-1" data-testid="alert-waiting-docs">
-              <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
-                <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <Link href="/eid" className="flex-1">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 cursor-pointer hover:shadow-md transition-shadow duration-200" data-testid="alert-waiting-docs">
+                <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
+                  <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {staleAlerts.waitingForDocsJobs} {staleAlerts.waitingForDocsJobs === 1 ? "job" : "jobs"} waiting for docs
+                  </p>
+                  <p className="text-xs text-muted-foreground">Pending over 24 hours</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
               </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {staleAlerts.waitingForDocsJobs} {staleAlerts.waitingForDocsJobs === 1 ? "job" : "jobs"} waiting for docs
-                </p>
-                <p className="text-xs text-muted-foreground">Pending over 24 hours</p>
-              </div>
-            </div>
+            </Link>
           )}
         </div>
       )}
@@ -308,17 +314,20 @@ export default function VendorDashboard() {
       </div>
 
       {(stats?.urgent || 0) > 0 && (
-        <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40" data-testid="alert-urgent">
-          <div className="h-8 w-8 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0">
-            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+        <Link href="/eid">
+          <div className="mb-6 flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-800/40 cursor-pointer hover:shadow-md transition-shadow duration-200" data-testid="alert-urgent">
+            <div className="h-8 w-8 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">
+                {stats?.urgent} priority {stats?.urgent === 1 ? "job" : "jobs"} need attention
+              </p>
+              <p className="text-xs text-muted-foreground">Overdue, action required</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {stats?.urgent} priority {stats?.urgent === 1 ? "job" : "jobs"} need attention
-            </p>
-            <p className="text-xs text-muted-foreground">Overdue, action required</p>
-          </div>
-        </div>
+        </Link>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -353,54 +362,51 @@ export default function VendorDashboard() {
                             const isAccepting = acceptMutation.isPending && acceptMutation.variables === job.id;
                             const age = formatJobAge(job.sentAt);
                             return (
-                              <div
-                                key={job.id}
-                                className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
-                                data-testid={`action-job-${job.id}`}
-                              >
-                                <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${isEid ? "bg-amber-100 dark:bg-amber-900/40" : "bg-blue-100 dark:bg-blue-900/40"}`}>
-                                  {isEid
-                                    ? <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                                    : <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-foreground">{job.category}</span>
-                                    <StatusBadge status={job.status as any} />
+                              <Link key={job.id} href={detailUrl}>
+                                <div
+                                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                                  data-testid={`action-job-${job.id}`}
+                                >
+                                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${isEid ? "bg-amber-100 dark:bg-amber-900/40" : "bg-blue-100 dark:bg-blue-900/40"}`}>
+                                    {isEid
+                                      ? <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                      : <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
                                   </div>
-                                  <div className="flex items-center gap-3 mt-0.5">
-                                    {age && (
-                                      <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                                        <Clock className="h-3 w-3" />{age}
-                                      </span>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium text-foreground">{job.category}</span>
+                                      <StatusBadge status={job.status as any} />
+                                    </div>
+                                    <div className="flex items-center gap-3 mt-0.5">
+                                      {age && (
+                                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                                          <Clock className="h-3 w-3" />{age}
+                                        </span>
+                                      )}
+                                      {job.costSnapshot != null && job.costSnapshot > 0 && (
+                                        <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                                          AED {job.costSnapshot}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {job.status === "SentToVendor" && (
+                                      <Button
+                                        size="sm"
+                                        className="text-xs gap-1.5"
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
+                                        disabled={isAccepting}
+                                        data-testid={`button-accept-${job.id}`}
+                                      >
+                                        {isAccepting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                                        Accept
+                                      </Button>
                                     )}
-                                    {job.costSnapshot != null && job.costSnapshot > 0 && (
-                                      <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
-                                        AED {job.costSnapshot}
-                                      </span>
-                                    )}
+                                    <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  {job.status === "SentToVendor" && (
-                                    <Button
-                                      size="sm"
-                                      className="text-xs gap-1.5"
-                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
-                                      disabled={isAccepting}
-                                      data-testid={`button-accept-${job.id}`}
-                                    >
-                                      {isAccepting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                                      Accept
-                                    </Button>
-                                  )}
-                                  <Link href={detailUrl}>
-                                    <Button variant="ghost" size="icon" data-testid={`button-view-${job.id}`}>
-                                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                    </Button>
-                                  </Link>
-                                </div>
-                              </div>
+                              </Link>
                             );
                           })}
                         </div>
