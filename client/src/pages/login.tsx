@@ -13,7 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormMessage } from "@/component
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
-import proLogo from "@assets/Our_Logo_1771503275390.png";
+import proLogo from "@assets/Our_Logo_transparent.png";
 import dubaiSkyline from "@assets/stock_images/dubai-skyline-login-bg.jpg";
 import { CompanyName } from "@/components/ui/company-name";
 

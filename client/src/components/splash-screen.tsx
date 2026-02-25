@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import proLogo from "@assets/Our_Logo_1771503275390.png";
+import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 
 const PHASES = ["logo", "glow", "text", "tagline", "ready", "exit"] as const;

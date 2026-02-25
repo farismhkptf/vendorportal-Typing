@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CompanyName } from "@/components/ui/company-name";
-import proLogo from "@assets/Our_Logo_1771503275390.png";
+import proLogo from "@assets/Our_Logo_transparent.png";
 
 interface LegalPageProps {
   type: "privacy" | "terms";

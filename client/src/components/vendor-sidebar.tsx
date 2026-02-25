@@ -21,7 +21,7 @@ import { useOnlineStatus } from "@/hooks/use-online-status";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { VendorNotification, TypingJob, JobType } from "@shared/schema";
 import vendorLogo from "@assets/Vendor_Logo_1771503175243.jpg";
-import proLogo from "@assets/Our_Logo_1771503275390.png";
+import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 
 const navItems = [

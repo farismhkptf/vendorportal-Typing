@@ -22,7 +22,7 @@ import { NotificationsBell } from "@/components/notifications-bell";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
 import { useAuth } from "@/hooks/use-auth";
-import proLogo from "@assets/Our_Logo_1771503275390.png";
+import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 
 interface AppLayoutProps {

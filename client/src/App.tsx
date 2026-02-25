@@ -11,7 +11,7 @@ import { MobileBottomNav } from "@/components/mobile-nav";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { VendorAuthProvider, useVendorAuth } from "@/hooks/use-vendor-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
-import proLogo from "@assets/Our_Logo_1771503275390.png";
+import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 import { useSplash } from "@/contexts/splash-context";
 import SplashScreen from "@/components/splash-screen";
