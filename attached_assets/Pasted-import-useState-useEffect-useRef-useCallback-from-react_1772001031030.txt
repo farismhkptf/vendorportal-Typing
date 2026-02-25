@@ -1,0 +1,195 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+// Replace with your own logo + background images
+import yourLogo from '@assets/your_logo.png'
+import slide1 from '@assets/bg1.jpg'
+import slide2 from '@assets/bg2.jpg'
+// ... add as many as you want
+
+const images = [slide1, slide2]
+
+const kenBurnsStyles = [
+  { from: 'scale(1) translate(0%, 0%)',    to: 'scale(1.15) translate(-3%, -2%)' },
+  { from: 'scale(1.1) translate(-2%, 0%)', to: 'scale(1.2) translate(2%, -3%)' },
+  { from: 'scale(1.05) translate(2%, -1%)',to: 'scale(1.18) translate(-2%, 2%)' },
+]
+
+const HOLD = 10000  // ms each photo stays visible
+const FADE = 2000   // ms crossfade duration
+
+function HeroBackground() {
+  const [slides, setSlides] = useState([
+    { imageIndex: 0, opacity: 1, key: 0 },
+    { imageIndex: 1, opacity: 0, key: 1 },
+  ])
+  const counterRef = useRef(2)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSlides(prev => {
+        const visible = prev.find(s => s.opacity === 1)
+        const hidden  = prev.find(s => s.opacity === 0)
+        if (!visible || !hidden) return prev
+        const nextImageIndex = (visible.imageIndex + 1) % images.length
+        const nextKey = counterRef.current++
+        return [
+          { ...visible, opacity: 0 },
+          { imageIndex: nextImageIndex, opacity: 1, key: nextKey },
+        ]
+      })
+    }, HOLD)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden">
+      {slides.map((slide) => (
+        <div
+          key={slide.key}
+          className="absolute inset-0"
+          style={{ opacity: slide.opacity, transition: `opacity ${FADE}ms ease-in-out` }}
+        >
+          <img
+            src={images[slide.imageIndex]}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{
+              animation: `kb-${slide.imageIndex % kenBurnsStyles.length} ${HOLD + FADE}ms ease-in-out forwards`
+            }}
+          />
+        </div>
+      ))}
+      {/* Dark wash */}
+      <div className="absolute inset-0" style={{
+        zIndex: 2,
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.55) 100%)'
+      }} />
+      <style>{`
+        @keyframes kb-0 { 0% { transform: ${kenBurnsStyles[0].from}; } 100% { transform: ${kenBurnsStyles[0].to}; } }
+        @keyframes kb-1 { 0% { transform: ${kenBurnsStyles[1].from}; } 100% { transform: ${kenBurnsStyles[1].to}; } }
+        @keyframes kb-2 { 0% { transform: ${kenBurnsStyles[2].from}; } 100% { transform: ${kenBurnsStyles[2].to}; } }
+      `}</style>
+    </div>
+  )
+}
+
+export default function SplashScreen({ onComplete }: { onComplete: () => void }) {
+  const [phase, setPhase] = useState('logo')
+  const completedRef = useRef(false)
+
+  const finish = useCallback(() => {
+    if (completedRef.current) return
+    completedRef.current = true
+    onComplete()
+  }, [onComplete])
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase('glow'),    500)
+    const t2 = setTimeout(() => setPhase('text'),    900)
+    const t3 = setTimeout(() => setPhase('tagline'), 1500)
+    const t4 = setTimeout(() => setPhase('ready'),   2100)
+    const t5 = setTimeout(() => setPhase('exit'),    2500)
+    const t6 = setTimeout(finish,                    3500)
+    return () => { [t1,t2,t3,t4,t5,t6].forEach(clearTimeout) }
+  }, [finish])
+
+  const isExiting  = phase === 'exit'
+  const showText   = !['logo','glow'].includes(phase) && !isExiting
+  const showTagline= ['tagline','ready'].includes(phase) && !isExiting
+  const showBar    = phase === 'ready' && !isExiting
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden"
+    >
+      <motion.div
+        className="absolute inset-0"
+        animate={{ opacity: isExiting ? 0 : 1 }}
+        transition={{ duration: 0.8 }}
+      >
+        <HeroBackground />
+      </motion.div>
+
+      <div className="relative z-10 flex flex-col items-center">
+        {/* Logo box */}
+        <motion.div
+          initial={{ scale: 0, opacity: 0, rotate: -90 }}
+          animate={{
+            scale: phase === 'glow' ? 1.08 : 1,
+            opacity: isExiting ? 0 : 1,
+            rotate: 0,
+          }}
+          transition={{
+            scale: { type: 'spring', stiffness: 120, damping: 12 },
+            opacity: { duration: 0.4 },
+            rotate: { duration: 0.6 },
+          }}
+        >
+          <div style={{
+            width: '5.5rem', height: '5.5rem',
+            backgroundColor: 'rgba(255,255,255,0.08)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: '1rem',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'relative',
+          }}>
+            <img src={yourLogo} alt="Logo" style={{ width: '3rem', height: '3rem', objectFit: 'contain' }} />
+          </div>
+        </motion.div>
+
+        {/* App name */}
+        <div style={{ marginTop: '1.5rem', minHeight: '4rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <AnimatePresence>
+            {showText && (
+              <motion.span
+                style={{ color: '#ffffff', fontWeight: 700, fontSize: '1.5rem' }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                Your App Name  {/* ← change this */}
+              </motion.span>
+            )}
+          </AnimatePresence>
+
+          {/* Tagline */}
+          <AnimatePresence>
+            {showTagline && (
+              <motion.span
+                style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', letterSpacing: '0.25em', textTransform: 'uppercase', marginTop: '0.5rem' }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.3 }}
+              >
+                Internal Portal  {/* ← change this */}
+              </motion.span>
+            )}
+          </AnimatePresence>
+
+          {/* Loading bar */}
+          <AnimatePresence>
+            {showBar && (
+              <motion.div
+                style={{ marginTop: '1.25rem', width: '3rem', height: '2px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '999px', overflow: 'hidden' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <motion.div
+                  style={{ height: '100%', backgroundColor: '#20467a', borderRadius: '999px' }}
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 0.6 }}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
