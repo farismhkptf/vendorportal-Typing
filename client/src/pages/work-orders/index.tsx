@@ -1031,6 +1031,7 @@ export default function WorkOrdersList() {
         </SelectTrigger>
         <SelectContent className="rounded-xl">
           <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="Inactive">Inactive</SelectItem>
           <SelectItem value="Draft">Draft</SelectItem>
           <SelectItem value="Scheduled">Scheduled</SelectItem>
           <SelectItem value="Sent">Sent</SelectItem>

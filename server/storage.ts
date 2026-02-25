@@ -83,6 +83,7 @@ export interface IStorage {
   updateWorkOrder(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder | undefined>;
   deleteWorkOrder(id: string): Promise<boolean>;
   getNextWoNumber(): Promise<string>;
+  activateWorkOrder(id: string, isMinor: boolean): Promise<WorkOrder | undefined>;
   
   // Appointments
   getAppointmentsByWoId(woId: string): Promise<Appointment[]>;
@@ -503,6 +504,15 @@ export class DatabaseStorage implements IStorage {
       .from(workOrders);
     const nextNum = (parseInt(result?.maxNum || '0', 10) || 0) + 1;
     return `X${String(nextNum).padStart(5, '0')}`;
+  }
+
+  async activateWorkOrder(id: string, isMinor: boolean): Promise<WorkOrder | undefined> {
+    const [wo] = await db
+      .update(workOrders)
+      .set({ status: "Draft", isMinor })
+      .where(eq(workOrders.id, id))
+      .returning();
+    return wo || undefined;
   }
 
   // Appointments

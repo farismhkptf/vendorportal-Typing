@@ -619,13 +619,22 @@ export default function WorkOrderDetail() {
   const [isCreatingJobs, setIsCreatingJobs] = useState(false);
   const [showSendToVendorDialog, setShowSendToVendorDialog] = useState(false);
   const [sendVendorId, setSendVendorId] = useState("");
+  const [showActivateDialog, setShowActivateDialog] = useState(false);
+  const [activateEntryPermit, setActivateEntryPermit] = useState(false);
+  const [activateChangeStatus, setActivateChangeStatus] = useState(false);
+  const [activateIsMinor, setActivateIsMinor] = useState<"adult" | "minor">("adult");
 
   const draftTypingJobs = workOrder?.typingJobs?.filter(j => j.status === "Draft") || [];
   const existingMedicalJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "Medical" && j.status !== "Aborted") || null;
   const existingEidJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "EID" && j.status !== "Aborted") || null;
   const canCreateNewJob = !existingMedicalJob || !existingEidJob;
 
-  const pipeline = workOrder ? getPipelineInfo(workOrder.typingJobs || [], workOrder.appointments || []) : null;
+  const effectiveTypingJobs = workOrder
+    ? (workOrder as any).isMinor
+      ? (workOrder.typingJobs || []).filter((j: any) => j.jobType?.category !== "Medical")
+      : workOrder.typingJobs || []
+    : [];
+  const pipeline = workOrder ? getPipelineInfo(effectiveTypingJobs, workOrder.appointments || []) : null;
 
   const [activeTab, setActiveTab] = useState("typing");
 
@@ -662,6 +671,28 @@ export default function WorkOrderDetail() {
     queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
     queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
   };
+
+  const activateMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("PATCH", `/api/work-orders/${id}/activate`, {
+        isMinor: activateIsMinor === "minor",
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      setShowActivateDialog(false);
+      setActivateEntryPermit(false);
+      setActivateChangeStatus(false);
+      setActivateIsMinor("adult");
+      toast({ title: "Work order activated", description: "The work order is now active and ready for processing." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to activate", description: error.message, variant: "destructive" });
+    },
+  });
 
   const sendToVendorMutation = useMutation({
     mutationFn: async () => {
@@ -913,7 +944,18 @@ export default function WorkOrderDetail() {
         ]}
         actions={
           <div className="flex items-center flex-wrap gap-2">
-            <StatusBadge status={workOrder.status} />
+            <StatusBadge status={workOrder.status as any} />
+            {workOrder.status === "Inactive" && (
+              <Button
+                size="sm"
+                className="gap-1.5 bg-primary text-primary-foreground"
+                onClick={() => setShowActivateDialog(true)}
+                data-testid="button-activate-wo"
+              >
+                <PlayCircle className="h-3.5 w-3.5" />
+                Activate
+              </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm" 
@@ -966,12 +1008,33 @@ export default function WorkOrderDetail() {
       />
 
       <div className="p-4 lg:p-8 space-y-6">
-        {pipeline && (
+        {workOrder.status === "Inactive" ? (
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700" data-testid="inactive-banner">
+            <div className="h-9 w-9 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
+              <PauseCircle className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Work Order Inactive</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Activate this work order once the Entry Permit and Change Status have been approved externally. Documents can still be uploaded while inactive.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              className="gap-1.5 shrink-0"
+              onClick={() => setShowActivateDialog(true)}
+              data-testid="button-activate-banner"
+            >
+              <PlayCircle className="h-3.5 w-3.5" />
+              Activate
+            </Button>
+          </div>
+        ) : pipeline && (
           <div className="space-y-3">
             <PipelineBar pipeline={pipeline} />
             <NextActionBanner
               pipeline={pipeline}
-              typingJobs={workOrder.typingJobs || []}
+              typingJobs={effectiveTypingJobs}
               appointments={workOrder.appointments || []}
               onAction={handleNextAction}
             />
@@ -1782,6 +1845,134 @@ export default function WorkOrderDetail() {
                 <>
                   <Send className="h-4 w-4" />
                   Send {draftTypingJobs.length > 1 ? `${draftTypingJobs.length} Jobs` : "to Vendor"}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activate Work Order Dialog */}
+      <Dialog open={showActivateDialog} onOpenChange={(open) => {
+        if (!open) {
+          setActivateEntryPermit(false);
+          setActivateChangeStatus(false);
+          setActivateIsMinor("adult");
+        }
+        setShowActivateDialog(open);
+      }}>
+        <DialogContent className="rounded-2xl max-w-md" data-testid="dialog-activate-wo">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PlayCircle className="h-5 w-5 text-primary" />
+              Activate Work Order
+            </DialogTitle>
+            <DialogDescription>
+              Confirm that the required external approvals have been obtained before activating.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-3">
+              <p className="text-sm font-medium text-foreground">Required Approvals</p>
+              <div
+                className="flex items-center gap-3 p-3 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/40 transition-colors"
+                onClick={() => setActivateEntryPermit(!activateEntryPermit)}
+                data-testid="checkbox-entry-permit"
+              >
+                <Checkbox
+                  checked={activateEntryPermit}
+                  onCheckedChange={(v) => setActivateEntryPermit(!!v)}
+                  id="entry-permit"
+                />
+                <label htmlFor="entry-permit" className="text-sm cursor-pointer select-none">
+                  Entry Permit has been approved
+                </label>
+              </div>
+              <div
+                className="flex items-center gap-3 p-3 rounded-lg border border-border/60 cursor-pointer hover:bg-muted/40 transition-colors"
+                onClick={() => setActivateChangeStatus(!activateChangeStatus)}
+                data-testid="checkbox-change-status"
+              >
+                <Checkbox
+                  checked={activateChangeStatus}
+                  onCheckedChange={(v) => setActivateChangeStatus(!!v)}
+                  id="change-status"
+                />
+                <label htmlFor="change-status" className="text-sm cursor-pointer select-none">
+                  Change Status has been approved
+                </label>
+              </div>
+            </div>
+
+            {(workOrder.serviceType as any)?.isDependent && (
+              <div className="space-y-3 pt-1">
+                <p className="text-sm font-medium text-foreground">Applicant Age</p>
+                <p className="text-xs text-muted-foreground -mt-2">This is a dependent visa. Medical typing may not be required for minors.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setActivateIsMinor("adult")}
+                    className={cn(
+                      "flex items-center justify-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors",
+                      activateIsMinor === "adult"
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "border-border/60 text-muted-foreground hover:bg-muted/40"
+                    )}
+                    data-testid="radio-adult"
+                  >
+                    <User className="h-4 w-4" />
+                    Adult
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivateIsMinor("minor")}
+                    className={cn(
+                      "flex items-center justify-center gap-2 p-3 rounded-lg border text-sm font-medium transition-colors",
+                      activateIsMinor === "minor"
+                        ? "border-amber-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400"
+                        : "border-border/60 text-muted-foreground hover:bg-muted/40"
+                    )}
+                    data-testid="radio-minor"
+                  >
+                    <User className="h-4 w-4" />
+                    Minor (under 18)
+                  </button>
+                </div>
+                {activateIsMinor === "minor" && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                    Medical typing and scheduling will be skipped for this work order.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setShowActivateDialog(false)}
+              data-testid="button-cancel-activate"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-xl gap-1.5"
+              disabled={!activateEntryPermit || !activateChangeStatus || activateMutation.isPending}
+              onClick={() => activateMutation.mutate()}
+              data-testid="button-confirm-activate"
+            >
+              {activateMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Activating...
+                </>
+              ) : (
+                <>
+                  <PlayCircle className="h-4 w-4" />
+                  Activate Work Order
                 </>
               )}
             </Button>

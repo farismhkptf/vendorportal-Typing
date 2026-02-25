@@ -882,7 +882,7 @@ export async function registerRoutes(
     try {
       const bulkStatusSchema = z.object({
         ids: z.array(z.string()).min(1),
-        status: z.enum(["Draft", "Scheduled", "Sent", "Completed", "Cancelled"]),
+        status: z.enum(["Inactive", "Draft", "Scheduled", "Sent", "Completed", "Cancelled"]),
       });
       const validation = validateBody(bulkStatusSchema, req.body);
       if ("error" in validation) {
@@ -1004,11 +1004,14 @@ export async function registerRoutes(
         };
       }
 
+      const serviceType = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId) : null;
+
       res.json({
         ...wo,
         company: companyWithDetails,
         appointments,
         typingJobs,
+        serviceType,
       });
     } catch (error) {
       console.error("Work order detail error:", error);
@@ -1041,7 +1044,7 @@ export async function registerRoutes(
       const wo = await storage.createWorkOrder({
         ...validation.data,
         applicantName: toProperCase(validation.data.applicantName),
-        status: "Draft",
+        status: "Inactive",
       });
       await storage.createAuditLog({
         entityType: "work_order",
@@ -1074,6 +1077,7 @@ export async function registerRoutes(
             jobTypeId: eidJobType.id,
             status: "Draft",
           });
+          // Note: typing job status "Draft" is intentional - typing jobs stay draft until WO is activated
         }
       } catch (typingJobError) {
         // Log but don't fail the WO creation if typing job creation fails
@@ -1137,6 +1141,37 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete work order error:", error);
       res.status(500).json({ message: "Failed to delete work order" });
+    }
+  });
+
+  app.patch("/api/work-orders/:id/activate", requireOpsRole, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const activateSchema = z.object({
+        isMinor: z.boolean().default(false),
+      });
+      const validation = validateBody(activateSchema, req.body);
+      if ("error" in validation) {
+        return res.status(400).json({ message: validation.error });
+      }
+      const wo = await storage.getWorkOrderById(id);
+      if (!wo) {
+        return res.status(404).json({ message: "Work order not found" });
+      }
+      if (wo.status !== "Inactive") {
+        return res.status(400).json({ message: "Work order is already active" });
+      }
+      const updated = await storage.activateWorkOrder(id, validation.data.isMinor);
+      await storage.createAuditLog({
+        entityType: "work_order",
+        entityId: id,
+        action: "activated",
+        details: { isMinor: validation.data.isMinor },
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error("Activate work order error:", error);
+      res.status(500).json({ message: "Failed to activate work order" });
     }
   });
 
@@ -5003,7 +5038,7 @@ export async function registerRoutes(
             applicantName: toProperCase(staffName),
             companyId,
             serviceTypeId: validServiceTypeId,
-            status: "Draft",
+            status: "Inactive",
             notes: designation ? `Designation: ${designation}` : undefined,
           });
           await storage.createAuditLog({
@@ -5222,7 +5257,7 @@ export async function registerRoutes(
           const validServiceTypeId = serviceTypeId && serviceTypeIds.has(serviceTypeId) ? serviceTypeId : undefined;
           const newWo = await storage.createWorkOrder({
             woNumber, applicantName: toProperCase(staffName), companyId,
-            serviceTypeId: validServiceTypeId, status: "Draft",
+            serviceTypeId: validServiceTypeId, status: "Inactive",
             notes: designation ? `Designation: ${designation}` : undefined,
           });
           await storage.createAuditLog({

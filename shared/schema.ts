@@ -58,7 +58,7 @@ export type UserRole = typeof ALL_ROLES[number];
 export const centerTypeEnum = pgEnum("center_type", ["Medical", "EID", "Both"]);
 export const centerAuthorityEnum = pgEnum("center_authority", ["DHA", "EHS", "ICP"]);
 export const centerTierEnum = pgEnum("center_tier", ["Normal", "VIP"]);
-export const woStatusEnum = pgEnum("wo_status", ["Draft", "Scheduled", "Sent", "Completed", "Cancelled"]);
+export const woStatusEnum = pgEnum("wo_status", ["Inactive", "Draft", "Scheduled", "Sent", "Completed", "Cancelled"]);
 export const appointmentTypeEnum = pgEnum("appointment_type", ["Medical", "EID"]);
 export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"]);
 export const rescheduleStatusEnum = pgEnum("reschedule_status", ["New", "Accepted", "Closed"]);
@@ -212,6 +212,7 @@ export const serviceTypes = pgTable("service_types", {
   requiresIdTyping1Year: boolean("requires_id_typing_1_year").notNull().default(false),
   requiresIdTyping10Years: boolean("requires_id_typing_10_years").notNull().default(false),
   requiresIdBiometrics: boolean("requires_id_biometrics").notNull().default(false),
+  isDependent: boolean("is_dependent").notNull().default(false),
   active: boolean("active").notNull().default(true),
 });
 
@@ -251,7 +252,8 @@ export const workOrders = pgTable("work_orders", {
   isVip: boolean("is_vip").notNull().default(false),
   companyId: varchar("company_id").notNull(),
   serviceTypeId: varchar("service_type_id"),
-  status: woStatusEnum("status").notNull().default("Draft"),
+  status: woStatusEnum("status").notNull().default("Inactive"),
+  isMinor: boolean("is_minor").notNull().default(false),
   notes: text("notes"),
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

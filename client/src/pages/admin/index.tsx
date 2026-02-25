@@ -109,6 +109,7 @@ const serviceTypeSchema = z.object({
   requiresIdTyping1Year: z.boolean().default(false),
   requiresIdTyping10Years: z.boolean().default(false),
   requiresIdBiometrics: z.boolean().default(false),
+  isDependent: z.boolean().default(false),
 });
 
 const jobTypeSchema = z.object({
@@ -907,6 +908,7 @@ export default function AdminPage() {
       requiresIdTyping1Year: false,
       requiresIdTyping10Years: false,
       requiresIdBiometrics: false,
+      isDependent: false,
     },
   });
 
@@ -920,6 +922,7 @@ export default function AdminPage() {
       requiresIdTyping1Year: false,
       requiresIdTyping10Years: false,
       requiresIdBiometrics: false,
+      isDependent: false,
     },
   });
 
@@ -1483,6 +1486,7 @@ export default function AdminPage() {
       requiresIdTyping1Year: service.requiresIdTyping1Year,
       requiresIdTyping10Years: service.requiresIdTyping10Years,
       requiresIdBiometrics: service.requiresIdBiometrics,
+      isDependent: (service as any).isDependent ?? false,
     });
     setEditServiceDialogOpen(true);
   };
@@ -4013,6 +4017,23 @@ export default function AdminPage() {
                             />
                           </div>
                         </div>
+                        <div className="pt-1">
+                          <FormField
+                            control={serviceForm.control}
+                            name="isDependent"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <div>
+                                  <FormLabel className="text-sm font-medium cursor-pointer">Dependent Visa</FormLabel>
+                                  <p className="text-xs text-muted-foreground">Prompts a minor check when activating a Work Order</p>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
                         <div className="flex justify-end gap-3 pt-4">
                           <Button type="button" variant="outline" className="rounded-xl" onClick={() => setServiceDialogOpen(false)}>
                             Cancel
@@ -4126,6 +4147,21 @@ export default function AdminPage() {
                           />
                         </div>
                       </div>
+                      <FormField
+                        control={editServiceForm.control}
+                        name="isDependent"
+                        render={({ field }) => (
+                          <FormItem className="flex items-center gap-2 space-y-0 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
+                            <FormControl>
+                              <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                            </FormControl>
+                            <div>
+                              <FormLabel className="text-sm font-medium cursor-pointer">Dependent Visa</FormLabel>
+                              <p className="text-xs text-muted-foreground">Prompts a minor check when activating a Work Order</p>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
                       <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditServiceDialogOpen(false)}>
                           Cancel
