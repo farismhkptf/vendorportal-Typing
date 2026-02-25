@@ -1,0 +1,94 @@
+```text
+You are working inside an existing web app (Replit). The app already has statuses and API logic linked to those statuses.
+
+Goal:
+1) First, audit and understand the CURRENT status + API logic (do not change anything yet).
+2) Then compare it against the TARGET status architecture below.
+3) Then discuss and propose the safest migration plan (step-by-step), including backwards compatibility, data migration, and API changes.
+4) Only after we agree on the plan, implement changes.
+
+Hard rule:
+- Phase 1 = analysis + questions + plan only. NO code changes, no refactors, no renames yet.
+
+PHASE 1 — AUDIT (Read-only)
+Please do the following:
+A) Locate and list ALL current statuses used in the system (Typing + Scheduling), including:
+   - where they are defined (enums/constants/db values)
+   - where they are written/updated (backend/API/services)
+   - where they are read/filtered (UI lists, tabs, dashboards)
+   - any status-driven automations (notifications/emails/assignments)
+B) Produce a “Status Usage Map”:
+   - Status → Files/Endpoints/DB fields that depend on it
+C) Identify any hidden statuses or implied states (e.g., boolean flags, derived “today” logic, vendor-open events, etc.)
+
+PHASE 2 — COMPARE
+Compare current vs target:
+- What statuses exist today that are NOT in target?
+- What statuses are missing today that target requires?
+- What API flows depend on old statuses?
+- Where would changes cause breaking behavior?
+
+PHASE 3 — DISCUSS & PLAN (Ask questions before implementation)
+Before writing code, ask me the minimum necessary questions to confirm:
+- DB field(s) that store statuses (single status vs per-module statuses)
+- Whether “Draft” exists today and if we want to keep it
+- Whether “Appointment Today” is currently a status or a computed rule
+- Whether old records must be migrated or can remain historical
+- Any reporting/analytics that relies on old statuses
+
+Then propose a migration plan with:
+1) Status vocabulary changes (add/remove/rename)
+2) Transition rules (allowed moves)
+3) DB migration approach (mapping table for old→new values)
+4) API endpoint changes (where to update payloads/validators)
+5) UI updates (filters, labels, tabs)
+6) Rollout plan (feature flag / staged rollout / testing checklist)
+7) Minimal-risk approach first
+
+TARGET STATUS ARCHITECTURE (to implement after approval)
+
+A) Typing Job — Medical & Emirates ID
+
+Not Required
+- Not Required — This application is not required for the work order.
+
+Standard Workflow
+- Draft — Request is created internally but not yet sent to vendor.
+- Submitted to Vendor — Request has been sent and is awaiting vendor action.
+- In Process — Vendor has opened the request and is working on it.
+- Completed by Vendor — Vendor has uploaded the application and finished their part.
+- Ready for Scheduling — Application is completed and moved to the scheduling module.
+
+Completion Outcome (Emirates ID only when no biometrics required)
+- Completed — No further action is required after vendor submission.
+
+Exception States
+- Returned — Vendor has returned the request due to incorrect or unclear documents.
+- On Hold — Processing is temporarily paused due to a pending condition.
+- Rejected — Vendor stopped or could not process the request.
+- Aborted — Request was stopped by user or client decision.
+
+B) Scheduling — Medical & Emirates ID
+
+Core Scheduling Lifecycle
+- Ready for Scheduling — Application is completed and waiting for appointment booking.
+- Scheduled — Appointment date and time have been confirmed in the system.
+- Appointment Today — Appointment is scheduled for today.
+- In Process — Applicant is at the center and process is ongoing.
+- Completed — Appointment process has been successfully completed.
+- Closed — Case is fully completed and administratively finalized.
+
+Follow-Up States
+- Follow-Up Required — An external authority or system issue requires additional action.
+- Follow-Up In Process — Staff or vendor is actively working to resolve the issue.
+- Follow-Up Completed — The issue has been resolved and the case can proceed or finalize.
+
+Deliverables for Phase 1 (no code yet):
+- Current Status List
+- Status Usage Map (Status → files/endpoints/UI)
+- Gap Analysis (Current vs Target)
+- Proposed Migration Plan + Risks
+- Questions for me (minimal set)
+
+Do not implement until I explicitly say “Proceed to implementation”.
+```
