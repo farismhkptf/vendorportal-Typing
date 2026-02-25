@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import proLogo from "@assets/Our_Logo_1771503275390.png";
 import { CompanyName } from "@/components/ui/company-name";
 
@@ -35,19 +35,14 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
   return (
     <motion.div
       className="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden"
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      animate={{ opacity: isExiting ? 0 : 1 }}
       transition={{ duration: 0.8 }}
     >
-      <motion.div
-        className="absolute inset-0"
-        animate={{ opacity: isExiting ? 0 : 1 }}
-        transition={{ duration: 0.8 }}
-      >
+      <div className="absolute inset-0">
         <div className="login-bg-gradient" aria-hidden="true" />
         <div className="login-bg-grain" aria-hidden="true" />
         <div className="login-bg-overlay" />
-      </motion.div>
+      </div>
 
       <div className="relative z-10 flex flex-col items-center">
         <motion.div
@@ -90,71 +85,50 @@ export default function SplashScreen({ onComplete }: { onComplete: () => void })
           flexDirection: "column",
           alignItems: "center",
         }}>
-          <AnimatePresence>
-            {showText && (
-              <motion.span
-                key="appname"
-                style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.5rem" }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <CompanyName />
-              </motion.span>
-            )}
-          </AnimatePresence>
+          <motion.span
+            style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.5rem" }}
+            animate={{ opacity: showText ? 1 : 0, scale: showText ? 1 : 0.85 }}
+            transition={{ duration: 0.3 }}
+          >
+            <CompanyName />
+          </motion.span>
 
-          <AnimatePresence>
-            {showTagline && (
-              <motion.span
-                key="tagline"
-                style={{
-                  color: "rgba(255,255,255,0.4)",
-                  fontSize: "0.7rem",
-                  letterSpacing: "0.25em",
-                  textTransform: "uppercase",
-                  marginTop: "0.5rem",
-                }}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.3 }}
-              >
-                Internal Portal
-              </motion.span>
-            )}
-          </AnimatePresence>
+          <motion.span
+            style={{
+              color: "rgba(255,255,255,0.4)",
+              fontSize: "0.7rem",
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              marginTop: "0.5rem",
+            }}
+            animate={{ opacity: showTagline ? 1 : 0, y: showTagline ? 0 : 6 }}
+            transition={{ duration: 0.3 }}
+          >
+            Internal Portal
+          </motion.span>
 
-          <AnimatePresence>
-            {showBar && (
-              <motion.div
-                key="bar"
-                style={{
-                  marginTop: "1.25rem",
-                  width: "3rem",
-                  height: "2px",
-                  backgroundColor: "rgba(255,255,255,0.1)",
-                  borderRadius: "999px",
-                  overflow: "hidden",
-                }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <motion.div
-                  style={{
-                    height: "100%",
-                    backgroundColor: "#20467a",
-                    borderRadius: "999px",
-                  }}
-                  initial={{ width: "0%" }}
-                  animate={{ width: "100%" }}
-                  transition={{ duration: 0.6 }}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <motion.div
+            style={{
+              marginTop: "1.25rem",
+              width: "3rem",
+              height: "2px",
+              backgroundColor: "rgba(255,255,255,0.1)",
+              borderRadius: "999px",
+              overflow: "hidden",
+            }}
+            animate={{ opacity: showBar ? 1 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              style={{
+                height: "100%",
+                backgroundColor: "#20467a",
+                borderRadius: "999px",
+              }}
+              animate={{ width: showBar ? "100%" : "0%" }}
+              transition={{ duration: 0.6 }}
+            />
+          </motion.div>
         </div>
       </div>
     </motion.div>
