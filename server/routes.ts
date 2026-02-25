@@ -4902,7 +4902,13 @@ export async function registerRoutes(
           skipReason = 'Missing WO number';
         } else if (existingWos.has(woNumber.toUpperCase())) {
           canImport = false;
-          skipReason = 'WO already exists';
+          skipReason = 'Already imported';
+        } else if (!workValue) {
+          canImport = false;
+          skipReason = 'Empty work column';
+        } else if (serviceTypeMatch.confidence === 'none') {
+          canImport = false;
+          skipReason = 'Service type not recognized';
         } else if (!staffName) {
           canImport = false;
           skipReason = 'Missing applicant name';
@@ -5017,6 +5023,226 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Google Sheet import error:", error);
       res.status(500).json({ message: error.message || "Failed to import from Google Sheet" });
+    }
+  });
+
+  // ========== Sheet Months (Monthly Google Sheet Tracking) ==========
+
+  app.get("/api/admin/sheet-months", requireRole("Admin"), async (req, res) => {
+    try {
+      const months = await storage.getSheetMonths();
+      res.json(months);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch sheet months" });
+    }
+  });
+
+  app.post("/api/admin/sheet-months/upsert", requireRole("Admin"), async (req, res) => {
+    try {
+      const { monthYear, sheetUrl } = req.body;
+      if (!monthYear) return res.status(400).json({ message: "monthYear is required" });
+      const month = await storage.upsertSheetMonth(monthYear, { sheetUrl });
+      res.json(month);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to save sheet month" });
+    }
+  });
+
+  app.post("/api/admin/sheet-months/:id/close", requireRole("Admin"), async (req, res) => {
+    try {
+      const month = await storage.getSheetMonth(req.params.id);
+      if (!month) return res.status(404).json({ message: "Sheet month not found" });
+      if (month.status === "closed") return res.status(400).json({ message: "Month is already closed" });
+      const updated = await storage.closeSheetMonth(req.params.id);
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to close sheet month" });
+    }
+  });
+
+  app.post("/api/admin/sheet-months/:id/refresh", requireRole("Admin"), async (req, res) => {
+    try {
+      const month = await storage.getSheetMonth(req.params.id);
+      if (!month) return res.status(404).json({ message: "Sheet month not found" });
+      if (month.status === "closed") return res.status(400).json({ message: "This month is closed. No further parsing is allowed." });
+      if (!month.sheetUrl) return res.status(400).json({ message: "No Google Sheet URL saved for this month." });
+
+      let url = month.sheetUrl.trim().replace(/\/+$/, '');
+      const sheetMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+      if (!sheetMatch) return res.status(400).json({ message: "Invalid Google Sheet URL stored for this month." });
+      const sheetId = sheetMatch[1];
+      let gid = "0";
+      const gidMatch = url.match(/gid=(\d+)/);
+      if (gidMatch) gid = gidMatch[1];
+
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+      const csvResponse = await fetch(csvUrl, { redirect: 'follow' });
+      if (!csvResponse.ok) {
+        if (csvResponse.status === 401 || csvResponse.status === 403) return res.status(400).json({ message: "Sheet requires sign-in. Change sharing to 'Anyone with the link can view'." });
+        return res.status(400).json({ message: "Could not fetch the Google Sheet. Make sure it is shared publicly." });
+      }
+      const csvText = await csvResponse.text();
+      if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html')) {
+        return res.status(400).json({ message: "Could not access the sheet. Make sure it is shared as 'Anyone with the link can view'." });
+      }
+
+      const cleanCsvText = csvText.replace(/^\uFEFF/, '');
+      const rows = parseCSV(cleanCsvText);
+      if (rows.length < 2) return res.status(400).json({ message: "The sheet appears to be empty or has no data rows." });
+
+      const headers = rows[0].map(h => h.trim().replace(/^\uFEFF/, '').toLowerCase());
+      const woColIdx = headers.findIndex(h => h === 'work order' || h === 'workorder' || h === 'wo' || h === 'wo number');
+      const companyColIdx = headers.findIndex(h => h === 'company name' || h === 'company' || h === 'client');
+      const staffColIdx = headers.findIndex(h => h === 'staff name' || h === 'staff' || h === 'applicant' || h === 'name' || h === 'employee name' || h === 'employee');
+      const workColIdx = headers.findIndex(h => h === 'work' || h === 'service' || h === 'service type' || h === 'type of work');
+      const dateColIdx = headers.findIndex(h => h === 'date');
+      const designationColIdx = headers.findIndex(h => h === 'designation' || h === 'position' || h === 'job title');
+
+      if (woColIdx === -1) return res.status(400).json({ message: "Could not find a 'Work Order' column. Expected headers: Work Order, Company Name, Staff Name, Work" });
+
+      const serviceTypeList = await storage.getServiceTypes();
+      const companies = await storage.getCompanies();
+
+      const normalizeStr = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const fuzzyMatch = (input: string, candidates: { id: string; name: string }[]): { id: string; name: string; confidence: 'exact' | 'fuzzy' | 'none' } => {
+        const normInput = normalizeStr(input);
+        if (!normInput) return { id: '', name: '', confidence: 'none' };
+        const exact = candidates.find(c => normalizeStr(c.name) === normInput);
+        if (exact) return { id: exact.id, name: exact.name, confidence: 'exact' };
+        const contains = candidates.find(c => normalizeStr(c.name).includes(normInput) || normInput.includes(normalizeStr(c.name)));
+        if (contains) return { id: contains.id, name: contains.name, confidence: 'fuzzy' };
+        const inputWords = normInput.split(/\s+/).filter(Boolean);
+        let bestMatch: typeof candidates[0] | null = null;
+        let bestScore = 0;
+        for (const candidate of candidates) {
+          const candidateNorm = normalizeStr(candidate.name);
+          let score = 0;
+          for (const word of inputWords) { if (candidateNorm.includes(word)) score++; }
+          const ratio = score / Math.max(inputWords.length, 1);
+          if (ratio > bestScore && ratio >= 0.5) { bestScore = ratio; bestMatch = candidate; }
+        }
+        if (bestMatch) return { id: bestMatch.id, name: bestMatch.name, confidence: 'fuzzy' };
+        return { id: '', name: '', confidence: 'none' };
+      };
+
+      const existingWos = new Set<string>();
+      const allWos = await storage.getWorkOrders();
+      for (const wo of allWos) existingWos.add(wo.woNumber.toUpperCase());
+
+      const previewRows: any[] = [];
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        const woNumber = (row[woColIdx] || '').trim();
+        const companyName = companyColIdx >= 0 ? (row[companyColIdx] || '').trim() : '';
+        const staffName = staffColIdx >= 0 ? (row[staffColIdx] || '').trim() : '';
+        const workValue = workColIdx >= 0 ? (row[workColIdx] || '').trim() : '';
+        const date = dateColIdx >= 0 ? (row[dateColIdx] || '').trim() : '';
+        const designation = designationColIdx >= 0 ? (row[designationColIdx] || '').trim() : '';
+
+        if (!woNumber && !staffName) continue;
+
+        const serviceTypeMatch = workValue
+          ? fuzzyMatch(workValue, serviceTypeList.filter(s => s.active).map(s => ({ id: s.id, name: s.name })))
+          : { id: '', name: '', confidence: 'none' as const };
+        const companyMatch = companyName
+          ? fuzzyMatch(companyName, companies.map(c => ({ id: c.id, name: c.name })))
+          : { id: '', name: '', confidence: 'none' as const };
+
+        let canImport = true;
+        let skipReason: string | undefined;
+
+        if (!woNumber) {
+          canImport = false; skipReason = 'Missing WO number';
+        } else if (existingWos.has(woNumber.toUpperCase())) {
+          canImport = false; skipReason = 'Already imported';
+        } else if (!workValue) {
+          canImport = false; skipReason = 'Empty work column';
+        } else if (serviceTypeMatch.confidence === 'none') {
+          canImport = false; skipReason = 'Service type not recognized';
+        } else if (!staffName) {
+          canImport = false; skipReason = 'Missing applicant name';
+        } else if (companyMatch.confidence === 'none' && companyName) {
+          canImport = false; skipReason = 'Company not found';
+        } else if (!companyName) {
+          canImport = false; skipReason = 'Missing company name';
+        }
+
+        previewRows.push({ rowNum: i + 1, woNumber, companyName, staffName, workValue, date, designation, serviceTypeMatch, companyMatch, canImport, skipReason });
+      }
+
+      await storage.touchSheetMonthRefresh(req.params.id);
+
+      res.json({
+        totalRows: previewRows.length,
+        importableCount: previewRows.filter(r => r.canImport).length,
+        skippedCount: previewRows.filter(r => !r.canImport).length,
+        headers: rows[0],
+        rows: previewRows,
+      });
+    } catch (error: any) {
+      console.error("Sheet month refresh error:", error);
+      res.status(500).json({ message: error.message || "Failed to refresh sheet" });
+    }
+  });
+
+  app.post("/api/admin/sheet-months/:id/import", requireRole("Admin"), async (req, res) => {
+    try {
+      const month = await storage.getSheetMonth(req.params.id);
+      if (!month) return res.status(404).json({ message: "Sheet month not found" });
+      if (month.status === "closed") return res.status(400).json({ message: "This month is closed. Importing is not allowed." });
+
+      const { rows } = req.body;
+      if (!Array.isArray(rows) || rows.length === 0) return res.status(400).json({ message: "No rows to import" });
+
+      const companies = await storage.getCompanies();
+      const serviceTypeList = await storage.getServiceTypes();
+      const companyIds = new Set(companies.map(c => c.id));
+      const serviceTypeIds = new Set(serviceTypeList.filter(s => s.active).map(s => s.id));
+
+      let imported = 0;
+      let failed = 0;
+      const errors: string[] = [];
+
+      for (const row of rows) {
+        try {
+          const woNumber = (row.woNumber || '').toString().trim();
+          const staffName = (row.staffName || '').toString().trim();
+          const companyId = (row.companyMatch?.id || '').toString().trim();
+          const serviceTypeId = (row.serviceTypeMatch?.id || '').toString().trim();
+          const designation = (row.designation || '').toString().trim();
+          const rowNum = row.rowNum || '?';
+
+          if (!woNumber || !staffName || !companyId || !companyIds.has(companyId)) {
+            failed++; errors.push(`Row ${rowNum}: Invalid or missing required fields`); continue;
+          }
+          const existingWo = await storage.getWorkOrderByWoNumber(woNumber);
+          if (existingWo) {
+            failed++; errors.push(`Row ${rowNum} (${woNumber}): WO already exists`); continue;
+          }
+          const validServiceTypeId = serviceTypeId && serviceTypeIds.has(serviceTypeId) ? serviceTypeId : undefined;
+          const newWo = await storage.createWorkOrder({
+            woNumber, applicantName: toProperCase(staffName), companyId,
+            serviceTypeId: validServiceTypeId, status: "Draft",
+            notes: designation ? `Designation: ${designation}` : undefined,
+          });
+          await storage.createAuditLog({
+            entityType: "work_order", entityId: newWo.id, action: "created",
+            details: { source: "gsheet_import", woNumber, sheetMonthId: req.params.id, monthYear: month.monthYear },
+          });
+          imported++;
+        } catch (err: any) {
+          failed++; errors.push(`Row ${row.rowNum || '?'} (${row.woNumber || '?'}): ${err.message || 'Unknown error'}`);
+        }
+      }
+
+      if (imported > 0) {
+        await storage.incrementSheetMonthImportedCount(req.params.id, imported);
+      }
+
+      res.json({ imported, failed, errors });
+    } catch (error: any) {
+      console.error("Sheet month import error:", error);
+      res.status(500).json({ message: error.message || "Failed to import from sheet" });
     }
   });
 

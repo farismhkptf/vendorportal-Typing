@@ -67,7 +67,7 @@ The design adopts an Apple-inspired glassmorphism aesthetic with soft gradients,
     - **Cross-Workflow Context**: Typing Jobs list shows appointment status for each job. Appointments list shows typing status for each appointment.
 -   **Two-Lane Dashboard**: The main dashboard is organized around the two core workflows — Typing Jobs (left lane) and Appointments (right lane). Each lane shows actionable items: unaccepted jobs, in-progress jobs, ready-to-schedule jobs, today's appointments, upcoming appointments, and needs-scheduling items with direct action buttons. Uses `/api/dashboard/typing-jobs-summary` and `/api/dashboard/appointments-summary` endpoints.
 -   **Productivity Enhancements**: Includes smart action centers, priority indicators for vendor jobs, duplicate applicant detection, a vendor performance dashboard, enhanced global search (Cmd+K), a stats and reports page, stale job alerts for administrators, and mobile-optimized quick actions.
--   **Import/Export**: Google Sheet import functionality for work orders (with fuzzy matching and preview), and Excel import/export for bulk management of centers, companies, staff, service types, and job types.
+-   **Import/Export**: Monthly Google Sheet import system for 2026 work orders — each month (Jan–Dec) has a saved Sheet URL, Refresh to re-parse for new entries (skips already-imported WOs, empty work rows, and unrecognized service types), Close Month to permanently lock it, and an import count tracker. Excel import/export for bulk management of centers, companies, staff, service types, and job types. Data model: `sheetMonths` table with `monthYear`, `sheetUrl`, `status` (open/closed), `importedCount`, `lastRefreshedAt`.
 
 ### Deferred / Future Features
 

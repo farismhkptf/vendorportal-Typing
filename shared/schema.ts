@@ -610,6 +610,21 @@ export type LoginAuditLog = typeof loginAuditLog.$inferSelect;
 export type InsertPasswordResetRequest = z.infer<typeof insertPasswordResetRequestSchema>;
 export type PasswordResetRequest = typeof passwordResetRequests.$inferSelect;
 
+// Sheet Months — monthly Google Sheet tracking for work order imports
+export const sheetMonths = pgTable("sheet_months", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  monthYear: varchar("month_year").notNull().unique(),
+  sheetUrl: text("sheet_url"),
+  status: varchar("status").notNull().default("open"),
+  importedCount: integer("imported_count").notNull().default(0),
+  lastRefreshedAt: timestamp("last_refreshed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertSheetMonthSchema = createInsertSchema(sheetMonths).omit({ id: true, createdAt: true });
+export type InsertSheetMonth = z.infer<typeof insertSheetMonthSchema>;
+export type SheetMonth = typeof sheetMonths.$inferSelect;
+
 // Login schema
 export const loginSchema = z.object({
   email: z.string().email(),

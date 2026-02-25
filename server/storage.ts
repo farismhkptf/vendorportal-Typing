@@ -4,6 +4,7 @@ import {
   typingJobs, typingJobResults, typingJobComments, files, messages, woNotes,
   vendorWalletLedger, vendorStatements, vendorInvoices, vendorApprovals, vendorNotifications, appSettings, auditLog,
   woDocuments, documentRequirements, changeNotifications, loginAuditLog, passwordResetRequests,
+  sheetMonths,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -19,7 +20,8 @@ import {
   type VendorApproval, type InsertVendorApproval,
   type VendorNotification, type InsertVendorNotification,
   type LoginAuditLog, type InsertLoginAuditLog,
-  type PasswordResetRequest, type InsertPasswordResetRequest
+  type PasswordResetRequest, type InsertPasswordResetRequest,
+  type SheetMonth
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull } from "drizzle-orm";
@@ -217,6 +219,14 @@ export interface IStorage {
   seedServiceTypes(): Promise<{ added: number; skipped: number }>;
   seedVendorJobs(): Promise<{ added: number; skipped: number }>;
   seedStaff(): Promise<{ added: number; skipped: number }>;
+
+  // Sheet Months
+  getSheetMonths(): Promise<SheetMonth[]>;
+  getSheetMonth(id: string): Promise<SheetMonth | undefined>;
+  upsertSheetMonth(monthYear: string, data: { sheetUrl?: string }): Promise<SheetMonth>;
+  closeSheetMonth(id: string): Promise<SheetMonth>;
+  incrementSheetMonthImportedCount(id: string, count: number): Promise<SheetMonth>;
+  touchSheetMonthRefresh(id: string): Promise<SheetMonth>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1569,6 +1579,53 @@ export class DatabaseStorage implements IStorage {
 
     console.log(`Document requirements seeded: ${requirements.length} added`);
     return { added: requirements.length, skipped: 0 };
+  }
+
+  // Sheet Months
+  async getSheetMonths(): Promise<SheetMonth[]> {
+    return db.select().from(sheetMonths).orderBy(desc(sheetMonths.monthYear));
+  }
+
+  async getSheetMonth(id: string): Promise<SheetMonth | undefined> {
+    const [row] = await db.select().from(sheetMonths).where(eq(sheetMonths.id, id));
+    return row || undefined;
+  }
+
+  async upsertSheetMonth(monthYear: string, data: { sheetUrl?: string }): Promise<SheetMonth> {
+    const existing = await db.select().from(sheetMonths).where(eq(sheetMonths.monthYear, monthYear));
+    if (existing.length > 0) {
+      const [updated] = await db.update(sheetMonths)
+        .set({ sheetUrl: data.sheetUrl })
+        .where(eq(sheetMonths.monthYear, monthYear))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(sheetMonths).values({ monthYear, sheetUrl: data.sheetUrl }).returning();
+    return created;
+  }
+
+  async closeSheetMonth(id: string): Promise<SheetMonth> {
+    const [updated] = await db.update(sheetMonths)
+      .set({ status: "closed" })
+      .where(eq(sheetMonths.id, id))
+      .returning();
+    return updated;
+  }
+
+  async incrementSheetMonthImportedCount(id: string, count: number): Promise<SheetMonth> {
+    const [updated] = await db.update(sheetMonths)
+      .set({ importedCount: sql`${sheetMonths.importedCount} + ${count}`, lastRefreshedAt: new Date() })
+      .where(eq(sheetMonths.id, id))
+      .returning();
+    return updated;
+  }
+
+  async touchSheetMonthRefresh(id: string): Promise<SheetMonth> {
+    const [updated] = await db.update(sheetMonths)
+      .set({ lastRefreshedAt: new Date() })
+      .where(eq(sheetMonths.id, id))
+      .returning();
+    return updated;
   }
 }
 
