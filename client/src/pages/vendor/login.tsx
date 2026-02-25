@@ -121,20 +121,18 @@ export default function VendorLogin() {
             <div className="px-8 pt-10 pb-8">
 
               <div className="flex flex-col items-center mb-8">
-                <div className="h-14 w-14 rounded-2xl overflow-hidden mb-5 shadow-lg flex items-center justify-center bg-white/10">
-                  {brandLookupLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin text-white/60" />
-                  ) : vendorBrand?.logoUrl ? (
-                    <img
-                      src={vendorBrand.logoUrl}
-                      alt={displayName}
-                      className="h-full w-full object-cover"
-                      data-testid="img-vendor-logo"
-                    />
-                  ) : (
-                    <Building2 className="h-7 w-7 text-white/70" />
-                  )}
-                </div>
+                {brandLookupLoading ? (
+                  <Loader2 className="h-10 w-10 animate-spin text-white/60 mb-5" />
+                ) : vendorBrand?.logoUrl ? (
+                  <img
+                    src={vendorBrand.logoUrl}
+                    alt={displayName}
+                    className="h-14 w-14 rounded-2xl object-contain mb-5 opacity-90 shadow-lg"
+                    data-testid="img-vendor-logo"
+                  />
+                ) : (
+                  <Building2 className="h-10 w-10 text-white/50 mb-5" />
+                )}
                 <h1 className="text-[22px] font-bold tracking-tight text-white mb-1.5" data-testid="text-vendor-name">
                   {displayName}
                 </h1>
