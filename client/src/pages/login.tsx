@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest } from "@/lib/queryClient";
 import proLogo from "@assets/Our_Logo_1771503275390.png";
+import dubaiSkyline from "@assets/stock_images/dubai-skyline-login-bg.jpg";
 import { CompanyName } from "@/components/ui/company-name";
 
 const loginSchema = z.object({
@@ -150,7 +151,7 @@ export default function Login() {
   if (isLoading) {
     return (
       <div className="login-fullscreen">
-        <div className="login-bg-gradient" aria-hidden="true" />
+        <img src={dubaiSkyline} alt="" className="login-bg-photo" aria-hidden="true" />
         <div className="login-bg-grain" aria-hidden="true" />
         <div className="login-bg-overlay" />
         <div className="relative z-10 flex items-center justify-center min-h-screen">
@@ -166,7 +167,7 @@ export default function Login() {
 
   return (
     <div className="login-fullscreen">
-      <div className="login-bg-gradient" aria-hidden="true" />
+      <img src={dubaiSkyline} alt="" className="login-bg-photo" aria-hidden="true" />
       <div className="login-bg-grain" aria-hidden="true" />
       <div className="login-bg-overlay" />
 

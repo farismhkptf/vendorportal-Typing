@@ -9,12 +9,12 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import vendorLogo from "@assets/Vendor_Logo_1771503175243.jpg";
+import dubaiSkyline from "@assets/stock_images/dubai-skyline-login-bg.jpg";
 import { CompanyName } from "@/components/ui/company-name";
 
 const loginSchema = z.object({
@@ -87,164 +87,179 @@ export default function VendorLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      {/* Background */}
-      <div className="fixed inset-0 bg-gradient-to-br from-violet-500/10 to-indigo-500/10" />
-      
-      <div className="relative z-10 w-full max-w-md">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <img src={vendorLogo} alt="Advanced Solutions" className="h-16 w-16 rounded-2xl object-cover mb-4 shadow-lg" data-testid="img-vendor-logo" />
-          <h1 className="text-xl sm:text-2xl font-semibold text-foreground">Advanced Solutions</h1>
-          <p className="text-sm text-muted-foreground mt-1">Vendor Portal · <CompanyName /></p>
-        </div>
+    <div className="login-fullscreen">
+      <img src={dubaiSkyline} alt="" className="login-bg-photo" aria-hidden="true" />
+      <div className="login-bg-grain" aria-hidden="true" />
+      <div className="login-bg-overlay" />
 
-        {publicSettings?.maintenanceMode && (
-          <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-center" data-testid="banner-maintenance">
-            <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
-              {publicSettings.maintenanceMessage || "System maintenance in progress. Some features may be temporarily unavailable."}
-            </p>
-          </div>
-        )}
+      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-8">
+        <div className="w-full max-w-[400px]">
 
-        <Card className="glass-strong border-0 shadow-xl" data-testid="vendor-login-card">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-xl font-semibold">Vendor Sign In</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              Access your assigned typing jobs
-            </p>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm text-muted-foreground">Username</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            {...field}
-                            autoComplete="username"
-                            placeholder="Enter your username"
-                            className="pl-10 h-12 rounded-xl"
-                            data-testid="input-vendor-username"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+          <div className="login-glass-card-v2 rounded-2xl overflow-hidden" data-testid="vendor-login-card">
+            <div className="px-8 pt-10 pb-8">
+
+              <div className="flex flex-col items-center mb-8">
+                <img
+                  src={vendorLogo}
+                  alt="Advanced Solutions"
+                  className="h-14 w-14 rounded-2xl object-cover opacity-90 mb-5 shadow-lg"
+                  data-testid="img-vendor-logo"
                 />
+                <h1 className="text-[22px] font-bold tracking-tight text-white mb-1.5">
+                  Advanced Solutions
+                </h1>
+                <p className="text-sm text-white/60">Vendor Portal · <CompanyName /></p>
+              </div>
 
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm text-muted-foreground">Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                          <Input
-                            {...field}
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="current-password"
-                            placeholder="Enter your password"
-                            className="pl-10 pr-10 h-12 rounded-xl"
-                            onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
-                            onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
-                            data-testid="input-vendor-password"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <Eye className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                      {capsLockOn && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1" data-testid="text-caps-lock-warning">
-                          Caps Lock is on
-                        </p>
-                      )}
-                    </FormItem>
-                  )}
-                />
-
-                <Button
-                  type="submit"
-                  className="w-full h-12 rounded-xl text-base font-medium bg-gradient-to-r from-violet-600 to-indigo-600"
-                  disabled={loginMutation.isPending}
-                  data-testid="button-vendor-login"
-                >
-                  {loginMutation.isPending ? "Signing in..." : "Sign in"}
-                </Button>
-
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-                    data-testid="button-vendor-forgot-password"
-                  >
-                    Forgot your password?
-                  </button>
+              {publicSettings?.maintenanceMode && (
+                <div className="mb-5 p-3 rounded-xl bg-amber-500/15 border border-amber-400/30 text-center" data-testid="banner-maintenance">
+                  <p className="text-sm font-medium text-amber-400">
+                    {publicSettings.maintenanceMessage || "System maintenance in progress. Some features may be temporarily unavailable."}
+                  </p>
                 </div>
-              </form>
-            </Form>
+              )}
 
-            <div className="mt-6 text-center">
-              <p className="text-xs text-muted-foreground">
-                Internal staff? <a href="/login" className="text-primary hover:underline">Sign in here</a>
-              </p>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <div>
+                        <label className="text-xs font-medium text-white/70 uppercase tracking-wider">
+                          Username
+                        </label>
+                        <FormControl>
+                          <div className="relative mt-1.5">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+                            <input
+                              {...field}
+                              autoComplete="username"
+                              placeholder="Enter your username"
+                              className="login-glass-input w-full rounded-md pl-10 pr-3 py-2 h-10 border"
+                              data-testid="input-vendor-username"
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-400 text-xs mt-1" />
+                      </div>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <div>
+                        <label className="text-xs font-medium text-white/70 uppercase tracking-wider">
+                          Password
+                        </label>
+                        <FormControl>
+                          <div className="relative mt-1.5">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+                            <input
+                              {...field}
+                              type={showPassword ? "text" : "password"}
+                              autoComplete="current-password"
+                              placeholder="Enter your password"
+                              className="login-glass-input w-full rounded-md pl-10 pr-10 py-2 h-10 border"
+                              onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                              onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                              data-testid="input-vendor-password"
+                            />
+                            <button
+                              type="button"
+                              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-white/50 hover:text-white/80 transition-colors"
+                              onClick={() => setShowPassword(!showPassword)}
+                              data-testid="button-toggle-vendor-password"
+                            >
+                              {showPassword ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </FormControl>
+                        <FormMessage className="text-red-400 text-xs mt-1" />
+                        {capsLockOn && (
+                          <p className="text-xs text-amber-400 mt-1" data-testid="text-caps-lock-warning">
+                            Caps Lock is on
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  />
+
+                  <div className="mt-6">
+                    <button
+                      type="submit"
+                      className="login-brand-button w-full py-2.5 rounded-md"
+                      disabled={loginMutation.isPending}
+                      data-testid="button-vendor-login"
+                    >
+                      {loginMutation.isPending ? "Signing in..." : "Sign in"}
+                    </button>
+                  </div>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-white/50 hover:text-white/80 transition-colors"
+                      data-testid="button-vendor-forgot-password"
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
+                </form>
+              </Form>
+
+              <div className="mt-5 text-center">
+                <p className="text-xs text-white/50">
+                  Internal staff?{" "}
+                  <a href="/login" className="text-blue-400 hover:text-blue-300 transition-colors" data-testid="link-staff-login">
+                    Sign in here
+                  </a>
+                </p>
+              </div>
+
             </div>
-          </CardContent>
-        </Card>
-
-        <div className="text-center mt-8 space-y-2">
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <a
-              href={`https://wa.me/${publicSettings?.whatsappNumber?.replace(/[^0-9]/g, '') || '971000000000'}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="link-need-help"
-            >
-              Need help?
-            </a>
-            <span className="text-muted-foreground/30">|</span>
-            <a
-              href="/privacy-policy"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="link-privacy-policy"
-            >
-              Privacy Policy
-            </a>
-            <span className="text-muted-foreground/30">|</span>
-            <a
-              href="/terms-of-service"
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-              data-testid="link-terms-of-service"
-            >
-              Terms of Service
-            </a>
           </div>
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} <CompanyName />. All rights reserved.
-          </p>
+
+          <div className="text-center mt-6 space-y-2">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <a
+                href={`https://wa.me/${publicSettings?.whatsappNumber?.replace(/[^0-9]/g, '') || '971000000000'}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                data-testid="link-need-help"
+              >
+                Need help?
+              </a>
+              <span className="text-white/20">|</span>
+              <a
+                href="/privacy-policy"
+                className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                data-testid="link-privacy-policy"
+              >
+                Privacy Policy
+              </a>
+              <span className="text-white/20">|</span>
+              <a
+                href="/terms-of-service"
+                className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                data-testid="link-terms-of-service"
+              >
+                Terms of Service
+              </a>
+            </div>
+            <p className="text-xs text-white/30">
+              &copy; {new Date().getFullYear()} <CompanyName />. All rights reserved.
+            </p>
+          </div>
+
         </div>
       </div>
 
