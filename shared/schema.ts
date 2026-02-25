@@ -60,12 +60,11 @@ export const centerAuthorityEnum = pgEnum("center_authority", ["DHA", "EHS", "IC
 export const centerTierEnum = pgEnum("center_tier", ["Normal", "VIP"]);
 export const woStatusEnum = pgEnum("wo_status", ["Draft", "Scheduled", "Sent", "Completed", "Cancelled"]);
 export const appointmentTypeEnum = pgEnum("appointment_type", ["Medical", "EID"]);
-export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled"]);
+export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"]);
 export const rescheduleStatusEnum = pgEnum("reschedule_status", ["New", "Accepted", "Closed"]);
 export const typingJobStatusEnum = pgEnum("typing_job_status", [
-  "Draft", "SentToVendor", "InProgress", "WaitingForDocs",
-  "Returned", "ReadyToSchedule", "SentToClient", "Cancelled",
-  "OnHold", "Rejected"
+  "Draft", "SubmittedToVendor", "InProcess", "Returned",
+  "ReadyForScheduling", "OnHold", "Rejected", "Aborted"
 ]);
 export const jobCategoryEnum = pgEnum("job_category", ["Medical", "EID"]);
 export const fileDirectionEnum = pgEnum("file_direction", ["Input", "Output"]);
@@ -469,6 +468,7 @@ export const appSettings = pgTable("app_settings", {
   whatsappNumber: text("whatsapp_number").default("+971509161815"),
   privacyPolicyHtml: text("privacy_policy_html"),
   termsOfServiceHtml: text("terms_of_service_html"),
+  followUpCenter: text("follow_up_center"),
 });
 
 // Change notifications table (manager edits for admin review)

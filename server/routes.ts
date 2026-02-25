@@ -335,7 +335,7 @@ export async function registerRoutes(
         activeWorkOrders: allWorkOrders.filter(wo => wo.status !== "Completed" && wo.status !== "Cancelled").length,
         completedWorkOrders: allWorkOrders.filter(wo => wo.status === "Completed").length,
         totalTypingJobs: allTypingJobs.length,
-        completedTypingJobs: allTypingJobs.filter(j => j.status === "SentToClient" || j.status === "ReadyToSchedule" || j.status === "Returned").length,
+        completedTypingJobs: allTypingJobs.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned").length,
         totalCompanies: allCompanies.length,
         totalVendors: allVendors.length,
       };
@@ -368,7 +368,7 @@ export async function registerRoutes(
 
       const turnaroundByVendor = allVendors.map(v => {
         const jobs = vendorJobsMap.get(v.id) || [];
-        const completedJobs = jobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient");
+        const completedJobs = jobs.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned");
         let totalHours = 0;
         let countWithTime = 0;
         for (const j of completedJobs) {
@@ -457,8 +457,8 @@ export async function registerRoutes(
   app.get("/api/dashboard/action-center", requireAuth, async (req, res) => {
     try {
       const [readyToScheduleJobs, unacceptedJobs, workOrders] = await Promise.all([
-        storage.getTypingJobs("ReadyToSchedule"),
-        storage.getTypingJobs("SentToVendor"),
+        storage.getTypingJobs("ReadyForScheduling"),
+        storage.getTypingJobs("SubmittedToVendor"),
         storage.getWorkOrders(),
       ]);
 
@@ -518,11 +518,11 @@ export async function registerRoutes(
 
         const returnedMed = typingJobs.some(j => {
           const jt = jobTypeMap.get(j.jobTypeId);
-          return jt?.category === "Medical" && (j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient");
+          return jt?.category === "Medical" && (j.status === "ReadyForScheduling" || j.status === "Returned");
         });
         const returnedEid = typingJobs.some(j => {
           const jt = jobTypeMap.get(j.jobTypeId);
-          return jt?.category === "EID" && (j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient");
+          return jt?.category === "EID" && (j.status === "ReadyForScheduling" || j.status === "Returned");
         });
 
         if (returnedMed && !hasMedAppt) {
@@ -563,8 +563,8 @@ export async function registerRoutes(
     try {
       const now = Date.now();
       const [sentToVendorJobs, inProgressJobs, allJobTypes] = await Promise.all([
-        storage.getTypingJobs("SentToVendor"),
-        storage.getTypingJobs("InProgress"),
+        storage.getTypingJobs("SubmittedToVendor"),
+        storage.getTypingJobs("InProcess"),
         storage.getJobTypes(),
       ]);
 
@@ -645,9 +645,9 @@ export async function registerRoutes(
     try {
       const now = Date.now();
       const [sentToVendorJobs, inProgressJobs, readyToScheduleJobs, allJobTypes, allVendors] = await Promise.all([
-        storage.getTypingJobs("SentToVendor"),
-        storage.getTypingJobs("InProgress"),
-        storage.getTypingJobs("ReadyToSchedule"),
+        storage.getTypingJobs("SubmittedToVendor"),
+        storage.getTypingJobs("InProcess"),
+        storage.getTypingJobs("ReadyForScheduling"),
         storage.getJobTypes(),
         storage.getVendors(),
       ]);
@@ -733,7 +733,7 @@ export async function registerRoutes(
       const [todayAppts, upcomingAppts, readyToScheduleJobs, allJobTypes] = await Promise.all([
         storage.getTodayAppointments(),
         storage.getUpcomingAppointments(5),
-        storage.getTypingJobs("ReadyToSchedule"),
+        storage.getTypingJobs("ReadyForScheduling"),
         storage.getJobTypes(),
       ]);
 
@@ -1203,7 +1203,7 @@ export async function registerRoutes(
   // ========== Ready to Schedule (typing jobs completed by vendor) ==========
   app.get("/api/typing-jobs/ready-to-schedule", requireAuth, async (req, res) => {
     try {
-      const readyJobs = await storage.getTypingJobs("ReadyToSchedule");
+      const readyJobs = await storage.getTypingJobs("ReadyForScheduling");
       const allJobTypes = await storage.getJobTypes();
       const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
       const allAppointments = await storage.getAllAppointments();
@@ -1288,6 +1288,14 @@ export async function registerRoutes(
         });
       }
 
+      const allAppts = await storage.getAppointmentsByWoId(validation.data.woId);
+      const followUpAppt = allAppts.find(
+        (a: any) => a.type === validation.data.type && a.status === "FollowUpRequired"
+      );
+      if (followUpAppt) {
+        await storage.updateAppointment(followUpAppt.id, { status: "FollowUpScheduled" });
+      }
+
       const rescheduleToken = randomUUID();
       const appointment = await storage.createAppointment({
         ...validation.data,
@@ -1310,8 +1318,8 @@ export async function registerRoutes(
       const { id } = req.params;
       const { status } = req.body;
       
-      if (!status || !["Completed", "Cancelled", "Rescheduled"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status. Must be Completed, Cancelled, or Rescheduled." });
+      if (!status || !["Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status." });
       }
       
       const updated = await storage.updateAppointment(id, { status });
@@ -1970,7 +1978,7 @@ export async function registerRoutes(
       // Check for existing active job of same type for this work order
       const existingJobs = await storage.getTypingJobsByWoId(validation.data.woId);
       const activeJobOfSameType = existingJobs.find(
-        j => j.jobTypeId === validation.data.jobTypeId && j.status !== "Cancelled"
+        j => j.jobTypeId === validation.data.jobTypeId && j.status !== "Aborted"
       );
       if (activeJobOfSameType) {
         return res.status(409).json({ 
@@ -2466,6 +2474,7 @@ export async function registerRoutes(
         replyToEmail: "operations@procompany.ae",
         alwaysCc: ["faris@procompany.ae", "yasin@procompany.ae"],
         lowBalanceThreshold: 1000,
+        followUpCenter: null,
       });
     } catch (error) {
       console.error("Settings error:", error);
@@ -3424,27 +3433,27 @@ export async function registerRoutes(
         const sentTime = job.sentAt ? new Date(job.sentAt).getTime() : 0;
         const hoursSinceSent = sentTime ? (now - sentTime) / 3600000 : 0;
         const isToday = sentTime && (now - sentTime) < 86400000;
-        if (job.status === "SentToVendor" && hoursSinceSent > 24) return "urgent";
-        if (isToday && (job.status === "SentToVendor" || job.status === "InProgress")) return "today";
+        if (job.status === "SubmittedToVendor" && hoursSinceSent > 24) return "urgent";
+        if (isToday && (job.status === "SubmittedToVendor" || job.status === "InProcess")) return "today";
         return "standard";
       };
 
       const jobTypesAll = await storage.getJobTypes();
       const jobTypeMap = new Map(jobTypesAll.map(jt => [jt.id, jt]));
-      const activeStatuses = ["SentToVendor", "InProgress"];
+      const activeStatuses = ["SubmittedToVendor", "InProcess"];
       const activeJobs = jobs.filter(j => activeStatuses.includes(j.status));
 
       const stats = {
         total: jobs.length,
-        pending: jobs.filter(j => j.status === "SentToVendor").length,
-        inProgress: jobs.filter(j => j.status === "InProgress").length,
-        completed: jobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient").length,
+        pending: jobs.filter(j => j.status === "SubmittedToVendor").length,
+        inProgress: jobs.filter(j => j.status === "InProcess").length,
+        completed: jobs.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned").length,
         urgent: jobs.filter(j => {
           const sentTime = j.sentAt ? new Date(j.sentAt).getTime() : 0;
           const hoursSinceSent = sentTime ? (now - sentTime) / 3600000 : 0;
-          return j.status === "SentToVendor" && hoursSinceSent > 24;
+          return j.status === "SubmittedToVendor" && hoursSinceSent > 24;
         }).length,
-        todayPending: jobs.filter(j => j.status === "SentToVendor" && j.sentAt && new Date(j.sentAt) >= today).length,
+        todayPending: jobs.filter(j => j.status === "SubmittedToVendor" && j.sentAt && new Date(j.sentAt) >= today).length,
         activeEid: activeJobs.filter(j => { const jt = j.jobTypeId ? jobTypeMap.get(j.jobTypeId) : null; return jt?.category === "EID"; }).length,
         activeMedical: activeJobs.filter(j => { const jt = j.jobTypeId ? jobTypeMap.get(j.jobTypeId) : null; return jt?.category === "Medical"; }).length,
       };
@@ -3472,7 +3481,7 @@ export async function registerRoutes(
       
       const now12h = now - 12 * 3600000;
       const staleAlerts = {
-        unacceptedJobs: jobs.filter(j => j.status === "SentToVendor" && j.sentAt && new Date(j.sentAt).getTime() < now12h).length,
+        unacceptedJobs: jobs.filter(j => j.status === "SubmittedToVendor" && j.sentAt && new Date(j.sentAt).getTime() < now12h).length,
       };
 
       const activeJobsByWo = new Map<string, { woId: string; woNumber: string; applicantName: string; jobs: Array<{ id: string; category: string; status: string; priority: string; sentAt: string | null; costSnapshot: number | null }> }>();
@@ -3553,7 +3562,7 @@ export async function registerRoutes(
       const jobTypeMap = new Map(jobTypesAll.map(jt => [jt.id, jt]));
 
       const nonDraftJobs = jobs.filter(j => j.status !== "Draft");
-      const completedJobs = nonDraftJobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient");
+      const completedJobs = nonDraftJobs.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned");
       const completionRate = nonDraftJobs.length > 0
         ? Math.round((completedJobs.length / nonDraftJobs.length) * 100)
         : 0;
@@ -3607,10 +3616,10 @@ export async function registerRoutes(
       }
 
       const statusBreakdown = {
-        pending: jobs.filter(j => j.status === "SentToVendor").length,
-        inProgress: jobs.filter(j => j.status === "InProgress").length,
+        pending: jobs.filter(j => j.status === "SubmittedToVendor").length,
+        inProgress: jobs.filter(j => j.status === "InProcess").length,
         completed: completedJobs.length,
-        cancelled: jobs.filter(j => j.status === "Cancelled").length,
+        aborted: jobs.filter(j => j.status === "Aborted").length,
       };
 
       res.json({
@@ -3649,9 +3658,9 @@ export async function registerRoutes(
           const isToday = sentTime && (now - sentTime) < 86400000;
 
           let priority: "urgent" | "today" | "standard" = "standard";
-          if (job.status === "SentToVendor" && hoursSinceSent > 24) {
+          if (job.status === "SubmittedToVendor" && hoursSinceSent > 24) {
             priority = "urgent";
-          } else if (isToday && (job.status === "SentToVendor" || job.status === "InProgress")) {
+          } else if (isToday && (job.status === "SubmittedToVendor" || job.status === "InProcess")) {
             priority = "today";
           }
 
@@ -3907,7 +3916,7 @@ export async function registerRoutes(
     }
   });
 
-  // Vendor start work (SentToVendor → InProgress)
+  // Vendor start work (SubmittedToVendor → InProcess)
   app.post("/api/vendor/jobs/:id/start-work", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
@@ -3931,7 +3940,7 @@ export async function registerRoutes(
     }
   });
 
-  // Vendor mark job completed (InProgress → ReadyToSchedule) + immediate wallet deduction
+  // Vendor mark job completed (InProcess → ReadyForScheduling) + immediate wallet deduction
   app.post("/api/vendor/jobs/:id/complete", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
@@ -5029,7 +5038,7 @@ export async function registerRoutes(
       });
       
       await storage.updateTypingJob(approvalRecord.typingJobId, {
-        status: "SentToClient",
+        status: "ReadyForScheduling",
         sentToClientAt: new Date(),
       });
       
@@ -5091,7 +5100,7 @@ export async function registerRoutes(
       });
       
       await storage.updateTypingJob(approvalRecord.typingJobId, {
-        status: "InProgress",
+        status: "InProcess",
         returnedAt: null,
       });
       

@@ -97,8 +97,8 @@ export default function EidJobs() {
       job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
       job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "NeedsAction" ? (job.status === "SentToVendor" || job.priority === "urgent") : 
-       statusFilter === "Completed" ? (job.status === "ReadyToSchedule" || job.status === "Returned") :
+      (statusFilter === "NeedsAction" ? (job.status === "SubmittedToVendor" || job.priority === "urgent") : 
+       statusFilter === "Completed" ? (job.status === "ReadyForScheduling" || job.status === "Returned") :
        job.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
@@ -110,9 +110,9 @@ export default function EidJobs() {
 
   const statusCounts = {
     all: jobs.length,
-    SentToVendor: jobs.filter(j => j.status === "SentToVendor").length,
-    InProgress: jobs.filter(j => j.status === "InProgress").length,
-    Completed: jobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned").length,
+    SubmittedToVendor: jobs.filter(j => j.status === "SubmittedToVendor").length,
+    InProcess: jobs.filter(j => j.status === "InProcess").length,
+    Completed: jobs.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned").length,
   };
 
   return (
@@ -125,8 +125,8 @@ export default function EidJobs() {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground" data-testid="heading-eid">Emirates ID Jobs</h1>
             <p className="text-sm text-muted-foreground">
-              {statusCounts.SentToVendor > 0
-                ? `${statusCounts.SentToVendor} ${statusCounts.SentToVendor === 1 ? "job" : "jobs"} awaiting acceptance`
+              {statusCounts.SubmittedToVendor > 0
+                ? `${statusCounts.SubmittedToVendor} ${statusCounts.SubmittedToVendor === 1 ? "job" : "jobs"} awaiting acceptance`
                 : "All caught up"}
             </p>
           </div>
@@ -147,7 +147,7 @@ export default function EidJobs() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3" data-testid="section-eid-stats">
             <Card
               className="hover-elevate cursor-pointer h-full"
-              onClick={() => setStatusFilter("SentToVendor")}
+              onClick={() => setStatusFilter("SubmittedToVendor")}
               data-testid="tile-eid-new"
             >
               <CardContent className="p-3 sm:p-4">
@@ -157,13 +157,13 @@ export default function EidJobs() {
                   </div>
                   <span className="text-xs text-muted-foreground">New</span>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-eid-new-count">{statusCounts.SentToVendor}</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-eid-new-count">{statusCounts.SubmittedToVendor}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Awaiting acceptance</p>
               </CardContent>
             </Card>
             <Card
               className="hover-elevate cursor-pointer h-full"
-              onClick={() => setStatusFilter("InProgress")}
+              onClick={() => setStatusFilter("InProcess")}
               data-testid="tile-eid-progress"
             >
               <CardContent className="p-3 sm:p-4">
@@ -173,7 +173,7 @@ export default function EidJobs() {
                   </div>
                   <span className="text-xs text-muted-foreground">In Progress</span>
                 </div>
-                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-eid-progress-count">{statusCounts.InProgress}</p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground" data-testid="text-eid-progress-count">{statusCounts.InProcess}</p>
                 <p className="text-[11px] text-muted-foreground mt-0.5 hidden sm:block">Being worked on</p>
               </CardContent>
             </Card>
@@ -211,8 +211,8 @@ export default function EidJobs() {
               {[
                 { key: "all", label: "All" },
                 { key: "NeedsAction", label: "Needs Action" },
-                { key: "SentToVendor", label: "New" },
-                { key: "InProgress", label: "Active" },
+                { key: "SubmittedToVendor", label: "New" },
+                { key: "InProcess", label: "Active" },
               ].map(({ key, label }) => (
                 <Button
                   key={key}
@@ -231,8 +231,8 @@ export default function EidJobs() {
             <h2 className="text-xs font-medium text-muted-foreground mb-3" data-testid="heading-eid-jobs-list">
               {statusFilter === "all" ? "All Jobs" : 
                statusFilter === "NeedsAction" ? "Jobs Needing Action" :
-               statusFilter === "SentToVendor" ? "New Jobs" :
-               statusFilter === "InProgress" ? "Active Jobs" :
+               statusFilter === "SubmittedToVendor" ? "New Jobs" :
+               statusFilter === "InProcess" ? "Active Jobs" :
                statusFilter === "Completed" ? "Completed Jobs" : "Jobs"}
               {` (${sortedJobs.length})`}
             </h2>
@@ -258,7 +258,7 @@ export default function EidJobs() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-sm">{job.workOrder?.woNumber || "N/A"}</span>
-                              <StatusBadge status={job.status} />
+                              <StatusBadge status={job.status} vendorContext />
                               {job.priority === "urgent" && (
                                 <Badge variant="destructive" className="text-[10px]">Urgent</Badge>
                               )}
@@ -283,7 +283,7 @@ export default function EidJobs() {
                               <span className="text-xs text-muted-foreground hidden sm:block">
                                 {job.sentAt ? formatRelativeTime(job.sentAt) : ""}
                               </span>
-                              {job.status === "SentToVendor" && (
+                              {job.status === "SubmittedToVendor" && (
                                 <Button
                                   size="sm"
                                   className="gap-1.5 ml-auto"
@@ -295,7 +295,7 @@ export default function EidJobs() {
                                   Accept
                                 </Button>
                               )}
-                              {job.status === "InProgress" && (
+                              {job.status === "InProcess" && (
                                 <div className="ml-auto flex items-center gap-1.5 shrink-0">
                                   <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
                                   <span className="text-xs text-muted-foreground">Open to complete</span>

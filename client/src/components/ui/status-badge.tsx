@@ -3,8 +3,9 @@ import { cn } from "@/lib/utils";
 
 type StatusType = 
   | "Draft" | "Scheduled" | "Sent" | "Completed" | "Cancelled" | "Rescheduled"
-  | "SentToVendor" | "InProgress" | "WaitingForDocs" | "Returned" | "ReadyToSchedule"
-  | "SentToClient" | "OnHold" | "Rejected"
+  | "SubmittedToVendor" | "InProcess" | "Returned" | "ReadyForScheduling"
+  | "OnHold" | "Rejected" | "Aborted"
+  | "FollowUpRequired" | "FollowUpScheduled" | "FollowUpCompleted"
   | "New" | "Accepted" | "Closed"
   | "Medical" | "EID"
   | "MedScheduled" | "EIDScheduled" | "BothScheduled";
@@ -12,6 +13,7 @@ type StatusType =
 interface StatusBadgeProps {
   status: StatusType;
   className?: string;
+  vendorContext?: boolean;
 }
 
 const statusStyles: Record<StatusType, string> = {
@@ -21,14 +23,16 @@ const statusStyles: Record<StatusType, string> = {
   Completed: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
   Cancelled: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
   Rescheduled: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300",
-  SentToVendor: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300",
-  InProgress: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
-  WaitingForDocs: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300",
+  SubmittedToVendor: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300",
+  InProcess: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
   Returned: "bg-violet-50 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300",
-  ReadyToSchedule: "bg-teal-50 text-teal-600 dark:bg-teal-900/40 dark:text-teal-300",
-  SentToClient: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
+  ReadyForScheduling: "bg-teal-50 text-teal-600 dark:bg-teal-900/40 dark:text-teal-300",
   OnHold: "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
   Rejected: "bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300",
+  Aborted: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
+  FollowUpRequired: "bg-orange-50 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300",
+  FollowUpScheduled: "bg-purple-50 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300",
+  FollowUpCompleted: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
   New: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
   Accepted: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
   Closed: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
@@ -46,14 +50,16 @@ const statusLabels: Record<StatusType, string> = {
   Completed: "Completed",
   Cancelled: "Cancelled",
   Rescheduled: "Rescheduled",
-  SentToVendor: "Sent to Vendor",
-  InProgress: "In Progress",
-  WaitingForDocs: "Waiting for Docs",
+  SubmittedToVendor: "Submitted to Vendor",
+  InProcess: "In Process",
   Returned: "Returned",
-  ReadyToSchedule: "Ready to Schedule",
-  SentToClient: "Sent to Client",
+  ReadyForScheduling: "Ready for Scheduling",
   OnHold: "On Hold",
   Rejected: "Rejected",
+  Aborted: "Aborted",
+  FollowUpRequired: "Follow-Up Required",
+  FollowUpScheduled: "Follow-Up Scheduled",
+  FollowUpCompleted: "Follow-Up Completed",
   New: "New",
   Accepted: "Accepted",
   Closed: "Closed",
@@ -64,7 +70,9 @@ const statusLabels: Record<StatusType, string> = {
   BothScheduled: "Med+EID Scheduled",
 };
 
-export function StatusBadge({ status, className }: StatusBadgeProps) {
+export function StatusBadge({ status, className, vendorContext }: StatusBadgeProps) {
+  const label = vendorContext && status === "ReadyForScheduling" ? "Completed" : statusLabels[status];
+
   return (
     <Badge
       variant="secondary"
@@ -75,7 +83,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       )}
       data-testid={`badge-status-${status.toLowerCase()}`}
     >
-      {statusLabels[status]}
+      {label}
     </Badge>
   );
 }

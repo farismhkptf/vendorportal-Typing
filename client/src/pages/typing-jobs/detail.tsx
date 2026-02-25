@@ -174,19 +174,6 @@ export default function TypingJobDetail() {
     },
   });
   
-  const deliverToClientMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/typing-jobs/${id}/deliver-to-client`, {});
-    },
-    onSuccess: () => {
-      invalidateTypingJobQueries();
-      toast({ title: "Application delivered to client" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Failed to deliver", description: error.message, variant: "destructive" });
-    },
-  });
-
   const reassignMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/typing-jobs/${id}/reassign`, { vendorId: reassignVendorId });
@@ -371,23 +358,6 @@ export default function TypingJobDetail() {
                 </Button>
               )}
               
-              {(job.status === "ReadyToSchedule" || job.status === "Returned") && (
-                <Button 
-                  size="sm" 
-                  className="gap-2"
-                  onClick={() => deliverToClientMutation.mutate()}
-                  disabled={deliverToClientMutation.isPending}
-                  data-testid="button-deliver-to-client"
-                >
-                  {deliverToClientMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Package className="h-4 w-4" />
-                  )}
-                  Deliver to Client
-                </Button>
-              )}
-
               {job.status === "OnHold" && (
                 <Button 
                   size="sm" 
@@ -405,7 +375,7 @@ export default function TypingJobDetail() {
                 </Button>
               )}
               
-              {["SentToVendor", "InProgress"].includes(job.status) && (
+              {["SubmittedToVendor", "InProcess"].includes(job.status) && (
                 <Button 
                   variant="outline"
                   size="sm" 
@@ -418,7 +388,7 @@ export default function TypingJobDetail() {
                 </Button>
               )}
 
-              {["Draft", "SentToVendor", "InProgress", "OnHold"].includes(job.status) && (
+              {["Draft", "SubmittedToVendor", "InProcess", "OnHold"].includes(job.status) && (
                 <Button 
                   variant="destructive"
                   size="sm" 
@@ -431,20 +401,13 @@ export default function TypingJobDetail() {
                 </Button>
               )}
               
-              {job.status === "SentToClient" && (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
-                  Completed - Delivered to Client
-                </Badge>
-              )}
-              
-              {(job.status === "Cancelled" || job.status === "Rejected") && (
+              {(job.status === "Aborted" || job.status === "Rejected") && (
                 <>
                   <Badge variant="outline" className={job.status === "Rejected" 
                     ? "bg-orange-50 text-orange-700 border-orange-200"
                     : "bg-gray-50 text-gray-600 border-gray-200"
                   }>
-                    {job.status === "Rejected" ? "Vendor Rejected" : "Job Cancelled"}
+                    {job.status === "Rejected" ? "Vendor Rejected" : "Job Aborted"}
                   </Badge>
                   <Button
                     variant="outline"

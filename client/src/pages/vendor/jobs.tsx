@@ -84,7 +84,7 @@ export default function VendorJobs() {
       job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
       job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || 
-      (statusFilter === "Completed" ? (job.status === "ReadyToSchedule" || job.status === "Returned") : job.status === statusFilter);
+      (statusFilter === "Completed" ? (job.status === "ReadyForScheduling" || job.status === "Returned") : job.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
 
@@ -128,8 +128,8 @@ export default function VendorJobs() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Jobs</SelectItem>
-              <SelectItem value="SentToVendor">New</SelectItem>
-              <SelectItem value="InProgress">In Progress</SelectItem>
+              <SelectItem value="SubmittedToVendor">New</SelectItem>
+              <SelectItem value="InProcess">In Progress</SelectItem>
               <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Rejected">Rejected</SelectItem>
             </SelectContent>
@@ -142,7 +142,7 @@ export default function VendorJobs() {
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">New Jobs</p>
               <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
-                {jobs?.filter(j => j.status === "SentToVendor").length || 0}
+                {jobs?.filter(j => j.status === "SubmittedToVendor").length || 0}
               </p>
             </CardContent>
           </Card>
@@ -150,7 +150,7 @@ export default function VendorJobs() {
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">In Progress</p>
               <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
-                {jobs?.filter(j => j.status === "InProgress").length || 0}
+                {jobs?.filter(j => j.status === "InProcess").length || 0}
               </p>
             </CardContent>
           </Card>
@@ -158,7 +158,7 @@ export default function VendorJobs() {
             <CardContent className="p-4">
               <p className="text-sm text-muted-foreground">Completed</p>
               <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
-                {jobs?.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned").length || 0}
+                {jobs?.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned").length || 0}
               </p>
             </CardContent>
           </Card>
@@ -187,7 +187,7 @@ export default function VendorJobs() {
                             <span className="font-semibold text-foreground">
                               {job.workOrder?.woNumber || "N/A"}
                             </span>
-                            <StatusBadge status={job.status} />
+                            <StatusBadge status={job.status} vendorContext />
                             {job.priority === "urgent" && (
                               <Badge variant="destructive" className="text-[10px] gap-0.5"><AlertTriangle className="h-3 w-3" /> Urgent</Badge>
                             )}
@@ -231,9 +231,9 @@ export default function VendorJobs() {
                       </div>
                     </div>
 
-                    {(job.status === "SentToVendor" || job.status === "InProgress") && (
+                    {(job.status === "SubmittedToVendor" || job.status === "InProcess") && (
                       <div className="flex items-center gap-2 pt-3 border-t border-border/50 md:hidden" onClick={(e) => e.preventDefault()}>
-                        {job.status === "SentToVendor" && (
+                        {job.status === "SubmittedToVendor" && (
                           <Button
                             size="sm"
                             className="flex-1 gap-1.5 bg-emerald-600 text-white"
@@ -245,7 +245,7 @@ export default function VendorJobs() {
                             Start Work
                           </Button>
                         )}
-                        {job.status === "InProgress" && (
+                        {job.status === "InProcess" && (
                           <>
                             <Button
                               size="sm"

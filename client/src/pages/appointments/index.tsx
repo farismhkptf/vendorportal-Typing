@@ -76,7 +76,7 @@ export default function AppointmentsIndex() {
   const searchParams = useSearch();
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
-    type: "complete" | "cancel" | "reschedule";
+    type: "complete" | "cancel" | "reschedule" | "follow_up";
     appointment: AppointmentWithRelations | null;
   }>({ open: false, type: "complete", appointment: null });
   const [viewMessagesApt, setViewMessagesApt] = useState<AppointmentWithRelations | null>(null);
@@ -124,15 +124,15 @@ export default function AppointmentsIndex() {
       if (!category) continue;
       const existing = map.get(job.woId) || { medical: null, eid: null };
       const track = category === "Medical" ? "medical" : "eid";
-      const completedStatuses = ["ReadyToSchedule", "SentToClient"];
-      const inProgressStatuses = ["SentToVendor", "InProgress", "WaitingForDocs", "Returned"];
+      const completedStatuses = ["ReadyForScheduling", "Returned"];
+      const inProgressStatuses = ["SubmittedToVendor", "InProcess"];
       let statusLabel = "Not Started";
       if (completedStatuses.includes(job.status)) statusLabel = "Complete";
       else if (inProgressStatuses.includes(job.status)) statusLabel = "In Progress";
       else if (job.status === "Draft") statusLabel = "Draft";
       else if (job.status === "OnHold") statusLabel = "On Hold";
       else if (job.status === "Rejected") statusLabel = "Rejected";
-      else if (job.status === "Cancelled") statusLabel = "Cancelled";
+      else if (job.status === "Aborted") statusLabel = "Aborted";
       existing[track] = { status: statusLabel, completedAt: job.returnedAt };
       map.set(job.woId, existing);
     }
@@ -491,6 +491,13 @@ Thank you,
         return;
       }
 
+      if (type === "follow_up") {
+        await updateStatusMutation.mutateAsync({ id: appointment.id, status: "FollowUpRequired" });
+        toast({ title: "Follow-up required", description: "Medical appointment marked for follow-up retest." });
+        setConfirmDialog({ open: false, type: "complete", appointment: null });
+        return;
+      }
+
       const status = type === "complete" ? "Completed" : "Cancelled";
       await updateStatusMutation.mutateAsync({ id: appointment.id, status });
       toast({ 
@@ -558,9 +565,15 @@ Thank you,
                 apt.status === "Completed" ? "secondary" :
                 apt.status === "Cancelled" ? "destructive" :
                 apt.status === "Rescheduled" ? "outline" :
+                apt.status === "FollowUpRequired" ? "destructive" :
+                apt.status === "FollowUpScheduled" ? "outline" :
+                apt.status === "FollowUpCompleted" ? "secondary" :
                 "default"
               }>
-                {apt.status}
+                {apt.status === "FollowUpRequired" ? "Follow-Up Required" :
+                 apt.status === "FollowUpScheduled" ? "Follow-Up Scheduled" :
+                 apt.status === "FollowUpCompleted" ? "Follow-Up Completed" :
+                 apt.status}
               </Badge>
             )}
           </div>
@@ -655,6 +668,31 @@ Thank you,
             <Mail className="h-3.5 w-3.5" />
             Messages
           </Button>
+        )}
+        {apt.status === "Completed" && apt.type === "Medical" && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 text-orange-600 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-900/20"
+            onClick={() => setConfirmDialog({ open: true, type: "follow_up", appointment: apt })}
+            data-testid={`button-follow-up-${apt.id}`}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+            Follow-Up Required
+          </Button>
+        )}
+        {apt.status === "FollowUpRequired" && apt.type === "Medical" && (
+          <Link href={`/appointments/schedule-medical?wo=${apt.woId}&followup=true`}>
+            <Button
+              variant="default"
+              size="sm"
+              className="gap-1.5"
+              data-testid={`button-schedule-followup-${apt.id}`}
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              Schedule Follow-Up
+            </Button>
+          </Link>
         )}
         <Link href={`/work-orders/${apt.woId}`}>
           <Button variant="ghost" size="sm" data-testid={`button-view-wo-${apt.id}`}>
@@ -836,6 +874,9 @@ Thank you,
                   <SelectItem value="Completed">Completed</SelectItem>
                   <SelectItem value="Cancelled">Cancelled</SelectItem>
                   <SelectItem value="Rescheduled">Rescheduled</SelectItem>
+                  <SelectItem value="FollowUpRequired">Follow-Up Required</SelectItem>
+                  <SelectItem value="FollowUpScheduled">Follow-Up Scheduled</SelectItem>
+                  <SelectItem value="FollowUpCompleted">Follow-Up Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1085,6 +1126,7 @@ Thank you,
               {confirmDialog.type === "complete" && "Mark as Completed"}
               {confirmDialog.type === "cancel" && "Cancel Appointment"}
               {confirmDialog.type === "reschedule" && "Reschedule Appointment"}
+              {confirmDialog.type === "follow_up" && "Mark Follow-Up Required"}
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
@@ -1108,6 +1150,7 @@ Thank you,
               {confirmDialog.type === "complete" && "This will mark the appointment as completed."}
               {confirmDialog.type === "cancel" && "This will cancel the appointment. This action cannot be undone."}
               {confirmDialog.type === "reschedule" && "This will mark the current appointment as rescheduled and take you to schedule a new one for the same work order."}
+              {confirmDialog.type === "follow_up" && "This will mark the medical appointment as requiring a follow-up retest. You can then schedule a follow-up appointment at the designated center."}
             </p>
           </div>
           <DialogFooter className="gap-2">
@@ -1127,6 +1170,7 @@ Thank you,
               {updateStatusMutation.isPending ? "Processing..." : 
                 confirmDialog.type === "complete" ? "Mark Completed" :
                 confirmDialog.type === "cancel" ? "Cancel Appointment" :
+                confirmDialog.type === "follow_up" ? "Mark Follow-Up Required" :
                 "Reschedule"}
             </Button>
           </DialogFooter>

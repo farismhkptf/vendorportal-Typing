@@ -55,7 +55,6 @@ interface DashboardData {
   recentJobs: Array<any>;
   staleAlerts?: {
     unacceptedJobs: number;
-    waitingForDocsJobs: number;
   };
   woGrouped: WoGroupedItem[];
   activityFeed: ActivityItem[];
@@ -143,7 +142,7 @@ export default function VendorDashboard() {
   const woGrouped = data?.woGrouped || [];
   const activityFeed = data?.activityFeed || [];
   const staleAlerts = data?.staleAlerts;
-  const hasStaleAlerts = staleAlerts && (staleAlerts.unacceptedJobs > 0 || staleAlerts.waitingForDocsJobs > 0);
+  const hasStaleAlerts = staleAlerts && staleAlerts.unacceptedJobs > 0;
   const unreadNotifications = (notifications || []).filter(n => !n.isRead).slice(0, 5);
 
   const pipelineTotal = (stats?.pending || 0) + (stats?.inProgress || 0) + (stats?.completed || 0);
@@ -201,22 +200,6 @@ export default function VendorDashboard() {
                     {staleAlerts.unacceptedJobs} {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} awaiting acceptance
                   </p>
                   <p className="text-xs text-muted-foreground">Pending over 12 hours</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-              </div>
-            </Link>
-          )}
-          {staleAlerts.waitingForDocsJobs > 0 && (
-            <Link href="/eid" className="flex-1">
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 cursor-pointer hover:shadow-md transition-shadow duration-200" data-testid="alert-waiting-docs">
-                <div className="h-8 w-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center shrink-0">
-                  <Clock className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {staleAlerts.waitingForDocsJobs} {staleAlerts.waitingForDocsJobs === 1 ? "job" : "jobs"} waiting for docs
-                  </p>
-                  <p className="text-xs text-muted-foreground">Pending over 24 hours</p>
                 </div>
                 <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
               </div>
@@ -375,7 +358,7 @@ export default function VendorDashboard() {
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm font-medium text-foreground">{job.category}</span>
-                                      <StatusBadge status={job.status as any} />
+                                      <StatusBadge status={job.status as any} vendorContext />
                                     </div>
                                     <div className="flex items-center gap-3 mt-0.5">
                                       {age && (
@@ -391,7 +374,7 @@ export default function VendorDashboard() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0">
-                                    {job.status === "SentToVendor" && (
+                                    {job.status === "SubmittedToVendor" && (
                                       <Button
                                         size="sm"
                                         className="text-xs gap-1.5"
@@ -447,7 +430,7 @@ export default function VendorDashboard() {
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-foreground">{item.woNumber}</span>
-                              <StatusBadge status={item.status as any} />
+                              <StatusBadge status={item.status as any} vendorContext />
                             </div>
                             <p className="text-xs text-muted-foreground truncate">{item.applicantName}</p>
                           </div>

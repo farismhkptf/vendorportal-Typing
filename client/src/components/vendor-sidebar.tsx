@@ -40,7 +40,7 @@ export function VendorSidebar() {
     queryKey: ["/api/vendor/jobs"],
   });
 
-  const activeStatuses = ["SentToVendor", "InProgress"];
+  const activeStatuses = ["SubmittedToVendor", "InProcess"];
   const eidActionCount = jobs?.filter(j => activeStatuses.includes(j.status) && j.jobType?.category === "EID").length || 0;
   const medActionCount = jobs?.filter(j => activeStatuses.includes(j.status) && j.jobType?.category === "Medical").length || 0;
 

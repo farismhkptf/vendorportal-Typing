@@ -40,7 +40,7 @@ type ViewMode = "compact" | "cards" | "table" | "kanban";
 type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc";
 type CategoryFilter = "all" | "Medical" | "EID";
 
-const STATUS_ORDER = ["Draft", "SentToVendor", "InProgress", "ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "OnHold", "Rejected"] as const;
+const STATUS_ORDER = ["Draft", "SubmittedToVendor", "InProcess", "ReadyForScheduling", "Returned", "OnHold", "Rejected", "Aborted"] as const;
 
 export default function TypingJobsList() {
   const [, navigate] = useLocation();
@@ -107,10 +107,10 @@ export default function TypingJobsList() {
   const stats = useMemo(() => {
     if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0, medical: 0, eid: 0 };
     return {
-      pending: typingJobs.filter(j => j.status === "Draft" || j.status === "SentToVendor").length,
-      inProgress: typingJobs.filter(j => j.status === "InProgress").length,
-      completed: typingJobs.filter(j => j.status === "ReadyToSchedule" || j.status === "Returned" || j.status === "SentToClient").length,
-      issues: typingJobs.filter(j => j.status === "Cancelled" || j.status === "Rejected" || j.status === "OnHold").length,
+      pending: typingJobs.filter(j => j.status === "Draft" || j.status === "SubmittedToVendor").length,
+      inProgress: typingJobs.filter(j => j.status === "InProcess").length,
+      completed: typingJobs.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned").length,
+      issues: typingJobs.filter(j => j.status === "Aborted" || j.status === "Rejected" || j.status === "OnHold").length,
       medical: typingJobs.filter(j => j.jobType?.category === "Medical").length,
       eid: typingJobs.filter(j => j.jobType?.category === "EID").length,
     };
@@ -122,10 +122,10 @@ export default function TypingJobsList() {
         job.workOrder?.woNumber.toLowerCase().includes(search.toLowerCase()) ||
         job.workOrder?.applicantName.toLowerCase().includes(search.toLowerCase()) ||
         job.jobCode?.toLowerCase().includes(search.toLowerCase());
-      const pendingStatuses = ["Draft", "SentToVendor"];
-      const inProgressStatuses = ["InProgress"];
-      const completedStatuses = ["ReadyToSchedule", "Returned", "SentToClient"];
-      const issueStatuses = ["Cancelled", "Rejected", "OnHold"];
+      const pendingStatuses = ["Draft", "SubmittedToVendor"];
+      const inProgressStatuses = ["InProcess"];
+      const completedStatuses = ["ReadyForScheduling", "Returned"];
+      const issueStatuses = ["Aborted", "Rejected", "OnHold"];
       const matchesStatus = statusFilter === "all" || job.status === statusFilter
         || (statusFilter === "_pending" && pendingStatuses.includes(job.status))
         || (statusFilter === "_inprogress" && inProgressStatuses.includes(job.status))
@@ -554,12 +554,11 @@ export default function TypingJobsList() {
           <SelectItem value="_completed">Completed</SelectItem>
           <SelectItem value="_issues">Issues</SelectItem>
           <SelectItem value="Draft">Draft</SelectItem>
-          <SelectItem value="SentToVendor">Sent to Vendor</SelectItem>
-          <SelectItem value="InProgress">In Progress (Active)</SelectItem>
-          <SelectItem value="ReadyToSchedule">Ready to Schedule</SelectItem>
+          <SelectItem value="SubmittedToVendor">Submitted to Vendor</SelectItem>
+          <SelectItem value="InProcess">In Process</SelectItem>
+          <SelectItem value="ReadyForScheduling">Ready for Scheduling</SelectItem>
           <SelectItem value="Returned">Returned</SelectItem>
-          <SelectItem value="SentToClient">Sent to Client</SelectItem>
-          <SelectItem value="Cancelled">Cancelled</SelectItem>
+          <SelectItem value="Aborted">Aborted</SelectItem>
           <SelectItem value="OnHold">On Hold</SelectItem>
           <SelectItem value="Rejected">Rejected</SelectItem>
         </SelectContent>

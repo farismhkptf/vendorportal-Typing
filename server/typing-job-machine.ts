@@ -2,15 +2,13 @@ import type { IStorage } from "./storage";
 
 export type TypingJobStatus =
   | "Draft"
-  | "SentToVendor"
-  | "InProgress"
-  | "WaitingForDocs"
+  | "SubmittedToVendor"
+  | "InProcess"
   | "Returned"
-  | "ReadyToSchedule"
-  | "SentToClient"
-  | "Cancelled"
+  | "ReadyForScheduling"
   | "OnHold"
-  | "Rejected";
+  | "Rejected"
+  | "Aborted";
 
 export type Actor = "team" | "vendor" | "system";
 
@@ -43,7 +41,7 @@ export interface TransitionContext {
 const TRANSITIONS: Record<string, TransitionDef> = {
   submit_to_vendor: {
     from: ["Draft"],
-    to: "SentToVendor",
+    to: "SubmittedToVendor",
     actor: ["team"],
     sideEffects: [
       { type: "audit", action: "submitted_to_vendor" },
@@ -57,8 +55,8 @@ const TRANSITIONS: Record<string, TransitionDef> = {
   },
 
   start_work: {
-    from: ["SentToVendor"],
-    to: "InProgress",
+    from: ["SubmittedToVendor"],
+    to: "InProcess",
     actor: ["vendor"],
     sideEffects: [
       { type: "audit", action: "vendor_started_work" },
@@ -66,16 +64,36 @@ const TRANSITIONS: Record<string, TransitionDef> = {
   },
 
   complete: {
-    from: ["InProgress"],
-    to: "ReadyToSchedule",
+    from: ["InProcess"],
+    to: "ReadyForScheduling",
     actor: ["vendor"],
     sideEffects: [
       { type: "audit", action: "vendor_completed" },
     ],
   },
 
+  return_job: {
+    from: ["InProcess"],
+    to: "Returned",
+    actor: ["vendor"],
+    sideEffects: [
+      { type: "audit", action: "vendor_returned" },
+      { type: "comment", messageFn: (ctx) => `Vendor returned job${ctx.reason ? `: ${ctx.reason}` : " due to incorrect documents"}` },
+    ],
+  },
+
+  reject: {
+    from: ["SubmittedToVendor", "InProcess"],
+    to: "Rejected",
+    actor: ["vendor"],
+    sideEffects: [
+      { type: "audit", action: "vendor_rejected" },
+      { type: "comment", messageFn: (ctx) => `Vendor rejected job${ctx.reason ? `: ${ctx.reason}` : " — cannot process"}` },
+    ],
+  },
+
   on_hold: {
-    from: ["SentToVendor", "InProgress"],
+    from: ["SubmittedToVendor", "InProcess"],
     to: "OnHold",
     actor: ["team"],
     sideEffects: [
@@ -85,7 +103,7 @@ const TRANSITIONS: Record<string, TransitionDef> = {
 
   resume: {
     from: ["OnHold"],
-    to: "SentToVendor",
+    to: "SubmittedToVendor",
     actor: ["team"],
     sideEffects: [
       { type: "audit", action: "resumed_from_hold" },
@@ -94,26 +112,17 @@ const TRANSITIONS: Record<string, TransitionDef> = {
   },
 
   abort: {
-    from: ["Draft", "SentToVendor", "InProgress", "OnHold"],
-    to: "Cancelled",
+    from: ["Draft", "SubmittedToVendor", "InProcess", "OnHold"],
+    to: "Aborted",
     actor: ["team"],
     sideEffects: [
       { type: "audit", action: "team_aborted" },
     ],
   },
 
-  deliver_to_client: {
-    from: ["ReadyToSchedule", "Returned"],
-    to: "SentToClient",
-    actor: ["team"],
-    sideEffects: [
-      { type: "audit", action: "delivered_to_client" },
-    ],
-  },
-
   reassign: {
-    from: ["Cancelled", "Rejected"],
-    to: "SentToVendor",
+    from: ["Aborted", "Rejected"],
+    to: "SubmittedToVendor",
     actor: ["team"],
     sideEffects: [
       { type: "audit", action: "reassigned" },
@@ -228,8 +237,8 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
     baseUpdate.sentAt = new Date();
     baseUpdate.returnedAt = null;
   }
-  if (action === "deliver_to_client") {
-    baseUpdate.sentToClientAt = new Date();
+  if (action === "reject") {
+    baseUpdate.rejectedReason = reason || null;
   }
 
   const mergedUpdate = { ...baseUpdate, ...updateFields };

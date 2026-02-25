@@ -96,17 +96,16 @@ function formatSentDateTime(sentAt: string | null | undefined): { date: string; 
 
 function getActiveStep(status: string): WizardStep {
   switch (status) {
-    case "SentToVendor": return 2;
-    case "InProgress": return 3;
-    case "ReadyToSchedule":
-    case "Returned":
-    case "SentToClient": return 3;
+    case "SubmittedToVendor": return 2;
+    case "InProcess": return 3;
+    case "ReadyForScheduling":
+    case "Returned": return 3;
     default: return 1;
   }
 }
 
 function getStepState(step: WizardStep, activeStep: WizardStep, status: string): "completed" | "active" | "locked" {
-  const terminalStatuses = ["ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "Rejected", "OnHold"];
+  const terminalStatuses = ["ReadyForScheduling", "Returned", "Aborted", "Rejected", "OnHold"];
   if (terminalStatuses.includes(status)) return "completed";
   if (step < activeStep) return "completed";
   if (step === activeStep) return "active";
@@ -218,7 +217,7 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-lg font-semibold" data-testid="text-wo-number">{job.workOrder?.woNumber || "N/A"}</h2>
-              <StatusBadge status={job.status} />
+              <StatusBadge status={job.status} vendorContext />
               {isEid && (
                 <div className="flex items-center gap-1.5">
                   <img src={emiratesIdSample} alt="EID" className="h-5 w-8 rounded-sm object-cover object-top border border-border/30" data-testid="img-eid-tile" />
@@ -390,7 +389,7 @@ function StepDocuments({
     return filteredRequirements.filter(r => r.isRequired).every(r => job.woDocuments?.some(d => d.documentType === r.documentType));
   }, [filteredRequirements, job.woDocuments]);
 
-  const isSentToVendor = job.status === "SentToVendor";
+  const isSentToVendor = job.status === "SubmittedToVendor";
 
   const allDownloadableFiles = useMemo(() => {
     const docs: { url: string; name: string }[] = [];
@@ -547,8 +546,8 @@ function StepComplete({
 }) {
   const isEid = job.jobType?.category === "EID";
   const isMedical = job.jobType?.category === "Medical";
-  const isInProgress = job.status === "InProgress";
-  const isTerminal = ["ReadyToSchedule", "Returned", "SentToClient", "Cancelled", "Rejected", "OnHold"].includes(job.status);
+  const isInProgress = job.status === "InProcess";
+  const isTerminal = ["ReadyForScheduling", "Returned", "Aborted", "Rejected", "OnHold"].includes(job.status);
   const isVip = job.workOrder?.isVip;
 
   const eidCentersFiltered = useMemo(() => {
@@ -574,29 +573,27 @@ function StepComplete({
       {isTerminal && (
         <div className={cn(
           "p-4 rounded-md border",
-          job.status === "ReadyToSchedule" || job.status === "Returned" || job.status === "SentToClient"
+          job.status === "ReadyForScheduling" || job.status === "Returned"
             ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800/30"
             : "bg-muted/50"
         )}>
           <div className="flex items-start gap-3">
-            {job.status === "ReadyToSchedule" || job.status === "Returned" || job.status === "SentToClient" ? (
+            {job.status === "ReadyForScheduling" || job.status === "Returned" ? (
               <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             ) : (
               <AlertTriangle className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
             )}
             <div>
               <p className="text-sm font-medium">
-                {job.status === "ReadyToSchedule" ? "Job Completed - Ready to Schedule" :
+                {job.status === "ReadyForScheduling" ? "Job Completed" :
                  job.status === "Returned" ? "Job Completed" :
-                 job.status === "SentToClient" ? "Job Completed & Delivered" :
-                 job.status === "Cancelled" ? "Job Cancelled" :
+                 job.status === "Aborted" ? "Job Aborted" :
                  job.status === "Rejected" ? "Job Rejected" :
                  job.status === "OnHold" ? "Job On Hold" : "Job Status: " + job.status}
               </p>
               <p className="text-sm text-muted-foreground mt-0.5">
-                {job.status === "ReadyToSchedule" ? "Your work has been submitted. The cost has been deducted from your wallet." :
+                {job.status === "ReadyForScheduling" ? "Your work has been submitted. The cost has been deducted from your wallet." :
                  job.status === "Returned" ? "Your work has been submitted. The cost has been deducted from your wallet." :
-                 job.status === "SentToClient" ? "This job has been completed and delivered to the client. Great work!" :
                  "No further actions required at this time."}
               </p>
             </div>

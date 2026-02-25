@@ -759,6 +759,8 @@ export default function AdminPage() {
   const [maintenanceMsg, setMaintenanceMsg] = useState("");
   const [editWhatsappOpen, setEditWhatsappOpen] = useState(false);
   const [whatsappNum, setWhatsappNum] = useState("");
+  const [editFollowUpCenterOpen, setEditFollowUpCenterOpen] = useState(false);
+  const [followUpCenterVal, setFollowUpCenterVal] = useState("");
   const [editLegalOpen, setEditLegalOpen] = useState(false);
   const [legalContent, setLegalContent] = useState("");
   const [legalType, setLegalType] = useState<"privacy" | "terms">("privacy");
@@ -1701,6 +1703,29 @@ export default function AdminPage() {
                       </Button>
                     </div>
                   </div>
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Follow-Up Center</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {settings?.followUpCenter || "Not configured"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Default center for medical follow-up appointments</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl"
+                        onClick={() => {
+                          setFollowUpCenterVal(settings?.followUpCenter || "");
+                          setEditFollowUpCenterOpen(true);
+                        }}
+                        data-testid="button-edit-followup-center"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div>
@@ -1901,6 +1926,43 @@ export default function AdminPage() {
                         }
                       }}
                       data-testid="button-save-whatsapp"
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={editFollowUpCenterOpen} onOpenChange={setEditFollowUpCenterOpen}>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Follow-Up Center</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    value={followUpCenterVal}
+                    onChange={(e) => setFollowUpCenterVal(e.target.value)}
+                    placeholder="Center name for follow-up appointments"
+                    className="h-11 rounded-xl"
+                    data-testid="input-followup-center"
+                  />
+                  <p className="text-xs text-muted-foreground">The default center used when scheduling medical follow-up appointments (e.g. retests)</p>
+                  <div className="flex justify-end gap-3">
+                    <Button variant="outline" className="rounded-xl" onClick={() => setEditFollowUpCenterOpen(false)}>Cancel</Button>
+                    <Button
+                      className="rounded-xl"
+                      onClick={async () => {
+                        try {
+                          await apiRequest("PUT", "/api/settings", { followUpCenter: followUpCenterVal || null });
+                          queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+                          toast({ title: "Follow-up center updated" });
+                          setEditFollowUpCenterOpen(false);
+                        } catch (e) {
+                          toast({ title: "Failed to update", variant: "destructive" });
+                        }
+                      }}
+                      data-testid="button-save-followup-center"
                     >
                       Save
                     </Button>

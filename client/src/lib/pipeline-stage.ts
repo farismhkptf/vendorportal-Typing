@@ -4,6 +4,7 @@ export type PipelineStage =
   | "ready_to_schedule"
   | "scheduled"
   | "complete"
+  | "follow_up"
   | "needs_attention";
 
 export interface TrackStatus {
@@ -27,7 +28,8 @@ const STAGE_PRIORITY: Record<PipelineStage, number> = {
   at_vendor: 2,
   ready_to_schedule: 3,
   scheduled: 4,
-  complete: 5,
+  follow_up: 5,
+  complete: 6,
 };
 
 export const STAGE_CONFIG: Record<PipelineStage, { label: string; color: string; bgColor: string; borderColor: string; icon: string }> = {
@@ -35,6 +37,7 @@ export const STAGE_CONFIG: Record<PipelineStage, { label: string; color: string;
   at_vendor: { label: "At Vendor", color: "text-blue-600", bgColor: "bg-blue-50 dark:bg-blue-900/30", borderColor: "border-blue-300 dark:border-blue-700", icon: "send" },
   ready_to_schedule: { label: "Ready to Schedule", color: "text-amber-600", bgColor: "bg-amber-50 dark:bg-amber-900/30", borderColor: "border-amber-300 dark:border-amber-700", icon: "calendar-plus" },
   scheduled: { label: "Scheduled", color: "text-purple-600", bgColor: "bg-purple-50 dark:bg-purple-900/30", borderColor: "border-purple-300 dark:border-purple-700", icon: "calendar-check" },
+  follow_up: { label: "Follow-Up", color: "text-orange-600", bgColor: "bg-orange-50 dark:bg-orange-900/30", borderColor: "border-orange-300 dark:border-orange-700", icon: "rotate-cw" },
   complete: { label: "Complete", color: "text-emerald-600", bgColor: "bg-emerald-50 dark:bg-emerald-900/30", borderColor: "border-emerald-300 dark:border-emerald-700", icon: "check-circle" },
   needs_attention: { label: "Needs Attention", color: "text-red-600", bgColor: "bg-red-50 dark:bg-red-900/30", borderColor: "border-red-300 dark:border-red-700", icon: "alert-triangle" },
 };
@@ -46,7 +49,7 @@ function getTrackStatus(
   appointments: any[],
   category: "Medical" | "EID"
 ): TrackStatus {
-  const jobs = typingJobs.filter((j: any) => j.jobType?.category === category && j.status !== "Cancelled");
+  const jobs = typingJobs.filter((j: any) => j.jobType?.category === category && j.status !== "Aborted");
   const allApts = appointments.filter((a: any) => a.type === category && a.status !== "Cancelled");
   const activeApts = allApts.filter((a: any) => a.status !== "Rescheduled");
   
@@ -66,8 +69,12 @@ function getTrackStatus(
     return { stage: "needs_attention", label: typingStatus === "OnHold" ? "On Hold" : "Rejected", typingStatus, appointmentStatus, exists };
   }
 
-  if (appointmentStatus === "Completed") {
-    const jobDone = !typingStatus || typingStatus === "SentToClient" || typingStatus === "ReadyToSchedule" || typingStatus === "Returned";
+  if (appointmentStatus === "FollowUpRequired" || appointmentStatus === "FollowUpScheduled") {
+    return { stage: "follow_up", label: appointmentStatus === "FollowUpRequired" ? "Follow-Up Required" : "Follow-Up Scheduled", typingStatus, appointmentStatus, exists };
+  }
+
+  if (appointmentStatus === "FollowUpCompleted" || appointmentStatus === "Completed") {
+    const jobDone = !typingStatus || typingStatus === "ReadyForScheduling" || typingStatus === "Returned";
     if (jobDone) {
       return { stage: "complete", label: "Complete", typingStatus, appointmentStatus, exists };
     }
@@ -77,13 +84,13 @@ function getTrackStatus(
     return { stage: "scheduled", label: "Scheduled", typingStatus, appointmentStatus, exists };
   }
 
-  if (typingStatus === "ReadyToSchedule" || typingStatus === "Returned" || typingStatus === "SentToClient") {
+  if (typingStatus === "ReadyForScheduling" || typingStatus === "Returned") {
     if (!latestApt || hadRescheduled) {
       return { stage: "ready_to_schedule", label: hadRescheduled && !latestApt ? "Rescheduled — Needs New Appt" : "Ready to Schedule", typingStatus, appointmentStatus, exists };
     }
   }
 
-  if (typingStatus === "SentToVendor" || typingStatus === "InProgress" || typingStatus === "WaitingForDocs") {
+  if (typingStatus === "SubmittedToVendor" || typingStatus === "InProcess") {
     return { stage: "at_vendor", label: "At Vendor", typingStatus, appointmentStatus, exists };
   }
 
@@ -118,9 +125,9 @@ export function getNextAction(
   typingJobs: any[],
   appointments: any[],
   pipeline: PipelineInfo
-): { message: string; actionLabel?: string; actionType?: "create_typing" | "send_vendor" | "schedule_medical" | "schedule_eid" | "deliver" | "attention"; variant: "info" | "action" | "warning" | "success" } {
-  const medJobs = typingJobs.filter((j: any) => j.jobType?.category === "Medical" && j.status !== "Cancelled");
-  const eidJobs = typingJobs.filter((j: any) => j.jobType?.category === "EID" && j.status !== "Cancelled");
+): { message: string; actionLabel?: string; actionType?: "create_typing" | "send_vendor" | "schedule_medical" | "schedule_eid" | "attention"; variant: "info" | "action" | "warning" | "success" } {
+  const medJobs = typingJobs.filter((j: any) => j.jobType?.category === "Medical" && j.status !== "Aborted");
+  const eidJobs = typingJobs.filter((j: any) => j.jobType?.category === "EID" && j.status !== "Aborted");
   const draftJobs = typingJobs.filter((j: any) => j.status === "Draft");
   const activeApts = appointments.filter((a: any) => a.status === "Scheduled");
 
@@ -132,11 +139,11 @@ export function getNextAction(
     return { message: "Jobs need attention", variant: "warning", actionType: "attention" };
   }
 
+  if (pipeline.overall === "follow_up") {
+    return { message: "Follow-up appointment needed", variant: "warning", actionType: "schedule_medical" };
+  }
+
   if (pipeline.overall === "complete") {
-    const allDelivered = typingJobs.filter((j: any) => j.status !== "Cancelled").every((j: any) => j.status === "SentToClient");
-    if (!allDelivered) {
-      return { message: "Appointments complete — deliver to client", actionLabel: "Deliver to Client", variant: "action", actionType: "deliver" };
-    }
     return { message: "All steps complete", variant: "success" };
   }
 
@@ -149,7 +156,7 @@ export function getNextAction(
   }
 
   if (pipeline.medical.stage === "at_vendor" || pipeline.eid.stage === "at_vendor") {
-    const atVendor = typingJobs.filter((j: any) => ["SentToVendor", "InProgress", "WaitingForDocs"].includes(j.status));
+    const atVendor = typingJobs.filter((j: any) => ["SubmittedToVendor", "InProcess"].includes(j.status));
     const oldestSent = atVendor.reduce((oldest: Date | null, j: any) => {
       const d = new Date(j.sentAt || j.createdAt);
       return !oldest || d < oldest ? d : oldest;

@@ -79,15 +79,32 @@ function PipelineBar({ pipeline }: { pipeline: PipelineInfo }) {
         <Package className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium text-foreground">Workflow Progress</span>
       </div>
-      {pipeline.medical.exists && (
+      {pipeline.medical.exists ? (
         <TrackRow label="Medical" icon={<Stethoscope className="h-3.5 w-3.5" />} track={pipeline.medical} />
+      ) : (
+        <div className="flex items-center gap-3 py-2" data-testid="track-medical-not-required">
+          <div className="flex items-center gap-1.5 w-24 shrink-0">
+            <Stethoscope className="h-3.5 w-3.5 text-muted-foreground/50" />
+            <span className="text-xs font-medium text-muted-foreground/60">Medical</span>
+          </div>
+          <div className="flex-1 h-2 rounded-full bg-muted/50" />
+          <Badge variant="outline" className="text-xs shrink-0 min-w-[90px] justify-center bg-muted/30 text-muted-foreground/60 border-border/30" data-testid="badge-medical-not-required">
+            Not Required
+          </Badge>
+        </div>
       )}
-      {pipeline.eid.exists && (
+      {pipeline.eid.exists ? (
         <TrackRow label="Emirates ID" icon={<CreditCard className="h-3.5 w-3.5" />} track={pipeline.eid} />
-      )}
-      {!pipeline.medical.exists && !pipeline.eid.exists && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
-          <span>No typing jobs created yet</span>
+      ) : (
+        <div className="flex items-center gap-3 py-2" data-testid="track-eid-not-required">
+          <div className="flex items-center gap-1.5 w-24 shrink-0">
+            <CreditCard className="h-3.5 w-3.5 text-muted-foreground/50" />
+            <span className="text-xs font-medium text-muted-foreground/60">Emirates ID</span>
+          </div>
+          <div className="flex-1 h-2 rounded-full bg-muted/50" />
+          <Badge variant="outline" className="text-xs shrink-0 min-w-[90px] justify-center bg-muted/30 text-muted-foreground/60 border-border/30" data-testid="badge-eid-not-required">
+            Not Required
+          </Badge>
         </div>
       )}
     </div>
@@ -201,15 +218,6 @@ function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: strin
     enabled: expanded,
   });
 
-  const deliverMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/typing-jobs/${job.id}/deliver`),
-    onSuccess: () => {
-      onRefresh();
-      toast({ title: "Job delivered to client" });
-    },
-    onError: (err: Error) => toast({ title: "Failed", description: err.message, variant: "destructive" }),
-  });
-
   const abortMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/typing-jobs/${job.id}/abort`, { reason: "Cancelled from WO detail" }),
     onSuccess: () => {
@@ -258,20 +266,7 @@ function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: strin
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {job.status === "ReadyToSchedule" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-1 text-xs"
-                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); deliverMutation.mutate(); }}
-                  disabled={deliverMutation.isPending}
-                  data-testid={`button-deliver-${job.id}`}
-                >
-                  <Send className="h-3 w-3" />
-                  Deliver
-                </Button>
-              )}
-              {(job.status === "SentToVendor" || job.status === "InProgress") && (
+              {(job.status === "SubmittedToVendor" || job.status === "InProcess") && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -626,8 +621,8 @@ export default function WorkOrderDetail() {
   const [sendVendorId, setSendVendorId] = useState("");
 
   const draftTypingJobs = workOrder?.typingJobs?.filter(j => j.status === "Draft") || [];
-  const existingMedicalJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "Medical" && j.status !== "Cancelled") || null;
-  const existingEidJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "EID" && j.status !== "Cancelled") || null;
+  const existingMedicalJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "Medical" && j.status !== "Aborted") || null;
+  const existingEidJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "EID" && j.status !== "Aborted") || null;
   const canCreateNewJob = !existingMedicalJob || !existingEidJob;
 
   const pipeline = workOrder ? getPipelineInfo(workOrder.typingJobs || [], workOrder.appointments || []) : null;

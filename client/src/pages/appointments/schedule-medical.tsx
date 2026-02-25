@@ -129,6 +129,15 @@ export default function ScheduleMedical() {
     queryKey: ["/api/service-types"],
   });
 
+  const { data: appSettings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+  });
+
+  const isFollowUp = useMemo(() => {
+    const params = new URLSearchParams(searchParams);
+    return params.get("followup") === "true";
+  }, [searchParams]);
+
   // Derive service type name from WO's serviceTypeId or default to "Medical Examination"
   const woServiceTypeName = useMemo(() => {
     if (!selectedWo?.serviceTypeId || !serviceTypes) return "Medical Examination";
@@ -256,13 +265,19 @@ export default function ScheduleMedical() {
     if (woId) {
       const wo = workOrders.find(w => w.id === woId);
       if (wo) {
-        // Reuse existing handler which handles all setup: form values, fetch details,
-        // auto-fill application number, preferred center, assigned staff, and step advancement
         handleSelectWorkOrder(wo);
       }
     }
     setUrlWoProcessed(true);
   }, [workOrders, companies, searchParams, urlWoProcessed]);
+
+  useEffect(() => {
+    if (!isFollowUp || !appSettings?.followUpCenter || !centers) return;
+    const followUpCenter = centers.find(c => c.name === appSettings.followUpCenter || c.id === appSettings.followUpCenter);
+    if (followUpCenter) {
+      form.setValue("centerId", followUpCenter.id);
+    }
+  }, [isFollowUp, appSettings, centers]);
 
   const filteredCenters = useMemo(() => {
     return medicalCenters.filter(c => 
@@ -1471,8 +1486,12 @@ Thank you,
             </Button>
           </div>
           <div>
-            <h1 className="text-xl font-semibold">Schedule Medical</h1>
-            <p className="text-sm text-muted-foreground">Create a medical appointment and notify the client</p>
+            <h1 className="text-xl font-semibold">
+              {isFollowUp ? "Schedule Follow-Up Medical" : "Schedule Medical"}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {isFollowUp ? "Schedule a follow-up medical retest appointment" : "Create a medical appointment and notify the client"}
+            </p>
           </div>
         </div>
 
