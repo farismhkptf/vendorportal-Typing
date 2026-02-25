@@ -302,6 +302,7 @@ export const vendors = pgTable("vendors", {
   phone: text("phone"),
   email: text("email"),
   active: boolean("active").notNull().default(true),
+  logoUrl: text("logo_url"),
 });
 
 // Typing Jobs table

@@ -221,6 +221,22 @@ export class ObjectStorageService {
     return normalizedPath;
   }
 
+  // Uploads a buffer directly to object storage and returns the /objects/ path.
+  async uploadObjectEntityFile(
+    entityPath: string,
+    buffer: Buffer,
+    contentType: string
+  ): Promise<string> {
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) entityDir += "/";
+    const fullPath = `${entityDir}${entityPath}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    await file.save(buffer, { contentType });
+    return `/objects/${entityPath}`;
+  }
+
   // Checks if the user can access the object entity.
   async canAccessObjectEntity({
     userId,

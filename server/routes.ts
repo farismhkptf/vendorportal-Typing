@@ -1799,6 +1799,44 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/vendors/:id/logo", requireOpsRole, upload.single('logo'), async (req: any, res) => {
+    try {
+      const vendorId = req.params.id;
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      const ext = (req.file.originalname.split('.').pop() || 'jpg').toLowerCase();
+      const objectStorageService = new ObjectStorageService();
+      const logoUrl = await objectStorageService.uploadObjectEntityFile(
+        `vendor-logos/${vendorId}.${ext}`,
+        req.file.buffer,
+        req.file.mimetype
+      );
+      await storage.updateVendor(vendorId, { logoUrl });
+      res.json({ logoUrl });
+    } catch (error) {
+      console.error("Vendor logo upload error:", error);
+      res.status(500).json({ message: "Failed to upload logo" });
+    }
+  });
+
+  app.get("/api/public/vendor-lookup", async (req, res) => {
+    try {
+      const email = req.query.email as string;
+      if (!email) return res.status(400).json({ message: "email required" });
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.vendorId || !["Vendor", "Vendor Accountant", "Vendor Manager"].includes(user.role)) {
+        return res.status(404).json({ message: "Not found" });
+      }
+      const vendor = await storage.getVendorById(user.vendorId);
+      if (!vendor) return res.status(404).json({ message: "Not found" });
+      res.json({ vendorName: vendor.name, logoUrl: vendor.logoUrl || null });
+    } catch (error) {
+      console.error("Vendor lookup error:", error);
+      res.status(404).json({ message: "Not found" });
+    }
+  });
+
   // ========== Service Types ==========
   app.get("/api/service-types", requireAuth, async (req, res) => {
     try {

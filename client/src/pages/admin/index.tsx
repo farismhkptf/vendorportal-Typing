@@ -1,4 +1,4 @@
-import { useState, useMemo, type ChangeEvent } from "react";
+import { useState, useRef, useMemo, type ChangeEvent } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
@@ -36,7 +36,8 @@ import {
   Cloud,
   CloudOff,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Camera
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -749,6 +750,9 @@ export default function AdminPage() {
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
   const [editVendorDialogOpen, setEditVendorDialogOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [vendorLogoPreview, setVendorLogoPreview] = useState<string | null>(null);
+  const [vendorLogoUploading, setVendorLogoUploading] = useState(false);
+  const vendorLogoInputRef = useRef<HTMLInputElement>(null);
   const [userDialogOpen, setUserDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<any>(null);
@@ -1137,6 +1141,28 @@ export default function AdminPage() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  async function handleVendorLogoUpload(file: File) {
+    if (!editingVendor) return;
+    setVendorLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await fetch(`/api/vendors/${editingVendor.id}/logo`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!res.ok) throw new Error("Upload failed");
+      const { logoUrl } = await res.json();
+      setVendorLogoPreview(logoUrl + "?t=" + Date.now());
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      toast({ title: "Logo updated", description: "Vendor logo has been saved." });
+    } catch {
+      toast({ title: "Upload failed", description: "Could not upload logo.", variant: "destructive" });
+    } finally {
+      setVendorLogoUploading(false);
+    }
+  }
 
   const createCenterMutation = useMutation({
     mutationFn: async (data: z.infer<typeof centerSchema>) => {
@@ -4728,6 +4754,51 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
+                      {/* Logo Upload */}
+                      <div>
+                        <label className="text-sm font-medium">Vendor Logo</label>
+                        <div className="mt-2 flex items-center gap-4">
+                          <div className="h-14 w-14 rounded-xl overflow-hidden bg-muted flex items-center justify-center shrink-0 border border-border/40">
+                            {vendorLogoPreview ? (
+                              <img src={vendorLogoPreview} alt="Logo" className="h-full w-full object-cover" />
+                            ) : (
+                              <Building2 className="h-6 w-6 text-muted-foreground" />
+                            )}
+                          </div>
+                          <input
+                            ref={vendorLogoInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleVendorLogoUpload(file);
+                            }}
+                            data-testid="input-vendor-logo"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => vendorLogoInputRef.current?.click()}
+                            disabled={vendorLogoUploading}
+                            data-testid="button-upload-vendor-logo"
+                          >
+                            {vendorLogoUploading ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Camera className="h-4 w-4 mr-2" />
+                                {vendorLogoPreview ? "Change Logo" : "Upload Logo"}
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+
                       <div className="flex justify-end">
                         <Button type="submit" disabled={updateVendorMutation.isPending} data-testid="button-update-vendor">
                           {updateVendorMutation.isPending ? "Updating..." : "Update Vendor"}
@@ -4753,8 +4824,12 @@ export default function AdminPage() {
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3">
-                          <div className="icon-container icon-container-sm shrink-0">
-                            <Building2 className="h-4 w-4" />
+                          <div className="icon-container icon-container-sm shrink-0 overflow-hidden">
+                            {vendor.logoUrl ? (
+                              <img src={vendor.logoUrl} alt={vendor.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <Building2 className="h-4 w-4" />
+                            )}
                           </div>
                           <div>
                             <h4 className="font-medium text-foreground">{vendor.name}</h4>
@@ -4784,6 +4859,7 @@ export default function AdminPage() {
                             className="h-8 w-8 rounded-lg"
                             onClick={() => {
                               setEditingVendor(vendor);
+                              setVendorLogoPreview(vendor.logoUrl || null);
                               editVendorForm.reset({
                                 name: vendor.name,
                                 contactPerson: vendor.contactPerson || "",

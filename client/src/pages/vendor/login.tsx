@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Lock, User, Building2, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import vendorLogo from "@assets/Vendor_Logo_1771503175243.jpg";
 import dubaiSkyline from "@assets/stock_images/dubai-skyline-login-bg.jpg";
 import { CompanyName } from "@/components/ui/company-name";
 
@@ -30,6 +29,8 @@ export default function VendorLogin() {
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [vendorBrand, setVendorBrand] = useState<{ vendorName: string; logoUrl: string | null } | null>(null);
+  const [brandLookupLoading, setBrandLookupLoading] = useState(false);
   const { toast } = useToast();
 
   const { data: publicSettings } = useQuery<{ maintenanceMode: boolean; maintenanceMessage: string | null; whatsappNumber: string | null }>({
@@ -86,6 +87,27 @@ export default function VendorLogin() {
     loginMutation.mutate(data);
   };
 
+  async function lookupVendorBrand(email: string) {
+    if (!email.trim()) return;
+    setBrandLookupLoading(true);
+    try {
+      const res = await fetch(`/api/public/vendor-lookup?email=${encodeURIComponent(email.trim())}`);
+      if (res.ok) {
+        const data = await res.json();
+        setVendorBrand(data);
+      } else {
+        setVendorBrand(null);
+      }
+    } catch {
+      setVendorBrand(null);
+    } finally {
+      setBrandLookupLoading(false);
+    }
+  }
+
+  const displayName = vendorBrand?.vendorName || "Vendor Portal";
+  const displaySubtitle = vendorBrand ? `Vendor Portal · ` : null;
+
   return (
     <div className="login-fullscreen">
       <img src={dubaiSkyline} alt="" className="login-bg-photo" aria-hidden="true" />
@@ -99,16 +121,30 @@ export default function VendorLogin() {
             <div className="px-8 pt-10 pb-8">
 
               <div className="flex flex-col items-center mb-8">
-                <img
-                  src={vendorLogo}
-                  alt="Advanced Solutions"
-                  className="h-14 w-14 rounded-2xl object-cover opacity-90 mb-5 shadow-lg"
-                  data-testid="img-vendor-logo"
-                />
-                <h1 className="text-[22px] font-bold tracking-tight text-white mb-1.5">
-                  Advanced Solutions
+                <div className="h-14 w-14 rounded-2xl overflow-hidden mb-5 shadow-lg flex items-center justify-center bg-white/10">
+                  {brandLookupLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin text-white/60" />
+                  ) : vendorBrand?.logoUrl ? (
+                    <img
+                      src={vendorBrand.logoUrl}
+                      alt={displayName}
+                      className="h-full w-full object-cover"
+                      data-testid="img-vendor-logo"
+                    />
+                  ) : (
+                    <Building2 className="h-7 w-7 text-white/70" />
+                  )}
+                </div>
+                <h1 className="text-[22px] font-bold tracking-tight text-white mb-1.5" data-testid="text-vendor-name">
+                  {displayName}
                 </h1>
-                <p className="text-sm text-white/60">Vendor Portal · <CompanyName /></p>
+                <p className="text-sm text-white/60">
+                  {displaySubtitle ? (
+                    <>{displaySubtitle}<CompanyName /></>
+                  ) : (
+                    <CompanyName />
+                  )}
+                </p>
               </div>
 
               {publicSettings?.maintenanceMode && (
@@ -137,6 +173,10 @@ export default function VendorLogin() {
                               autoComplete="username"
                               placeholder="Enter your username"
                               className="login-glass-input w-full rounded-md pl-10 pr-3 py-2 h-10 border"
+                              onBlur={(e) => {
+                                field.onBlur();
+                                lookupVendorBrand(e.target.value);
+                              }}
                               data-testid="input-vendor-username"
                             />
                           </div>
