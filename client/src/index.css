@@ -1153,3 +1153,148 @@
     }
   }
 }
+
+/* ═══════════════════════════════════════════════
+   LOGIN PAGE — GLASSMORPHISM DESIGN
+   Brand color: #20467a
+   ═══════════════════════════════════════════════ */
+
+.login-fullscreen {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.login-bg-gradient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    135deg,
+    #0f172a 0%,
+    #1e293b 20%,
+    #0c4a6e 40%,
+    #164e63 55%,
+    #1e3a5f 70%,
+    #0f172a 100%
+  );
+  background-size: 400% 400%;
+  animation: login-gradient-shift 25s ease infinite;
+}
+
+@keyframes login-gradient-shift {
+  0%   { background-position: 0% 50%; }
+  25%  { background-position: 100% 0%; }
+  50%  { background-position: 100% 100%; }
+  75%  { background-position: 0% 100%; }
+  100% { background-position: 0% 50%; }
+}
+
+.login-bg-photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform-origin: center center;
+  animation: login-kenburns 35s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes login-kenburns {
+  0%   { transform: scale(1.05); }
+  50%  { transform: scale(1.12) translate(-1%, -0.5%); }
+  100% { transform: scale(1.08) translate(0.5%, 0.5%); }
+}
+
+.login-bg-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+  pointer-events: none;
+}
+
+.login-bg-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(
+    160deg,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.40) 40%,
+    rgba(0, 0, 0, 0.50) 100%
+  );
+}
+
+.login-glass-card-v2 {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(32px) saturate(150%);
+  -webkit-backdrop-filter: blur(32px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.login-glass-input {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: white !important;
+  backdrop-filter: blur(8px);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.login-glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.22) !important;
+}
+
+.login-glass-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(32, 70, 122, 0.7) !important;
+  box-shadow: 0 0 0 3px rgba(32, 70, 122, 0.25) !important;
+}
+
+.login-brand-button {
+  background: #20467a !important;
+  border: 1px solid rgba(32, 70, 122, 0.8) !important;
+  color: white !important;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.login-brand-button:hover:not(:disabled) {
+  background: #264f8a !important;
+  box-shadow: 0 4px 16px rgba(32, 70, 122, 0.4) !important;
+}
+
+.login-brand-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-brand-button--success {
+  background: rgba(16, 185, 129, 0.85) !important;
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+.login-card-slider {
+  position: relative;
+  width: 100%;
+}
+
+.login-card-panel {
+  width: 100%;
+  top: 0;
+  left: 0;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s ease;
+}
