@@ -39,6 +39,8 @@ export function MobileBottomNav() {
   const { user } = useAuth();
   const dashboardHref = getDashboardHref(user?.role);
 
+  if (!user) return null;
+
   const resolvedTabs = MAIN_TABS
     .filter(tab => tab.roles === null || (user && tab.roles.includes(user.role)))
     .map(tab => tab.href === "__dashboard__" ? { ...tab, href: dashboardHref } : tab
