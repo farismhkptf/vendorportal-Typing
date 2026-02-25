@@ -13,6 +13,9 @@ import { VendorAuthProvider, useVendorAuth } from "@/hooks/use-vendor-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
 import proLogo from "@assets/Our_Logo_1771503275390.png";
 import { CompanyName } from "@/components/ui/company-name";
+import { AnimatePresence } from "framer-motion";
+import { useSplash } from "@/contexts/splash-context";
+import SplashScreen from "@/components/splash-screen";
 
 import Dashboard from "@/pages/dashboard";
 import CrmDashboard from "@/pages/crm-dashboard";
@@ -211,12 +214,24 @@ function Router() {
   );
 }
 
+function SplashOverlay() {
+  const { splashActive, setSplashActive } = useSplash();
+  return (
+    <AnimatePresence>
+      {splashActive && (
+        <SplashScreen key="splash" onComplete={() => setSplashActive(false)} />
+      )}
+    </AnimatePresence>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
           <AuthProvider>
+            <SplashOverlay />
             <CommandPalette />
             <MobileBottomNav />
             <Toaster />
