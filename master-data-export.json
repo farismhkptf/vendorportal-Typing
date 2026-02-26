@@ -1,0 +1,2262 @@
+{
+  "companies": [
+    {
+      "id": "4ddb2d16-2868-45cb-bc84-79cc84687ddf",
+      "name": "Pay Ten Payment Services Provider L.L.C.",
+      "tradeLicenseNumber": "1247708",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Fatima",
+        "email": "fatma.alblooshi@pay10.ae",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Merna",
+        "email": "merna.mohamed@pay10.ae",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Jason",
+        "email": "finance@pay10.ae",
+        "mobile": ""
+      },
+      "deliveryAddress": "1002, Ubora Towers, Marasi St, Business Bay, Dubai"
+    },
+    {
+      "id": "d4c91de1-056e-49c8-9dd3-a384c3539ab8",
+      "name": "Petals Payment Technology Co L.L.C.",
+      "tradeLicenseNumber": "1172718",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Karishma",
+        "email": "admin@innovixtech.io",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Jania",
+        "email": "hr.manager@innovixtech.io",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Tony",
+        "email": "hr@innovixtech.io",
+        "mobile": ""
+      },
+      "deliveryAddress": "1703-1704, Al Moosa Tower 2, Sheikh Zayed Road, Trade Center 1, Dubai"
+    },
+    {
+      "id": "0ad22501-f931-4b6b-aaf7-010dda15250a",
+      "name": "LUME COLLECTIVE TECHNOLOGY LLC",
+      "tradeLicenseNumber": "919737",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Karishma",
+        "email": "admin@innovixtech.io",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Jania",
+        "email": "hr.manager@innovixtech.io",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Tony",
+        "email": "hr@innovixtech.io",
+        "mobile": ""
+      },
+      "deliveryAddress": "1703-1704, Al Moosa Tower 2, Sheikh Zayed Road, Trade Center 1, Dubai"
+    },
+    {
+      "id": "b937fc35-4cd4-4363-b265-50a9ac15902a",
+      "name": "Rose Ideas Tech Co. L.L.C.",
+      "tradeLicenseNumber": "1159218",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Karishma",
+        "email": "admin@innovixtech.io",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Jania",
+        "email": "hr.manager@innovixtech.io",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Tony",
+        "email": "hr@innovixtech.io",
+        "mobile": ""
+      },
+      "deliveryAddress": "1703-1704, Al Moosa Tower 2, Sheikh Zayed Road, Trade Center 1, Dubai"
+    },
+    {
+      "id": "57eef69f-a872-4209-9b7a-127a538df420",
+      "name": "Pay Ten Global Technology L.L.C.",
+      "tradeLicenseNumber": "1339248",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Meghna",
+        "email": "meghna.santhosh@pay10.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Tasneem",
+        "email": "tasneem.lokhandwala@pay10.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Jason",
+        "email": "finance@pay10.com",
+        "mobile": ""
+      },
+      "deliveryAddress": "1002, Ubora Towers, Marasi St, Business Bay, Dubai"
+    },
+    {
+      "id": "0e6aa083-4bab-4bdb-b040-ba75af643555",
+      "name": "NITYO INFOTECH IT SERVICES EST.",
+      "tradeLicenseNumber": "998706",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "7384cfa6-4472-4e57-9326-5c0c96669f25",
+      "name": "ASRL GENERAL TRADING L.L.C",
+      "tradeLicenseNumber": "980903",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Suwaid",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Suwaid",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Suwaid",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "4f21d53f-7e5c-4c4b-a0a7-c2f9311aa236",
+      "name": "Eastern Fortune Investments L.L.C.",
+      "tradeLicenseNumber": "1006617",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Jomelyn Hernandez",
+        "email": "jomelyn@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "finance@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": "A503, Opus by Omniyat, Al Amal St, Business Bay, Dubai "
+    },
+    {
+      "id": "e8f6ac73-b8bd-4aad-8386-e5bd1ccaeb34",
+      "name": "SKYGEN TRADING L.L.C - BRANCH 1 (JUMEIRA)",
+      "tradeLicenseNumber": "898939",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Info",
+        "email": "info@skygentrading.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Sagar",
+        "email": "info@skygentrading.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Accounts",
+        "email": "accounts@skygentrading.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "070ea223-b1bd-46ca-8697-679a589c24d2",
+      "name": "SKYGEN TRADING L.L.C - BRANCH 2 (BLUEWATERS)",
+      "tradeLicenseNumber": "1156748",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Info",
+        "email": "info@skygentrading.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Sagar",
+        "email": "info@skygentrading.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Accounts",
+        "email": "accounts@skygentrading.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "03edf24a-b80d-4c19-9c81-89dca42eb820",
+      "name": "Alpha Edge Security Consultancies L.L.C. S.o.c",
+      "tradeLicenseNumber": "1582239",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdfb1d68-4a43-4ae4-9d94-867be16a9635",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Vibhor",
+        "email": "vibhor@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Vb",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Tony",
+        "email": "arun.accounts@colife.ae",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "dc13bf1d-f986-4f4d-b1b0-fd8f61d6252e",
+      "name": "SKYGEN TRADING L.L.C - MAIN (MARINA)",
+      "tradeLicenseNumber": "896805",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Info",
+        "email": "info@skygentrading.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Sagar",
+        "email": "info@skygentrading.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Accounts",
+        "email": "accounts@skygentrading.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "983e5461-4691-4f02-8a77-69f971267e23",
+      "name": "AUTO SKY CAR SERVICE LLC",
+      "tradeLicenseNumber": "1153578",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Salsabeel",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Salsabeel",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Salsabeel",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "5ae3422c-3784-412d-9e4c-63ebad7cf395",
+      "name": "TRIP TO GO TOURISM L.L.C",
+      "tradeLicenseNumber": "913601",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Haris",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Haris",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Haris",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "2c4dd137-80e3-434e-86fc-a4f86f80a651",
+      "name": "BLUME A I ARTIFICIAL INTELLIGENCE CONSULTANCIES L.L.C",
+      "tradeLicenseNumber": "1361951",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Aditya",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "2c36eac6-f1a5-4a14-b2de-e9e9388f0871",
+      "name": "FIRST PLUS PROPERTY CARE CO LLC",
+      "tradeLicenseNumber": "1430663",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Jomelyn Hernandez",
+        "email": "jomelyn@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "cd58bcb2-aabe-4c2e-848e-62d47bd079a3",
+      "name": "COSMOLINK TRADING LLC",
+      "tradeLicenseNumber": "278395",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Mithun",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Mithun",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Mithun",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "a67ee206-cfbc-4a42-9d19-d47514252199",
+      "name": "MISS OCD TECHNICAL SERVICES CO LLC SOC",
+      "tradeLicenseNumber": "1563802",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Mandana Kareemi",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Mandana Kareemi",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Mandana Kareemi",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "a386dd52-70dc-4353-8dc3-e95dee023b9e",
+      "name": "FIRST LUXURY FACILITIES MANAGEMENT SERVICES CO L.L.C",
+      "tradeLicenseNumber": "1724316",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Jomelyn Hernandez",
+        "email": "jomelyn@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "finance@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "86f58975-d255-41e1-8bbe-b03d620e1f74",
+      "name": "POS10 GLOBAL INVESTMENTS L.L.C",
+      "tradeLicenseNumber": "1551956",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "80125117-a7a8-41c0-971e-0c7ac4cb07cb",
+      "name": "RAGHAV MANAGEMENT SERVICES EST",
+      "tradeLicenseNumber": "1073729",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "21d7f576-fb94-4623-b7e4-90aca71dc829",
+      "name": "AYUR MINAR KOTTAKKAL AYURVEDIC MEDICAL CENTER",
+      "tradeLicenseNumber": "1008342",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Jinu",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Sebastian",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Sebastian",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "8872645f-70f0-4db4-825e-eec015dc4bdf",
+      "name": "COLIFE VACATION HOMES L.L.C",
+      "tradeLicenseNumber": null,
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "General",
+        "email": "lawyer@colife.ae",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Artem",
+        "email": "lawyer@colife.ae",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Arun Tomy",
+        "email": "arun.accounts@colife.ae",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "10e01226-a7d8-44d4-843d-ebf581d52d74",
+      "name": "EASTERN WEALTH INVESTMENTS L.L.C",
+      "tradeLicenseNumber": "1081466",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "finance@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "f145c9dc-7be1-4e54-817a-b33fdec0a118",
+      "name": "POS10 TECHNOLOGIES L.L.C",
+      "tradeLicenseNumber": "1508705",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "finance@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "0ce43bd7-2ab7-4d2c-a73f-7c5edd24d4f4",
+      "name": "FIRST EDGE TECHNOLOGIES CO LLC",
+      "tradeLicenseNumber": "1426114",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Jomelyn Hernandez",
+        "email": "jomelyn@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@eastf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "finance@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "7ad1dcc7-412f-49f3-be30-6d7ce1e1285b",
+      "name": "CASPERWASP TECHNOLOGIES CO. L.L.C",
+      "tradeLicenseNumber": "1132073",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Gopal",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Gopal",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Gopal",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "061ea089-7cc2-4831-8d6c-8c937cd19d1b",
+      "name": "DZONE TRADING LLC",
+      "tradeLicenseNumber": "693724",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Rahul",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Rahul",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Rahul",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "54f94ec2-afcb-4a62-808a-19a0bd5c4c0e",
+      "name": "QUANTRA GLOBAL FZE LLC (SPC)",
+      "tradeLicenseNumber": null,
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "finance@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "aafef4b9-a807-4334-b36e-85b0d25e7d3f",
+      "name": "EASTERN COLLECTIBLE FZCO (IFZA)",
+      "tradeLicenseNumber": null,
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "finance@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "1eadb40b-810c-4b35-b7ed-e1f47c5637d1",
+      "name": "EASTERN WEALTH FOUNDATION - ABUDHABI",
+      "tradeLicenseNumber": null,
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ellen",
+        "email": "finance@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "fa0ea8e4-0434-4401-8696-317ddb8d742b",
+      "name": "THE CREATIVE CLUB FZE",
+      "tradeLicenseNumber": null,
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Jomelyn",
+        "email": "jomelyn@eastf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Slim",
+        "email": "jomelyn@eastf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Jomelyn",
+        "email": "jomelyn@eastf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "4ab4fea1-9bcf-41b2-9b83-5e5c5454fef9",
+      "name": "EASTERN FORTUNE LIMITED (RAK)",
+      "tradeLicenseNumber": null,
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "a4cb939f-f718-4e47-8536-ece711de459c",
+      "name": "KSKA INVESTMENTS L.L.C S.O.C",
+      "tradeLicenseNumber": null,
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Aditya",
+        "email": "aditya@easf.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "7203ec1e-410e-4cd2-a63b-3b2be8b56cb4",
+      "name": "NEXTGEN TECHNOLOGIES EST",
+      "tradeLicenseNumber": "963239",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Jayaraj",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Jayaraj",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Jayaraj",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "f1247d9c-a358-473e-990a-c7ab1e4cfabf",
+      "name": "BAITH DAHABI PROJECT MANAGEMENT SERVICES",
+      "tradeLicenseNumber": "1593186",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": null,
+      "clientManager": null,
+      "clientAccountant": null,
+      "deliveryAddress": null
+    },
+    {
+      "id": "7139535f-a8b3-411e-b5e9-280870eb6672",
+      "name": "DOLPHIN BLENDS PERFUMES & COSMETICS TRADING CO. L.L.C",
+      "tradeLicenseNumber": "1383365",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Sajila",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Najeeb",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Najeeb",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "fd5c27a4-6636-4cb7-8383-009bb3fa4af4",
+      "name": "MEKINA TECHNICAL SERVICES",
+      "tradeLicenseNumber": "1187005",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Ajmal",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Ajmal",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Ajmal",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "c52fb5c8-5cd7-43f6-ba58-fef750afbabb",
+      "name": "W C H E M DISINFECTION & STERILIZATION L.L.C",
+      "tradeLicenseNumber": "1460932",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Vigi",
+        "email": "vigi@wchem.com",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Deena",
+        "email": "deenanaidu@yahoo.com",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Deena",
+        "email": "deenanaidu@yahoo.com",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "c4b6d4e2-a528-497c-bdb7-aad782ee837d",
+      "name": "COLIFE REAL ESTATE L.L.C",
+      "tradeLicenseNumber": "1141137",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "General",
+        "email": "lawyer@colife.ae",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Artem",
+        "email": "lawyer@colife.ae",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Arun Tomy",
+        "email": "arun.accounts@colife.ae",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "678ca32d-fc6c-442c-a010-b0c9f7032744",
+      "name": "MUNTAJ TAHRIR PROJECT MANAGEMENT SERVICES EST",
+      "tradeLicenseNumber": "929555",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Shibeesh",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Deepthy",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Shibeesh",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    },
+    {
+      "id": "30a7bbfc-710d-4690-b397-18648921c1fc",
+      "name": "LORDE EVENT MANAGEMENT CO. L.L.C",
+      "tradeLicenseNumber": "1248184",
+      "active": true,
+      "preferredMedicalCenterId": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "preferredMedicalCenterVipId": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "preferredBiometricsCenterId": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "preferredBiometricsCenterVipId": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "rmStaffId": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "assistStaffId": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "clientCoordinator": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "clientManager": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "clientAccountant": {
+        "name": "Anand",
+        "email": "",
+        "mobile": ""
+      },
+      "deliveryAddress": null
+    }
+  ],
+  "companyEmails": [
+    {
+      "id": "28a62b68-f7ff-41a7-b36e-39d8f60d0aaf",
+      "companyId": "c6a56278-747d-475b-926e-e32373076992",
+      "email": "hr@samplecompany.ae",
+      "label": "HR"
+    },
+    {
+      "id": "baf7a1f1-172d-4150-9af3-2bcfae27e642",
+      "companyId": "c6a56278-747d-475b-926e-e32373076992",
+      "email": "admin@samplecompany.ae",
+      "label": "Admin"
+    }
+  ],
+  "staff": [
+    {
+      "id": "b750a55c-0785-48c3-a914-06c8f0bdbbd3",
+      "name": "Faris MHKP",
+      "roleTitle": "CEO",
+      "staffType": "Permanent",
+      "status": "Active",
+      "phone": "0509161815",
+      "email": "faris@procompany.ae"
+    },
+    {
+      "id": "b908840a-5e10-4b86-adf8-9abbb2e506d5",
+      "name": "Yasin Aboo",
+      "roleTitle": "Client Relation Manager",
+      "staffType": "Permanent",
+      "status": "Active",
+      "phone": "0551558435",
+      "email": "yasin@procompany.ae"
+    },
+    {
+      "id": "dfdea1ce-12d5-43ee-ac31-944a0248661e",
+      "name": "Amal Hussain",
+      "roleTitle": "P.R.O.",
+      "staffType": "Permanent",
+      "status": "Active",
+      "phone": "0562125789",
+      "email": "amal@procompany.ae"
+    },
+    {
+      "id": "7c7c4645-5757-4f7a-ac57-c12732457168",
+      "name": "Shahzad Roshan",
+      "roleTitle": "Medical Assistant Support",
+      "staffType": "Temporary",
+      "status": "TempInactive",
+      "phone": "0509423896",
+      "email": "operations@procompany.ae"
+    },
+    {
+      "id": "c4ace748-1353-4644-9aee-e8d3c5769cf0",
+      "name": "Shahul Hameed",
+      "roleTitle": "Medical Assistant Support",
+      "staffType": "Permanent",
+      "status": "Active",
+      "phone": "0568115077",
+      "email": "operations@procompany.ae"
+    },
+    {
+      "id": "f6839632-56e9-450e-bd21-50ff9a814bca",
+      "name": "Varghese Cherian",
+      "roleTitle": "Medical Assistant Support",
+      "staffType": "Temporary",
+      "status": "TempInactive",
+      "phone": "0585177911",
+      "email": "operations@procompany.ae"
+    }
+  ],
+  "vendors": [
+    {
+      "id": "vendor-001",
+      "name": "Al Sahil Typing Center",
+      "contactPerson": "Mohammed",
+      "phone": "0501234567",
+      "email": "typing@alsahil.ae",
+      "logoUrl": null,
+      "active": false
+    },
+    {
+      "id": "15e46950-7492-4a1a-9254-bf9cf66e3e6b",
+      "name": "Advanced Solutions Typing & Documents Copying",
+      "contactPerson": "Shabeer",
+      "phone": "052 352 1448",
+      "email": "",
+      "logoUrl": null,
+      "active": true
+    }
+  ],
+  "centers": [
+    {
+      "id": "f7d5b955-ab86-4268-bd58-a1415a6fca38",
+      "name": "Karama Medical Fitness Center",
+      "type": "Medical",
+      "authority": "DHA",
+      "tier": "Normal",
+      "area": "Al Karama",
+      "timings": {
+        "monday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "tuesday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "wednesday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "thursday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "friday": {
+          "open": "07:30",
+          "close": "12:00"
+        },
+        "saturday": {
+          "closed": true
+        },
+        "sunday": {
+          "closed": true
+        }
+      },
+      "timingText": "Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM, Sat-Sun: Closed",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "b9283e3f-81b8-416e-a90d-4b8f0adaf51f",
+      "name": "Al Quoz Mall Medical Fitness Center",
+      "type": "Medical",
+      "authority": "DHA",
+      "tier": "Normal",
+      "area": "Al Quoz",
+      "timings": {
+        "monday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "tuesday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "wednesday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "thursday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "friday": {
+          "open": "07:00",
+          "close": "21:30",
+          "breakStart": "11:30",
+          "breakEnd": "14:00"
+        },
+        "saturday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "sunday": {
+          "open": "07:00",
+          "close": "15:30"
+        }
+      },
+      "timingText": "Mon-Thu: 7AM-9:30PM, Fri: 7AM-11:30AM & 2PM-9:30PM, Sat: 7AM-9:30PM, Sun: 7AM-3:30PM",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "038d18d9-42ce-4afe-a1ed-d3b9381c1b59",
+      "name": "Al Nahda Medical Fitness Center",
+      "type": "Medical",
+      "authority": "DHA",
+      "tier": "Normal",
+      "area": "Al Nahda",
+      "timings": {
+        "monday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "tuesday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "wednesday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "thursday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "friday": {
+          "open": "07:30",
+          "close": "21:30",
+          "breakStart": "11:30",
+          "breakEnd": "14:00"
+        },
+        "saturday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "sunday": {
+          "open": "07:00",
+          "close": "14:30"
+        }
+      },
+      "timingText": "Mon-Thu: 7AM-9:30PM, Fri: 7:30-11:30AM & 2PM-9:30PM, Sat: 7AM-9:30PM, Sun: 7AM-2:30PM",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "d672733d-8bd2-4678-a27a-84d428705108",
+      "name": "Rashidiya Medical Fitness Center",
+      "type": "Medical",
+      "authority": "DHA",
+      "tier": "Normal",
+      "area": "Al Rashidiya",
+      "timings": {
+        "monday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "tuesday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "wednesday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "thursday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "friday": {
+          "open": "07:30",
+          "close": "12:00"
+        },
+        "saturday": {
+          "closed": true
+        },
+        "sunday": {
+          "closed": true
+        }
+      },
+      "timingText": "Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM, Sat-Sun: Closed",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "bdb7724e-48ee-4179-bf55-77cc1676e967",
+      "name": "City Walk Medical Fitness Center (Smart Salem)",
+      "type": "Medical",
+      "authority": "DHA",
+      "tier": "VIP",
+      "area": "City Walk",
+      "timings": {
+        "monday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "tuesday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "wednesday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "thursday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "friday": {
+          "open": "07:30",
+          "close": "22:00",
+          "breakStart": "12:00",
+          "breakEnd": "14:00"
+        },
+        "saturday": {
+          "open": "07:00",
+          "close": "22:00"
+        },
+        "sunday": {
+          "closed": true
+        }
+      },
+      "timingText": "Mon-Thu: 7AM-10PM, Fri: 7:30AM-12PM & 2PM-10PM, Sat: 7AM-10PM, Sun: Closed",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "bdfb1d68-4a43-4ae4-9d94-867be16a9635",
+      "name": "Index Medical Fitness Center (DIFC) - Smart Salem",
+      "type": "Medical",
+      "authority": "DHA",
+      "tier": "VIP",
+      "area": "DIFC",
+      "timings": {
+        "monday": {
+          "open": "07:00",
+          "close": "20:00"
+        },
+        "tuesday": {
+          "open": "07:00",
+          "close": "20:00"
+        },
+        "wednesday": {
+          "open": "07:00",
+          "close": "20:00"
+        },
+        "thursday": {
+          "open": "07:00",
+          "close": "20:00"
+        },
+        "friday": {
+          "open": "07:30",
+          "close": "12:00"
+        },
+        "saturday": {
+          "closed": true
+        },
+        "sunday": {
+          "closed": true
+        }
+      },
+      "timingText": "Mon-Thu: 7AM-8PM, Fri: 7:30AM-12PM, Sat-Sun: Closed",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "2b887eeb-de54-494b-b52b-d4d888a5d07c",
+      "name": "Dubai Knowledge Park - Smart Salem",
+      "type": "Medical",
+      "authority": "DHA",
+      "tier": "VIP",
+      "area": "Dubai Knowledge Park",
+      "timings": {
+        "monday": {
+          "closed": true
+        },
+        "tuesday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "wednesday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "thursday": {
+          "open": "07:00",
+          "close": "21:30"
+        },
+        "friday": {
+          "open": "07:30",
+          "close": "20:00",
+          "breakStart": "11:30",
+          "breakEnd": "16:00"
+        },
+        "saturday": {
+          "closed": true
+        },
+        "sunday": {
+          "open": "07:00",
+          "close": "14:30"
+        }
+      },
+      "timingText": "Tue-Thu: 7AM-9:30PM, Fri: 7:30-11:30AM & 4PM-8PM, Sun: 7AM-2:30PM, Mon/Sat: Closed",
+      "notes": "",
+      "active": true
+    },
+    {
+      "id": "4ad22184-9644-4c65-8806-9c6a7e535e6c",
+      "name": "Al Ghazal Customer Happiness Center",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "Normal",
+      "area": "Al Badaa",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:00 AM - 05:00 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": null,
+      "active": true
+    },
+    {
+      "id": "f1c8b142-bd72-4b4e-ab4f-f1bf3d310dc5",
+      "name": "Al Nahda Happiness Center",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "Normal",
+      "area": "Al Qusais / Al Nahda",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:00 AM - 07:30 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": null,
+      "active": true
+    },
+    {
+      "id": "ec3d896a-8056-403d-adc5-fc4db7e7d7e5",
+      "name": "Al Yalayis Customer Happiness Center",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "Normal",
+      "area": "Dubai Investments Park",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:00 AM - 07:30 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": null,
+      "active": true
+    },
+    {
+      "id": "a5bac104-ae7f-4663-bbf7-729280a0a0c3",
+      "name": "Al Barsha Customer Happiness Center",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "Normal",
+      "area": "Al Barsha",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:00 AM - 05:00 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": null,
+      "active": true
+    },
+    {
+      "id": "c9aceb46-90ae-433f-b5f7-e85ee4d726a5",
+      "name": "Al Rashidiya Customer Happiness Center",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "Normal",
+      "area": "Al Rashidiya",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:00 AM - 05:00 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": null,
+      "active": true
+    },
+    {
+      "id": "50e27230-82da-49a3-be77-49361278674a",
+      "name": "Al Baraha Customer Happiness Office",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "Normal",
+      "area": "Al Baraha, Deira",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:30 AM - 06:30 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": null,
+      "active": true
+    },
+    {
+      "id": "0ead6a0e-7249-49a3-b89e-ae632d69a0b9",
+      "name": "Al Yalayis Customer Happiness Center",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "VIP",
+      "area": "Dubai Investments Park",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:00 AM - 07:30 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": null,
+      "active": true
+    },
+    {
+      "id": "752d3d1f-e990-4ddc-81ab-25b7dc423ea7",
+      "name": "Al Barsha Customer Happiness Center",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "VIP",
+      "area": "Al Barsha",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:00 AM - 05:00 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": "VIP slots available",
+      "active": true
+    },
+    {
+      "id": "9661f30c-01a3-4dec-9fad-c8f0dc32e09f",
+      "name": "Al Baraha Customer Happiness Office",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "VIP",
+      "area": "Al Baraha, Deira",
+      "timings": null,
+      "timingText": "Mon-Thu: 07:30 AM - 06:30 PM | Fri: 07:30 AM - 12:00 PM & 02:30 PM - 06:30 PM",
+      "notes": "VIP handling available",
+      "active": true
+    },
+    {
+      "id": "878a99f5-a698-47f6-acf8-5284e6db7045",
+      "name": "Index Tower - DIFC Medical Biometric Location",
+      "type": "EID",
+      "authority": "ICP",
+      "tier": "VIP",
+      "area": "DIFC",
+      "timings": null,
+      "timingText": "Mon-Fri: 08:30 AM - 05:30 PM",
+      "notes": "Emirates ID biometrics + medical coordination. Widely used for VIP & corporate cases.",
+      "active": true
+    }
+  ],
+  "serviceTypes": [
+    {
+      "id": "7bae6561-3bf8-4861-bc2c-d2bf4ee9985d",
+      "name": "THIRD PARTY VISA",
+      "category": null,
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "8b230e11-cfc6-4c4d-82c3-06fd8a14b6b6",
+      "name": "VIP MEDICAL",
+      "category": null,
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": false,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "a44cba58-16ed-4e41-9b8a-60fde6747b56",
+      "name": "NEW EMPLOYMENT VISA - INSIDE",
+      "category": "NewVisaInside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "f7434cb6-aca7-4c1b-adfa-6bd8eda1ca5a",
+      "name": "NEW EMPLOYMENT VISA - OUTSIDE",
+      "category": "NewVisaOutside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "5b1c5ba6-4889-4346-b203-ccdd7ce2c7ec",
+      "name": "RENEW EMPLOYMENT VISA",
+      "category": "RenewVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": false,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "3dcdcf6e-f975-4277-be63-c0cced3c7489",
+      "name": "GOLDEN VISA - DLD CUBE",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": false,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "77eff1f5-ff28-49d4-adbe-8f3cb2ec479c",
+      "name": "GOLDEN VISA FOR DEPENDENT - DLD CUBE (NOT PARENT)",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "7e65b5ed-d58d-41af-ae2b-1958546d0c7e",
+      "name": "GOLDEN VISA FOR DEPENDENT - DLD CUBE (PARENT)",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "2a05bbf2-12ee-4939-be5c-b297612a84e1",
+      "name": "NEW PARENT VISA - INSIDE",
+      "category": "NewVisaInside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": true,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "a3303b50-7a94-4169-a672-36e9a6bcb1e6",
+      "name": "NEW PARENT VISA - OUTSIDE",
+      "category": "NewVisaOutside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "80f8b46b-41fc-41e8-8c65-fa550896c339",
+      "name": "NEW DEPENDENT VISA - INSIDE (NOT PARENT)",
+      "category": "NewVisaInside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "b479c15e-9bf9-4e5a-8b4d-86445df80823",
+      "name": "NEW DEPENDENT VISA - OUTSIDE (NOT PARENT)",
+      "category": "NewVisaOutside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "bad35ff5-bd94-4f21-a5c7-0830c175f8e6",
+      "name": "RENEW DEPENDENT VISA",
+      "category": "RenewVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": false,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "fef0a3cb-0c61-4dc3-a79b-b06b10228856",
+      "name": "NEW PARTNER VISA - INSIDE",
+      "category": "NewVisaInside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": false,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "8b685219-a226-4e9f-a8dd-fe933877ee98",
+      "name": "NEW PARTNER VISA - OUTSIDE",
+      "category": "NewVisaOutside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": false,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "8659a6fb-04df-45b8-946a-ba338204d193",
+      "name": "RENEW PARTNER VISA",
+      "category": "RenewVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": false,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "5831e28f-3874-4043-99f4-713d5f5430d2",
+      "name": "GOLDEN VISA - MANAGER",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "215d7d09-9baf-441b-bbf1-5ede833d91ce",
+      "name": "GOLDEN VISA - CULTURE",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "b3f3bf9f-9ede-4c63-bf6a-707ec0d17e60",
+      "name": "GOLDEN VISA - STUDENT",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "43f0c0ed-b7ce-417d-8cfc-d60b026f9ad1",
+      "name": "GOLDEN VISA FOR DEPENDENT - MANAGER",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "ef1daaf7-baad-4f00-8206-45a5b45551cf",
+      "name": "GOLDEN VISA FOR DEPENDENT - CULTURE",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "f0ead6a9-1f74-474c-ad3c-5d345dce020e",
+      "name": "GOLDEN VISA FOR DEPENDENT - STUDENT",
+      "category": "GoldenVisa",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": false,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "34de5813-94e9-4678-9c07-d9d173f6e312",
+      "name": "LOST/REPLACE EMIRATES ID APPLICATION",
+      "category": "LostReplaceEid",
+      "requiresMedicalTyping": false,
+      "requiresMedicalScheduling": false,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": true,
+      "requiresIdTyping10Years": true,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "449c8ce8-4111-47ed-be62-3e4455216b17",
+      "name": "NEW IFZ FREEZONE EMPLOYMENT VISA - INSIDE",
+      "category": "NewVisaInside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "708c32fa-0bbd-490e-b0db-596f42e0988a",
+      "name": "NEW IFZ FREEZONE EMPLOYMENT VISA - OUTSIDE",
+      "category": "NewVisaOutside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "5d13e59e-1703-470c-b90c-f3a9df62be2a",
+      "name": "NEW BORN DEPENDENT VISA",
+      "category": "NewbornDependent",
+      "requiresMedicalTyping": false,
+      "requiresMedicalScheduling": false,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "2a6aee29-c45e-4be0-88be-ef9c719922fc",
+      "name": "SPC FREEZONE EMPLOYMENT VISA - INSIDE",
+      "category": "NewVisaInside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    },
+    {
+      "id": "205ed3fa-a491-4ff0-b4c9-940b4678ef70",
+      "name": "SPC FREEZONE EMPLOYMENT VISA - OUTSIDE",
+      "category": "NewVisaOutside",
+      "requiresMedicalTyping": true,
+      "requiresMedicalScheduling": true,
+      "requiresIdTyping2Years": true,
+      "requiresIdTyping1Year": false,
+      "requiresIdTyping10Years": false,
+      "requiresIdBiometrics": true,
+      "isDependent": false,
+      "active": true
+    }
+  ],
+  "jobTypes": [
+    {
+      "id": "9941050f-a297-4f78-8298-f5146217a94e",
+      "name": "MEDICAL APPLICATION NORMAL",
+      "category": "Medical",
+      "cost": 290,
+      "active": true
+    },
+    {
+      "id": "b6decc66-12c9-4ec8-8e3e-6c3833129155",
+      "name": "MEDICAL APPLICATION VIP",
+      "category": "Medical",
+      "cost": 720,
+      "active": true
+    },
+    {
+      "id": "f0cb8e46-dac3-4b3b-8111-24a1c77959f1",
+      "name": "EMIRATES ID APPLICATION 2 YEAR",
+      "category": "EID",
+      "cost": 370,
+      "active": true
+    },
+    {
+      "id": "e9aa81a7-5456-4a1d-baa7-261690435444",
+      "name": "EMIRATES ID APPLICATION 1 YEAR",
+      "category": "EID",
+      "cost": 270,
+      "active": true
+    },
+    {
+      "id": "ff311337-b6a5-4e4f-ade1-9ce225c7957a",
+      "name": "EMIRATES ID APPLICATION 10 YEAR",
+      "category": "EID",
+      "cost": 1200,
+      "active": true
+    },
+    {
+      "id": "9bc935ea-57d6-4736-b6ba-4c5b088e9685",
+      "name": "LOST / REPLACE EMIRATES ID",
+      "category": "EID",
+      "cost": 470,
+      "active": true
+    }
+  ],
+  "documentRequirements": [
+    {
+      "id": "d93c3c27-cd43-4479-98a0-be780a970ba7",
+      "documentType": "PassportCopy",
+      "serviceCategory": "NewVisaInside",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "8f747e61-4cc0-473b-85d6-f06759a9bafa",
+      "documentType": "Photo",
+      "serviceCategory": "NewVisaInside",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "2b2e320e-e58b-4a26-b2a0-f44c136d7f1d",
+      "documentType": "EntryPermit",
+      "serviceCategory": "NewVisaInside",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "ac8b9c1c-9872-45e8-956a-90f5f5dc02c5",
+      "documentType": "ChangeStatus",
+      "serviceCategory": "NewVisaInside",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "c25a65be-ed31-431b-b221-9f27999127ab",
+      "documentType": "PassportCopy",
+      "serviceCategory": "NewVisaOutside",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "cacbc85c-f0ea-4a07-a8e2-a66dbd858cab",
+      "documentType": "Photo",
+      "serviceCategory": "NewVisaOutside",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "0aa95f0f-71f2-4379-8ae7-89588d7ebfc5",
+      "documentType": "EntryPermit",
+      "serviceCategory": "NewVisaOutside",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "82bb0b8a-48ca-4bb3-bb11-c6aa9ebd88fc",
+      "documentType": "PassportCopy",
+      "serviceCategory": "GoldenVisa",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "122a8f57-9a54-4a3c-b8dd-473d3f499dd4",
+      "documentType": "Photo",
+      "serviceCategory": "GoldenVisa",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "5a0ffcaa-7d7c-4d9d-a09a-3091c07d3bbd",
+      "documentType": "OldResidencyOrId",
+      "serviceCategory": "GoldenVisa",
+      "isRequired": false,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "ae485385-bf9d-414f-9c4c-341673c34947",
+      "documentType": "PassportCopy",
+      "serviceCategory": "RenewVisa",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "48c5c557-951f-4fed-b2c2-950512fb194b",
+      "documentType": "Photo",
+      "serviceCategory": "RenewVisa",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "658682ea-a447-4276-9d4e-c00e0a74a8a9",
+      "documentType": "CurrentResidency",
+      "serviceCategory": "RenewVisa",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "d061f5d9-a91b-4edc-8c20-170f613646ce",
+      "documentType": "CurrentEmiratesId",
+      "serviceCategory": "RenewVisa",
+      "isRequired": false,
+      "appliesToMedical": false,
+      "appliesToEid": true
+    },
+    {
+      "id": "24bfde81-9959-4dc1-916f-cd06381e8bc8",
+      "documentType": "SponsorEmiratesId",
+      "serviceCategory": "RenewVisa",
+      "isRequired": false,
+      "appliesToMedical": false,
+      "appliesToEid": true
+    },
+    {
+      "id": "4530a4a9-fe10-4f46-8b35-ac047bbf3331",
+      "documentType": "PassportCopy",
+      "serviceCategory": "NewbornDependent",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "e51b4d60-3d83-4fb7-885f-8f81b14194f6",
+      "documentType": "Photo",
+      "serviceCategory": "NewbornDependent",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "a357f3de-a41d-469d-9d5d-4b353188894f",
+      "documentType": "SponsorEmiratesId",
+      "serviceCategory": "NewbornDependent",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "df3cfce9-a818-4594-b5d4-cb7e2d5103b8",
+      "documentType": "BirthCertificate",
+      "serviceCategory": "NewbornDependent",
+      "isRequired": true,
+      "appliesToMedical": true,
+      "appliesToEid": true
+    },
+    {
+      "id": "adbdd7e5-9b94-4b10-b640-4acdcb27bd34",
+      "documentType": "PassportCopy",
+      "serviceCategory": "LostReplaceEid",
+      "isRequired": true,
+      "appliesToMedical": false,
+      "appliesToEid": true
+    },
+    {
+      "id": "d98c714b-5adc-40ad-b0b0-4094a6a0a79f",
+      "documentType": "Photo",
+      "serviceCategory": "LostReplaceEid",
+      "isRequired": true,
+      "appliesToMedical": false,
+      "appliesToEid": true
+    },
+    {
+      "id": "238ddf90-e947-4ff1-890c-83140d0ca822",
+      "documentType": "LostEmiratesId",
+      "serviceCategory": "LostReplaceEid",
+      "isRequired": true,
+      "appliesToMedical": false,
+      "appliesToEid": true
+    },
+    {
+      "id": "78b72d09-35ff-43b0-a253-f4afcf9d46b2",
+      "documentType": "CurrentResidency",
+      "serviceCategory": "LostReplaceEid",
+      "isRequired": true,
+      "appliesToMedical": false,
+      "appliesToEid": true
+    }
+  ]
+}
