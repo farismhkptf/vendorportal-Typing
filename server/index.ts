@@ -1,3 +1,9 @@
+const _origWarn = console.warn;
+console.warn = (...args: any[]) => {
+  if (typeof args[0] === "string" && args[0].includes("did not pass the `from` option to `postcss.parse`")) return;
+  _origWarn.apply(console, args);
+};
+
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
