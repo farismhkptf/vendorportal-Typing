@@ -224,7 +224,7 @@ function MonthlySheetSection() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ monthYear: selectedMonth, sheetUrl: urlInput.trim() }),
       });
-      if (!res.ok) throw new Error((await res.json()).message);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({ message: 'Save failed' }))).message);
       await refetchMonths();
       toast({ title: 'URL saved', description: 'You can now click Refresh to parse.' });
     } catch (e: any) {
@@ -260,7 +260,7 @@ function MonthlySheetSection() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rows: importableRows }),
       });
-      if (!res.ok) throw new Error((await res.json()).message);
+      if (!res.ok) throw new Error((await res.json().catch(() => ({ message: 'Request failed' }))).message);
       const data = await res.json();
       setImportResult(data);
       queryClient.invalidateQueries({ queryKey: ['/api/work-orders'] });
@@ -350,7 +350,7 @@ function MonthlySheetSection() {
                     if (!currentMonth) return;
                     try {
                       const res = await fetch(`/api/admin/sheet-months/${currentMonth.id}/close`, { method: 'POST' });
-                      if (!res.ok) throw new Error((await res.json()).message);
+                      if (!res.ok) throw new Error((await res.json().catch(() => ({ message: 'Request failed' }))).message);
                       await refetchMonths();
                       toast({ title: `${monthLabel} 2026 closed`, description: 'No further imports allowed for this month.' });
                     } catch (e: any) {
