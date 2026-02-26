@@ -1,0 +1,64 @@
+ROLE: You are a data export + migration assistant. I am moving shared master data out of this app into a new “Core Directory” service. I need you to export EVERYTHING relevant from this app’s current database so it can be imported into the Core Directory.
+
+CONTEXT:
+- In the previous step, you already inventoried the entities/lists stored in this app and identified which ones are master data candidates (e.g., company list, tags, vendors, status catalogs, etc.).
+- Now I need an export of the actual stored records for all those entities (and any related entities required to preserve relationships).
+
+TASK:
+1) EXPORT SCOPE (BASED ON YOUR OWN INVENTORY)
+   - Re-list the exact entities you said this app stores (tables/collections).
+   - Mark which ones are in-scope for export to Core Directory (master data + any required relationship tables).
+   - Also include any static/hardcoded lists that should become data (dropdowns/status catalogs), even if currently not in the DB.
+
+2) EXPORT THE DATA (RAW RECORDS)
+   - For each in-scope entity/table/collection:
+     - Output ALL records as JSON (preferred) or CSV (acceptable).
+     - Include ALL fields, including IDs, timestamps, and any metadata.
+     - Preserve original primary keys exactly (do not regenerate IDs).
+     - If there are relationships, ensure foreign keys are present and consistent.
+   - If the dataset is very large:
+     - Split exports by entity and paginate with clear file/section boundaries (e.g., companies_page_1, companies_page_2).
+
+3) PROVIDE AN “IMPORT ORDER”
+   - Provide the correct import sequence to avoid broken references.
+   - Example: companies → users → memberships → tags → vendors → status catalogs.
+
+4) ADD DATA QUALITY NOTES
+   - Identify:
+     - Duplicate records (same name, different IDs)
+     - Missing required fields
+     - Orphan references (records pointing to IDs that don’t exist)
+     - Conflicting naming conventions
+   - Do NOT silently fix them; report them clearly.
+
+5) DELIVERABLE FORMAT (STRICT)
+   - Output must be copy-paste friendly.
+   - Use this exact structure:
+
+   ===== EXPORT MANIFEST =====
+   - Entity: <name>
+     - Count: <n>
+     - Primary Key: <field>
+     - Notes: <any issues>
+   (repeat for each)
+
+   ===== EXPORT DATA =====
+   ## <Entity 1>
+   <JSON array or CSV block>
+
+   ## <Entity 2>
+   <JSON array or CSV block>
+   ...
+
+   ===== IMPORT ORDER =====
+   1) ...
+   2) ...
+
+   ===== DATA ISSUES FOUND =====
+   - ...
+
+IMPORTANT RULES:
+- Do NOT mention any brand/app-specific names in your narrative.
+- Do NOT omit fields.
+- Do NOT transform values or “clean” data unless I explicitly ask later.
+- If you cannot access the database directly, then output the exact code snippet(s) I should run inside this app to dump the data in the required format (JSON), including where to paste it and what it will print.

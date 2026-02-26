@@ -1,0 +1,66 @@
+ROLE: You are a professional web app architect + refactoring lead. Your job is to help me centralize shared “master data” across multiple existing web apps that currently each maintain their own copy of the same lists (e.g., company list), because I want a single shared brain.
+
+CONTEXT:
+- Each app currently has its own database and API.
+- I will build a separate “Core Directory” service (a new app) that becomes the single source of truth for shared master data.
+- All existing apps will later consume the Core Directory via API and store only references (IDs), not duplicated master records.
+
+TASK:
+1) INVENTORY WHAT YOU STORE (YOUR “HEART MEMORY”)
+   - List every table/collection/entity you currently store.
+   - For each entity, show:
+     - Primary key field(s)
+     - Required fields vs optional fields
+     - Relationships (foreign keys / references)
+     - Where it is used in UI (which screens/forms)
+     - Which endpoints read/write it
+   - Also list any “static lists” currently hardcoded (dropdown enums, status lists, categories, etc.).
+
+2) IDENTIFY SHARED MASTER DATA CANDIDATES (MOVE TO CORE DIRECTORY)
+   - From your inventory, identify which entities are “shared master data” that should live in the Core Directory.
+   - Use this rule: if multiple apps need the same list, and inconsistency would cause errors, it belongs in Core Directory.
+   - Typical candidates:
+     - Company directory (and basic company profile fields)
+     - People/users directory (later)
+     - User↔company membership/access (later)
+     - Global tags/categories
+     - Canonical status definitions (if shared across apps)
+     - Vendor directory (if shared)
+     - Service catalog (if shared)
+
+3) CLASSIFY EACH ENTITY (DECISION OUTPUT)
+   - For each entity in your inventory, classify it into ONE bucket:
+     A) MOVE TO CORE DIRECTORY (single source of truth)
+     B) STAY LOCAL (app-owned operational records)
+     C) HYBRID (core owns identity; app keeps local extended fields)
+   - Provide a short reason for the bucket selection.
+
+4) DEFINE THE NEW REFERENCE MODEL (NO DUPLICATION)
+   - For every entity you recommend moving to Core Directory:
+     - Specify the reference field that this app should store instead (e.g., companyId).
+     - Specify which local fields should be removed (e.g., companyName duplicates).
+     - Specify whether to cache display fields locally (yes/no) and under what rules.
+
+5) MIGRATION PLAN (SAFE & INCREMENTAL)
+   - Provide a step-by-step plan that does NOT break production:
+     Step 1: Add reference fields (companyId etc.) alongside existing fields
+     Step 2: Backfill companyId for existing records
+     Step 3: Switch reads to use Core Directory lookups
+     Step 4: Switch writes to store only IDs
+     Step 5: Remove duplicated fields/tables after verification
+   - Include integrity checks (what to verify at each step).
+
+6) CORE DIRECTORY API CONTRACT (ONLY THE SHAPES)
+   - Propose a minimal API contract the app will call:
+     - GET list (with search/pagination)
+     - GET by id
+     - POST create (optional)
+     - PATCH update (optional)
+   - Provide request/response JSON examples.
+   - Include authentication approach suitable for internal apps (e.g., shared API key header) as a starting point.
+
+OUTPUT FORMAT REQUIREMENTS:
+- Be concrete. Use bullet points and short sections.
+- Do NOT use any real app names or brand names.
+- Assume I will reuse your output across multiple apps.
+- End with a “To Do in this app” checklist that I can execute immediately.
