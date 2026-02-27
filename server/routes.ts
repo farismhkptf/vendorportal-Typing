@@ -1212,16 +1212,6 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/wo-notes/:id", requireAuth, async (req, res) => {
-    try {
-      const deleted = await storage.deleteWoNote(req.params.id);
-      if (!deleted) return res.status(404).json({ message: "Note not found" });
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Delete WO note error:", error);
-      res.status(500).json({ message: "Failed to delete note" });
-    }
-  });
 
   // ========== Audit Logs ==========
   app.get("/api/audit-logs/:entityType/:entityId", requireAuth, async (req, res) => {
@@ -4817,7 +4807,9 @@ export async function registerRoutes(
           if (errorBody.includes('accounts.google.com') || errorBody.includes('ServiceLogin')) {
             return res.status(400).json({ message: "This sheet requires sign-in. Please change the sharing settings to 'Anyone with the link can view'." });
           }
-        } catch {}
+        } catch (parseErr) {
+          console.error("Failed to parse Google Sheets error response:", parseErr);
+        }
         return res.status(400).json({ message: "Could not fetch the Google Sheet. Make sure it is shared as 'Anyone with the link can view' and the URL is correct." });
       }
       const csvText = await csvResponse.text();

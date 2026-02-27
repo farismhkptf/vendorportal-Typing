@@ -1571,7 +1571,6 @@ export default function AdminPage() {
               { key: "vendor", icon: Briefcase, title: "Vendor Management", desc: "Vendors, Job Types", defaultTab: "vendors", count: null },
               { key: "admin", icon: UserPlus, title: "Administration", desc: "User Accounts, Import / Export, Change Log", defaultTab: "accounts", count: null },
               { key: "settings", icon: Settings, title: "Settings", desc: "Email & system configuration", defaultTab: "settings", count: null },
-              { key: "future", icon: Clock, title: "Future Updates", desc: "Bots, Manager Console (coming soon)", defaultTab: "future", count: null },
             ].map((section) => (
               <Card
                 key={section.key}
@@ -2008,35 +2007,6 @@ export default function AdminPage() {
                 </div>
               </DialogContent>
             </Dialog>
-          </div>
-        ) : activeSection === "future" ? (
-          <div className="premium-card overflow-hidden p-6">
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <Bot className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Bots</p>
-                    <p className="text-sm text-muted-foreground">Quick Paste WO and Appointment Scheduler bots for streamlined workflows</p>
-                  </div>
-                  <span className="ml-auto text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-lg">Coming Soon</span>
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
-                <div className="flex items-center gap-3">
-                  <div className="rounded-lg bg-primary/10 p-2">
-                    <Shield className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-foreground">Manager Console</p>
-                    <p className="text-sm text-muted-foreground">PIN-protected console for CRM managers to manage system configuration</p>
-                  </div>
-                  <span className="ml-auto text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-1 rounded-lg">Coming Soon</span>
-                </div>
-              </div>
-            </div>
           </div>
         ) : (
           <div className="premium-card overflow-hidden">
