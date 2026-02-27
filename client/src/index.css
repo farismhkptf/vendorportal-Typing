@@ -1359,15 +1359,3 @@
   background: rgba(255, 255, 255, 0.02);
 }
 
-.spotlight-quick-action {
-  transition: all 0.15s ease;
-}
-
-.spotlight-quick-action:hover {
-  background: rgba(0, 0, 0, 0.06);
-  transform: translateY(-1px);
-}
-
-.dark .spotlight-quick-action:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
