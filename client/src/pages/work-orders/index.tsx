@@ -49,7 +49,7 @@ type ViewMode = "compact" | "cards" | "table" | "kanban";
 type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc" | "applicant_asc" | "applicant_desc";
 type SpecialFilter = "all" | "needs_attention" | "med_not_scheduled" | "eid_not_scheduled" | "med_typing_pending" | "eid_typing_pending" | "awaiting_typing" | "need_scheduling" | "vip" | "completed";
 
-const STATUS_ORDER = ["Draft", "Scheduled", "Sent", "Completed", "Cancelled"] as const;
+const STATUS_ORDER = ["Draft", "Scheduled", "Completed", "Cancelled"] as const;
 
 type MedEidStatus = "not_started" | "typing_pending" | "typing_sent" | "typing_returned" | "typing_done" | "appt_scheduled" | "appt_done" | "complete";
 
@@ -1034,7 +1034,6 @@ export default function WorkOrdersList() {
           <SelectItem value="Inactive">Inactive</SelectItem>
           <SelectItem value="Draft">Draft</SelectItem>
           <SelectItem value="Scheduled">Scheduled</SelectItem>
-          <SelectItem value="Sent">Sent</SelectItem>
           <SelectItem value="Completed">Completed</SelectItem>
           <SelectItem value="Cancelled">Cancelled</SelectItem>
         </SelectContent>
@@ -1116,7 +1115,7 @@ export default function WorkOrdersList() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  {["Draft", "Scheduled", "Sent", "Completed", "Cancelled"].map(status => (
+                  {["Draft", "Scheduled", "Completed", "Cancelled"].map(status => (
                     <DropdownMenuItem key={status} onClick={() => bulkStatusMutation.mutate({ ids: Array.from(dt.selectedIds).map(String), status })} data-testid={`menu-bulk-status-${status.toLowerCase()}`}>
                       {status}
                     </DropdownMenuItem>

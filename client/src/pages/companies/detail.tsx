@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { useForm } from "react-hook-form";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -53,6 +54,8 @@ export default function CompanyDetail() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+
+  const [isUnsavedDialogOpen, setIsUnsavedDialogOpen] = useState(false);
 
   const { data: company, isLoading } = useQuery<CompanyWithRelations>({
     queryKey: ["/api/companies", params.id],
@@ -159,11 +162,16 @@ export default function CompanyDetail() {
 
   const handleBack = useCallback(() => {
     if (isDirty) {
-      const confirmed = window.confirm("You have unsaved changes. Are you sure you want to leave?");
-      if (!confirmed) return;
+      setIsUnsavedDialogOpen(true);
+      return;
     }
     navigate("/companies");
   }, [isDirty, navigate]);
+
+  const handleConfirmLeave = useCallback(() => {
+    setIsUnsavedDialogOpen(false);
+    navigate("/companies");
+  }, [navigate]);
 
   if (isLoading) {
     return (
@@ -430,6 +438,21 @@ export default function CompanyDetail() {
           </Button>
         </div>
       </form>
+
+      <AlertDialog open={isUnsavedDialogOpen} onOpenChange={setIsUnsavedDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-leave">Stay</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLeave} data-testid="button-confirm-leave">Leave</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

@@ -118,6 +118,79 @@ function requireRole(...roles: string[]) {
 
 const requireOpsRole = requireRole("Admin", "Client Relationship Manager");
 
+async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boolean> {
+  try {
+    const wo = await storage.getWorkOrderById(woId);
+    if (!wo || wo.status === "Completed" || wo.status === "Cancelled") return false;
+    if (!wo.serviceTypeId) return false;
+
+    const serviceType = await storage.getServiceTypeById(wo.serviceTypeId);
+    if (!serviceType) return false;
+
+    const jobs = await storage.getTypingJobsByWoId(woId);
+    const appts = await storage.getAppointmentsByWoId(woId);
+
+    const terminalJobStatuses = ["ReadyForScheduling", "Returned"];
+    const terminalApptStatuses = ["Completed", "FollowUpCompleted"];
+
+    const needsMedical = serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling;
+    const needsEid = serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years || serviceType.requiresIdBiometrics;
+
+    if (needsMedical) {
+      const medicalJobs = jobs.filter(j => {
+        const code = j.jobCode || "";
+        return code.startsWith("M");
+      });
+      const medicalAppts = appts.filter(a => a.type === "Medical");
+
+      if (serviceType.requiresMedicalTyping) {
+        if (medicalJobs.length === 0) return false;
+        const allDone = medicalJobs.every(j => terminalJobStatuses.includes(j.status));
+        if (!allDone) return false;
+      }
+      if (serviceType.requiresMedicalScheduling) {
+        if (medicalAppts.length === 0) return false;
+        const hasCompletedAppt = medicalAppts.some(a => terminalApptStatuses.includes(a.status));
+        if (!hasCompletedAppt) return false;
+      }
+    }
+
+    if (needsEid) {
+      const eidJobs = jobs.filter(j => {
+        const code = j.jobCode || "";
+        return code.startsWith("E");
+      });
+      const eidAppts = appts.filter(a => a.type === "EID");
+
+      const needsEidTyping = serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years;
+      if (needsEidTyping) {
+        if (eidJobs.length === 0) return false;
+        const allDone = eidJobs.every(j => terminalJobStatuses.includes(j.status));
+        if (!allDone) return false;
+      }
+      if (serviceType.requiresIdBiometrics) {
+        if (eidAppts.length === 0) return false;
+        const hasCompletedAppt = eidAppts.some(a => terminalApptStatuses.includes(a.status));
+        if (!hasCompletedAppt) return false;
+      }
+    }
+
+    await storage.updateWorkOrder(woId, { status: "Completed" });
+    await storage.createAuditLog({
+      action: "auto_completed",
+      entityType: "work_order",
+      entityId: woId,
+      userId: null,
+      details: { reason: "All required tracks completed" },
+    });
+    console.log(`[auto-complete] Work order ${wo.woNumber} auto-completed`);
+    return true;
+  } catch (err) {
+    console.error("[auto-complete] Error checking work order completion:", err);
+    return false;
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -436,7 +509,6 @@ export async function registerRoutes(
       const pipeline = {
         draft: 0,
         scheduled: 0,
-        sent: 0,
         completed: 0,
         cancelled: 0,
         total: workOrders.length,
@@ -882,7 +954,7 @@ export async function registerRoutes(
     try {
       const bulkStatusSchema = z.object({
         ids: z.array(z.string()).min(1),
-        status: z.enum(["Inactive", "Draft", "Scheduled", "Sent", "Completed", "Cancelled"]),
+        status: z.enum(["Inactive", "Draft", "Scheduled", "Completed", "Cancelled"]),
       });
       const validation = validateBody(bulkStatusSchema, req.body);
       if ("error" in validation) {
@@ -1352,6 +1424,10 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Appointment not found" });
       }
       
+      if (status === "Completed" || status === "FollowUpCompleted") {
+        await checkAndAutoCompleteWorkOrder(updated.woId);
+      }
+
       res.json(updated);
     } catch (error) {
       console.error("Update appointment error:", error);
@@ -4034,6 +4110,8 @@ export async function registerRoutes(
           createdBy: req.session.vendorUserId || undefined,
         });
       }
+
+      await checkAndAutoCompleteWorkOrder(job.woId);
 
       res.json(result.job);
     } catch (error) {
