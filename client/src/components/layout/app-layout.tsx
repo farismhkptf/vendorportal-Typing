@@ -183,15 +183,15 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
+                  document.dispatchEvent(new KeyboardEvent("keydown", { key: " ", altKey: true }));
                 }}
-                className="hidden sm:flex items-center gap-2 px-3 h-9 rounded-lg border border-border/50 bg-muted/30 text-muted-foreground text-sm hover-elevate transition-colors"
+                className="hidden sm:flex items-center gap-2 px-3.5 h-9 rounded-xl border border-border/40 bg-muted/20 text-muted-foreground text-sm transition-all duration-200 hover:bg-muted/40 hover:border-border/60 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring/30"
                 data-testid="button-search-trigger"
               >
                 <Search className="h-3.5 w-3.5" />
                 <span>Search...</span>
-                <kbd className="ml-2 px-1.5 py-0.5 rounded text-[10px] font-mono bg-muted border border-border/50">
-                  {navigator.platform?.includes("Mac") ? "\u2318" : "Ctrl"}K
+                <kbd className="ml-2 px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-muted/60 border border-border/40">
+                  Alt Space
                 </kbd>
               </button>
               <ThemeSwitcher compact />

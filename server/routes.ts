@@ -442,18 +442,16 @@ export async function registerRoutes(
         storage.getTypingJobs(),
       ]);
 
-      const enrichedTypingJobs = await Promise.all(
-        allTypingJobs.map(async (job) => {
-          const wo = await storage.getWorkOrderById(job.woId);
-          return { ...job, workOrder: wo };
-        })
-      );
+      const allWoIds = [...new Set(allTypingJobs.map(j => j.woId))];
+      const allJobWos = await Promise.all(allWoIds.map(id => storage.getWorkOrderById(id)));
+      const jobWoMap = new Map(allJobWos.filter(Boolean).map(wo => [wo!.id, wo!]));
 
-      const filteredTypingJobs = enrichedTypingJobs.filter(j =>
-        (j.jobCode && j.jobCode.toLowerCase().includes(q)) ||
-        (j.workOrder?.applicantName?.toLowerCase().includes(q)) ||
-        (j.workOrder?.woNumber?.toLowerCase().includes(q))
-      );
+      const filteredTypingJobs = allTypingJobs.filter(j => {
+        const wo = jobWoMap.get(j.woId);
+        return (j.jobCode && j.jobCode.toLowerCase().includes(q)) ||
+          (wo?.applicantName?.toLowerCase().includes(q)) ||
+          (wo?.woNumber?.toLowerCase().includes(q));
+      }).slice(0, 5);
 
       const filteredCompanies = companies
         .filter(c => c.name.toLowerCase().includes(q))
@@ -465,20 +463,28 @@ export async function registerRoutes(
         .slice(0, 5)
         .map(s => ({ id: s.id, name: s.name, role: s.roleTitle || "" }));
 
+      const companyMap = new Map(companies.map(c => [c.id, c.name]));
+
+      const topWos = workOrders.slice(0, 5);
+
       res.json({
-        workOrders: workOrders.slice(0, 5).map(wo => ({
+        workOrders: topWos.map(wo => ({
           id: wo.id,
           woNumber: wo.woNumber,
           applicantName: wo.applicantName,
           status: wo.status,
+          companyName: wo.companyId ? (companyMap.get(wo.companyId) || "") : "",
         })),
-        typingJobs: filteredTypingJobs.slice(0, 5).map(j => ({
-          id: j.id,
-          jobCode: j.jobCode,
-          woNumber: j.workOrder?.woNumber || "",
-          applicantName: j.workOrder?.applicantName || "",
-          status: j.status,
-        })),
+        typingJobs: filteredTypingJobs.map(j => {
+          const wo = jobWoMap.get(j.woId);
+          return {
+            id: j.id,
+            jobCode: j.jobCode,
+            woNumber: wo?.woNumber || "",
+            applicantName: wo?.applicantName || "",
+            status: j.status,
+          };
+        }),
         companies: filteredCompanies,
         staff: filteredStaff,
       });
