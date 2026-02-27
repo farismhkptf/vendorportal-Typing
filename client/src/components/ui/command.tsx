@@ -28,7 +28,7 @@ const CommandDialog = ({ children, ...props }: DialogProps) => {
     <Dialog {...props}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-        <DialogPrimitive.Content className="spotlight-dialog fixed left-[50%] translate-x-[-50%] z-50 overflow-hidden p-0 border-0 shadow-none bg-transparent w-[680px] top-[22%] rounded-2xl gap-0">
+        <DialogPrimitive.Content className="spotlight-dialog fixed left-[50%] translate-x-[-50%] z-50 overflow-hidden p-0 border-0 shadow-none bg-transparent w-[680px] top-[28%] rounded-2xl gap-0">
           <VisuallyHidden>
             <DialogTitle>Search</DialogTitle>
             <DialogPrimitive.Description>Search work orders, companies, staff and pages</DialogPrimitive.Description>
