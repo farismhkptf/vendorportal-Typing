@@ -4,7 +4,8 @@ import { Command as CommandPrimitive } from "cmdk"
 import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogTitle } from "@/components/ui/dialog"
+import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 
 const Command = React.forwardRef<
@@ -25,14 +26,18 @@ Command.displayName = CommandPrimitive.displayName
 const CommandDialog = ({ children, ...props }: DialogProps) => {
   return (
     <Dialog {...props}>
-      <DialogContent className="spotlight-dialog overflow-hidden p-0 border-0 shadow-none bg-transparent max-w-[640px] top-[22%] translate-y-0 rounded-2xl gap-0">
-        <VisuallyHidden>
-          <DialogTitle>Search</DialogTitle>
-        </VisuallyHidden>
-        <Command className="spotlight-container rounded-2xl [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-14 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-2.5 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
-          {children}
-        </Command>
-      </DialogContent>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <DialogPrimitive.Content className="spotlight-dialog fixed left-[50%] translate-x-[-50%] z-50 overflow-hidden p-0 border-0 shadow-none bg-transparent max-w-[640px] top-[22%] translate-y-0 rounded-2xl gap-0 outline-none">
+          <VisuallyHidden>
+            <DialogTitle>Search</DialogTitle>
+            <DialogPrimitive.Description>Search work orders, companies, staff and pages</DialogPrimitive.Description>
+          </VisuallyHidden>
+          <Command className="spotlight-container rounded-2xl [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wider [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-14 [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-2.5 [&_[cmdk-item]_svg]:h-4 [&_[cmdk-item]_svg]:w-4">
+            {children}
+          </Command>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
     </Dialog>
   )
 }
@@ -42,11 +47,11 @@ const CommandInput = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
   <div className="flex items-center px-4" cmdk-input-wrapper="">
-    <Search className="mr-3 h-5 w-5 shrink-0 text-muted-foreground/60" />
+    <Search className="mr-3 h-5 w-5 shrink-0 text-muted-foreground/50" />
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        "flex h-14 w-full rounded-md bg-transparent py-4 text-base outline-none placeholder:text-muted-foreground/50 disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-14 w-full rounded-md bg-transparent py-4 text-base outline-none placeholder:text-muted-foreground/40 disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       {...props}

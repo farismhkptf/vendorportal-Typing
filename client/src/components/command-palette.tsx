@@ -25,8 +25,6 @@ import {
   Users,
   Calendar,
   BarChart3,
-  ArrowUpDown,
-  CornerDownLeft,
 } from "lucide-react";
 import { toProperCase } from "@/lib/proper-case";
 
@@ -104,7 +102,7 @@ export function CommandPalette() {
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput
-        placeholder="Search..."
+        placeholder="Spotlight Search"
         value={search}
         onValueChange={setSearch}
         data-testid="input-command-search"
@@ -224,18 +222,6 @@ export function CommandPalette() {
           </CommandGroup>
         </CommandList>
       )}
-
-      <div className="spotlight-footer flex items-center justify-center gap-4 px-4 py-2">
-        <span className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
-          <ArrowUpDown className="h-3 w-3" /> Navigate
-        </span>
-        <span className="flex items-center gap-1 text-[11px] text-muted-foreground/50">
-          <CornerDownLeft className="h-3 w-3" /> Open
-        </span>
-        <span className="text-[11px] text-muted-foreground/50">
-          <kbd className="font-mono">esc</kbd> Close
-        </span>
-      </div>
     </CommandDialog>
   );
 }
