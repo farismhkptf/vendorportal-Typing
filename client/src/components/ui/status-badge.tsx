@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type StatusType = 
-  | "Inactive" | "Draft" | "Scheduled" | "Completed" | "Cancelled" | "Rescheduled"
+  | "Inactive" | "Draft" | "Scheduled" | "Completed" | "Cancelled" | "Rescheduled" | "Delayed"
   | "SubmittedToVendor" | "InProcess" | "Returned" | "ReadyForScheduling"
   | "OnHold" | "Rejected" | "Aborted"
   | "FollowUpRequired" | "FollowUpScheduled" | "FollowUpCompleted"
@@ -17,6 +17,7 @@ interface StatusBadgeProps {
 }
 
 const statusStyles: Record<StatusType, string> = {
+  Delayed: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 border border-red-400 dark:border-red-600 animate-pulse",
   Inactive: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-600",
   Draft: "bg-slate-100/80 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
   Scheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
@@ -44,6 +45,7 @@ const statusStyles: Record<StatusType, string> = {
 };
 
 const statusLabels: Record<StatusType, string> = {
+  Delayed: "DELAYED",
   Inactive: "Inactive",
   Draft: "Draft",
   Scheduled: "Scheduled",

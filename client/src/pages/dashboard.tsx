@@ -667,6 +667,50 @@ function AppointmentsLane({ data, isLoading }: { data?: AppointmentsSummary; isL
   );
 }
 
+function DelayedWorkOrdersAlert({ navigate }: { navigate: (path: string) => void }) {
+  const { data: workOrders } = useQuery<any[]>({
+    queryKey: ["/api/work-orders"],
+  });
+
+  const delayedCount = useMemo(() => {
+    if (!workOrders) return 0;
+    return workOrders.filter((wo: any) => wo.status === "Delayed").length;
+  }, [workOrders]);
+
+  if (delayedCount === 0) return null;
+
+  return (
+    <div
+      className="premium-card p-3 border-red-300/50 dark:border-red-800/30 bg-gradient-to-r from-red-50 to-red-100/50 dark:from-red-950/30 dark:to-red-900/20 opacity-0 animate-fade-in animate-pulse"
+      data-testid="alert-delayed-work-orders"
+    >
+      <div className="flex items-center gap-3">
+        <div className="icon-container icon-container-sm !bg-red-100 dark:!bg-red-900/40 !text-red-600 dark:!text-red-400">
+          <AlertTriangle className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm text-red-700 dark:text-red-300">
+            {delayedCount} Delayed Work Order{delayedCount !== 1 ? "s" : ""}
+          </p>
+          <p className="text-xs text-red-600/80 dark:text-red-400/80">
+            Vendor has exceeded the time threshold for completion
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300"
+          onClick={() => navigate("/work-orders?status=Delayed")}
+          data-testid="button-view-delayed"
+        >
+          View
+          <ArrowRight className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
@@ -749,6 +793,8 @@ export default function Dashboard() {
             </>
           )}
         </div>
+
+        <DelayedWorkOrdersAlert navigate={navigate} />
 
         {stats?.lowBalanceWarning && (
           <div 

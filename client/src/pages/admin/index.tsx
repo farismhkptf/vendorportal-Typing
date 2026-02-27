@@ -126,6 +126,10 @@ const thresholdSchema = z.object({
   lowBalanceThreshold: z.coerce.number().min(0, "Must be 0 or greater"),
 });
 
+const delayThresholdSchema = z.object({
+  vendorDelayThresholdHours: z.coerce.number().min(1, "Must be at least 1 hour"),
+});
+
 const userFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email required"),
@@ -729,6 +733,7 @@ export default function AdminPage() {
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [editCcDialogOpen, setEditCcDialogOpen] = useState(false);
   const [editThresholdDialogOpen, setEditThresholdDialogOpen] = useState(false);
+  const [editDelayThresholdDialogOpen, setEditDelayThresholdDialogOpen] = useState(false);
   const [editMaintenanceMsgOpen, setEditMaintenanceMsgOpen] = useState(false);
   const [maintenanceMsg, setMaintenanceMsg] = useState("");
   const [editWhatsappOpen, setEditWhatsappOpen] = useState(false);
@@ -955,6 +960,13 @@ export default function AdminPage() {
     resolver: zodResolver(thresholdSchema),
     defaultValues: {
       lowBalanceThreshold: 1000,
+    },
+  });
+
+  const delayThresholdForm = useForm({
+    resolver: zodResolver(delayThresholdSchema),
+    defaultValues: {
+      vendorDelayThresholdHours: 48,
     },
   });
 
@@ -1303,6 +1315,7 @@ export default function AdminPage() {
       toast({ title: "Settings updated successfully" });
       setEditCcDialogOpen(false);
       setEditThresholdDialogOpen(false);
+      setEditDelayThresholdDialogOpen(false);
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1527,6 +1540,17 @@ export default function AdminPage() {
     updateSettingsMutation.mutate({ lowBalanceThreshold: data.lowBalanceThreshold });
   };
 
+  const handleEditDelayThreshold = () => {
+    delayThresholdForm.reset({
+      vendorDelayThresholdHours: settings?.vendorDelayThresholdHours || 48,
+    });
+    setEditDelayThresholdDialogOpen(true);
+  };
+
+  const handleSubmitDelayThreshold = (data: z.infer<typeof delayThresholdSchema>) => {
+    updateSettingsMutation.mutate({ vendorDelayThresholdHours: data.vendorDelayThresholdHours });
+  };
+
   return (
     <AppLayout>
       {/* Header Section */}
@@ -1632,6 +1656,28 @@ export default function AdminPage() {
                         className="rounded-xl"
                         onClick={handleEditThreshold}
                         data-testid="button-edit-threshold"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/30 border border-red-200/50 dark:border-red-800/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Vendor Delay Threshold</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {settings?.vendorDelayThresholdHours || 48} hours
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Work orders marked as Delayed when vendor exceeds this time
+                        </p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl"
+                        onClick={handleEditDelayThreshold}
+                        data-testid="button-edit-delay-threshold"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -1847,6 +1893,46 @@ export default function AdminPage() {
                     />
                     <div className="flex justify-end gap-3 pt-4">
                       <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditThresholdDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>
+                        {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={editDelayThresholdDialogOpen} onOpenChange={setEditDelayThresholdDialogOpen}>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Vendor Delay Threshold</DialogTitle>
+                </DialogHeader>
+                <Form {...delayThresholdForm}>
+                  <form onSubmit={delayThresholdForm.handleSubmit(handleSubmitDelayThreshold)} className="space-y-4">
+                    <FormField
+                      control={delayThresholdForm.control}
+                      name="vendorDelayThresholdHours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Threshold (hours)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="number" 
+                              placeholder="48" 
+                              className="h-11 rounded-xl"
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Work orders will be marked as Delayed when typing jobs exceed this time at vendor</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end gap-3 pt-4">
+                      <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditDelayThresholdDialogOpen(false)}>
                         Cancel
                       </Button>
                       <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>

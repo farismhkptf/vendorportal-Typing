@@ -191,6 +191,90 @@ async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boolean> {
   }
 }
 
+async function checkAndMarkDelayedWorkOrders(): Promise<number> {
+  try {
+    const settings = await storage.getAppSettings();
+    const thresholdHours = settings?.vendorDelayThresholdHours ?? 48;
+    const thresholdMs = thresholdHours * 3600000;
+    const now = Date.now();
+
+    const allWos = await storage.getWorkOrders();
+    const activeWos = allWos.filter(wo =>
+      wo.status !== "Completed" && wo.status !== "Cancelled" && wo.status !== "Delayed" && wo.status !== "Inactive"
+    );
+
+    let markedCount = 0;
+
+    for (const wo of activeWos) {
+      const jobs = await storage.getTypingJobsByWoId(wo.id);
+      const vendorJobs = jobs.filter(j =>
+        (j.status === "SubmittedToVendor" || j.status === "InProcess") && j.sentAt
+      );
+
+      const isDelayed = vendorJobs.some(j =>
+        (now - new Date(j.sentAt!).getTime()) > thresholdMs
+      );
+
+      if (isDelayed) {
+        await storage.updateWorkOrder(wo.id, {
+          previousStatus: wo.status as any,
+          status: "Delayed",
+        });
+        await storage.createAuditLog({
+          action: "auto_delayed",
+          entityType: "work_order",
+          entityId: wo.id,
+          userId: null,
+          details: { reason: `Vendor exceeded ${thresholdHours}h threshold` },
+        });
+        console.log(`[delay-check] Work order ${wo.woNumber} marked as Delayed`);
+        markedCount++;
+      }
+    }
+
+    return markedCount;
+  } catch (err) {
+    console.error("[delay-check] Error checking for delayed work orders:", err);
+    return 0;
+  }
+}
+
+async function revertDelayedWorkOrder(woId: string): Promise<void> {
+  try {
+    const wo = await storage.getWorkOrderById(woId);
+    if (!wo || wo.status !== "Delayed") return;
+
+    const settings = await storage.getAppSettings();
+    const thresholdMs = (settings?.vendorDelayThresholdHours ?? 48) * 3600000;
+    const now = Date.now();
+
+    const jobs = await storage.getTypingJobsByWoId(woId);
+    const stillOverdue = jobs.some(j =>
+      (j.status === "SubmittedToVendor" || j.status === "InProcess") &&
+      j.sentAt &&
+      (now - new Date(j.sentAt).getTime()) > thresholdMs
+    );
+
+    if (stillOverdue) return;
+
+    const revertTo = wo.previousStatus || "Draft";
+    await storage.updateWorkOrder(woId, {
+      status: revertTo as any,
+      previousStatus: null,
+    });
+    await storage.createAuditLog({
+      action: "delay_resolved",
+      entityType: "work_order",
+      entityId: woId,
+      userId: null,
+      details: { reason: `All vendor jobs resolved, reverted to ${revertTo}` },
+    });
+    console.log(`[delay-check] Work order ${wo.woNumber} delay resolved → ${revertTo}`);
+  } catch (err) {
+    console.error("[delay-check] Error reverting delayed work order:", err);
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -201,6 +285,19 @@ export async function registerRoutes(
   
   // Seed database on startup
   await storage.seedData();
+
+  // Run delay detection every 15 minutes
+  setInterval(() => {
+    checkAndMarkDelayedWorkOrders().catch(err =>
+      console.error("[delay-check] Interval error:", err)
+    );
+  }, 15 * 60 * 1000);
+  // Also run once on startup (after a short delay to let DB settle)
+  setTimeout(() => {
+    checkAndMarkDelayedWorkOrders().catch(err =>
+      console.error("[delay-check] Initial check error:", err)
+    );
+  }, 5000);
 
   async function notifyVendorUsers(vendorId: string, notification: Omit<InsertVendorNotification, 'vendorUserId' | 'vendorId'>) {
     try {
@@ -895,8 +992,14 @@ export async function registerRoutes(
   });
 
   // ========== Work Orders ==========
+  let lastDelayCheck = 0;
   app.get("/api/work-orders", requireAuth, async (req, res) => {
     try {
+      const now = Date.now();
+      if (now - lastDelayCheck > 5 * 60 * 1000) {
+        lastDelayCheck = now;
+        checkAndMarkDelayedWorkOrders().catch(() => {});
+      }
       const { search, status } = req.query;
       const workOrdersList = await storage.getWorkOrders(
         search as string | undefined,
@@ -954,7 +1057,7 @@ export async function registerRoutes(
     try {
       const bulkStatusSchema = z.object({
         ids: z.array(z.string()).min(1),
-        status: z.enum(["Inactive", "Draft", "Scheduled", "Completed", "Cancelled"]),
+        status: z.enum(["Inactive", "Draft", "Scheduled", "Completed", "Cancelled", "Delayed"]),
       });
       const validation = validateBody(bulkStatusSchema, req.body);
       if ("error" in validation) {
@@ -1425,6 +1528,7 @@ export async function registerRoutes(
       }
       
       if (status === "Completed" || status === "FollowUpCompleted") {
+        await revertDelayedWorkOrder(updated.woId);
         await checkAndAutoCompleteWorkOrder(updated.woId);
       }
 
@@ -2614,6 +2718,7 @@ export async function registerRoutes(
         alwaysCc: ["faris@procompany.ae", "yasin@procompany.ae"],
         lowBalanceThreshold: 1000,
         followUpCenter: null,
+        vendorDelayThresholdHours: 48,
       });
     } catch (error) {
       console.error("Settings error:", error);
@@ -4111,6 +4216,7 @@ export async function registerRoutes(
         });
       }
 
+      await revertDelayedWorkOrder(job.woId);
       await checkAndAutoCompleteWorkOrder(job.woId);
 
       res.json(result.job);

@@ -1033,6 +1033,20 @@ export default function WorkOrderDetail() {
       />
 
       <div className="p-4 lg:p-8 space-y-6">
+        {workOrder.status === "Delayed" && (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700 animate-pulse" data-testid="delayed-banner">
+            <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-red-700 dark:text-red-300">DELAYED — Vendor Has Not Completed</p>
+              <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-0.5">
+                This work order is delayed — vendor has not completed the typing job within the expected timeframe. Immediate follow-up is recommended.
+              </p>
+            </div>
+          </div>
+        )}
+
         {workOrder.status === "Inactive" ? (
           <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700" data-testid="inactive-banner">
             <div className="h-9 w-9 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">

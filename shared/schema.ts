@@ -58,7 +58,7 @@ export type UserRole = typeof ALL_ROLES[number];
 export const centerTypeEnum = pgEnum("center_type", ["Medical", "EID", "Both"]);
 export const centerAuthorityEnum = pgEnum("center_authority", ["DHA", "EHS", "ICP"]);
 export const centerTierEnum = pgEnum("center_tier", ["Normal", "VIP"]);
-export const woStatusEnum = pgEnum("wo_status", ["Inactive", "Draft", "Scheduled", "Completed", "Cancelled"]);
+export const woStatusEnum = pgEnum("wo_status", ["Inactive", "Draft", "Scheduled", "Completed", "Cancelled", "Delayed"]);
 export const appointmentTypeEnum = pgEnum("appointment_type", ["Medical", "EID"]);
 export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"]);
 export const rescheduleStatusEnum = pgEnum("reschedule_status", ["New", "Accepted", "Closed"]);
@@ -253,6 +253,7 @@ export const workOrders = pgTable("work_orders", {
   companyId: varchar("company_id").notNull(),
   serviceTypeId: varchar("service_type_id"),
   status: woStatusEnum("status").notNull().default("Inactive"),
+  previousStatus: woStatusEnum("previous_status"),
   isMinor: boolean("is_minor").notNull().default(false),
   notes: text("notes"),
   createdBy: varchar("created_by"),
@@ -472,6 +473,7 @@ export const appSettings = pgTable("app_settings", {
   privacyPolicyHtml: text("privacy_policy_html"),
   termsOfServiceHtml: text("terms_of_service_html"),
   followUpCenter: text("follow_up_center"),
+  vendorDelayThresholdHours: integer("vendor_delay_threshold_hours").notNull().default(48),
 });
 
 // Change notifications table (manager edits for admin review)

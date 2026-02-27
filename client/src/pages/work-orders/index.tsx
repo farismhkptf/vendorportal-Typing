@@ -49,7 +49,7 @@ type ViewMode = "compact" | "cards" | "table" | "kanban";
 type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc" | "applicant_asc" | "applicant_desc";
 type SpecialFilter = "all" | "needs_attention" | "med_not_scheduled" | "eid_not_scheduled" | "med_typing_pending" | "eid_typing_pending" | "awaiting_typing" | "need_scheduling" | "vip" | "completed";
 
-const STATUS_ORDER = ["Draft", "Scheduled", "Completed", "Cancelled"] as const;
+const STATUS_ORDER = ["Delayed", "Draft", "Scheduled", "Completed", "Cancelled"] as const;
 
 type MedEidStatus = "not_started" | "typing_pending" | "typing_sent" | "typing_returned" | "typing_done" | "appt_scheduled" | "appt_done" | "complete";
 
@@ -96,6 +96,7 @@ function getEidStatus(wo: WorkOrderEnriched): { typing: string | null; appointme
 }
 
 function getScheduledDisplayStatus(wo: WorkOrderEnriched): string {
+  if (wo.status === "Delayed") return "Delayed";
   if (wo.status !== "Scheduled") return wo.status;
   const med = getMedicalStatus(wo);
   const eid = getEidStatus(wo);
@@ -146,12 +147,30 @@ function getProgressPercent(wo: WorkOrderEnriched): number {
 }
 
 function getCardBorderColor(wo: WorkOrderEnriched): string {
+  if (wo.status === "Delayed") return "border-l-red-600 dark:border-l-red-500";
   if (wo.status === "Completed") return "border-l-emerald-500";
   if (wo.status === "Cancelled") return "border-l-gray-300 dark:border-l-gray-600";
   if (needsAttention(wo)) return "border-l-red-500";
   const progress = getProgressPercent(wo);
   if (progress > 0) return "border-l-blue-500";
   return "border-l-slate-300 dark:border-l-slate-600";
+}
+
+function getDelayedElapsedText(wo: WorkOrderEnriched): string | null {
+  if (wo.status !== "Delayed") return null;
+  const jobs = (wo.typingJobs || []).filter(
+    (j: any) => (j.status === "SubmittedToVendor" || j.status === "InProcess") && j.sentAt
+  );
+  if (jobs.length === 0) return "Vendor overdue";
+  const firstSentAt = new Date(String(jobs[0].sentAt));
+  const oldest = jobs.reduce((min: Date, j: any) => {
+    const d = new Date(String(j.sentAt));
+    return d < min ? d : min;
+  }, firstSentAt);
+  const hoursElapsed = Math.floor((Date.now() - oldest.getTime()) / (1000 * 60 * 60));
+  if (hoursElapsed < 48) return `Vendor overdue (${hoursElapsed}h)`;
+  const days = Math.floor(hoursElapsed / 24);
+  return `Vendor overdue (${days}d ${hoursElapsed % 24}h)`;
 }
 
 function getDaysOld(date: string | Date): number {
@@ -640,6 +659,8 @@ export default function WorkOrdersList() {
     const borderColor = getCardBorderColor(wo);
     const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
     const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
+    const delayedText = getDelayedElapsedText(wo);
+    const isDelayed = wo.status === "Delayed";
 
     const st = wo.serviceType;
     const showMed = med.hasMedical || (st && (st.requiresMedicalTyping || st.requiresMedicalScheduling));
@@ -667,7 +688,7 @@ export default function WorkOrdersList() {
         </div>
         <Link href={`/work-orders/${wo.id}`} className="flex-1 min-w-0">
           <div 
-            className={`premium-card ${isComfortable ? "p-4" : "p-2.5"} border-l-[3px] ${borderColor} opacity-0 animate-fade-in`}
+            className={`premium-card ${isComfortable ? "p-4" : "p-2.5"} border-l-[3px] ${borderColor} opacity-0 animate-fade-in ${isDelayed ? "bg-red-50/50 dark:bg-red-950/20" : ""}`}
             style={{ animationDelay: `${index * 0.03}s` }}
             data-testid={`work-order-card-${wo.woNumber}`}
           >
@@ -682,10 +703,16 @@ export default function WorkOrdersList() {
                       VIP
                     </Badge>
                   )}
-                  {attention && (
+                  {attention && !isDelayed && (
                     <Badge variant="secondary" className="bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300 rounded-full px-1.5 py-0 text-[10px]">
                       <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
                       Action needed
+                    </Badge>
+                  )}
+                  {isDelayed && (
+                    <Badge variant="secondary" className="bg-red-600 text-white dark:bg-red-700 dark:text-red-100 rounded-full px-1.5 py-0 text-[10px] animate-pulse">
+                      <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                      DELAYED
                     </Badge>
                   )}
                 </div>
@@ -704,7 +731,13 @@ export default function WorkOrdersList() {
                     </div>
                   )}
                 </div>
-                {nextAction.variant !== "success" && (
+                {isDelayed && delayedText && (
+                  <div className="flex items-center gap-1 mt-1" data-testid={`delayed-indicator-${wo.woNumber}`}>
+                    <AlertTriangle className="h-3 w-3 text-red-600 dark:text-red-400 shrink-0" />
+                    <span className="text-[10px] font-semibold text-red-600 dark:text-red-400">{delayedText}</span>
+                  </div>
+                )}
+                {!isDelayed && nextAction.variant !== "success" && (
                   <div className="flex items-center gap-1 mt-1">
                     <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
                     <NextActionIndicator message={nextAction.message} variant={nextAction.variant} />
@@ -1031,6 +1064,7 @@ export default function WorkOrdersList() {
         </SelectTrigger>
         <SelectContent className="rounded-xl">
           <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="Delayed">Delayed</SelectItem>
           <SelectItem value="Inactive">Inactive</SelectItem>
           <SelectItem value="Draft">Draft</SelectItem>
           <SelectItem value="Scheduled">Scheduled</SelectItem>
