@@ -42,7 +42,7 @@ A separate session-based authentication system exists for vendors with `requireV
 
 ### UI/UX Design
 
-The design adopts an Apple-inspired glassmorphism aesthetic with soft gradients, rounded corners, and a compact layout. Custom components extend `shadcn/ui` for specific application patterns. Key UX features include smooth page transitions, dynamic greetings, breadcrumb navigation, copy-to-clipboard functionality, relative date displays, mobile Floating Action Buttons (FABs), and comprehensive loading states. **Spotlight Search** (`Alt+Space` or `Ctrl+K`): Apple Spotlight-style command palette with glassmorphism, quick actions (New WO, Schedule Medical/EID, Top Up Wallet), localStorage recents, rich search results with inline StatusBadges and company names, colored category icons, and keyboard navigation hints footer.
+The design adopts an Apple-inspired glassmorphism aesthetic with soft gradients, rounded corners, and a compact layout. Custom components extend `shadcn/ui` for specific application patterns. Key UX features include smooth page transitions, dynamic greetings, breadcrumb navigation, copy-to-clipboard functionality, relative date displays, mobile Floating Action Buttons (FABs), and comprehensive loading states. **Spotlight Search** (`Ctrl+Space` or `Ctrl+K`): Apple Spotlight-style command palette with glassmorphism, quick actions (New WO, Schedule Medical/EID, Top Up Wallet), localStorage recents, rich search results with inline StatusBadges and company names, colored category icons, and keyboard navigation hints footer.
 
 ### Core Features
 

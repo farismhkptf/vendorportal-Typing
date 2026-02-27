@@ -107,7 +107,7 @@ export function CommandPalette() {
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.key === " " && e.altKey) {
+      if (e.key === " " && e.ctrlKey) {
         e.preventDefault();
         setOpen((prev) => !prev);
       }

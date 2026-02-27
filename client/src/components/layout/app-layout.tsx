@@ -183,7 +183,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  document.dispatchEvent(new KeyboardEvent("keydown", { key: " ", altKey: true }));
+                  document.dispatchEvent(new KeyboardEvent("keydown", { key: " ", ctrlKey: true }));
                 }}
                 className="hidden sm:flex items-center gap-2 px-3.5 h-9 rounded-xl border border-border/40 bg-muted/20 text-muted-foreground text-sm transition-all duration-200 hover:bg-muted/40 hover:border-border/60 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring/30"
                 data-testid="button-search-trigger"
@@ -191,7 +191,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <Search className="h-3.5 w-3.5" />
                 <span>Search...</span>
                 <kbd className="ml-2 px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-muted/60 border border-border/40">
-                  Alt Space
+                  Ctrl Space
                 </kbd>
               </button>
               <ThemeSwitcher compact />
