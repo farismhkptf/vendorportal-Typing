@@ -1300,7 +1300,7 @@
 }
 
 .spotlight-dialog {
-  animation: spotlight-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: spotlight-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
   outline: none !important;
 }
 
@@ -1310,7 +1310,7 @@
 }
 
 .spotlight-dialog[data-state="closed"] {
-  animation: spotlight-out 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: spotlight-out 0.2s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 @keyframes spotlight-in {
