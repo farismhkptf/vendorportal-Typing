@@ -102,7 +102,7 @@ export function CommandPalette() {
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
       <CommandInput
-        placeholder="Spotlight Search"
+        placeholder="Search..."
         value={search}
         onValueChange={setSearch}
         data-testid="input-command-search"
