@@ -1301,6 +1301,12 @@
 
 .spotlight-dialog {
   animation: spotlight-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none !important;
+}
+
+.spotlight-dialog *:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .spotlight-dialog[data-state="closed"] {
