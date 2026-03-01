@@ -965,6 +965,11 @@ export async function registerRoutes(
         const apptType = jt?.category === "Medical" ? "Medical" : "EID";
         if (appointedWoTypes.has(`${job.woId}-${apptType}`)) continue;
 
+        if (apptType === "EID") {
+          const result = await storage.getTypingJobResult(job.id);
+          if (!result?.biometricsRequired) continue;
+        }
+
         if (!needsSchedulingMap.has(job.woId)) {
           const wo = await storage.getWorkOrderById(job.woId);
           const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
@@ -994,6 +999,85 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Dashboard appointments-summary error:", error);
       res.status(500).json({ message: "Failed to fetch appointments summary" });
+    }
+  });
+
+  // ========== Scheduling Queue ==========
+  app.get("/api/appointments/scheduling-queue", requireAuth, async (req, res) => {
+    try {
+      const [readyJobs, allJobTypes, allAppointments] = await Promise.all([
+        storage.getTypingJobs("ReadyForScheduling"),
+        storage.getJobTypes(),
+        storage.getAllAppointments(),
+      ]);
+
+      const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
+
+      const activeApptSet = new Set(
+        allAppointments
+          .filter(a => a.status !== "Cancelled" && a.status !== "Rescheduled")
+          .map(a => `${a.woId}-${a.type}`)
+      );
+
+      const medicalQueue: any[] = [];
+      const eidQueue: any[] = [];
+
+      for (const job of readyJobs) {
+        const jt = jobTypeMap.get(job.jobTypeId);
+        if (!jt) continue;
+        const apptType = jt.category === "Medical" ? "Medical" : "EID";
+
+        if (activeApptSet.has(`${job.woId}-${apptType}`)) continue;
+
+        const result = await storage.getTypingJobResult(job.id);
+
+        if (apptType === "EID" && !result?.biometricsRequired) continue;
+
+        const wo = await storage.getWorkOrderById(job.woId);
+        if (!wo) continue;
+        const company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
+        const vendor = job.vendorId ? await storage.getVendorById(job.vendorId) : null;
+
+        const queueItem = {
+          typingJobId: job.id,
+          jobCode: job.jobCode,
+          woId: wo.id,
+          woNumber: wo.woNumber,
+          applicantName: wo.applicantName,
+          applicantPhone: wo.applicantPhone,
+          applicantEmail: wo.applicantEmail,
+          isVip: wo.isVip || false,
+          serviceTypeId: wo.serviceTypeId,
+          companyId: company?.id || null,
+          companyName: company?.name || null,
+          preferredMedicalCenterId: company?.preferredMedicalCenterId || null,
+          preferredMedicalCenterVipId: company?.preferredMedicalCenterVipId || null,
+          preferredBiometricsCenterId: company?.preferredBiometricsCenterId || null,
+          preferredBiometricsCenterVipId: company?.preferredBiometricsCenterVipId || null,
+          assistStaffId: company?.assistStaffId || null,
+          rmStaffId: company?.rmStaffId || null,
+          vendorId: vendor?.id || null,
+          vendorName: vendor?.name || null,
+          applicationRefNo: result?.applicationRefNo || null,
+          biometricsRequired: result?.biometricsRequired || false,
+          biometricsDatetime: result?.biometricsDatetime || null,
+          biometricsCenter: result?.biometricsCenter || null,
+          vendorNotes: result?.vendorNotes || null,
+          returnedAt: job.returnedAt || null,
+          completedAt: job.returnedAt || null,
+        };
+
+        if (apptType === "Medical") {
+          medicalQueue.push(queueItem);
+        } else {
+          eidQueue.push(queueItem);
+        }
+      }
+
+      res.json({ medical: medicalQueue, eid: eidQueue });
+    } catch (error) {
+      console.error("Scheduling queue error:", error);
+      res.status(500).json({ message: "Failed to fetch scheduling queue" });
     }
   });
 
