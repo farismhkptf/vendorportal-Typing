@@ -4869,6 +4869,170 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/admin/export", requireRole("Admin"), async (req, res) => {
+    try {
+      const [allCompanies, allCenters, allStaff, allServiceTypes, allVendors, allJobTypes, allDocReqs, allUsers] = await Promise.all([
+        storage.getCompanies(),
+        storage.getCenters(),
+        storage.getStaff(),
+        storage.getServiceTypes(),
+        storage.getVendors(),
+        storage.getJobTypes(),
+        storage.getDocumentRequirements(),
+        storage.getUsers(),
+      ]);
+
+      const centerMap = new Map(allCenters.map(c => [c.id, c.name]));
+      const staffMap = new Map(allStaff.map(s => [s.id, s.name]));
+      const vendorMap = new Map(allVendors.map(v => [v.id, v.name]));
+      const boolToYesNo = (val: any) => val ? "Yes" : "No";
+
+      const workbook = XLSX.utils.book_new();
+
+      const companiesRows = allCompanies.map(c => [
+        c.name || "",
+        c.tradeLicenseNumber || "",
+        c.preferredMedicalCenterId ? centerMap.get(c.preferredMedicalCenterId) || "" : "",
+        c.preferredMedicalCenterVipId ? centerMap.get(c.preferredMedicalCenterVipId) || "" : "",
+        c.preferredBiometricsCenterId ? centerMap.get(c.preferredBiometricsCenterId) || "" : "",
+        c.preferredBiometricsCenterVipId ? centerMap.get(c.preferredBiometricsCenterVipId) || "" : "",
+        c.rmStaffId ? staffMap.get(c.rmStaffId) || "" : "",
+        c.assistStaffId ? staffMap.get(c.assistStaffId) || "" : "",
+        (c.clientCoordinator as any)?.name || "",
+        (c.clientCoordinator as any)?.mobile || "",
+        (c.clientCoordinator as any)?.email || "",
+        (c.clientManager as any)?.name || "",
+        (c.clientManager as any)?.mobile || "",
+        (c.clientManager as any)?.email || "",
+        (c.clientAccountant as any)?.name || "",
+        (c.clientAccountant as any)?.mobile || "",
+        (c.clientAccountant as any)?.email || "",
+        c.deliveryAddress || "",
+        boolToYesNo(c.active),
+      ]);
+      const companiesData = [
+        ["Name", "Trade License", "Preferred Medical Center", "Preferred Medical Center (VIP)", "Preferred Biometrics Center", "Preferred Biometrics Center (VIP)", "RM Staff", "Assistant Staff", "Coordinator Name", "Coordinator Phone", "Coordinator Email", "Manager Name", "Manager Phone", "Manager Email", "Accountant Name", "Accountant Phone", "Accountant Email", "Delivery Address", "Active"],
+        ...companiesRows,
+      ];
+      const companiesSheet = XLSX.utils.aoa_to_sheet(companiesData);
+      companiesSheet["!cols"] = [
+        { wch: 30 }, { wch: 20 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 },
+        { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 25 },
+        { wch: 20 }, { wch: 18 }, { wch: 25 }, { wch: 20 }, { wch: 18 }, { wch: 25 },
+        { wch: 35 }, { wch: 8 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, companiesSheet, "Companies");
+
+      const centersRows = allCenters.map(c => [
+        c.name || "", c.type || "", c.authority || "", c.tier || "",
+        c.address || "", c.area || "", c.googleMapsUrl || "",
+        c.timingText || "", c.notes || "", boolToYesNo(c.active),
+      ]);
+      const centersData = [
+        ["Name", "Type", "Authority", "Tier", "Address", "Area", "Google Maps URL", "Timing Text", "Notes", "Active"],
+        ...centersRows,
+      ];
+      const centersSheet = XLSX.utils.aoa_to_sheet(centersData);
+      centersSheet["!cols"] = [
+        { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 10 },
+        { wch: 35 }, { wch: 15 }, { wch: 35 }, { wch: 25 }, { wch: 25 }, { wch: 8 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, centersSheet, "Centers");
+
+      const staffRows = allStaff.map(s => [
+        s.name || "", s.roleTitle || "", s.staffType || "",
+        s.phone || "", s.email || "", s.status || "",
+        s.replacementId ? staffMap.get(s.replacementId) || "" : "",
+        s.leaveEndDate || "", boolToYesNo(s.active),
+      ]);
+      const staffData = [
+        ["Name", "Role Title", "Staff Type", "Phone", "Email", "Status", "Replacement", "Leave End Date", "Active"],
+        ...staffRows,
+      ];
+      const staffSheet = XLSX.utils.aoa_to_sheet(staffData);
+      staffSheet["!cols"] = [
+        { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 18 },
+        { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 8 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, staffSheet, "Staff");
+
+      const serviceTypesRows = allServiceTypes.map(st => [
+        st.name || "", st.category || "",
+        boolToYesNo(st.requiresMedicalTyping), boolToYesNo(st.requiresMedicalScheduling),
+        boolToYesNo(st.requiresIdTyping2Years), boolToYesNo(st.requiresIdTyping1Year),
+        boolToYesNo(st.requiresIdTyping10Years), boolToYesNo(st.requiresIdBiometrics),
+        boolToYesNo(st.isDependent), boolToYesNo(st.active),
+      ]);
+      const serviceTypesData = [
+        ["Name", "Category", "Requires Medical Typing", "Requires Medical Scheduling", "Requires ID Typing 2 Years", "Requires ID Typing 1 Year", "Requires ID Typing 10 Years", "Requires ID Biometrics", "Is Dependent", "Active"],
+        ...serviceTypesRows,
+      ];
+      const serviceTypesSheet = XLSX.utils.aoa_to_sheet(serviceTypesData);
+      serviceTypesSheet["!cols"] = [
+        { wch: 25 }, { wch: 22 }, { wch: 25 }, { wch: 28 },
+        { wch: 25 }, { wch: 22 }, { wch: 25 }, { wch: 22 }, { wch: 14 }, { wch: 8 },
+      ];
+      XLSX.utils.book_append_sheet(workbook, serviceTypesSheet, "Service Types");
+
+      const vendorsRows = allVendors.map(v => [
+        v.name || "", v.contactPerson || "", v.phone || "", v.email || "", boolToYesNo(v.active),
+      ]);
+      const vendorsData = [
+        ["Name", "Contact Person", "Phone", "Email", "Active"],
+        ...vendorsRows,
+      ];
+      const vendorsSheet = XLSX.utils.aoa_to_sheet(vendorsData);
+      vendorsSheet["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: 18 }, { wch: 25 }, { wch: 8 }];
+      XLSX.utils.book_append_sheet(workbook, vendorsSheet, "Vendors");
+
+      const jobTypesRows = allJobTypes.map(jt => [
+        jt.name || "", jt.category || "", jt.cost ?? "", boolToYesNo(jt.active),
+      ]);
+      const jobTypesData = [
+        ["Name", "Category", "Cost", "Active"],
+        ...jobTypesRows,
+      ];
+      const jobTypesSheet = XLSX.utils.aoa_to_sheet(jobTypesData);
+      jobTypesSheet["!cols"] = [{ wch: 25 }, { wch: 15 }, { wch: 10 }, { wch: 8 }];
+      XLSX.utils.book_append_sheet(workbook, jobTypesSheet, "Vendor Jobs");
+
+      const docReqsRows = allDocReqs.map(dr => [
+        dr.serviceCategory || "", dr.documentType || "",
+        boolToYesNo(dr.isRequired), boolToYesNo(dr.appliesToMedical), boolToYesNo(dr.appliesToEid),
+      ]);
+      const docReqsData = [
+        ["Service Category", "Document Type", "Is Required", "Applies to Medical", "Applies to EID"],
+        ...docReqsRows,
+      ];
+      const docReqsSheet = XLSX.utils.aoa_to_sheet(docReqsData);
+      docReqsSheet["!cols"] = [{ wch: 22 }, { wch: 25 }, { wch: 14 }, { wch: 20 }, { wch: 16 }];
+      XLSX.utils.book_append_sheet(workbook, docReqsSheet, "Document Requirements");
+
+      const usersRows = allUsers.map(u => [
+        u.name || "", u.email || "", u.role || "",
+        u.staffId ? staffMap.get(u.staffId) || "" : "",
+        u.vendorId ? vendorMap.get(u.vendorId) || "" : "",
+        boolToYesNo(u.active),
+        u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "",
+      ]);
+      const usersData = [
+        ["Name", "Email", "Role", "Linked Staff", "Linked Vendor", "Active", "Created At"],
+        ...usersRows,
+      ];
+      const usersSheet = XLSX.utils.aoa_to_sheet(usersData);
+      usersSheet["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 22 }, { wch: 25 }, { wch: 25 }, { wch: 8 }, { wch: 14 }];
+      XLSX.utils.book_append_sheet(workbook, usersSheet, "User Accounts");
+
+      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="PRO_Company_Data_Export.xlsx"');
+      res.send(buffer);
+    } catch (error) {
+      console.error("Data export error:", error);
+      res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
   app.post("/api/admin/import", requireRole("Admin"), upload.single('file'), async (req: any, res) => {
     try {
       if (!req.file) {

@@ -504,6 +504,7 @@ function MonthlySheetSection() {
 function ImportExportSection() {
   const { toast } = useToast();
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importResults, setImportResults] = useState<ImportResponse | null>(null);
 
@@ -526,6 +527,28 @@ function ImportExportSection() {
       toast({ title: "Download failed", description: "Could not download the template file.", variant: "destructive" });
     } finally {
       setIsDownloading(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch("/api/admin/export");
+      if (!response.ok) throw new Error("Failed to export data");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "PRO_Company_Data_Export.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast({ title: "Export downloaded", description: "All data has been exported to Excel." });
+    } catch {
+      toast({ title: "Export failed", description: "Could not export data. Please try again.", variant: "destructive" });
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -582,7 +605,7 @@ function ImportExportSection() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="p-6 rounded-xl bg-muted/30 border border-border/30 space-y-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
@@ -634,6 +657,25 @@ function ImportExportSection() {
               data-testid="input-import-file"
             />
           </div>
+        </div>
+
+        <div className="p-6 rounded-xl bg-muted/30 border border-border/30 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <FileSpreadsheet className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-medium text-foreground" data-testid="text-export-title">Export All Data</h3>
+              <p className="text-sm text-muted-foreground">Download all reference data as an Excel file</p>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Exports Companies, Centers, Staff, Service Types, Vendors, Vendor Jobs, Document Requirements, and User Accounts into a single Excel file.
+          </p>
+          <Button onClick={handleExportData} disabled={isExporting} data-testid="button-export-data">
+            {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileSpreadsheet className="h-4 w-4 mr-2" />}
+            {isExporting ? "Exporting..." : "Export All Data"}
+          </Button>
         </div>
       </div>
 
