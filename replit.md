@@ -25,8 +25,9 @@ The PostgreSQL database includes core entities such as Users (with roles: Admin,
 ### Authentication and Authorization
 
 Session-based authentication uses `express-session` + `connect-pg-simple` for PostgreSQL session storage, with passwords hashed via `bcryptjs`. Role-Based Access Control (RBAC) is enforced at both layers:
--   **Frontend**: Centralized `ROUTE_ACCESS` config in `App.tsx` maps URL path prefixes to allowed roles. `AuthGuard` renders an `AccessDenied` page for unauthorized routes. Navigation filtering in `app-layout.tsx` hides inaccessible links.
--   **Backend**: All API routes are protected with `requireAuth`, `requireRole()`, or `requireOpsRole` middleware. Only `/api/public/*`, `/api/reschedule/:token`, and auth endpoints are publicly accessible.
+-   **Frontend**: Centralized `ROUTE_ACCESS` config in `App.tsx` maps URL path prefixes to allowed roles. `AuthGuard` renders an `AccessDenied` page for unauthorized routes. Navigation filtering in `app-layout.tsx` hides inaccessible links. A React `ErrorBoundary` wraps the entire app to catch uncaught render errors and show a recovery UI.
+-   **Backend**: All API routes are protected with `requireAuth`, `requireRole()`, or `requireOpsRole` middleware. Only `/api/public/*`, `/api/reschedule/:token`, and auth endpoints are publicly accessible. Security headers via `helmet` (CSP disabled for Vite dev compatibility). Session cookie `secure` flag is production-only.
+-   **Dev-only endpoints**: `/api/auth/quick-login` and `/api/auth/accounts` are gated behind `NODE_ENV !== 'production'`. The login page auto-hides the quick-login account picker when accounts are unavailable (i.e., in production).
 A separate session-based authentication system exists for vendors with `requireVendorAuth` middleware.
 
 #### Staff Roles

@@ -5,6 +5,7 @@ console.warn = (...args: any[]) => {
 };
 
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import { registerRoutes } from "./routes";
@@ -14,6 +15,11 @@ import { pool } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 
 declare module "http" {
   interface IncomingMessage {
@@ -55,7 +61,7 @@ app.use(
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: "lax",
     },
   })

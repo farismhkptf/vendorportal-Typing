@@ -442,7 +442,7 @@ export async function registerRoutes(
         storage.getTypingJobs(),
       ]);
 
-      const allWoIds = [...new Set(allTypingJobs.map(j => j.woId))];
+      const allWoIds = Array.from(new Set(allTypingJobs.map(j => j.woId)));
       const allJobWos = await Promise.all(allWoIds.map(id => storage.getWorkOrderById(id)));
       const jobWoMap = new Map(allJobWos.filter(Boolean).map(wo => [wo!.id, wo!]));
 
@@ -1426,7 +1426,7 @@ export async function registerRoutes(
       if (wo.status !== "Inactive") {
         return res.status(400).json({ message: "Work order is already active" });
       }
-      const updated = await storage.activateWorkOrder(id, validation.data.isMinor);
+      const updated = await storage.activateWorkOrder(id, validation.data.isMinor ?? false);
       await storage.createAuditLog({
         entityType: "work_order",
         entityId: id,
@@ -2924,6 +2924,9 @@ export async function registerRoutes(
   // ========== Authentication ==========
   app.get("/api/auth/accounts", async (_req, res) => {
     try {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "This endpoint is disabled in production" });
+      }
       const allUsers = await storage.getUsers();
       const accounts = allUsers
         .filter(u => u.active)
@@ -2937,6 +2940,9 @@ export async function registerRoutes(
 
   app.post("/api/auth/quick-login", async (req, res) => {
     try {
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ message: "This endpoint is disabled in production" });
+      }
       const { userId } = req.body;
       if (!userId) {
         return res.status(400).json({ message: "User ID is required" });
@@ -3068,21 +3074,26 @@ export async function registerRoutes(
   });
 
   app.get("/api/auth/me", async (req, res) => {
-    if (!req.session.userId) {
-      return res.status(401).json({ message: "Not authenticated" });
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const user = await storage.getUser(req.session.userId);
+      if (!user || !user.active) {
+        req.session.destroy(() => {});
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        staffId: user.staffId,
+      });
+    } catch (error) {
+      console.error("Auth check error:", error);
+      res.status(500).json({ message: "Authentication check failed" });
     }
-    const user = await storage.getUser(req.session.userId);
-    if (!user || !user.active) {
-      req.session.destroy(() => {});
-      return res.status(401).json({ message: "Not authenticated" });
-    }
-    res.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      staffId: user.staffId,
-    });
   });
 
   app.post("/api/auth/logout", (req, res) => {

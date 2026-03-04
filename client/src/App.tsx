@@ -1,3 +1,4 @@
+import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -15,6 +16,50 @@ import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 import { useSplash } from "@/contexts/splash-context";
 import SplashScreen from "@/components/splash-screen";
+
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Uncaught render error:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-background">
+          <div className="text-center max-w-md px-6">
+            <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
+              <span className="text-2xl">⚠</span>
+            </div>
+            <h1 className="text-xl font-semibold text-foreground mb-2">Something went wrong</h1>
+            <p className="text-sm text-muted-foreground mb-6">
+              An unexpected error occurred. Please reload the page to continue.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+              data-testid="button-reload"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 import Dashboard from "@/pages/dashboard";
 import CrmDashboard from "@/pages/crm-dashboard";
@@ -221,19 +266,21 @@ function SplashOverlay() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <AuthProvider>
-            <SplashOverlay />
-            <CommandPalette />
-            <MobileBottomNav />
-            <Toaster />
-            <Router />
-          </AuthProvider>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <TooltipProvider>
+            <AuthProvider>
+              <SplashOverlay />
+              <CommandPalette />
+              <MobileBottomNav />
+              <Toaster />
+              <Router />
+            </AuthProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

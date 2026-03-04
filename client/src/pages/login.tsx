@@ -82,6 +82,7 @@ export default function Login() {
   const { data: accounts = [] } = useQuery<AccountInfo[]>({
     queryKey: ["/api/auth/accounts"],
     enabled: !user,
+    retry: false,
   });
 
   const { data: publicSettings } = useQuery<{ maintenanceMode: boolean; maintenanceMessage: string | null; whatsappNumber: string | null }>({
@@ -198,7 +199,7 @@ export default function Login() {
                 </div>
               )}
 
-              {!showManualLogin ? (
+              {!showManualLogin && staffAccounts.length > 0 ? (
                 <div className="space-y-2">
                   {staffAccounts.map((account) => (
                     <button
@@ -225,12 +226,6 @@ export default function Login() {
                       <ChevronRight className="h-4 w-4 text-white/40 shrink-0" />
                     </button>
                   ))}
-
-                  {staffAccounts.length === 0 && (
-                    <p className="text-sm text-white/50 text-center py-4">
-                      No accounts available
-                    </p>
-                  )}
 
                   <div className="pt-3 border-t border-white/10 mt-3">
                     <button

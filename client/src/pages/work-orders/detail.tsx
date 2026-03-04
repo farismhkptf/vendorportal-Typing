@@ -1944,7 +1944,7 @@ export default function WorkOrderDetail() {
               </div>
             </div>
 
-            {(workOrder.serviceType as any)?.isDependent && (
+            {serviceTypes?.find(st => st.id === workOrder.serviceTypeId)?.isDependent && (
               <div className="space-y-3 pt-1">
                 <p className="text-sm font-medium text-foreground">Applicant Age</p>
                 <p className="text-xs text-muted-foreground -mt-2">This is a dependent visa. Medical typing may not be required for minors.</p>
