@@ -1,0 +1,102 @@
+You are a Senior QA Engineer + Release Manager. I want a FULL pre-publish audit of this Replit web app.
+
+GOAL:
+Detect anything that could break in production, anything unfinished/half-implemented, duplicates (routes/components/logic), missing validations, security gaps, performance issues, and any UX inconsistencies. Then give me a clear “ship / don’t ship” decision.
+
+RULES:
+- Do NOT rewrite the whole app. Only propose targeted fixes.
+- Work only with what exists in this repo. If something is missing, flag it clearly.
+- Verify by reading code + running the app + checking console/network logs.
+- Output must be structured exactly as requested below.
+
+PHASE A — RUN & SMOKE TEST (must do)
+1) Install + run the app (dev mode).
+2) Open the app in browser preview and perform a basic end-to-end flow for the key features.
+3) While testing, watch:
+   - Browser console errors/warnings
+   - Network requests (failed calls, 4xx/5xx, CORS, timeouts)
+   - Backend logs (exceptions, unhandled promises, stack traces)
+4) Report any crash, blank screen, infinite loading, broken navigation, broken forms, broken buttons.
+
+PHASE B — AUTOMATED CHECKS (must do)
+Run and report results for:
+- TypeScript/build checks (or equivalent)
+- Linting (if configured)
+- Unit/integration tests (if any exist)
+- “npm audit” / dependency vulnerability scan
+If tooling is missing, propose the minimal setup and explain why it matters.
+
+PHASE C — CODE AUDIT CHECKLIST (must do)
+Scan the codebase and explicitly check for:
+
+1) Duplicates / Redundancy
+- Duplicate routes, duplicate components serving the same purpose
+- Duplicate API calls / duplicate utilities
+- Duplicate CSS/classes doing the same job
+- Duplicate env variables or config files
+Output a “Duplicates Found” list with file paths + what to delete/merge.
+
+2) Broken / Half-Implemented Features
+- TODO/FIXME markers
+- Placeholder UI
+- Commented-out critical logic
+- Unused components that look like unfinished features
+Output a “Half-Built” list with file paths + what’s missing.
+
+3) Error Handling & Edge Cases
+- Missing try/catch or error boundaries
+- Missing empty/error states
+- Missing loading states
+- Unsafe assumptions (null/undefined)
+Output a “Failure Modes” list and how to harden.
+
+4) Data Integrity & Validation
+- Form validation (required fields, formats)
+- Server validation vs client-only validation
+- Duplicate prevention rules (e.g., duplicate records)
+- Race conditions / double submit
+Output “Validation Gaps” + recommended fixes.
+
+5) Auth / Security (even if basic)
+- Auth checks on protected routes
+- API authorization enforcement
+- Secrets exposure (keys in frontend, leaked .env)
+- CORS configuration
+- Rate limiting / brute force concerns (if login exists)
+Output “Security Issues” with severity.
+
+6) Performance / Stability
+- Slow pages, heavy bundles, unbounded queries
+- N+1 calls, repeated fetch loops
+- Memory leaks (listeners not cleaned)
+- Over-rendering / no memoization where needed
+Output “Perf Risks” + quick wins.
+
+7) UX Consistency / Polish
+- Navigation consistency
+- Buttons that look clickable but aren’t
+- Missing “sort/view/filter/search” on list pages where expected
+- Mobile responsiveness
+Output “UX Gaps” + concrete improvements.
+
+PHASE D — RELEASE READINESS GATE (must do)
+Give me:
+1) A clear verdict: ✅ READY TO PUBLISH / ❌ NOT READY
+2) A release-blocker list (must fix before publish)
+3) A “should fix soon” list
+4) A “nice to have” list
+
+OUTPUT FORMAT (follow strictly)
+- Environment & run status
+- Smoke test results (what you clicked, what broke)
+- Console/Network/Server log findings
+- Automated checks results
+- Duplicates Found (with file paths)
+- Half-Built / Broken Items (with file paths)
+- Security Issues (severity: Critical/High/Medium/Low)
+- Validation Gaps
+- Performance Risks
+- UX Gaps
+- Release Verdict + Fix Plan (ordered by priority)
+
+Finally: Create a “Fix Plan” checklist that I can execute step-by-step, with the smallest changes first.
