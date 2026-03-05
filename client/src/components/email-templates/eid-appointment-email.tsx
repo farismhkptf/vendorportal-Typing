@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Phone, User, FileText, CreditCard, UserCheck, MessageCircle, BadgeCheck, ExternalLink, Globe } from "lucide-react";
+import { Calendar, MapPin, Phone, User, FileText, CreditCard, UserCheck, MessageCircle, BadgeCheck, ExternalLink } from "lucide-react";
 import logoPath from "../../assets/logos/logo-main.png";
 
 const BRAND = {
@@ -187,17 +187,13 @@ export function EidAppointmentEmail({
         </div>
       </div>
 
-      <div style={{ background: BRAND.primaryDark, padding: "16px 24px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 12, color: "rgba(255,255,255,0.8)" }}>
-          <span>Government Services & PRO Solutions</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <Phone style={{ width: 11, height: 11 }} /> 0566009933
-            </span>
-            <a href="https://www.procompany.ae" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.8)", textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
-              <Globe style={{ width: 11, height: 11 }} /> www.procompany.ae
-            </a>
-          </div>
+      <div style={{ background: BRAND.primaryDark, padding: "20px 24px", textAlign: "center" }}>
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.25)", marginBottom: 14 }} />
+        <a href="https://www.procompany.ae" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(255,255,255,0.85)", textDecoration: "none", fontSize: 13, fontWeight: 500 }}>
+          www.procompany.ae
+        </a>
+        <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11, marginTop: 8 }}>
+          &copy; 2026 The P.R.O. Company&trade;&nbsp;&nbsp;All rights reserved.
         </div>
       </div>
     </div>
@@ -414,15 +410,10 @@ export function generateEidAppointmentEmailHtml(props: EidAppointmentEmailProps)
     </div>
 
     <!-- Footer -->
-    <div style="background: #1e3f61; padding: 16px 24px;">
-      <table cellpadding="0" cellspacing="0" border="0" width="100%">
-        <tr>
-          <td style="font-size: 12px; color: rgba(255,255,255,0.75);">Government Services & PRO Solutions</td>
-          <td style="text-align: right; font-size: 12px; color: rgba(255,255,255,0.8);">
-            0566009933 &nbsp;|&nbsp; <a href="https://www.procompany.ae" target="_blank" style="color: rgba(255,255,255,0.8); text-decoration: none;">www.procompany.ae</a>
-          </td>
-        </tr>
-      </table>
+    <div style="background: #1e3f61; padding: 20px 24px; text-align: center;">
+      <div style="border-top: 1px solid rgba(255,255,255,0.25); margin-bottom: 14px;"></div>
+      <a href="https://www.procompany.ae" target="_blank" style="color: rgba(255,255,255,0.85); text-decoration: none; font-size: 13px; font-weight: 500;">www.procompany.ae</a>
+      <div style="color: rgba(255,255,255,0.55); font-size: 11px; margin-top: 8px;">&copy; 2026 The P.R.O. Company&trade;&nbsp;&nbsp;All rights reserved.</div>
     </div>
   </div>
 </body>
