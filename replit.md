@@ -20,7 +20,7 @@ The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API.
 
 ### Database
 
-The PostgreSQL database includes core entities such as Users (with roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations.
+The PostgreSQL database includes core entities such as Users (with roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns (woId, vendorId, typingJobId, centerId, assignedStaffId, etc.) for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records (appointments, typing jobs, results, comments, approvals, documents, notes, messages, files, reschedule requests). Deleting staff or centers nullifies dangling references in appointments and companies before deletion.
 
 ### Authentication and Authorization
 

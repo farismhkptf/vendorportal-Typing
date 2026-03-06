@@ -116,7 +116,7 @@ const serviceTypeSchema = z.object({
 const jobTypeSchema = z.object({
   name: z.string().min(1, "Name is required"),
   category: z.enum(["Medical", "EID"]),
-  cost: z.coerce.number().min(0, "Cost must be positive"),
+  cost: z.coerce.number().int("Cost must be a whole number").min(0, "Cost must be positive"),
 });
 
 const ccRecipientsSchema = z.object({

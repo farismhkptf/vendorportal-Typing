@@ -294,12 +294,18 @@ export class DatabaseStorage implements IStorage {
   async deleteStaff(id: string): Promise<boolean> {
     const existing = await this.getStaffById(id);
     if (!existing) return false;
+    await db.update(appointments).set({ assignedStaffId: null }).where(eq(appointments.assignedStaffId, id));
+    await db.update(companies).set({ rmStaffId: null }).where(eq(companies.rmStaffId, id));
+    await db.update(companies).set({ assistStaffId: null }).where(eq(companies.assistStaffId, id));
     await db.delete(staff).where(eq(staff.id, id));
     return true;
   }
 
   async bulkDeleteStaff(ids: string[]): Promise<number> {
     if (ids.length === 0) return 0;
+    await db.update(appointments).set({ assignedStaffId: null }).where(inArray(appointments.assignedStaffId, ids));
+    await db.update(companies).set({ rmStaffId: null }).where(inArray(companies.rmStaffId, ids));
+    await db.update(companies).set({ assistStaffId: null }).where(inArray(companies.assistStaffId, ids));
     const result = await db.delete(staff).where(inArray(staff.id, ids)).returning();
     return result.length;
   }
@@ -332,12 +338,22 @@ export class DatabaseStorage implements IStorage {
   async deleteCenter(id: string): Promise<boolean> {
     const existing = await this.getCenterById(id);
     if (!existing) return false;
+    await db.update(appointments).set({ centerId: null }).where(eq(appointments.centerId, id));
+    await db.update(companies).set({ preferredMedicalCenterId: null }).where(eq(companies.preferredMedicalCenterId, id));
+    await db.update(companies).set({ preferredMedicalCenterVipId: null }).where(eq(companies.preferredMedicalCenterVipId, id));
+    await db.update(companies).set({ preferredBiometricsCenterId: null }).where(eq(companies.preferredBiometricsCenterId, id));
+    await db.update(companies).set({ preferredBiometricsCenterVipId: null }).where(eq(companies.preferredBiometricsCenterVipId, id));
     await db.delete(centers).where(eq(centers.id, id));
     return true;
   }
 
   async bulkDeleteCenters(ids: string[]): Promise<number> {
     if (ids.length === 0) return 0;
+    await db.update(appointments).set({ centerId: null }).where(inArray(appointments.centerId, ids));
+    await db.update(companies).set({ preferredMedicalCenterId: null }).where(inArray(companies.preferredMedicalCenterId, ids));
+    await db.update(companies).set({ preferredMedicalCenterVipId: null }).where(inArray(companies.preferredMedicalCenterVipId, ids));
+    await db.update(companies).set({ preferredBiometricsCenterId: null }).where(inArray(companies.preferredBiometricsCenterId, ids));
+    await db.update(companies).set({ preferredBiometricsCenterVipId: null }).where(inArray(companies.preferredBiometricsCenterVipId, ids));
     const result = await db.delete(centers).where(inArray(centers.id, ids)).returning();
     return result.length;
   }
@@ -499,11 +515,29 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getWorkOrderById(id);
     if (!existing) return false;
     
-    // Cascade delete related records first
+    const appts = await db.select({ id: appointments.id }).from(appointments).where(eq(appointments.woId, id));
+    const apptIds = appts.map(a => a.id);
+    if (apptIds.length > 0) {
+      await db.delete(rescheduleRequests).where(inArray(rescheduleRequests.appointmentId, apptIds));
+      await db.delete(files).where(and(eq(files.relatedType, "Appointment"), inArray(files.relatedId, apptIds)));
+    }
+
+    const jobs = await db.select({ id: typingJobs.id }).from(typingJobs).where(eq(typingJobs.woId, id));
+    const jobIds = jobs.map(j => j.id);
+    if (jobIds.length > 0) {
+      await db.delete(typingJobResults).where(inArray(typingJobResults.typingJobId, jobIds));
+      await db.delete(typingJobComments).where(inArray(typingJobComments.typingJobId, jobIds));
+      await db.delete(vendorApprovals).where(inArray(vendorApprovals.typingJobId, jobIds));
+      await db.delete(vendorWalletLedger).where(inArray(vendorWalletLedger.typingJobId, jobIds));
+      await db.delete(files).where(and(eq(files.relatedType, "TypingJob"), inArray(files.relatedId, jobIds)));
+    }
+
     await db.delete(appointments).where(eq(appointments.woId, id));
     await db.delete(typingJobs).where(eq(typingJobs.woId, id));
+    await db.delete(woDocuments).where(eq(woDocuments.woId, id));
+    await db.delete(woNotes).where(eq(woNotes.woId, id));
+    await db.delete(messages).where(eq(messages.woId, id));
     
-    // Delete the work order itself
     await db.delete(workOrders).where(eq(workOrders.id, id));
     return true;
   }

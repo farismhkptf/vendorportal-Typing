@@ -90,6 +90,12 @@ function validateBody<T>(schema: z.ZodSchema<T>, body: unknown): { data: T } | {
   return { data: result.data };
 }
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function validateEmailField(email: string | null | undefined): boolean {
+  if (!email || email.trim() === "") return true;
+  return emailRegex.test(email);
+}
+
 function requireAuth(req: any, res: any, next: any) {
   if (!req.session?.userId) {
     return res.status(401).json({ message: "Not authenticated" });
@@ -1176,6 +1182,21 @@ export async function registerRoutes(
             action: "status_changed",
             details: { newStatus: status, bulkAction: true },
           });
+
+          if (status === "Cancelled" || status === "Delayed") {
+            const jobs = await storage.getTypingJobsByWoId(wo.id);
+            for (const job of jobs) {
+              if (job.vendorId) {
+                await notifyVendorUsers(job.vendorId, {
+                  type: 'wo_status_change',
+                  title: 'Work Order ' + status,
+                  message: `Work order ${wo.woNumber} has been ${status.toLowerCase()}`,
+                  relatedJobId: job.id,
+                });
+              }
+            }
+          }
+
           updated++;
         } catch (err: any) {
           failed++;
@@ -1295,7 +1316,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: validation.error });
       }
       
-      // Check if WO number already exists
+      if (!validateEmailField(validation.data.applicantEmail)) {
+        return res.status(400).json({ message: "Invalid applicant email format" });
+      }
+
       const existing = await storage.getWorkOrderByWoNumber(validation.data.woNumber);
       if (existing) {
         return res.status(400).json({ message: `Work order ${validation.data.woNumber} already exists` });
@@ -1376,7 +1400,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: validation.error });
       }
       
-      // If changing WO number, check it doesn't exist for another work order
+      if (!validateEmailField(validation.data.applicantEmail)) {
+        return res.status(400).json({ message: "Invalid applicant email format" });
+      }
+
       if (validation.data.woNumber) {
         const existing = await storage.getWorkOrderByWoNumber(validation.data.woNumber);
         if (existing && existing.id !== id) {
@@ -1392,6 +1419,12 @@ export async function registerRoutes(
       if (!wo) {
         return res.status(404).json({ message: "Work order not found" });
       }
+      await storage.createAuditLog({
+        action: 'updated',
+        entityType: 'work_order',
+        entityId: id,
+        userId: (req as any).session?.userId || null,
+      });
       res.json(wo);
     } catch (error) {
       console.error("Update work order error:", error);
@@ -1620,6 +1653,14 @@ export async function registerRoutes(
       if (!updated) {
         return res.status(404).json({ message: "Appointment not found" });
       }
+
+      await storage.createAuditLog({
+        action: 'status_changed',
+        entityType: 'appointment',
+        entityId: id,
+        userId: (req as any).session?.userId || null,
+        details: { newStatus: status },
+      });
       
       if (status === "Completed" || status === "FollowUpCompleted") {
         await revertDelayedWorkOrder(updated.woId);
@@ -1693,6 +1734,16 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
+      const contactEmails = [
+        validation.data.clientCoordinator?.email,
+        validation.data.clientManager?.email,
+        validation.data.clientAccountant?.email,
+      ];
+      for (const ce of contactEmails) {
+        if (!validateEmailField(ce)) {
+          return res.status(400).json({ message: "Invalid contact email format" });
+        }
+      }
       const companyData = {
         ...validation.data,
         name: toProperCase(validation.data.name),
@@ -1707,6 +1758,12 @@ export async function registerRoutes(
         }),
       };
       const company = await storage.createCompany(companyData);
+      await storage.createAuditLog({
+        action: 'created',
+        entityType: 'company',
+        entityId: company.id,
+        userId: (req as any).session?.userId || null,
+      });
       res.status(201).json(company);
     } catch (error) {
       console.error("Create company error:", error);
@@ -1761,6 +1818,16 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
+      const contactEmails = [
+        validation.data.clientCoordinator?.email,
+        validation.data.clientManager?.email,
+        validation.data.clientAccountant?.email,
+      ];
+      for (const ce of contactEmails) {
+        if (!validateEmailField(ce)) {
+          return res.status(400).json({ message: "Invalid contact email format" });
+        }
+      }
       const updateData = {
         ...validation.data,
         ...(validation.data.name && { name: toProperCase(validation.data.name) }),
@@ -1778,6 +1845,12 @@ export async function registerRoutes(
       if (!company) {
         return res.status(404).json({ message: "Company not found" });
       }
+      await storage.createAuditLog({
+        action: 'updated',
+        entityType: 'company',
+        entityId: id,
+        userId: (req as any).session?.userId || null,
+      });
       res.json(company);
     } catch (error) {
       console.error("Update company error:", error);
@@ -1802,11 +1875,20 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
+      if (!validateEmailField(validation.data.email)) {
+        return res.status(400).json({ message: "Invalid staff email format" });
+      }
       const staffData = {
         ...validation.data,
         name: toProperCase(validation.data.name),
       };
       const member = await storage.createStaff(staffData);
+      await storage.createAuditLog({
+        action: 'created',
+        entityType: 'staff',
+        entityId: member.id,
+        userId: (req as any).session?.userId || null,
+      });
       res.status(201).json(member);
     } catch (error) {
       console.error("Create staff error:", error);
@@ -1821,6 +1903,9 @@ export async function registerRoutes(
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
+      if (!validateEmailField(validation.data.email)) {
+        return res.status(400).json({ message: "Invalid staff email format" });
+      }
       const updateData = {
         ...validation.data,
         ...(validation.data.name && { name: toProperCase(validation.data.name) }),
@@ -1829,6 +1914,12 @@ export async function registerRoutes(
       if (!member) {
         return res.status(404).json({ message: "Staff member not found" });
       }
+      await storage.createAuditLog({
+        action: 'updated',
+        entityType: 'staff',
+        entityId: id,
+        userId: (req as any).session?.userId || null,
+      });
       res.json(member);
     } catch (error) {
       console.error("Update staff error:", error);
@@ -1843,6 +1934,12 @@ export async function registerRoutes(
       if (!success) {
         return res.status(404).json({ message: "Staff member not found" });
       }
+      await storage.createAuditLog({
+        action: 'deleted',
+        entityType: 'staff',
+        entityId: id,
+        userId: (req as any).session?.userId || null,
+      });
       res.status(204).send();
     } catch (error) {
       console.error("Delete staff error:", error);
@@ -1857,6 +1954,12 @@ export async function registerRoutes(
         return res.status(400).json({ message: "IDs array is required" });
       }
       const deleted = await storage.bulkDeleteStaff(ids);
+      await storage.createAuditLog({
+        action: 'bulk_deleted',
+        entityType: 'staff',
+        userId: (req as any).session?.userId || null,
+        details: { count: deleted, ids },
+      });
       res.json({ deleted });
     } catch (error) {
       console.error("Bulk delete staff error:", error);
@@ -1932,6 +2035,12 @@ export async function registerRoutes(
         return res.status(400).json({ message: "IDs array is required" });
       }
       const deleted = await storage.bulkDeleteCenters(ids);
+      await storage.createAuditLog({
+        action: 'bulk_deleted',
+        entityType: 'center',
+        userId: (req as any).session?.userId || null,
+        details: { count: deleted, ids },
+      });
       res.json({ deleted });
     } catch (error) {
       console.error("Bulk delete centers error:", error);
@@ -2054,11 +2163,20 @@ export async function registerRoutes(
       if (!name) {
         return res.status(400).json({ message: "Vendor name is required" });
       }
+      if (!validateEmailField(email)) {
+        return res.status(400).json({ message: "Invalid vendor email format" });
+      }
       const vendor = await storage.createVendor({
         name: toProperCase(name),
         contactPerson: contactPerson ? toProperCase(contactPerson) : undefined,
         phone,
         email,
+      });
+      await storage.createAuditLog({
+        action: 'created',
+        entityType: 'vendor',
+        entityId: vendor.id,
+        userId: (req as any).session?.userId || null,
       });
       res.status(201).json(vendor);
     } catch (error) {
@@ -2070,6 +2188,9 @@ export async function registerRoutes(
   app.put("/api/vendors/:id", requireOpsRole, async (req, res) => {
     try {
       const { name, contactPerson, phone, email, active } = req.body;
+      if (!validateEmailField(email)) {
+        return res.status(400).json({ message: "Invalid vendor email format" });
+      }
       const updateData: any = {};
       if (name !== undefined) updateData.name = toProperCase(name);
       if (contactPerson !== undefined) updateData.contactPerson = contactPerson ? toProperCase(contactPerson) : null;
@@ -2081,6 +2202,12 @@ export async function registerRoutes(
       if (!vendor) {
         return res.status(404).json({ message: "Vendor not found" });
       }
+      await storage.createAuditLog({
+        action: 'updated',
+        entityType: 'vendor',
+        entityId: req.params.id,
+        userId: (req as any).session?.userId || null,
+      });
       res.json(vendor);
     } catch (error) {
       console.error("Update vendor error:", error);
@@ -2091,6 +2218,12 @@ export async function registerRoutes(
   app.delete("/api/vendors/:id", requireOpsRole, async (req, res) => {
     try {
       await storage.deleteVendor(req.params.id);
+      await storage.createAuditLog({
+        action: 'deleted',
+        entityType: 'vendor',
+        entityId: req.params.id,
+        userId: (req as any).session?.userId || null,
+      });
       res.json({ success: true });
     } catch (error) {
       console.error("Delete vendor error:", error);

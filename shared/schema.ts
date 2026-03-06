@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, json, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, json, pgEnum, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -97,6 +97,8 @@ export const walletEntryTypeEnum = pgEnum("wallet_entry_type", ["Topup", "Debit"
 export const staffStatusEnum = pgEnum("staff_status", ["Active", "OnLeave", "Cancelled", "TempActive", "TempInactive"]);
 export const staffTypeEnum = pgEnum("staff_type", ["Permanent", "Temporary"]);
 export const approvalStatusEnum = pgEnum("approval_status", ["Pending", "Approved", "Rejected"]);
+export const changeNotificationStatusEnum = pgEnum("change_notification_status", ["pending", "reviewed", "dismissed"]);
+export const passwordResetStatusEnum = pgEnum("password_reset_status", ["pending", "approved", "rejected"]);
 
 // Client contact type for companies
 export type ClientContact = {
@@ -198,7 +200,9 @@ export const companyEmails = pgTable("company_emails", {
   email: text("email").notNull(),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
-});
+}, (table) => [
+  index("idx_company_emails_company_id").on(table.companyId),
+]);
 
 // Service Types table
 // Each service type defines what processing steps are required
@@ -230,7 +234,9 @@ export const woDocuments = pgTable("wo_documents", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
   workdriveFileId: text("workdrive_file_id"),
   workdriveLink: text("workdrive_link"),
-});
+}, (table) => [
+  index("idx_wo_documents_wo_id").on(table.woId),
+]);
 
 // Document Requirements table - defines which documents are required/optional per service category
 export const documentRequirements = pgTable("document_requirements", {
@@ -276,7 +282,11 @@ export const appointments = pgTable("appointments", {
   messageSentAt: timestamp("message_sent_at"),
   messageSentBy: varchar("message_sent_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_appointments_wo_id").on(table.woId),
+  index("idx_appointments_center_id").on(table.centerId),
+  index("idx_appointments_assigned_staff_id").on(table.assignedStaffId),
+]);
 
 // Reschedule Requests table
 export const rescheduleRequests = pgTable("reschedule_requests", {
@@ -286,7 +296,9 @@ export const rescheduleRequests = pgTable("reschedule_requests", {
   notes: text("notes"),
   status: rescheduleStatusEnum("status").notNull().default("New"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_reschedule_requests_appointment_id").on(table.appointmentId),
+]);
 
 // Job Types table
 export const jobTypes = pgTable("job_types", {
@@ -311,7 +323,7 @@ export const vendors = pgTable("vendors", {
 // Typing Jobs table
 export const typingJobs = pgTable("typing_jobs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  jobCode: text("job_code"), // Unique reference code: M00001 for Medical, E00001 for EID
+  jobCode: text("job_code"),
   woId: varchar("wo_id").notNull(),
   vendorId: varchar("vendor_id"),
   jobTypeId: varchar("job_type_id").notNull(),
@@ -327,7 +339,10 @@ export const typingJobs = pgTable("typing_jobs", {
   rejectedReason: text("rejected_reason"),
   urgent: boolean("urgent").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_typing_jobs_wo_id").on(table.woId),
+  index("idx_typing_jobs_vendor_id").on(table.vendorId),
+]);
 
 // Typing Job Results table
 export const typingJobResults = pgTable("typing_job_results", {
@@ -350,12 +365,14 @@ export const typingJobComments = pgTable("typing_job_comments", {
   authorUserId: varchar("author_user_id"),
   message: text("message").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_typing_job_comments_typing_job_id").on(table.typingJobId),
+]);
 
 // Files table
 export const files = pgTable("files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  relatedType: text("related_type").notNull(), // 'Appointment' or 'TypingJob'
+  relatedType: text("related_type").notNull(),
   relatedId: varchar("related_id").notNull(),
   direction: fileDirectionEnum("direction").notNull(),
   workdriveFileId: text("workdrive_file_id"),
@@ -365,7 +382,9 @@ export const files = pgTable("files", {
   uploadedByType: uploadedByTypeEnum("uploaded_by_type").notNull(),
   uploadedByUserId: varchar("uploaded_by_user_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_files_related_id").on(table.relatedId),
+]);
 
 // Messages table
 export const messages = pgTable("messages", {
@@ -383,7 +402,9 @@ export const messages = pgTable("messages", {
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   sentAt: timestamp("sent_at"),
-});
+}, (table) => [
+  index("idx_messages_wo_id").on(table.woId),
+]);
 
 // Work Order Internal Notes table
 export const woNotes = pgTable("wo_notes", {
@@ -392,7 +413,9 @@ export const woNotes = pgTable("wo_notes", {
   content: text("content").notNull(),
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_wo_notes_wo_id").on(table.woId),
+]);
 
 // Vendor Wallet Ledger table
 export const vendorWalletLedger = pgTable("vendor_wallet_ledger", {
@@ -404,7 +427,10 @@ export const vendorWalletLedger = pgTable("vendor_wallet_ledger", {
   note: text("note"),
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_vendor_wallet_ledger_vendor_id").on(table.vendorId),
+  index("idx_vendor_wallet_ledger_typing_job_id").on(table.typingJobId),
+]);
 
 // Vendor Statements table
 export const vendorStatements = pgTable("vendor_statements", {
@@ -442,7 +468,10 @@ export const vendorApprovals = pgTable("vendor_approvals", {
   approvedBy: varchar("approved_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   resolvedAt: timestamp("resolved_at"),
-});
+}, (table) => [
+  index("idx_vendor_approvals_typing_job_id").on(table.typingJobId),
+  index("idx_vendor_approvals_vendor_id").on(table.vendorId),
+]);
 
 // Vendor Notifications table
 export const vendorNotifications = pgTable("vendor_notifications", {
@@ -455,7 +484,10 @@ export const vendorNotifications = pgTable("vendor_notifications", {
   relatedJobId: varchar("related_job_id"),
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_vendor_notifications_vendor_user_id").on(table.vendorUserId),
+  index("idx_vendor_notifications_vendor_id").on(table.vendorId),
+]);
 
 // App Settings table (single row)
 export const appSettings = pgTable("app_settings", {
@@ -486,7 +518,7 @@ export const changeNotifications = pgTable("change_notifications", {
   changedByName: text("changed_by_name").notNull(),
   oldData: json("old_data"),
   newData: json("new_data"),
-  status: text("status").notNull().default("pending"),
+  status: changeNotificationStatusEnum("status").notNull().default("pending"),
   reviewedBy: varchar("reviewed_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   reviewedAt: timestamp("reviewed_at"),
@@ -501,7 +533,10 @@ export const auditLog = pgTable("audit_log", {
   userId: varchar("user_id"),
   details: json("details"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_audit_log_entity_id").on(table.entityId),
+  index("idx_audit_log_user_id").on(table.userId),
+]);
 
 // Login Audit Log table
 export const loginAuditLog = pgTable("login_audit_log", {
@@ -519,7 +554,7 @@ export const loginAuditLog = pgTable("login_audit_log", {
 export const passwordResetRequests = pgTable("password_reset_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  status: text("status").notNull().default("pending"),
+  status: passwordResetStatusEnum("status").notNull().default("pending"),
   resolvedBy: varchar("resolved_by"),
   resolvedAt: timestamp("resolved_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
