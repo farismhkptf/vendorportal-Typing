@@ -1,4 +1,4 @@
-import { Calendar, MapPin, Phone, User, FileText, Stethoscope, UserCheck, MessageCircle, BadgeCheck, ExternalLink } from "lucide-react";
+import { MapPin, User, Stethoscope } from "lucide-react";
 import logoPath from "../../assets/logos/logo-main.png";
 
 const BRAND = {
@@ -57,10 +57,7 @@ export function MedicalAppointmentEmail({
     <div style={{ fontFamily: "'Helvetica Neue', Arial, sans-serif", background: BRAND.bg, maxWidth: 620 }}>
       <div style={{ background: BRAND.primary, padding: "20px 24px", display: "flex", alignItems: "center", gap: 14 }}>
         <img src={logoPath} alt="Logo" style={{ width: 44, height: 44, borderRadius: 8, background: "rgba(255,255,255,0.15)", padding: 4 }} />
-        <div>
-          <div style={{ color: BRAND.white, fontWeight: 700, fontSize: 18, letterSpacing: -0.3 }}>The P.R.O. Company</div>
-          <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 1 }}>Government Services & PRO Solutions</div>
-        </div>
+        <div style={{ color: BRAND.white, fontWeight: 700, fontSize: 18, letterSpacing: -0.3 }}>The P.R.O. Company</div>
       </div>
 
       <div style={{ padding: "24px" }}>
@@ -76,112 +73,100 @@ export function MedicalAppointmentEmail({
 
         <p style={{ color: BRAND.text, fontSize: 14, margin: "0 0 6px 0" }}>Dear <strong>Team</strong>,</p>
         <p style={{ color: "#475569", fontSize: 13, margin: "0 0 20px 0", lineHeight: 1.6 }}>
-          The medical appointment has been scheduled for the following applicant. Please find the details below.
+          The following medical appointment has been scheduled. Please find the details below.
         </p>
 
-        <div style={{ background: BRAND.white, border: `1px solid ${BRAND.border}`, borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
-          <div style={{ background: BRAND.primaryLight, padding: "10px 16px", borderBottom: `1px solid ${BRAND.border}`, display: "flex", alignItems: "center", gap: 8 }}>
-            <FileText style={{ width: 15, height: 15, color: BRAND.primary }} />
-            <span style={{ fontWeight: 600, color: BRAND.primaryDark, fontSize: 13 }}>Appointment Details</span>
-          </div>
-          <div style={{ padding: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, fontSize: 13 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <DetailRow label="Work Order" value={woNumber} highlight />
-                <DetailRow label="Company" value={companyName} />
-                <DetailRow label="Applicant" value={applicantName} />
-                <DetailRow label="Service Type" value={serviceType} />
-                {applicationNumber && <DetailRow label="Application No" value={applicationNumber} highlight />}
+        <div style={{ background: BRAND.white, border: `1px solid ${BRAND.border}`, borderRadius: 12, marginBottom: 16, overflow: "hidden" }}>
+          <div style={{ background: BRAND.primaryLight, padding: "20px 24px", textAlign: "center", borderBottom: `1px solid ${BRAND.border}` }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: 24 }}>
+              <div>
+                <div style={{ fontSize: 10, color: BRAND.textMuted, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>Date</div>
+                <div style={{ fontWeight: 700, color: BRAND.primaryDark, fontSize: 18 }}>{appointmentDate}</div>
               </div>
-              <div style={{ borderLeft: `1px solid ${BRAND.border}`, paddingLeft: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-                  <MapPin style={{ width: 14, height: 14, color: BRAND.primary }} />
-                  <span style={{ fontWeight: 600, color: BRAND.primaryDark, fontSize: 12 }}>Medical Center</span>
-                </div>
-                <DetailRow label="Center" value={centerName} highlight />
-                <DetailRow label="Type" value={centerType} />
-                {centerAddress && <DetailRow label="Address" value={centerAddress} />}
-                {googleMapsUrl && (
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <span style={{ color: BRAND.textMuted, minWidth: 60, fontSize: 12 }}>Map:</span>
-                    <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" style={{ color: BRAND.primary, textDecoration: "underline", fontSize: 12, display: "flex", alignItems: "center", gap: 3 }}>
-                      Google Maps <ExternalLink style={{ width: 10, height: 10 }} />
-                    </a>
-                  </div>
-                )}
-                <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-                  <div style={{ background: BRAND.primaryLight, border: `1px solid ${BRAND.primary}22`, borderRadius: 8, padding: "8px 14px", textAlign: "center", flex: 1 }}>
-                    <div style={{ fontSize: 10, color: BRAND.textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>Date</div>
-                    <div style={{ fontWeight: 700, color: BRAND.primaryDark, fontSize: 14 }}>{appointmentDate}</div>
-                  </div>
-                  <div style={{ background: BRAND.primaryLight, border: `1px solid ${BRAND.primary}22`, borderRadius: 8, padding: "8px 14px", textAlign: "center", flex: 1 }}>
-                    <div style={{ fontSize: 10, color: BRAND.textMuted, textTransform: "uppercase" as const, letterSpacing: 0.5, marginBottom: 3 }}>Time</div>
-                    <div style={{ fontWeight: 700, color: BRAND.primaryDark, fontSize: 14 }}>{appointmentTime}</div>
-                  </div>
-                </div>
+              <div style={{ width: 1, background: `${BRAND.primary}33` }} />
+              <div>
+                <div style={{ fontSize: 10, color: BRAND.textMuted, textTransform: "uppercase" as const, letterSpacing: 1, marginBottom: 4 }}>Time</div>
+                <div style={{ fontWeight: 700, color: BRAND.primaryDark, fontSize: 18 }}>{appointmentTime}</div>
               </div>
             </div>
+          </div>
+
+          <div style={{ padding: "16px 24px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
+              <DetailRow label="Work Order" value={woNumber} highlight />
+              <DetailRow label="Company" value={companyName} />
+              <DetailRow label="Applicant" value={applicantName} />
+              <DetailRow label="Service Type" value={serviceType} />
+              {applicationNumber && <DetailRow label="Application No" value={applicationNumber} highlight />}
+            </div>
+
+            <div style={{ borderTop: `1px solid ${BRAND.border}`, margin: "14px 0" }} />
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <MapPin style={{ width: 14, height: 14, color: BRAND.primary }} />
+              <span style={{ fontWeight: 600, color: BRAND.primaryDark, fontSize: 12 }}>Medical Center</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
+              <DetailRow label="Center" value={centerName} highlight />
+              <DetailRow label="Type" value={centerType} />
+              {centerAddress && <DetailRow label="Address" value={centerAddress} />}
+            </div>
+
+            {googleMapsUrl && (
+              <div style={{ textAlign: "center", marginTop: 14 }}>
+                <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" style={{
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  background: BRAND.primaryLight, color: BRAND.primaryDark,
+                  padding: "8px 20px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                  textDecoration: "none", border: `1px solid ${BRAND.border}`,
+                }}>
+                  <MapPin style={{ width: 13, height: 13 }} /> View on Maps
+                </a>
+              </div>
+            )}
           </div>
         </div>
 
         {(medicalAssistName || crmName) && (
-          <div style={{ display: "grid", gridTemplateColumns: medicalAssistName && crmName ? "1fr 1fr" : "1fr", gap: 12, marginBottom: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
             {medicalAssistName && (
-              <ContactCard
-                title="Assigned Staff"
-                icon={<UserCheck style={{ width: 14, height: 14, color: BRAND.primary }} />}
-                name={medicalAssistName}
-                phone={medicalAssistPhone}
-                phoneLabel="Staff Number"
-              />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: BRAND.white, border: `1px solid ${BRAND.border}`, borderRadius: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: BRAND.primaryLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <User style={{ width: 16, height: 16, color: BRAND.primary }} />
+                </div>
+                <div style={{ flex: 1, fontSize: 13 }}>
+                  <span style={{ fontWeight: 600, color: BRAND.text }}>Staff:</span>{" "}
+                  <span style={{ color: BRAND.text }}>{medicalAssistName}</span>
+                  {medicalAssistPhone && <span style={{ color: BRAND.textMuted, marginLeft: 8 }}>{medicalAssistPhone}</span>}
+                </div>
+              </div>
             )}
             {crmName && (
-              <ContactCard
-                title="Client Relationship Manager"
-                icon={<MessageCircle style={{ width: 14, height: 14, color: BRAND.primary }} />}
-                name={crmName}
-                phone={crmPhone}
-                phoneLabel="Contact Number"
-              />
+              <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", background: BRAND.white, border: `1px solid ${BRAND.border}`, borderRadius: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: "50%", background: BRAND.primaryLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <User style={{ width: 16, height: 16, color: BRAND.primary }} />
+                </div>
+                <div style={{ flex: 1, fontSize: 13 }}>
+                  <span style={{ fontWeight: 600, color: BRAND.text }}>CRM:</span>{" "}
+                  <span style={{ color: BRAND.text }}>{crmName}</span>
+                  {crmPhone && <span style={{ color: BRAND.textMuted, marginLeft: 8 }}>{crmPhone}</span>}
+                </div>
+              </div>
             )}
           </div>
         )}
 
-        <div style={{ background: "#f0f7ff", border: "1px solid #c7ddf5", borderRadius: 10, marginBottom: 16, overflow: "hidden" }}>
-          <div style={{ background: "#ddeaf8", padding: "10px 16px", borderBottom: "1px solid #c7ddf5", display: "flex", alignItems: "center", gap: 8 }}>
-            <BadgeCheck style={{ width: 15, height: 15, color: BRAND.primary }} />
-            <span style={{ fontWeight: 600, color: BRAND.primaryDark, fontSize: 13 }}>Important Notes</span>
-          </div>
-          <div style={{ padding: "14px 16px", fontSize: 13, color: "#374151" }}>
-            <p style={{ margin: "0 0 8px 0", display: "flex", gap: 8 }}>
-              <span style={{ color: BRAND.primary, flexShrink: 0 }}>•</span>
-              <span>Please ensure the applicant arrives at least <strong>10 minutes before</strong> the scheduled time.</span>
-            </p>
-            <p style={{ margin: "0 0 8px 0", display: "flex", gap: 8 }}>
-              <span style={{ color: BRAND.primary, flexShrink: 0 }}>•</span>
-              <span>Please ensure the applicant carries their <strong style={{ textDecoration: "underline" }}>original passport</strong>. Our team member will join with all required documents.</span>
-            </p>
-            <p style={{ margin: "0 0 8px 0", display: "flex", gap: 8 }}>
-              <span style={{ color: BRAND.primary, flexShrink: 0 }}>•</span>
-              <span>For any changes or assistance, please contact the assigned <strong style={{ textDecoration: "underline" }}>Client Relationship Manager</strong>.</span>
-            </p>
-            {notes && (
-              <p style={{ margin: 0, display: "flex", gap: 8 }}>
-                <span style={{ color: BRAND.primary, flexShrink: 0 }}>•</span>
-                <span>{notes}</span>
-              </p>
-            )}
-          </div>
+        <div style={{ borderLeft: `3px solid ${BRAND.accent}`, background: "#fdf8f7", borderRadius: "0 8px 8px 0", padding: "14px 18px", marginBottom: 16, fontSize: 13, color: "#374151", lineHeight: 1.7 }}>
+          Please ensure the applicant arrives at least <strong>10 minutes before</strong> the scheduled time with their <strong>original passport</strong>. Our team member will join with all required documents. For any changes or assistance, please contact the assigned <strong>Client Relationship Manager</strong>.
+          {notes && <><br /><br />{notes}</>}
         </div>
 
         <div style={{ fontSize: 13, color: "#475569", marginBottom: 16, lineHeight: 1.6 }}>
-          <p style={{ margin: "0 0 6px 0" }}>Once the medical is completed, we are expecting the result after completing the medical test.</p>
-          <p style={{ margin: 0 }}>Thank you for your continued trust in <strong style={{ color: BRAND.primaryDark }}>The P.R.O. Company</strong>.</p>
+          <p style={{ margin: 0 }}>We'll update you once the medical is complete. Thank you.</p>
         </div>
 
         <div style={{ fontSize: 13, color: "#475569" }}>
           <p style={{ margin: 0 }}>Warm regards,</p>
-          <p style={{ margin: "2px 0 0 0", fontWeight: 600 }}>Operations Team</p>
           <p style={{ margin: "2px 0 0 0", fontWeight: 700, color: BRAND.primary }}>The P.R.O. Company</p>
         </div>
       </div>
@@ -202,32 +187,8 @@ export function MedicalAppointmentEmail({
 function DetailRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div style={{ display: "flex", gap: 6 }}>
-      <span style={{ color: BRAND.textMuted, minWidth: 60, fontSize: 12 }}>{label}:</span>
-      <span style={{ fontWeight: highlight ? 600 : 500, color: highlight ? BRAND.primaryDark : BRAND.text, fontSize: 12 }}>{value}</span>
-    </div>
-  );
-}
-
-function ContactCard({ title, icon, name, phone, phoneLabel }: { title: string; icon: React.ReactNode; name: string; phone?: string; phoneLabel: string }) {
-  return (
-    <div style={{ background: BRAND.white, border: `1px solid ${BRAND.border}`, borderRadius: 10, overflow: "hidden" }}>
-      <div style={{ background: BRAND.primaryLight, padding: "8px 14px", borderBottom: `1px solid ${BRAND.border}`, display: "flex", alignItems: "center", gap: 6 }}>
-        {icon}
-        <span style={{ fontWeight: 600, color: BRAND.primaryDark, fontSize: 12 }}>{title}</span>
-      </div>
-      <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 36, height: 36, borderRadius: "50%", background: BRAND.primaryLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <User style={{ width: 18, height: 18, color: BRAND.primary }} />
-        </div>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 13, color: BRAND.text }}>{name}</div>
-          {phone && (
-            <div style={{ fontSize: 12, color: BRAND.textMuted, display: "flex", alignItems: "center", gap: 4, marginTop: 2 }}>
-              <Phone style={{ width: 11, height: 11 }} /> {phoneLabel}: {phone}
-            </div>
-          )}
-        </div>
-      </div>
+      <span style={{ color: BRAND.textMuted, minWidth: 90, fontSize: 12 }}>{label}:</span>
+      <span style={{ fontWeight: highlight ? 600 : 400, color: highlight ? BRAND.primaryDark : BRAND.text, fontSize: 12 }}>{value}</span>
     </div>
   );
 }
@@ -257,7 +218,6 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
           </td>
           <td style="vertical-align: middle; padding-left: 14px;">
             <div style="color: #ffffff; font-weight: 700; font-size: 18px; letter-spacing: -0.3px;">The P.R.O. Company</div>
-            <div style="color: rgba(255,255,255,0.75); font-size: 12px; margin-top: 1px;">Government Services & PRO Solutions</div>
           </td>
         </tr>
       </table>
@@ -282,128 +242,104 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
 
       <!-- Greeting -->
       <p style="margin: 0 0 6px 0; color: #1a1a2e; font-size: 14px;">Dear <strong>Team</strong>,</p>
-      <p style="margin: 0 0 20px 0; color: #475569; font-size: 13px; line-height: 1.6;">The medical appointment has been scheduled for the following applicant. Please find the details below.</p>
+      <p style="margin: 0 0 20px 0; color: #475569; font-size: 13px; line-height: 1.6;">The following medical appointment has been scheduled. Please find the details below.</p>
 
-      <!-- Appointment Details -->
-      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 16px; overflow: hidden;">
-        <div style="background: #e8f0f8; padding: 10px 16px; border-bottom: 1px solid #e2e8f0;">
-          <strong style="color: #1e3f61; font-size: 13px;">Appointment Details</strong>
-        </div>
-        <div style="padding: 16px;">
-          <table cellpadding="0" cellspacing="0" border="0" width="100%" style="font-size: 12px;">
+      <!-- Appointment Card -->
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 16px; overflow: hidden;">
+        <!-- Hero Date/Time -->
+        <div style="background: #e8f0f8; padding: 20px 24px; text-align: center; border-bottom: 1px solid #e2e8f0;">
+          <table cellpadding="0" cellspacing="0" border="0" align="center">
             <tr>
-              <td style="vertical-align: top; width: 50%; padding-right: 16px;">
-                <table cellpadding="0" cellspacing="6" border="0" width="100%">
-                  <tr><td style="color: #64748b; width: 90px;">Work Order:</td><td style="font-weight: 600; color: #1e3f61;">${props.woNumber}</td></tr>
-                  <tr><td style="color: #64748b;">Company:</td><td style="font-weight: 600;">${props.companyName}</td></tr>
-                  <tr><td style="color: #64748b;">Applicant:</td><td style="font-weight: 600;">${props.applicantName}</td></tr>
-                  <tr><td style="color: #64748b;">Service Type:</td><td style="font-weight: 600;">${props.serviceType}</td></tr>
-                  ${props.applicationNumber ? `<tr><td style="color: #64748b;">Application No:</td><td style="font-weight: 600; color: #2d5a87;">${props.applicationNumber}</td></tr>` : ""}
-                </table>
+              <td style="text-align: center; padding: 0 20px;">
+                <div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Date</div>
+                <div style="font-weight: 700; color: #1e3f61; font-size: 18px;">${props.appointmentDate}</div>
               </td>
-              <td style="vertical-align: top; width: 50%; border-left: 1px solid #e2e8f0; padding-left: 16px;">
-                <div style="margin-bottom: 6px; font-weight: 600; color: #1e3f61; font-size: 12px;">Medical Center</div>
-                <table cellpadding="0" cellspacing="6" border="0" width="100%">
-                  <tr><td style="color: #64748b; width: 60px;">Center:</td><td style="font-weight: 600; color: #2d5a87;">${props.centerName}</td></tr>
-                  <tr><td style="color: #64748b;">Type:</td><td style="font-weight: 600;">${props.centerType}</td></tr>
-                  ${props.centerAddress ? `<tr><td style="color: #64748b;">Address:</td><td style="font-weight: 500;">${props.centerAddress}</td></tr>` : ""}
-                  ${googleMapsUrl ? `<tr><td style="color: #64748b;">Map:</td><td><a href="${googleMapsUrl}" target="_blank" style="color: #2d5a87; text-decoration: underline;">Google Maps</a></td></tr>` : ""}
-                </table>
-                <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top: 10px;">
-                  <tr>
-                    <td style="width: 48%; background: #e8f0f8; border: 1px solid rgba(45,90,135,0.13); border-radius: 8px; padding: 8px 10px; text-align: center;">
-                      <div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Date</div>
-                      <div style="font-weight: 700; color: #1e3f61; font-size: 14px;">${props.appointmentDate}</div>
-                    </td>
-                    <td style="width: 4%;"></td>
-                    <td style="width: 48%; background: #e8f0f8; border: 1px solid rgba(45,90,135,0.13); border-radius: 8px; padding: 8px 10px; text-align: center;">
-                      <div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Time</div>
-                      <div style="font-weight: 700; color: #1e3f61; font-size: 14px;">${props.appointmentTime}</div>
-                    </td>
-                  </tr>
-                </table>
+              <td style="width: 1px; background: rgba(45,90,135,0.2);"></td>
+              <td style="text-align: center; padding: 0 20px;">
+                <div style="font-size: 10px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">Time</div>
+                <div style="font-weight: 700; color: #1e3f61; font-size: 18px;">${props.appointmentTime}</div>
               </td>
             </tr>
           </table>
         </div>
+
+        <!-- Details -->
+        <div style="padding: 16px 24px;">
+          <table cellpadding="0" cellspacing="5" border="0" width="100%" style="font-size: 12px;">
+            <tr><td style="color: #64748b; width: 100px;">Work Order:</td><td style="font-weight: 600; color: #1e3f61;">${props.woNumber}</td></tr>
+            <tr><td style="color: #64748b;">Company:</td><td style="font-weight: 400;">${props.companyName}</td></tr>
+            <tr><td style="color: #64748b;">Applicant:</td><td style="font-weight: 400;">${props.applicantName}</td></tr>
+            <tr><td style="color: #64748b;">Service Type:</td><td style="font-weight: 400;">${props.serviceType}</td></tr>
+            ${props.applicationNumber ? `<tr><td style="color: #64748b;">Application No:</td><td style="font-weight: 600; color: #1e3f61;">${props.applicationNumber}</td></tr>` : ""}
+          </table>
+
+          <div style="border-top: 1px solid #e2e8f0; margin: 14px 0;"></div>
+
+          <div style="margin-bottom: 10px; font-weight: 600; color: #1e3f61; font-size: 12px;">Medical Center</div>
+          <table cellpadding="0" cellspacing="5" border="0" width="100%" style="font-size: 12px;">
+            <tr><td style="color: #64748b; width: 100px;">Center:</td><td style="font-weight: 600; color: #1e3f61;">${props.centerName}</td></tr>
+            <tr><td style="color: #64748b;">Type:</td><td style="font-weight: 400;">${props.centerType}</td></tr>
+            ${props.centerAddress ? `<tr><td style="color: #64748b;">Address:</td><td style="font-weight: 400;">${props.centerAddress}</td></tr>` : ""}
+          </table>
+
+          ${googleMapsUrl ? `
+          <div style="text-align: center; margin-top: 14px;">
+            <a href="${googleMapsUrl}" target="_blank" style="display: inline-block; background: #e8f0f8; color: #1e3f61; padding: 8px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; text-decoration: none; border: 1px solid #e2e8f0;">View on Maps</a>
+          </div>
+          ` : ""}
+        </div>
       </div>
 
       ${props.medicalAssistName || props.crmName ? `
-      <!-- Staff Cards -->
-      <table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-bottom: 16px;">
-        <tr>
-          ${props.medicalAssistName ? `
-          <td style="vertical-align: top; ${props.crmName ? "width: 48%; padding-right: 6px;" : "width: 100%;"}">
-            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;">
-              <div style="background: #e8f0f8; padding: 8px 14px; border-bottom: 1px solid #e2e8f0;">
-                <strong style="color: #1e3f61; font-size: 12px;">Assigned Staff</strong>
-              </div>
-              <div style="padding: 12px 14px;">
-                <table cellpadding="0" cellspacing="0" border="0">
-                  <tr>
-                    <td style="vertical-align: middle; width: 44px;">
-                      <div style="width: 36px; height: 36px; background: #e8f0f8; border-radius: 50%; text-align: center; line-height: 36px; font-size: 14px; color: #2d5a87; font-weight: 700;">${props.medicalAssistName.charAt(0)}</div>
-                    </td>
-                    <td style="vertical-align: middle;">
-                      <div style="font-weight: 600; font-size: 13px;">${props.medicalAssistName}</div>
-                      ${props.medicalAssistPhone ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">Staff: ${props.medicalAssistPhone}</div>` : ""}
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </div>
-          </td>
-          ` : ""}
-          ${props.crmName ? `
-          ${props.medicalAssistName ? `<td style="width: 4%;"></td>` : ""}
-          <td style="vertical-align: top; ${props.medicalAssistName ? "width: 48%; padding-left: 6px;" : "width: 100%;"}">
-            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden;">
-              <div style="background: #e8f0f8; padding: 8px 14px; border-bottom: 1px solid #e2e8f0;">
-                <strong style="color: #1e3f61; font-size: 12px;">Client Relationship Manager</strong>
-              </div>
-              <div style="padding: 12px 14px;">
-                <table cellpadding="0" cellspacing="0" border="0">
-                  <tr>
-                    <td style="vertical-align: middle; width: 44px;">
-                      <div style="width: 36px; height: 36px; background: #e8f0f8; border-radius: 50%; text-align: center; line-height: 36px; font-size: 14px; color: #2d5a87; font-weight: 700;">${props.crmName.charAt(0)}</div>
-                    </td>
-                    <td style="vertical-align: middle;">
-                      <div style="font-weight: 600; font-size: 13px;">${props.crmName}</div>
-                      ${props.crmPhone ? `<div style="font-size: 12px; color: #64748b; margin-top: 2px;">Contact: ${props.crmPhone}</div>` : ""}
-                    </td>
-                  </tr>
-                </table>
-              </div>
-            </div>
-          </td>
-          ` : ""}
-        </tr>
-      </table>
+      <!-- Contacts -->
+      <div style="margin-bottom: 16px;">
+        ${props.medicalAssistName ? `
+        <div style="display: flex; align-items: center; padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 8px;">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="vertical-align: middle; width: 40px;">
+                <div style="width: 32px; height: 32px; background: #e8f0f8; border-radius: 50%; text-align: center; line-height: 32px; font-size: 13px; color: #2d5a87; font-weight: 700;">${props.medicalAssistName.charAt(0)}</div>
+              </td>
+              <td style="vertical-align: middle; font-size: 13px;">
+                <strong style="color: #1a1a2e;">Staff:</strong> <span style="color: #1a1a2e;">${props.medicalAssistName}</span>
+                ${props.medicalAssistPhone ? `<span style="color: #64748b; margin-left: 8px;">${props.medicalAssistPhone}</span>` : ""}
+              </td>
+            </tr>
+          </table>
+        </div>
+        ` : ""}
+        ${props.crmName ? `
+        <div style="display: flex; align-items: center; padding: 10px 14px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px;">
+          <table cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="vertical-align: middle; width: 40px;">
+                <div style="width: 32px; height: 32px; background: #e8f0f8; border-radius: 50%; text-align: center; line-height: 32px; font-size: 13px; color: #2d5a87; font-weight: 700;">${props.crmName.charAt(0)}</div>
+              </td>
+              <td style="vertical-align: middle; font-size: 13px;">
+                <strong style="color: #1a1a2e;">CRM:</strong> <span style="color: #1a1a2e;">${props.crmName}</span>
+                ${props.crmPhone ? `<span style="color: #64748b; margin-left: 8px;">${props.crmPhone}</span>` : ""}
+              </td>
+            </tr>
+          </table>
+        </div>
+        ` : ""}
+      </div>
       ` : ""}
 
       <!-- Important Notes -->
-      <div style="background: #f0f7ff; border: 1px solid #c7ddf5; border-radius: 10px; margin-bottom: 16px; overflow: hidden;">
-        <div style="background: #ddeaf8; padding: 10px 16px; border-bottom: 1px solid #c7ddf5;">
-          <strong style="color: #1e3f61; font-size: 13px;">Important Notes</strong>
-        </div>
-        <div style="padding: 14px 16px; font-size: 13px; color: #374151; line-height: 1.6;">
-          <p style="margin: 0 0 8px 0;"><span style="color: #2d5a87;">&#8226;</span>&nbsp; Please ensure the applicant arrives at least <strong>10 minutes before</strong> the scheduled time.</p>
-          <p style="margin: 0 0 8px 0;"><span style="color: #2d5a87;">&#8226;</span>&nbsp; Please ensure the applicant carries their <strong style="text-decoration: underline;">original passport</strong>. Our team member will join with all required documents.</p>
-          <p style="margin: 0 0 8px 0;"><span style="color: #2d5a87;">&#8226;</span>&nbsp; For any changes or assistance, please contact the assigned <strong style="text-decoration: underline;">Client Relationship Manager</strong>.</p>
-          ${props.notes ? `<p style="margin: 0;"><span style="color: #2d5a87;">&#8226;</span>&nbsp; ${props.notes}</p>` : ""}
-        </div>
+      <div style="border-left: 3px solid #c4544a; background: #fdf8f7; border-radius: 0 8px 8px 0; padding: 14px 18px; margin-bottom: 16px; font-size: 13px; color: #374151; line-height: 1.7;">
+        Please ensure the applicant arrives at least <strong>10 minutes before</strong> the scheduled time with their <strong>original passport</strong>. Our team member will join with all required documents. For any changes or assistance, please contact the assigned <strong>Client Relationship Manager</strong>.
+        ${props.notes ? `<br><br>${props.notes}` : ""}
       </div>
 
       <!-- Closing -->
       <div style="font-size: 13px; color: #475569; margin-bottom: 16px; line-height: 1.6;">
-        <p style="margin: 0 0 6px 0;">Once the medical is completed, we are expecting the result after completing the medical test.</p>
-        <p style="margin: 0;">Thank you for your continued trust in <strong style="color: #1e3f61;">The P.R.O. Company</strong>.</p>
+        <p style="margin: 0;">We'll update you once the medical is complete. Thank you.</p>
       </div>
 
       <!-- Signature -->
       <div style="font-size: 13px; color: #475569;">
         <p style="margin: 0;">Warm regards,</p>
-        <p style="margin: 2px 0 0 0; font-weight: 600;">Operations Team</p>
         <p style="margin: 2px 0 0 0; font-weight: 700; color: #2d5a87;">The P.R.O. Company</p>
       </div>
     </div>
