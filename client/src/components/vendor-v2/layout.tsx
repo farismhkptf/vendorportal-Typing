@@ -195,12 +195,14 @@ export function V2Layout({ children }: V2LayoutProps) {
                 </button>
               </Link>
             )}
-            <Link href="/vendor">
-              <button className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-white/70 hover:bg-white/10 transition-colors" data-testid="button-classic-portal">
-                <ArrowLeft className="h-4 w-4" />
-                Classic Portal
-              </button>
-            </Link>
+            <button
+              onClick={() => { window.location.href = "/vendor"; }}
+              className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-white/70 hover:bg-white/10 transition-colors"
+              data-testid="button-classic-portal"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Classic Portal
+            </button>
             <button
               onClick={() => logout()}
               className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-red-400 hover:bg-white/10 transition-colors"

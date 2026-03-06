@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   LayoutDashboard, CreditCard, LogOut, Bell, Shield, Stethoscope,
-  WifiOff, Wifi, ChevronRight, ArrowLeft, KeyRound
+  WifiOff, Wifi, ChevronRight, ArrowLeft, KeyRound, Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -140,6 +140,17 @@ export function VendorSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Try New Portal"
+              className="h-9 gap-3 text-primary font-medium"
+              onClick={() => { window.location.href = "/vendor-v2"; }}
+              data-testid="button-try-new-portal"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span>Try New Portal</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               tooltip="Change Password"
