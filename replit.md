@@ -98,6 +98,17 @@ An authenticated REST API for external client dashboard and CRM integrations. AP
 
 ### Deferred / Future Features
 
+### Vendor Portal V2 (Glassmorphic)
+
+A completely renovated vendor portal at `/vendor-v2/*` with Apple/iOS-inspired glassmorphic design. Uses the same backend API endpoints and vendor auth system as the classic portal. Key files:
+-   **Layout**: `client/src/components/vendor-v2/layout.tsx` — Full-screen immersive layout with gradient background, bottom tab navigation (Home/EID/Medical/Wallet), notification sheet, `GlassCard`/`GlassSection`/`GlassEmpty`/`GlassSkeleton` utility components.
+-   **Dashboard**: `client/src/pages/vendor-v2/dashboard.tsx` — Time-based greeting, alert cards (stale/urgent), 4 metric tiles, pipeline bar, work order groups, activity timeline, quick actions.
+-   **EID/Medical Jobs**: `client/src/pages/vendor-v2/eid-jobs.tsx`, `medical-jobs.tsx` — Search, filter pills, stat row, job cards with accent colors, accept mutation.
+-   **Wallet**: `client/src/pages/vendor-v2/wallet.tsx` — Balance hero, transactions grouped by date.
+-   **Job Detail**: `client/src/pages/vendor-v2/job-detail.tsx` — 3-step wizard (Overview/Documents/Complete) with full biometrics, file upload, comments, resubmission dialog. Full parity with classic portal wizard.
+-   **CSS**: Glassmorphic utility classes in `client/src/index.css` — `.v2-portal-root`, `.v2-bg-layer`, `.glass-card`, `.glass-panel`, `.glass-nav`, `.glass-input`, `.glass-pill`, `.glass-skeleton`, `.glass-btn-primary`, `.v2-status-*` badges.
+-   **Routes**: Registered in `App.tsx` under `VendorV2Layout` wrapper with same `VendorAuthProvider`/`VendorAuthGuard`.
+
 These features have code preserved but are not active in the current UI:
 -   **Bots System**: "Quick Paste WO" and "Appointment Scheduler" bots. Code preserved, listed under Admin Console → Future Updates.
 -   **Manager Console**: PIN-protected CRM console for managing entities. Code preserved, listed under Admin Console → Future Updates.

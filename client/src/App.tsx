@@ -84,6 +84,12 @@ import VendorEidJobs from "@/pages/vendor/eid-jobs";
 import VendorMedicalJobs from "@/pages/vendor/medical-jobs";
 import VendorJobDetail from "@/pages/vendor/job-detail";
 import VendorWalletPage from "@/pages/vendor/wallet";
+import V2Dashboard from "@/pages/vendor-v2/dashboard";
+import V2EidJobs from "@/pages/vendor-v2/eid-jobs";
+import V2MedicalJobs from "@/pages/vendor-v2/medical-jobs";
+import V2JobDetail from "@/pages/vendor-v2/job-detail";
+import V2WalletPage from "@/pages/vendor-v2/wallet";
+import { V2Layout } from "@/components/vendor-v2/layout";
 import AppointmentsIndex from "@/pages/appointments/index";
 import ScheduleMedical from "@/pages/appointments/schedule-medical";
 import ScheduleEid from "@/pages/appointments/schedule-eid";
@@ -188,6 +194,27 @@ function VendorAuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function VendorV2Layout() {
+  return (
+    <VendorAuthProvider>
+      <VendorAuthGuard>
+        <V2Layout>
+          <Switch>
+            <Route path="/" component={V2Dashboard} />
+            <Route path="/dashboard">{() => <Redirect to="/vendor-v2" />}</Route>
+            <Route path="/eid" component={V2EidJobs} />
+            <Route path="/eid/:id" component={V2JobDetail} />
+            <Route path="/medical" component={V2MedicalJobs} />
+            <Route path="/medical/:id" component={V2JobDetail} />
+            <Route path="/wallet" component={V2WalletPage} />
+            <Route component={NotFound} />
+          </Switch>
+        </V2Layout>
+      </VendorAuthGuard>
+    </VendorAuthProvider>
+  );
+}
+
 function VendorLayout() {
   return (
     <VendorAuthProvider>
@@ -244,6 +271,7 @@ function Router() {
           <Route path="/manager-console" component={ManagerConsole} />
           <Route path="/reports" component={ReportsPage} />
           <Route path="/vendor/login" component={VendorLogin} />
+          <Route path="/vendor-v2" nest component={VendorV2Layout} />
           <Route path="/vendor" nest component={VendorLayout} />
           <Route path="/appointments" component={AppointmentsIndex} />
           <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
