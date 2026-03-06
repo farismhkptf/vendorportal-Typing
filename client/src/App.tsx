@@ -248,42 +248,49 @@ function VendorLayout() {
   );
 }
 
+function AppRoutes() {
+  return (
+    <Switch>
+      <Route path="/" component={Dashboard} />
+      <Route path="/login" component={Login} />
+      <Route path="/privacy-policy">{() => <LegalPage type="privacy" />}</Route>
+      <Route path="/terms-of-service">{() => <LegalPage type="terms" />}</Route>
+      <Route path="/crm" component={CrmDashboard} />
+      <Route path="/medical" component={MedicalDashboard} />
+      <Route path="/work-orders" component={WorkOrdersList} />
+      <Route path="/work-orders/new" component={NewWorkOrder} />
+      <Route path="/work-orders/:id" component={WorkOrderDetail} />
+      <Route path="/companies" component={CompaniesList} />
+      <Route path="/companies/new" component={NewCompany} />
+      <Route path="/companies/:id" component={CompanyDetail} />
+      <Route path="/typing-jobs" component={TypingJobsList} />
+      <Route path="/typing-jobs/new" component={NewTypingJob} />
+      <Route path="/typing-jobs/:id" component={TypingJobDetail} />
+      <Route path="/vendor-wallet" component={VendorWallet} />
+      <Route path="/admin" component={AdminPage} />
+      <Route path="/manager-console" component={ManagerConsole} />
+      <Route path="/reports" component={ReportsPage} />
+      <Route path="/vendor/login" component={VendorLogin} />
+      <Route path="/vendor-v2" nest component={VendorV2Layout} />
+      <Route path="/vendor" nest component={VendorLayout} />
+      <Route path="/appointments" component={AppointmentsIndex} />
+      <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
+      <Route path="/appointments/schedule-eid" component={ScheduleEid} />
+      <Route path="/bots" component={BotsHub} />
+      <Route path="/bots/quick-paste" component={QuickPasteBot} />
+      <Route path="/bots/scheduler" component={SchedulerBot} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
 function Router() {
+  const [location] = useLocation();
+  const isV2Portal = location === "/vendor-v2" || location.startsWith("/vendor-v2/");
+
   return (
     <AuthGuard>
-      <PageTransition>
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/login" component={Login} />
-          <Route path="/privacy-policy">{() => <LegalPage type="privacy" />}</Route>
-          <Route path="/terms-of-service">{() => <LegalPage type="terms" />}</Route>
-          <Route path="/crm" component={CrmDashboard} />
-          <Route path="/medical" component={MedicalDashboard} />
-          <Route path="/work-orders" component={WorkOrdersList} />
-          <Route path="/work-orders/new" component={NewWorkOrder} />
-          <Route path="/work-orders/:id" component={WorkOrderDetail} />
-          <Route path="/companies" component={CompaniesList} />
-          <Route path="/companies/new" component={NewCompany} />
-          <Route path="/companies/:id" component={CompanyDetail} />
-          <Route path="/typing-jobs" component={TypingJobsList} />
-          <Route path="/typing-jobs/new" component={NewTypingJob} />
-          <Route path="/typing-jobs/:id" component={TypingJobDetail} />
-          <Route path="/vendor-wallet" component={VendorWallet} />
-          <Route path="/admin" component={AdminPage} />
-          <Route path="/manager-console" component={ManagerConsole} />
-          <Route path="/reports" component={ReportsPage} />
-          <Route path="/vendor/login" component={VendorLogin} />
-          <Route path="/vendor-v2" nest component={VendorV2Layout} />
-          <Route path="/vendor" nest component={VendorLayout} />
-          <Route path="/appointments" component={AppointmentsIndex} />
-          <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
-          <Route path="/appointments/schedule-eid" component={ScheduleEid} />
-          <Route path="/bots" component={BotsHub} />
-          <Route path="/bots/quick-paste" component={QuickPasteBot} />
-          <Route path="/bots/scheduler" component={SchedulerBot} />
-          <Route component={NotFound} />
-        </Switch>
-      </PageTransition>
+      {isV2Portal ? <AppRoutes /> : <PageTransition><AppRoutes /></PageTransition>}
     </AuthGuard>
   );
 }
