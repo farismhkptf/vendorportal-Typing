@@ -169,30 +169,30 @@ export default function V2Dashboard() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto pt-2 pb-4">
-      <div className="mb-6" data-tour="greeting">
-        <h1 className="text-3xl font-bold text-white tracking-tight" data-testid="text-v2-greeting">
+    <div className="max-w-2xl mx-auto pt-2 pb-4 space-y-8">
+      <div data-tour="greeting">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight" data-testid="text-v2-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0]}
         </h1>
-        <p className="text-white/50 text-sm mt-1">
+        <p className="text-slate-500 dark:text-white/50 text-sm mt-1">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
           {stats && stats.pending > 0 && (
-            <span className="text-amber-400/80"> · {stats.pending} pending</span>
+            <span className="text-amber-600 dark:text-amber-400/80"> · {stats.pending} pending</span>
           )}
         </p>
       </div>
 
       {(staleCount > 0 || urgentCount > 0) && (
-        <div className="space-y-2 mb-6">
+        <div className="space-y-2">
           {staleCount > 0 && (
             <GlassCard accent="amber" className="p-4 v2-alert-pulse" data-testid="alert-stale-jobs">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                  <Clock className="h-5 w-5 text-amber-400" />
+                  <Clock className="h-5 w-5 text-amber-500 dark:text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{staleCount} job{staleCount > 1 ? "s" : ""} waiting over 12 hours</p>
-                  <p className="text-xs text-white/50">Accept pending jobs to avoid delays</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{staleCount} job{staleCount > 1 ? "s" : ""} waiting over 12 hours</p>
+                  <p className="text-xs text-slate-500 dark:text-white/50">Accept pending jobs to avoid delays</p>
                 </div>
               </div>
             </GlassCard>
@@ -201,11 +201,11 @@ export default function V2Dashboard() {
             <GlassCard accent="red" className="p-4 v2-alert-pulse" data-testid="alert-urgent-jobs">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 rounded-xl bg-red-500/20 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-red-400" />
+                  <AlertTriangle className="h-5 w-5 text-red-500 dark:text-red-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white">{urgentCount} urgent job{urgentCount > 1 ? "s" : ""}</p>
-                  <p className="text-xs text-white/50">Priority items need immediate attention</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{urgentCount} urgent job{urgentCount > 1 ? "s" : ""}</p>
+                  <p className="text-xs text-slate-500 dark:text-white/50">Priority items need immediate attention</p>
                 </div>
               </div>
             </GlassCard>
@@ -213,77 +213,82 @@ export default function V2Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 mb-6" data-tour="metrics">
-        <GlassCard
-          className="p-4"
-          onClick={() => setLocation("/wallet")}
-          data-testid="metric-wallet"
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Wallet className="h-4 w-4 text-emerald-400" />
-            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Balance</span>
-          </div>
-          <p className="text-2xl font-bold text-white tabular-nums">
-            {balance.toLocaleString()} <span className="text-sm font-normal text-white/40">AED</span>
-          </p>
-        </GlassCard>
+      <section data-tour="metrics">
+        <h3 className="text-xs font-semibold text-slate-400 dark:text-white/40 uppercase tracking-wider mb-3">Overview</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <GlassCard
+            className="p-4"
+            onClick={() => setLocation("/wallet")}
+            data-testid="metric-wallet"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+              <span className="text-[11px] font-medium text-slate-400 dark:text-white/50 uppercase tracking-wider">Balance</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
+              {balance.toLocaleString()} <span className="text-sm font-normal text-slate-400 dark:text-white/40">AED</span>
+            </p>
+          </GlassCard>
 
-        <GlassCard className="p-4" data-testid="metric-active">
-          <div className="flex items-center gap-2 mb-2">
-            <Activity className="h-4 w-4 text-blue-400" />
-            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Active</span>
-          </div>
-          <p className="text-2xl font-bold text-white tabular-nums">
-            {stats?.inProgress || 0}
-            <span className="text-sm font-normal text-white/40 ml-1">jobs</span>
-          </p>
-        </GlassCard>
+          <GlassCard className="p-4" data-testid="metric-active">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+              <span className="text-[11px] font-medium text-slate-400 dark:text-white/50 uppercase tracking-wider">Active</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
+              {stats?.inProgress || 0}
+              <span className="text-sm font-normal text-slate-400 dark:text-white/40 ml-1">jobs</span>
+            </p>
+          </GlassCard>
 
-        <GlassCard className="p-4" data-testid="metric-rate">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-4 w-4 text-purple-400" />
-            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Rate</span>
-          </div>
-          <p className="text-2xl font-bold text-white tabular-nums">
-            {perfData?.completionRate?.toFixed(0) || 0}<span className="text-sm font-normal text-white/40">%</span>
-          </p>
-        </GlassCard>
+          <GlassCard className="p-4" data-testid="metric-rate">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+              <span className="text-[11px] font-medium text-slate-400 dark:text-white/50 uppercase tracking-wider">Rate</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
+              {perfData?.completionRate?.toFixed(0) || 0}<span className="text-sm font-normal text-slate-400 dark:text-white/40">%</span>
+            </p>
+          </GlassCard>
 
-        <GlassCard className="p-4" data-testid="metric-turnaround">
-          <div className="flex items-center gap-2 mb-2">
-            <Timer className="h-4 w-4 text-amber-400" />
-            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Avg Time</span>
-          </div>
-          <p className="text-2xl font-bold text-white tabular-nums">
-            {perfData?.avgTurnaroundHours
-              ? perfData.avgTurnaroundHours < 24
-                ? `${Math.round(perfData.avgTurnaroundHours)}h`
-                : `${(perfData.avgTurnaroundHours / 24).toFixed(1)}d`
-              : "—"}
-          </p>
-        </GlassCard>
-      </div>
+          <GlassCard className="p-4" data-testid="metric-turnaround">
+            <div className="flex items-center gap-2 mb-2">
+              <Timer className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+              <span className="text-[11px] font-medium text-slate-400 dark:text-white/50 uppercase tracking-wider">Avg Time</span>
+            </div>
+            <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
+              {perfData?.avgTurnaroundHours
+                ? perfData.avgTurnaroundHours < 24
+                  ? `${Math.round(perfData.avgTurnaroundHours)}h`
+                  : `${(perfData.avgTurnaroundHours / 24).toFixed(1)}d`
+                : "—"}
+            </p>
+          </GlassCard>
+        </div>
+      </section>
 
       {pipelineTotal > 0 && (
-        <GlassCard className="p-4 mb-6" data-testid="pipeline-bar" data-tour="pipeline">
-          <p className="text-[11px] font-medium text-white/50 uppercase tracking-wider mb-3">Pipeline</p>
-          <div className="h-2 rounded-full bg-white/5 overflow-hidden flex">
-            {pipelinePending > 0 && (
-              <div className="h-full bg-amber-400/70 rounded-l-full" style={{ width: `${pipelinePending}%` }} />
-            )}
-            {pipelineActive > 0 && (
-              <div className="h-full bg-blue-400/70" style={{ width: `${pipelineActive}%` }} />
-            )}
-            {pipelineDone > 0 && (
-              <div className="h-full bg-emerald-400/70 rounded-r-full" style={{ width: `${pipelineDone}%` }} />
-            )}
-          </div>
-          <div className="flex justify-between mt-2 text-[11px]">
-            <span className="text-amber-400/80">{stats?.pending || 0} Pending</span>
-            <span className="text-blue-400/80">{stats?.inProgress || 0} Active</span>
-            <span className="text-emerald-400/80">{stats?.completed || 0} Done</span>
-          </div>
-        </GlassCard>
+        <section data-tour="pipeline">
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-white/40 uppercase tracking-wider mb-3">Pipeline</h3>
+          <GlassCard className="p-4" data-testid="pipeline-bar">
+            <div className="h-2.5 rounded-full bg-slate-100 dark:bg-white/5 overflow-hidden flex">
+              {pipelinePending > 0 && (
+                <div className="h-full bg-amber-400/80 dark:bg-amber-400/70 rounded-l-full" style={{ width: `${pipelinePending}%` }} />
+              )}
+              {pipelineActive > 0 && (
+                <div className="h-full bg-blue-400/80 dark:bg-blue-400/70" style={{ width: `${pipelineActive}%` }} />
+              )}
+              {pipelineDone > 0 && (
+                <div className="h-full bg-emerald-400/80 dark:bg-emerald-400/70 rounded-r-full" style={{ width: `${pipelineDone}%` }} />
+              )}
+            </div>
+            <div className="flex justify-between mt-2.5 text-[11px]">
+              <span className="text-amber-600 dark:text-amber-400/80 font-medium">{stats?.pending || 0} Pending</span>
+              <span className="text-blue-600 dark:text-blue-400/80 font-medium">{stats?.inProgress || 0} Active</span>
+              <span className="text-emerald-600 dark:text-emerald-400/80 font-medium">{stats?.completed || 0} Done</span>
+            </div>
+          </GlassCard>
+        </section>
       )}
 
       {dashData?.woGrouped && dashData.woGrouped.length > 0 && (
@@ -293,8 +298,8 @@ export default function V2Dashboard() {
               <GlassCard key={wo.woId} className="p-4" data-testid={`wo-group-${wo.woId}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-white/50">{wo.woNumber}</span>
-                    <span className="text-sm font-medium text-white truncate">{wo.applicantName}</span>
+                    <span className="text-xs font-mono text-slate-400 dark:text-white/50">{wo.woNumber}</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">{wo.applicantName}</span>
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -302,15 +307,15 @@ export default function V2Dashboard() {
                     <div key={job.id} className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         {job.category === "EID" ? (
-                          <Shield className="h-3.5 w-3.5 text-amber-400/70" />
+                          <Shield className="h-3.5 w-3.5 text-amber-500/70 dark:text-amber-400/70" />
                         ) : (
-                          <Stethoscope className="h-3.5 w-3.5 text-teal-400/70" />
+                          <Stethoscope className="h-3.5 w-3.5 text-teal-500/70 dark:text-teal-400/70" />
                         )}
                         <span className={`${getStatusClass(job.status)} v2-status-badge`}>
                           {getDisplayStatus(job.status)}
                         </span>
                         {job.sentAt && (
-                          <span className="text-[11px] text-white/30">{formatAge(job.sentAt)}</span>
+                          <span className="text-[11px] text-slate-300 dark:text-white/30">{formatAge(job.sentAt)}</span>
                         )}
                       </div>
                       {job.status === "SubmittedToVendor" && (
@@ -336,25 +341,25 @@ export default function V2Dashboard() {
         {recentActivity.length > 0 ? (
           <div className="space-y-1">
             {recentActivity.map((item, i) => (
-              <div key={item.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-white/5 transition-colors" data-testid={`timeline-item-${i}`}>
+              <div key={item.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors" data-testid={`timeline-item-${i}`}>
                 <div className="mt-0.5 shrink-0">
                   <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${
                     item.category === "EID" ? "bg-amber-500/15" :
                     item.category === "Medical" ? "bg-teal-500/15" :
                     item.category === "wallet" ? "bg-emerald-500/15" :
-                    "bg-white/10"
+                    "bg-slate-100 dark:bg-white/10"
                   }`}>
-                    {item.category === "EID" ? <Shield className="h-3.5 w-3.5 text-amber-400" /> :
-                     item.category === "Medical" ? <Stethoscope className="h-3.5 w-3.5 text-teal-400" /> :
-                     item.category === "wallet" ? <CreditCard className="h-3.5 w-3.5 text-emerald-400" /> :
-                     <Zap className="h-3.5 w-3.5 text-white/50" />}
+                    {item.category === "EID" ? <Shield className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" /> :
+                     item.category === "Medical" ? <Stethoscope className="h-3.5 w-3.5 text-teal-500 dark:text-teal-400" /> :
+                     item.category === "wallet" ? <CreditCard className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" /> :
+                     <Zap className="h-3.5 w-3.5 text-slate-400 dark:text-white/50" />}
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white/80 truncate">{item.title}</p>
-                  <p className="text-xs text-white/40 truncate">{item.description}</p>
+                  <p className="text-sm text-slate-700 dark:text-white/80 truncate">{item.title}</p>
+                  <p className="text-xs text-slate-400 dark:text-white/40 truncate">{item.description}</p>
                 </div>
-                <span className="text-[11px] text-white/30 shrink-0 mt-0.5">{formatRelativeTime(item.timestamp)}</span>
+                <span className="text-[11px] text-slate-300 dark:text-white/30 shrink-0 mt-0.5">{formatRelativeTime(item.timestamp)}</span>
               </div>
             ))}
           </div>
@@ -368,25 +373,27 @@ export default function V2Dashboard() {
       </GlassSection>
 
       {perfData && (perfData.monthlyEarnings > 0 || perfData.totalJobsThisMonth > 0) && (
-        <GlassCard className="p-4" data-testid="performance-summary">
-          <p className="text-[11px] font-medium text-white/50 uppercase tracking-wider mb-3">This Month</p>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <p className="text-lg font-bold text-white">{perfData.totalJobsThisMonth}</p>
-              <p className="text-[11px] text-white/40">Jobs</p>
-            </div>
-            <div>
-              <p className="text-lg font-bold text-white">{perfData.completionRate?.toFixed(0)}%</p>
-              <p className="text-[11px] text-white/40">Rate</p>
-            </div>
-            {perfData.monthlyEarnings > 0 && (
+        <section>
+          <h3 className="text-xs font-semibold text-slate-400 dark:text-white/40 uppercase tracking-wider mb-3">This Month</h3>
+          <GlassCard className="p-4" data-testid="performance-summary">
+            <div className="grid grid-cols-3 gap-4 text-center">
               <div>
-                <p className="text-lg font-bold text-white">{perfData.monthlyEarnings.toLocaleString()}</p>
-                <p className="text-[11px] text-white/40">AED</p>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{perfData.totalJobsThisMonth}</p>
+                <p className="text-[11px] text-slate-400 dark:text-white/40">Jobs</p>
               </div>
-            )}
-          </div>
-        </GlassCard>
+              <div>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{perfData.completionRate?.toFixed(0)}%</p>
+                <p className="text-[11px] text-slate-400 dark:text-white/40">Rate</p>
+              </div>
+              {perfData.monthlyEarnings > 0 && (
+                <div>
+                  <p className="text-lg font-bold text-slate-900 dark:text-white">{perfData.monthlyEarnings.toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-white/40">AED</p>
+                </div>
+              )}
+            </div>
+          </GlassCard>
+        </section>
       )}
     </div>
   );

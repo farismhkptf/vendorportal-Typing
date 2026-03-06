@@ -43,30 +43,30 @@ function NotificationSheet({ open, onClose }: { open: boolean; onClose: () => vo
       <div className="fixed right-0 top-0 bottom-0 w-full max-w-md z-50 flex flex-col" data-testid="notification-sheet">
         <div className="flex-1 overflow-y-auto glass-panel m-3 rounded-3xl p-5">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-semibold text-white">Notifications</h2>
-            <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10 transition-colors" data-testid="button-close-notifications">
-              <X className="h-5 w-5 text-white/70" />
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Notifications</h2>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors" data-testid="button-close-notifications">
+              <X className="h-5 w-5 text-slate-500 dark:text-white/70" />
             </button>
           </div>
 
           {unread.length > 0 && (
             <div className="space-y-2 mb-6">
-              <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">New</p>
+              <p className="text-xs font-medium text-slate-400 dark:text-white/50 uppercase tracking-wider mb-3">New</p>
               {unread.map(n => (
                 <button
                   key={n.id}
                   onClick={() => markReadMutation.mutate(n.id)}
-                  className="w-full text-left p-3 rounded-2xl bg-white/10 hover:bg-white/15 transition-all group"
+                  className="w-full text-left p-3 rounded-2xl bg-indigo-50 dark:bg-white/10 hover:bg-indigo-100 dark:hover:bg-white/15 transition-all group"
                   data-testid={`notification-unread-${n.id}`}
                 >
                   <div className="flex items-start gap-3">
                     <div className="h-2 w-2 rounded-full bg-blue-400 mt-2 shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white">{n.title}</p>
-                      <p className="text-xs text-white/60 mt-0.5 line-clamp-2">{n.message}</p>
-                      <p className="text-[11px] text-white/40 mt-1">{formatRelativeTime(n.createdAt)}</p>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white">{n.title}</p>
+                      <p className="text-xs text-slate-500 dark:text-white/60 mt-0.5 line-clamp-2">{n.message}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-white/40 mt-1">{formatRelativeTime(n.createdAt)}</p>
                     </div>
-                    <Check className="h-4 w-4 text-white/30 group-hover:text-white/60 shrink-0 mt-1" />
+                    <Check className="h-4 w-4 text-slate-300 dark:text-white/30 group-hover:text-slate-500 dark:group-hover:text-white/60 shrink-0 mt-1" />
                   </div>
                 </button>
               ))}
@@ -75,19 +75,19 @@ function NotificationSheet({ open, onClose }: { open: boolean; onClose: () => vo
 
           {read.length > 0 && (
             <div className="space-y-2">
-              <p className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">Earlier</p>
+              <p className="text-xs font-medium text-slate-400 dark:text-white/50 uppercase tracking-wider mb-3">Earlier</p>
               {read.map(n => (
-                <div key={n.id} className="p-3 rounded-2xl bg-white/5" data-testid={`notification-read-${n.id}`}>
-                  <p className="text-sm text-white/70">{n.title}</p>
-                  <p className="text-xs text-white/40 mt-0.5 line-clamp-1">{n.message}</p>
-                  <p className="text-[11px] text-white/30 mt-1">{formatRelativeTime(n.createdAt)}</p>
+                <div key={n.id} className="p-3 rounded-2xl bg-slate-50 dark:bg-white/5" data-testid={`notification-read-${n.id}`}>
+                  <p className="text-sm text-slate-600 dark:text-white/70">{n.title}</p>
+                  <p className="text-xs text-slate-400 dark:text-white/40 mt-0.5 line-clamp-1">{n.message}</p>
+                  <p className="text-[11px] text-slate-300 dark:text-white/30 mt-1">{formatRelativeTime(n.createdAt)}</p>
                 </div>
               ))}
             </div>
           )}
 
           {(!notifications || notifications.length === 0) && (
-            <div className="flex flex-col items-center justify-center py-16 text-white/40">
+            <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-white/40">
               <Bell className="h-10 w-10 mb-3" />
               <p className="text-sm">No notifications yet</p>
             </div>
@@ -152,10 +152,10 @@ export function V2Layout({ children }: V2LayoutProps) {
         <header className="flex items-center justify-between px-5 pt-4 pb-2 lg:px-8 lg:pt-6">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-white font-bold text-sm">P</span>
+              <div className="h-8 w-8 rounded-xl bg-indigo-100 dark:bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-indigo-600 dark:text-white font-bold text-sm">P</span>
               </div>
-              <span className="text-white/90 font-medium text-sm hidden sm:block">
+              <span className="text-slate-700 dark:text-white/90 font-medium text-sm hidden sm:block">
                 {user?.vendorName || "Vendor Portal"}
               </span>
             </div>
@@ -166,23 +166,23 @@ export function V2Layout({ children }: V2LayoutProps) {
 
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2.5 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               data-testid="button-v2-theme-toggle"
             >
               {theme === "dark" ? (
-                <Sun className="h-4.5 w-4.5 text-white/70" />
+                <Sun className="h-4.5 w-4.5 text-slate-500 dark:text-white/70" />
               ) : (
-                <Moon className="h-4.5 w-4.5 text-white/70" />
+                <Moon className="h-4.5 w-4.5 text-slate-500 dark:text-white/70" />
               )}
             </button>
 
             <button
               onClick={() => setShowNotifications(true)}
-              className="p-2.5 rounded-full hover:bg-white/10 transition-colors relative"
+              className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors relative"
               data-testid="button-v2-notifications"
               data-tour="notifications"
             >
-              <Bell className="h-4.5 w-4.5 text-white/70" />
+              <Bell className="h-4.5 w-4.5 text-slate-500 dark:text-white/70" />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 h-4 min-w-[16px] rounded-full bg-red-500 text-[10px] font-bold text-white flex items-center justify-center px-1">
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -192,12 +192,12 @@ export function V2Layout({ children }: V2LayoutProps) {
 
             <button
               onClick={() => setShowProfile(!showProfile)}
-              className="p-2.5 rounded-full hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               data-testid="button-v2-profile"
               data-tour="profile"
             >
-              <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center">
-                <span className="text-[11px] font-bold text-white">{user?.name?.charAt(0) || "V"}</span>
+              <div className="h-6 w-6 rounded-full bg-indigo-100 dark:bg-white/20 flex items-center justify-center">
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-white">{user?.name?.charAt(0) || "V"}</span>
               </div>
             </button>
           </div>
@@ -205,14 +205,14 @@ export function V2Layout({ children }: V2LayoutProps) {
 
         {showProfile && (
           <div className="absolute right-4 top-16 z-50 glass-panel rounded-2xl p-4 w-64" data-testid="profile-dropdown">
-            <div className="mb-3 pb-3 border-b border-white/10">
-              <p className="text-sm font-medium text-white">{user?.name}</p>
-              <p className="text-xs text-white/50">{user?.email}</p>
+            <div className="mb-3 pb-3 border-b border-slate-200 dark:border-white/10">
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{user?.name}</p>
+              <p className="text-xs text-slate-400 dark:text-white/50">{user?.email}</p>
             </div>
             {user?.isAdminViewing && (
               <button
                 onClick={() => { window.location.href = "/"; }}
-                className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-white/70 hover:bg-white/10 transition-colors"
+                className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-slate-600 dark:text-white/70 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
                 data-testid="button-back-to-admin"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -221,7 +221,7 @@ export function V2Layout({ children }: V2LayoutProps) {
             )}
             <button
               onClick={() => { window.location.href = "/vendor"; }}
-              className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-white/70 hover:bg-white/10 transition-colors"
+              className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-slate-600 dark:text-white/70 hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               data-testid="button-classic-portal"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -229,7 +229,7 @@ export function V2Layout({ children }: V2LayoutProps) {
             </button>
             <button
               onClick={() => logout()}
-              className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-red-400 hover:bg-white/10 transition-colors"
+              className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-white/10 transition-colors"
               data-testid="button-v2-logout"
             >
               <LogOut className="h-4 w-4" />
@@ -252,13 +252,13 @@ export function V2Layout({ children }: V2LayoutProps) {
                   <button
                     className={`v2-dock-item relative flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-all ${
                       isActive
-                        ? "text-white v2-dock-item-active"
-                        : "text-white/50 hover:text-white/80"
+                        ? "text-indigo-600 dark:text-white v2-dock-item-active"
+                        : "text-slate-400 dark:text-white/50 hover:text-slate-600 dark:hover:text-white/80"
                     }`}
                     data-testid={`nav-tab-${tab.label.toLowerCase()}`}
                   >
                     {isActive && (
-                      <div className="absolute inset-0 bg-white/15 rounded-2xl" />
+                      <div className="absolute inset-0 bg-indigo-50 dark:bg-white/15 rounded-2xl" />
                     )}
                     <div className="relative">
                       <tab.icon className="h-5 w-5" />
@@ -309,7 +309,7 @@ export function GlassCard({
 
   return (
     <div
-      className={`glass-card ${accent ? "border-l-[3px] " + accentBorder : ""} ${onClick ? "cursor-pointer hover:bg-white/[0.12] active:scale-[0.98]" : ""} ${className}`}
+      className={`glass-card ${accent ? "border-l-[3px] " + accentBorder : ""} ${onClick ? "cursor-pointer hover:bg-slate-50/60 dark:hover:bg-white/[0.12] active:scale-[0.98]" : ""} ${className}`}
       onClick={onClick}
       {...props}
     >
@@ -332,7 +332,7 @@ export function GlassSection({
   return (
     <section className={`mb-6 ${className}`}>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">{title}</h2>
+        <h2 className="text-sm font-semibold text-slate-500 dark:text-white/80 uppercase tracking-wider">{title}</h2>
         {action}
       </div>
       {children}
@@ -355,11 +355,11 @@ export function GlassEmpty({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div className="h-16 w-16 rounded-2xl bg-white/10 flex items-center justify-center mb-4 text-white/30">
+      <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-white/10 flex items-center justify-center mb-4 text-slate-400 dark:text-white/30">
         {icon}
       </div>
-      <p className="text-white/60 font-medium mb-1">{title}</p>
-      <p className="text-white/40 text-sm max-w-xs">{description}</p>
+      <p className="text-slate-500 dark:text-white/60 font-medium mb-1">{title}</p>
+      <p className="text-slate-400 dark:text-white/40 text-sm max-w-xs">{description}</p>
     </div>
   );
 }

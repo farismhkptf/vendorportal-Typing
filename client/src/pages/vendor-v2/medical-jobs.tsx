@@ -114,16 +114,16 @@ export default function V2MedicalJobs() {
     <div className="max-w-2xl mx-auto pt-2 pb-4">
       <div className="flex items-center gap-3 mb-4">
         <div className="h-10 w-10 rounded-xl bg-teal-500/15 flex items-center justify-center shrink-0">
-          <Stethoscope className="h-5 w-5 text-teal-400" />
+          <Stethoscope className="h-5 w-5 text-teal-500 dark:text-teal-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white" data-testid="text-medical-title">Medical Jobs</h1>
-          <p className="text-xs text-white/40">{medJobs.length} total</p>
+          <h1 className="text-xl font-bold text-slate-900 dark:text-white" data-testid="text-medical-title">Medical Jobs</h1>
+          <p className="text-xs text-slate-400 dark:text-white/40">{medJobs.length} total</p>
         </div>
       </div>
 
       <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-white/30" />
         <input
           type="search"
           placeholder="Search by WO# or applicant..."
@@ -149,16 +149,16 @@ export default function V2MedicalJobs() {
 
       <div className="grid grid-cols-3 gap-3 mb-5">
         <GlassCard className="p-3 text-center" data-testid="stat-new">
-          <p className="text-lg font-bold text-blue-400">{newCount}</p>
-          <p className="text-[10px] text-white/40 uppercase tracking-wider">New</p>
+          <p className="text-lg font-bold text-blue-500 dark:text-blue-400">{newCount}</p>
+          <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider">New</p>
         </GlassCard>
         <GlassCard className="p-3 text-center" data-testid="stat-active">
-          <p className="text-lg font-bold text-teal-400">{activeCount}</p>
-          <p className="text-[10px] text-white/40 uppercase tracking-wider">In Progress</p>
+          <p className="text-lg font-bold text-teal-500 dark:text-teal-400">{activeCount}</p>
+          <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider">In Progress</p>
         </GlassCard>
         <GlassCard className="p-3 text-center" data-testid="stat-done">
-          <p className="text-lg font-bold text-emerald-400">{doneCount}</p>
-          <p className="text-[10px] text-white/40 uppercase tracking-wider">Completed</p>
+          <p className="text-lg font-bold text-emerald-500 dark:text-emerald-400">{doneCount}</p>
+          <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider">Completed</p>
         </GlassCard>
       </div>
 
@@ -175,17 +175,17 @@ export default function V2MedicalJobs() {
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono text-white/40">{job.woNumber}</span>
+                    <span className="text-xs font-mono text-slate-400 dark:text-white/40">{job.woNumber}</span>
                     {job.urgent && <span className="v2-status-badge v2-status-urgent">Urgent</span>}
                   </div>
-                  <p className="text-sm font-medium text-white truncate">{job.applicantName}</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{job.applicantName}</p>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
                     <span className={`${getStatusClass(job.status)} v2-status-badge`}>
                       {getDisplayStatus(job.status)}
                     </span>
-                    <span className="text-[11px] text-white/30">{job.jobTypeName}</span>
+                    <span className="text-[11px] text-slate-400 dark:text-white/30">{job.jobTypeName}</span>
                     {job.sentAt && (
-                      <span className="text-[11px] text-white/25">{formatRelativeTime(job.sentAt)}</span>
+                      <span className="text-[11px] text-slate-300 dark:text-white/25">{formatRelativeTime(job.sentAt)}</span>
                     )}
                   </div>
                 </div>
@@ -202,12 +202,12 @@ export default function V2MedicalJobs() {
                   )}
                   <div className="flex items-center gap-2">
                     {job.inputDocumentCount > 0 && (
-                      <span className="flex items-center gap-0.5 text-[11px] text-white/25">
+                      <span className="flex items-center gap-0.5 text-[11px] text-slate-300 dark:text-white/25">
                         <FileText className="h-3 w-3" /> {job.inputDocumentCount}
                       </span>
                     )}
                     {job.commentCount > 0 && (
-                      <span className="flex items-center gap-0.5 text-[11px] text-white/25">
+                      <span className="flex items-center gap-0.5 text-[11px] text-slate-300 dark:text-white/25">
                         <MessageCircle className="h-3 w-3" /> {job.commentCount}
                       </span>
                     )}

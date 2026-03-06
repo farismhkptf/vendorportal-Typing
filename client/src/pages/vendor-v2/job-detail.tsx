@@ -341,33 +341,33 @@ export default function V2JobDetail() {
 
   return (
     <div className="max-w-2xl mx-auto pt-2 pb-4">
-      <button onClick={handleGoBack} className="flex items-center gap-1 text-white/50 hover:text-white/80 transition-colors mb-4 text-sm" data-testid="button-back">
+      <button onClick={handleGoBack} className="flex items-center gap-1 text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white/80 transition-colors mb-4 text-sm" data-testid="button-back">
         <ChevronLeft className="h-4 w-4" />
         Back
       </button>
 
       <div className="flex items-start gap-3 mb-4">
         {applicantPhoto ? (
-          <div className="h-12 w-12 rounded-xl overflow-hidden border border-white/20 shrink-0">
+          <div className="h-12 w-12 rounded-xl overflow-hidden border border-slate-200 dark:border-white/20 shrink-0">
             <img src={applicantPhoto.fileUrl} alt="Applicant" className="h-full w-full object-cover" data-testid="img-applicant-photo" />
           </div>
         ) : (
           <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${isEid ? "bg-amber-500/15" : "bg-teal-500/15"}`}>
-            <User className="h-5 w-5 text-white/50" />
+            <User className="h-5 w-5 text-slate-400 dark:text-white/50" />
           </div>
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-white" data-testid="text-v2-wo-number">{job.workOrder?.woNumber || "N/A"}</h1>
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white" data-testid="text-v2-wo-number">{job.workOrder?.woNumber || "N/A"}</h1>
             <span className={`${getStatusClass(job.status)} v2-status-badge`}>{getDisplayStatus(job.status)}</span>
             {isVip && <span className="v2-status-badge bg-amber-500/30 text-amber-300 border border-amber-500/40">VIP</span>}
             {isUrgent && <span className="v2-status-badge v2-status-urgent">Urgent</span>}
           </div>
-          <p className="text-sm text-white/50 truncate" data-testid="text-v2-applicant">{toProperCase(job.workOrder?.applicantName)}</p>
+          <p className="text-sm text-slate-500 dark:text-white/50 truncate" data-testid="text-v2-applicant">{toProperCase(job.workOrder?.applicantName)}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1 mb-6 p-1 rounded-xl bg-white/5" data-testid="v2-wizard-stepper">
+      <div className="flex items-center gap-1 mb-6 p-1 rounded-xl bg-slate-100 dark:bg-white/5" data-testid="v2-wizard-stepper">
         {STEPS.map((step) => {
           const state = getStepState(step.num, activeStep, job.status);
           const isViewing = viewStep === step.num;
@@ -381,11 +381,11 @@ export default function V2JobDetail() {
               className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                 isViewing
                   ? state === "completed"
-                    ? "bg-emerald-500/20 text-emerald-300"
-                    : "bg-white/15 text-white"
+                    ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300"
+                    : "bg-indigo-50 dark:bg-white/15 text-slate-900 dark:text-white"
                   : canClick
-                    ? "text-white/50 hover:text-white/70 hover:bg-white/5"
-                    : "text-white/20 cursor-not-allowed"
+                    ? "text-slate-500 dark:text-white/50 hover:text-slate-700 dark:hover:text-white/70 hover:bg-slate-50 dark:hover:bg-white/5"
+                    : "text-slate-300 dark:text-white/20 cursor-not-allowed"
               }`}
               data-testid={`v2-step-${step.num}`}
             >
@@ -406,7 +406,7 @@ export default function V2JobDetail() {
           <MessageSquare className="h-3.5 w-3.5" />
           Comments
           {job.comments && job.comments.length > 0 && (
-            <span className="h-4 min-w-[16px] rounded-full bg-white/20 text-[10px] font-bold flex items-center justify-center px-1">{job.comments.length}</span>
+            <span className="h-4 min-w-[16px] rounded-full bg-slate-200 dark:bg-white/20 text-[10px] font-bold flex items-center justify-center px-1">{job.comments.length}</span>
           )}
         </button>
       </div>
@@ -416,55 +416,55 @@ export default function V2JobDetail() {
           <GlassCard className="p-4 space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Company</p>
-                <p className="text-sm font-medium text-white truncate" data-testid="text-v2-company">{toProperCase(job.company?.name)}</p>
+                <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-0.5">Company</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white truncate" data-testid="text-v2-company">{toProperCase(job.company?.name)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Service Type</p>
-                <p className="text-sm font-medium text-white truncate" data-testid="text-v2-service">{toProperCase(job.serviceType?.name)}</p>
+                <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-0.5">Service Type</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-white truncate" data-testid="text-v2-service">{toProperCase(job.serviceType?.name)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Job Type</p>
-                <p className="text-sm font-semibold text-white" data-testid="text-v2-job-type">{job.jobType?.name || "N/A"}</p>
+                <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-0.5">Job Type</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white" data-testid="text-v2-job-type">{job.jobType?.name || "N/A"}</p>
               </div>
               <div>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Received</p>
-                <p className="text-sm text-white">{sentDate}</p>
-                {sentTime && <p className="text-xs text-white/40">{sentTime}</p>}
+                <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-0.5">Received</p>
+                <p className="text-sm text-slate-900 dark:text-white">{sentDate}</p>
+                {sentTime && <p className="text-xs text-slate-400 dark:text-white/40">{sentTime}</p>}
               </div>
             </div>
           </GlassCard>
 
           {(job.workOrder?.applicantPhone || job.workOrder?.applicantEmail || job.company?.coordinatorMobile || job.company?.coordinatorEmail) && (
             <GlassCard className="p-4">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-3">Contact Information</p>
+              <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-3">Contact Information</p>
               <div className="space-y-2">
                 {job.workOrder?.applicantPhone && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-3.5 w-3.5 text-white/30" />
-                    <span className="text-white/50">Applicant:</span>
-                    <span className="text-white font-medium">{job.workOrder.applicantPhone}</span>
+                    <Phone className="h-3.5 w-3.5 text-slate-400 dark:text-white/30" />
+                    <span className="text-slate-500 dark:text-white/50">Applicant:</span>
+                    <span className="text-slate-900 dark:text-white font-medium">{job.workOrder.applicantPhone}</span>
                   </div>
                 )}
                 {job.workOrder?.applicantEmail && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-3.5 w-3.5 text-white/30" />
-                    <span className="text-white/50">Email:</span>
-                    <span className="text-white font-medium truncate">{job.workOrder.applicantEmail}</span>
+                    <Mail className="h-3.5 w-3.5 text-slate-400 dark:text-white/30" />
+                    <span className="text-slate-500 dark:text-white/50">Email:</span>
+                    <span className="text-slate-900 dark:text-white font-medium truncate">{job.workOrder.applicantEmail}</span>
                   </div>
                 )}
                 {job.company?.coordinatorMobile && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Phone className="h-3.5 w-3.5 text-white/30" />
-                    <span className="text-white/50">Company:</span>
-                    <span className="text-white font-medium">{job.company.coordinatorMobile}</span>
+                    <Phone className="h-3.5 w-3.5 text-slate-400 dark:text-white/30" />
+                    <span className="text-slate-500 dark:text-white/50">Company:</span>
+                    <span className="text-slate-900 dark:text-white font-medium">{job.company.coordinatorMobile}</span>
                   </div>
                 )}
                 {job.company?.coordinatorEmail && (
                   <div className="flex items-center gap-2 text-sm">
-                    <Mail className="h-3.5 w-3.5 text-white/30" />
-                    <span className="text-white/50">Client:</span>
-                    <span className="text-white font-medium truncate">{job.company.coordinatorEmail}</span>
+                    <Mail className="h-3.5 w-3.5 text-slate-400 dark:text-white/30" />
+                    <span className="text-slate-500 dark:text-white/50">Client:</span>
+                    <span className="text-slate-900 dark:text-white font-medium truncate">{job.company.coordinatorEmail}</span>
                   </div>
                 )}
               </div>
@@ -474,10 +474,10 @@ export default function V2JobDetail() {
           {isEid && job.company?.deliveryAddress && (
             <GlassCard className="p-4">
               <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 text-white/30 mt-0.5 shrink-0" />
+                <MapPin className="h-4 w-4 text-slate-400 dark:text-white/30 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Delivery Address</p>
-                  <p className="text-sm text-white">{job.company.deliveryAddress}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-0.5">Delivery Address</p>
+                  <p className="text-sm text-slate-900 dark:text-white">{job.company.deliveryAddress}</p>
                 </div>
               </div>
             </GlassCard>
@@ -486,38 +486,38 @@ export default function V2JobDetail() {
           {job.preferredCenter && (
             <GlassCard className="p-4">
               <div className="flex items-start gap-2">
-                <MapPinned className="h-4 w-4 text-white/30 mt-0.5 shrink-0" />
+                <MapPinned className="h-4 w-4 text-slate-400 dark:text-white/30 mt-0.5 shrink-0" />
                 <div>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">
+                  <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-0.5">
                     {isMedical ? "Preferred Medical Center" : "Preferred Biometrics Center"}
                   </p>
-                  <p className="text-sm text-white font-medium">{job.preferredCenter.name}</p>
-                  {job.preferredCenter.area && <p className="text-xs text-white/40">{job.preferredCenter.area}</p>}
+                  <p className="text-sm text-slate-900 dark:text-white font-medium">{job.preferredCenter.name}</p>
+                  {job.preferredCenter.area && <p className="text-xs text-slate-400 dark:text-white/40">{job.preferredCenter.area}</p>}
                 </div>
               </div>
             </GlassCard>
           )}
 
           {job.sentByStaffName && (
-            <div className="flex items-center gap-2 text-sm text-white/40 px-1">
+            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-white/40 px-1">
               <UserCheck className="h-3.5 w-3.5" />
               <span>Sent by:</span>
-              <span className="text-white/60 font-medium">{toProperCase(job.sentByStaffName)}</span>
+              <span className="text-slate-600 dark:text-white/60 font-medium">{toProperCase(job.sentByStaffName)}</span>
             </div>
           )}
 
           {job.workOrder?.notes && (
             <GlassCard accent="blue" className="p-4">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Special Instructions</p>
-              <p className="text-sm text-white/80">{job.workOrder.notes}</p>
+              <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-1">Special Instructions</p>
+              <p className="text-sm text-slate-700 dark:text-white/80">{job.workOrder.notes}</p>
             </GlassCard>
           )}
 
           {job.jobCode && (
-            <div className="flex items-center gap-2 text-sm text-white/40 px-1">
+            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-white/40 px-1">
               <FileText className="h-3.5 w-3.5" />
               <span>Job Code:</span>
-              <span className="text-white/60 font-mono font-medium">{job.jobCode}</span>
+              <span className="text-slate-600 dark:text-white/60 font-mono font-medium">{job.jobCode}</span>
             </div>
           )}
         </div>
@@ -525,7 +525,7 @@ export default function V2JobDetail() {
 
       {viewStep === 2 && (
         <div className="space-y-4" data-testid="v2-step-documents">
-          <p className="text-sm text-white/50">Review the uploaded documents. Verify everything is correct before proceeding.</p>
+          <p className="text-sm text-slate-500 dark:text-white/50">Review the uploaded documents. Verify everything is correct before proceeding.</p>
 
           {allDownloadableFiles.length > 1 && (
             <div className="flex justify-end">
@@ -549,8 +549,8 @@ export default function V2JobDetail() {
 
           {filteredRequirements.length > 0 && (
             <GlassCard className="p-4">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-3">Document Checklist</p>
-              <p className="text-xs text-white/40 mb-3">
+              <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-3">Document Checklist</p>
+              <p className="text-xs text-slate-400 dark:text-white/40 mb-3">
                 Documents marked with * are required and must be uploaded by the team before you proceed.
               </p>
               <div className="space-y-2">
@@ -559,20 +559,20 @@ export default function V2JobDetail() {
                   const matchingDoc = job.woDocuments?.find(d => d.documentType === req.documentType);
                   const isImage = matchingDoc?.mimeType?.startsWith("image/");
                   return (
-                    <div key={req.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5" data-testid={`v2-docreq-${req.documentType}`}>
-                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${matchingDoc ? "bg-emerald-500/20" : "bg-white/10"}`}>
-                        {matchingDoc ? <Check className="h-4 w-4 text-emerald-400" /> : <FileText className="h-4 w-4 text-white/30" />}
+                    <div key={req.id} className="flex items-center gap-3 p-2 rounded-xl bg-slate-50 dark:bg-white/5" data-testid={`v2-docreq-${req.documentType}`}>
+                      <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${matchingDoc ? "bg-emerald-500/20" : "bg-slate-100 dark:bg-white/10"}`}>
+                        {matchingDoc ? <Check className="h-4 w-4 text-emerald-400" /> : <FileText className="h-4 w-4 text-slate-400 dark:text-white/30" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm text-white/80">{label}{req.isRequired ? " *" : ""}</p>
-                        {matchingDoc && <p className="text-[11px] text-white/30 truncate">{matchingDoc.fileName}</p>}
+                        <p className="text-sm text-slate-700 dark:text-white/80">{label}{req.isRequired ? " *" : ""}</p>
+                        {matchingDoc && <p className="text-[11px] text-slate-400 dark:text-white/30 truncate">{matchingDoc.fileName}</p>}
                       </div>
                       {matchingDoc?.fileUrl && (
                         <a href={matchingDoc.fileUrl} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" onClick={(e) => e.stopPropagation()}>
                           {isImage ? (
                             <img src={matchingDoc.fileUrl} alt="" className="h-8 w-8 rounded object-cover" />
                           ) : (
-                            <Download className="h-4 w-4 text-white/40" />
+                            <Download className="h-4 w-4 text-slate-400 dark:text-white/40" />
                           )}
                         </a>
                       )}
@@ -585,17 +585,17 @@ export default function V2JobDetail() {
 
           {inputFiles.length > 0 && (
             <GlassCard className="p-4">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-3">Additional Files</p>
+              <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-3">Additional Files</p>
               <div className="space-y-2">
                 {inputFiles.map((f, idx) => (
                   <div key={f.id} className="flex items-center gap-3 p-2 rounded-xl bg-white/5" data-testid={`v2-input-file-${f.id}`}>
                     <div className="h-8 w-8 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
                       <FileText className="h-4 w-4 text-blue-400" />
                     </div>
-                    <span className="text-sm text-white/70 flex-1 truncate">{f.fileName || "File"}</span>
+                    <span className="text-sm text-slate-600 dark:text-white/70 flex-1 truncate">{f.fileName || "File"}</span>
                     {f.workdriveLink && (
                       <button onClick={() => openLightbox(inputFiles, idx)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
-                        <Eye className="h-4 w-4 text-white/40" />
+                        <Eye className="h-4 w-4 text-slate-400 dark:text-white/40" />
                       </button>
                     )}
                   </div>
@@ -629,7 +629,7 @@ export default function V2JobDetail() {
 
       {viewStep === 3 && (
         <div className="space-y-4" data-testid="v2-step-complete">
-          <p className="text-sm text-white/50">
+          <p className="text-sm text-slate-500 dark:text-white/50">
             {isTerminal
               ? "This job has been finalized. Review details below."
               : "Complete the fields, upload your work, and submit."}
@@ -641,16 +641,16 @@ export default function V2JobDetail() {
                 {job.status === "ReadyForScheduling" || job.status === "Returned" ? (
                   <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
                 ) : (
-                  <AlertTriangle className="h-5 w-5 text-white/50 shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-5 w-5 text-slate-400 dark:text-white/50 shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">
                     {job.status === "ReadyForScheduling" || job.status === "Returned" ? "Job Completed" :
                      job.status === "Aborted" ? "Job Aborted" :
                      job.status === "Rejected" ? "Job Rejected" :
                      job.status === "OnHold" ? "Job On Hold" : "Status: " + job.status}
                   </p>
-                  <p className="text-xs text-white/40 mt-0.5">
+                  <p className="text-xs text-slate-400 dark:text-white/40 mt-0.5">
                     {job.status === "ReadyForScheduling" || job.status === "Returned"
                       ? "Your work has been submitted. Cost deducted from wallet."
                       : "No further actions required."}
@@ -661,7 +661,7 @@ export default function V2JobDetail() {
           )}
 
           <GlassCard className="p-4 space-y-3">
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">Application Reference Number</p>
+            <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider">Application Reference Number</p>
             <input
               value={appRefNo}
               onChange={(e) => setAppRefNo(e.target.value)}
@@ -674,15 +674,15 @@ export default function V2JobDetail() {
 
           {isMedical && job.preferredCenter && (
             <GlassCard className="p-4">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider mb-2">Medical Center</p>
-              <p className="text-sm text-white font-medium">{job.preferredCenter.name}</p>
-              {job.preferredCenter.area && <p className="text-xs text-white/40">{job.preferredCenter.area}</p>}
+              <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider mb-2">Medical Center</p>
+              <p className="text-sm text-slate-900 dark:text-white font-medium">{job.preferredCenter.name}</p>
+              {job.preferredCenter.area && <p className="text-xs text-slate-400 dark:text-white/40">{job.preferredCenter.area}</p>}
             </GlassCard>
           )}
 
           {isEid && (
             <GlassCard className="p-4 space-y-3">
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">Biometrics Details</p>
+              <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider">Biometrics Details</p>
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="v2-bio-required"
@@ -690,24 +690,24 @@ export default function V2JobDetail() {
                   onCheckedChange={(checked) => setBioRequired(!!checked)}
                   disabled={isTerminal}
                   data-testid="v2-checkbox-bio"
-                  className="border-white/30 data-[state=checked]:bg-white/20 data-[state=checked]:border-white/40"
+                  className="border-slate-300 dark:border-white/30 data-[state=checked]:bg-indigo-100 dark:data-[state=checked]:bg-white/20 data-[state=checked]:border-indigo-300 dark:data-[state=checked]:border-white/40"
                 />
-                <label htmlFor="v2-bio-required" className="text-sm text-white/80">Biometrics appointment required</label>
+                <label htmlFor="v2-bio-required" className="text-sm text-slate-700 dark:text-white/80">Biometrics appointment required</label>
               </div>
               {bioRequired && (
                 <div className="space-y-3 pl-6">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-white/40 mb-1 block">Date</label>
+                      <label className="text-xs text-slate-400 dark:text-white/40 mb-1 block">Date</label>
                       <input type="date" value={bioDate} onChange={(e) => setBioDate(e.target.value)} disabled={isTerminal} className="glass-input w-full px-3 py-2 text-sm" data-testid="v2-input-bio-date" />
                     </div>
                     <div>
-                      <label className="text-xs text-white/40 mb-1 block">Time</label>
+                      <label className="text-xs text-slate-400 dark:text-white/40 mb-1 block">Time</label>
                       <input type="time" value={bioTime} onChange={(e) => setBioTime(e.target.value)} disabled={isTerminal} className="glass-input w-full px-3 py-2 text-sm" data-testid="v2-input-bio-time" />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-white/40 mb-1 block">EID Center</label>
+                    <label className="text-xs text-slate-400 dark:text-white/40 mb-1 block">EID Center</label>
                     {eidCentersFiltered.length > 0 ? (
                       <Select value={bioCenter} onValueChange={setBioCenter} disabled={isTerminal}>
                         <SelectTrigger className="glass-input border-0" data-testid="v2-select-bio-center">
@@ -728,7 +728,7 @@ export default function V2JobDetail() {
                 </div>
               )}
               <div>
-                <label className="text-xs text-white/40 mb-1 block">Notes</label>
+                <label className="text-xs text-slate-400 dark:text-white/40 mb-1 block">Notes</label>
                 <textarea
                   value={bioNotes}
                   onChange={(e) => setBioNotes(e.target.value)}
@@ -758,8 +758,8 @@ export default function V2JobDetail() {
           )}
 
           <GlassCard className="p-4 space-y-3">
-            <p className="text-[10px] text-white/40 uppercase tracking-wider">Upload Completed Work</p>
-            <p className="text-xs text-white/30">Upload the completed application documents (up to 5 files).</p>
+            <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider">Upload Completed Work</p>
+            <p className="text-xs text-slate-400 dark:text-white/30">Upload the completed application documents (up to 5 files).</p>
             <EnhancedUploader
               existingFiles={outputFiles.map(f => ({
                 id: f.id, fileName: f.fileName || "File",
@@ -815,8 +815,8 @@ export default function V2JobDetail() {
       )}
 
       {showComments && (
-        <div className="mt-6 pt-4 border-t border-white/10">
-          <h3 className="text-sm font-semibold text-white/80 flex items-center gap-2 mb-3">
+        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-white/10">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-white/80 flex items-center gap-2 mb-3">
             <MessageSquare className="h-4 w-4" /> Comments
           </h3>
           <div className="flex gap-2 mb-4">
@@ -841,19 +841,19 @@ export default function V2JobDetail() {
               {job.comments.map(comment => (
                 <div
                   key={comment.id}
-                  className={`p-3 rounded-xl ${comment.authorType === "Vendor" ? "bg-purple-500/15 ml-8" : "bg-white/5 mr-8"}`}
+                  className={`p-3 rounded-xl ${comment.authorType === "Vendor" ? "bg-purple-50 dark:bg-purple-500/15 ml-8" : "bg-slate-50 dark:bg-white/5 mr-8"}`}
                   data-testid={`v2-comment-${comment.id}`}
                 >
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-[10px] font-medium text-white/40">{comment.authorType === "Vendor" ? "You" : "Team"}</span>
-                    <span className="text-[10px] text-white/25">{comment.createdAt ? formatDateTime(comment.createdAt) : ""}</span>
+                    <span className="text-[10px] font-medium text-slate-400 dark:text-white/40">{comment.authorType === "Vendor" ? "You" : "Team"}</span>
+                    <span className="text-[10px] text-slate-300 dark:text-white/25">{comment.createdAt ? formatDateTime(comment.createdAt) : ""}</span>
                   </div>
-                  <p className="text-sm text-white/70">{comment.message}</p>
+                  <p className="text-sm text-slate-600 dark:text-white/70">{comment.message}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-white/30 text-center py-4">No comments yet.</p>
+            <p className="text-sm text-slate-400 dark:text-white/30 text-center py-4">No comments yet.</p>
           )}
         </div>
       )}
