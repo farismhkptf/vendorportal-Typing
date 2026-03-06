@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
@@ -9,9 +9,9 @@ import { useVendorAuth } from "@/hooks/use-vendor-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
 import type { VendorNotification } from "@shared/schema";
 import { formatRelativeTime } from "@/lib/format-date";
+import { GuidedTour, TourHelpButton } from "./guided-tour";
 
 interface V2LayoutProps {
   children: ReactNode;
@@ -98,12 +98,30 @@ function NotificationSheet({ open, onClose }: { open: boolean; onClose: () => vo
   );
 }
 
+const TOUR_STORAGE_KEY = "v2-tour-completed";
+
 export function V2Layout({ children }: V2LayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useVendorAuth();
   const { theme, setTheme } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    try {
+      const completed = localStorage.getItem(TOUR_STORAGE_KEY);
+      if (!completed && location === "/") {
+        const timer = setTimeout(() => setShowTour(true), 1500);
+        return () => clearTimeout(timer);
+      }
+    } catch {}
+  }, [location]);
+
+  const handleTourComplete = () => {
+    setShowTour(false);
+    try { localStorage.setItem(TOUR_STORAGE_KEY, "true"); } catch {}
+  };
 
   const { data: unreadData } = useQuery<{ count: number }>({
     queryKey: ["/api/vendor/notifications/unread-count"],
@@ -144,6 +162,8 @@ export function V2Layout({ children }: V2LayoutProps) {
           </div>
 
           <div className="flex items-center gap-1">
+            <TourHelpButton onClick={() => setShowTour(true)} />
+
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2.5 rounded-full hover:bg-white/10 transition-colors"
@@ -160,6 +180,7 @@ export function V2Layout({ children }: V2LayoutProps) {
               onClick={() => setShowNotifications(true)}
               className="p-2.5 rounded-full hover:bg-white/10 transition-colors relative"
               data-testid="button-v2-notifications"
+              data-tour="notifications"
             >
               <Bell className="h-4.5 w-4.5 text-white/70" />
               {unreadCount > 0 && (
@@ -173,6 +194,7 @@ export function V2Layout({ children }: V2LayoutProps) {
               onClick={() => setShowProfile(!showProfile)}
               className="p-2.5 rounded-full hover:bg-white/10 transition-colors"
               data-testid="button-v2-profile"
+              data-tour="profile"
             >
               <div className="h-6 w-6 rounded-full bg-white/20 flex items-center justify-center">
                 <span className="text-[11px] font-bold text-white">{user?.name?.charAt(0) || "V"}</span>
@@ -220,7 +242,7 @@ export function V2Layout({ children }: V2LayoutProps) {
           {children}
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-30 lg:bottom-6 lg:left-1/2 lg:-translate-x-1/2 lg:w-auto lg:right-auto" data-testid="v2-bottom-nav">
+        <nav className="fixed bottom-0 left-0 right-0 z-30 lg:bottom-6 lg:left-1/2 lg:-translate-x-1/2 lg:w-auto lg:right-auto" data-testid="v2-bottom-nav" data-tour="bottom-nav">
           <div className="glass-nav flex items-center justify-around lg:justify-center lg:gap-1 px-2 py-2 lg:px-3 lg:rounded-2xl mx-0 lg:mx-auto">
             {tabs.map(tab => {
               const isActive = currentPath === tab.path ||
@@ -256,6 +278,7 @@ export function V2Layout({ children }: V2LayoutProps) {
       </div>
 
       <NotificationSheet open={showNotifications} onClose={() => setShowNotifications(false)} />
+      <GuidedTour isOpen={showTour} onComplete={handleTourComplete} />
     </div>
   );
 }

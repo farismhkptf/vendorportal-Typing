@@ -170,7 +170,7 @@ export default function V2Dashboard() {
 
   return (
     <div className="max-w-2xl mx-auto pt-2 pb-4">
-      <div className="mb-6">
+      <div className="mb-6" data-tour="greeting">
         <h1 className="text-3xl font-bold text-white tracking-tight" data-testid="text-v2-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0]}
         </h1>
@@ -213,7 +213,7 @@ export default function V2Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      <div className="grid grid-cols-2 gap-3 mb-6" data-tour="metrics">
         <GlassCard
           className="p-4"
           onClick={() => setLocation("/wallet")}
@@ -265,7 +265,7 @@ export default function V2Dashboard() {
       </div>
 
       {pipelineTotal > 0 && (
-        <GlassCard className="p-4 mb-6" data-testid="pipeline-bar">
+        <GlassCard className="p-4 mb-6" data-testid="pipeline-bar" data-tour="pipeline">
           <p className="text-[11px] font-medium text-white/50 uppercase tracking-wider mb-3">Pipeline</p>
           <div className="h-2 rounded-full bg-white/5 overflow-hidden flex">
             {pipelinePending > 0 && (
@@ -286,7 +286,7 @@ export default function V2Dashboard() {
         </GlassCard>
       )}
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-3 gap-3 mb-6" data-tour="quicklinks">
         <GlassCard
           className="p-4 text-center"
           onClick={() => setLocation("/eid")}

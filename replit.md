@@ -106,7 +106,8 @@ A completely renovated vendor portal at `/vendor-v2/*` with Apple/iOS-inspired g
 -   **EID/Medical Jobs**: `client/src/pages/vendor-v2/eid-jobs.tsx`, `medical-jobs.tsx` — Search, filter pills, stat row, job cards with accent colors, accept mutation.
 -   **Wallet**: `client/src/pages/vendor-v2/wallet.tsx` — Balance hero, transactions grouped by date.
 -   **Job Detail**: `client/src/pages/vendor-v2/job-detail.tsx` — 3-step wizard (Overview/Documents/Complete) with full biometrics, file upload, comments, resubmission dialog. Full parity with classic portal wizard.
--   **CSS**: Glassmorphic utility classes in `client/src/index.css` — `.v2-portal-root`, `.v2-bg-layer`, `.glass-card`, `.glass-panel`, `.glass-nav`, `.glass-input`, `.glass-pill`, `.glass-skeleton`, `.glass-btn-primary`, `.v2-status-*` badges.
+-   **CSS**: Glassmorphic utility classes in `client/src/index.css` — `.v2-portal-root`, `.v2-bg-layer`, `.glass-card`, `.glass-panel`, `.glass-nav`, `.glass-input`, `.glass-pill`, `.glass-skeleton`, `.glass-btn-primary`, `.v2-status-*` badges, `.tour-*` tour overlay/spotlight/tooltip classes.
+-   **Guided Tour**: `client/src/components/vendor-v2/guided-tour.tsx` — Interactive 7-step tutorial overlay with glassmorphic tooltips, spotlight cutout highlighting, step progress dots, and Back/Next/Skip controls. Auto-launches on first visit (persisted via `localStorage["v2-tour-completed"]`). Re-triggerable via `?` help button in the V2 header. Target elements use `data-tour` attributes in layout.tsx and dashboard.tsx.
 -   **Routes**: Registered in `App.tsx` under `VendorV2Layout` wrapper with same `VendorAuthProvider`/`VendorAuthGuard`.
 
 These features have code preserved but are not active in the current UI:
