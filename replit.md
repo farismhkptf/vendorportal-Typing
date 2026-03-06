@@ -78,6 +78,24 @@ The design adopts an Apple-inspired glassmorphism aesthetic with soft gradients,
 -   **Productivity Enhancements**: Includes smart action centers, priority indicators for vendor jobs, duplicate applicant detection, a vendor performance dashboard, enhanced global search (Cmd+K), a stats and reports page, stale job alerts for administrators, and mobile-optimized quick actions.
 -   **Import/Export**: Monthly Google Sheet import system for 2026 work orders — each month (Jan–Dec) has a saved Sheet URL, Refresh to re-parse for new entries (skips already-imported WOs, empty work rows, and unrecognized service types), Close Month to permanently lock it, and an import count tracker. Excel import/export for bulk management of centers, companies, staff, service types, and job types. **Export All Data** (`GET /api/admin/export`): Downloads a single Excel file with 8 sheets — Companies, Centers, Staff, Service Types, Vendors, Vendor Jobs, Document Requirements, and User Accounts (excluding passwords/PINs). Foreign keys are resolved to human-readable names (e.g., center IDs → center names, staff IDs → staff names). Data model: `sheetMonths` table with `monthYear`, `sheetUrl`, `status` (open/closed), `importedCount`, `lastRefreshedAt`.
 
+### External API Layer
+
+An authenticated REST API for external client dashboard and CRM integrations. API keys are managed in the Admin Console ("API Keys" tab).
+
+-   **API Key Authentication**: Keys are validated via `X-API-Key` header or `Authorization: Bearer <key>`. Keys are 64-character hex tokens generated with `crypto.randomBytes(32)`. Managed via `api_keys` table with type (`client`/`crm`), company/staff scoping, active toggle, and lastUsedAt tracking.
+-   **Key Types**: 
+    -   **Client keys**: Scoped to a single company. See only that company's work orders, appointments, and company profile.
+    -   **CRM keys**: Scoped to a relationship manager's assigned companies (via `rmStaffId`). See work orders and appointments across all assigned companies.
+-   **External Endpoints** (in `server/external-routes.ts`):
+    -   `GET /api/external/me` — Key info and scope
+    -   `GET /api/external/appointments` — Scoped appointments with center and WO details
+    -   `GET /api/external/work-orders` — Scoped work orders with service type
+    -   `GET /api/external/work-orders/:id` — Detailed WO with appointments and contacts
+    -   `GET /api/external/company` — Company profile (client keys only)
+    -   `GET /api/external/companies` — Assigned companies (CRM keys only)
+-   **Security**: Responses sanitized to exclude internal costs, vendor wallet data, and internal notes. In-memory rate limiter at 100 requests/minute per key. Admin routes mask keys (show only last 8 chars); full key shown only at creation time.
+-   **Admin Management** (in `server/routes.ts`): `GET/POST/PATCH/DELETE /api/admin/api-keys` with audit logging for create/delete/toggle actions.
+
 ### Deferred / Future Features
 
 These features have code preserved but are not active in the current UI:

@@ -67,6 +67,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Center, Staff, ServiceType, JobType, AppSettings, Company, CompanyEmail, Vendor } from "@shared/schema";
 import { toProperCase } from "@/lib/proper-case";
+import { ApiKeysTab } from "./api-keys-tab";
 import { formatDate } from "@/lib/format-date";
 
 
@@ -2185,6 +2186,9 @@ export default function AdminPage() {
                     </TabsTrigger>
                     <TabsTrigger value="workdrive" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-workdrive">
                       WorkDrive Backup
+                    </TabsTrigger>
+                    <TabsTrigger value="apikeys" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-apikeys">
+                      API Keys
                     </TabsTrigger>
                   </>
                 )}
@@ -5448,6 +5452,10 @@ export default function AdminPage() {
 
             <TabsContent value="workdrive" className="p-4">
               <WorkDriveBackupSection />
+            </TabsContent>
+
+            <TabsContent value="apikeys" className="p-4">
+              <ApiKeysTab />
             </TabsContent>
           </Tabs>
         </div>

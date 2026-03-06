@@ -17,6 +17,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { toProperCase } from "./proper-case";
 import { executeTransition, validateTransition, type Actor } from "./typing-job-machine";
 import { WalletService } from "./wallet-service";
+import { registerExternalRoutes, hashApiKey } from "./external-routes";
 import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "./zoho-workdrive";
 import { ObjectStorageService } from "./replit_integrations/object_storage/objectStorage";
 
@@ -282,6 +283,9 @@ export async function registerRoutes(
   
   // Register object storage routes
   registerObjectStorageRoutes(app);
+
+  // Register external API routes (for client dashboard / CRM integrations)
+  registerExternalRoutes(app);
   
   // Seed database on startup
   await storage.seedData();
@@ -3501,6 +3505,118 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update user error:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // ========== API Key Management (Admin) ==========
+  app.get("/api/admin/api-keys", requireRole("Admin"), async (req, res) => {
+    try {
+      const keys = await storage.getApiKeys();
+      const companies = await storage.getCompanies();
+      const allStaff = await storage.getStaff();
+      const companyMap = new Map(companies.map(c => [c.id, c.name]));
+      const staffMap = new Map(allStaff.map(s => [s.id, s.name]));
+
+      const masked = keys.map(k => ({
+        ...k,
+        key: "••••••••••••••••",
+        companyName: k.companyId ? companyMap.get(k.companyId) || null : null,
+        staffName: k.staffId ? staffMap.get(k.staffId) || null : null,
+      }));
+      res.json(masked);
+    } catch (error) {
+      console.error("List API keys error:", error);
+      res.status(500).json({ message: "Failed to list API keys" });
+    }
+  });
+
+  app.post("/api/admin/api-keys", requireRole("Admin"), async (req, res) => {
+    try {
+      const { name, type, companyId, staffId } = req.body;
+      if (!name || !type || !["client", "crm"].includes(type)) {
+        return res.status(400).json({ message: "Name and valid type (client/crm) are required." });
+      }
+      if (type === "client" && !companyId) {
+        return res.status(400).json({ message: "Client keys require a companyId." });
+      }
+      if (type === "crm" && !staffId) {
+        return res.status(400).json({ message: "CRM keys require a staffId." });
+      }
+
+      const { randomBytes } = await import("crypto");
+      const rawKey = randomBytes(32).toString("hex");
+      const keyHash = hashApiKey(rawKey);
+
+      const created = await storage.createApiKey({
+        key: keyHash,
+        name,
+        type,
+        companyId: type === "client" ? companyId : null,
+        staffId: type === "crm" ? staffId : null,
+        active: true,
+      });
+
+      await storage.createAuditLog({
+        entityType: "api_key",
+        entityId: created.id,
+        action: "created",
+        userId: (req as any).session.userId,
+        details: { name, type, companyId, staffId },
+      });
+
+      res.json({ ...created, key: rawKey });
+    } catch (error) {
+      console.error("Create API key error:", error);
+      res.status(500).json({ message: "Failed to create API key" });
+    }
+  });
+
+  app.patch("/api/admin/api-keys/:id", requireRole("Admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, active } = req.body;
+      const updates: any = {};
+      if (name !== undefined) updates.name = name;
+      if (active !== undefined) updates.active = active;
+
+      const updated = await storage.updateApiKey(id, updates);
+      if (!updated) return res.status(404).json({ message: "API key not found" });
+
+      await storage.createAuditLog({
+        entityType: "api_key",
+        entityId: id,
+        action: active === false ? "deactivated" : active === true ? "activated" : "updated",
+        userId: (req as any).session.userId,
+        details: updates,
+      });
+
+      res.json({ ...updated, key: "••••••••••••••••" });
+    } catch (error) {
+      console.error("Update API key error:", error);
+      res.status(500).json({ message: "Failed to update API key" });
+    }
+  });
+
+  app.delete("/api/admin/api-keys/:id", requireRole("Admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getApiKeyById(id);
+      if (!existing) return res.status(404).json({ message: "API key not found" });
+
+      await storage.deleteApiKey(id);
+
+      await storage.createAuditLog({
+        entityType: "api_key",
+        entityId: id,
+        action: "deleted",
+        userId: (req as any).session.userId,
+        details: { name: existing.name, type: existing.type },
+      });
+
+      res.json({ message: "API key deleted" });
+    } catch (error) {
+      console.error("Delete API key error:", error);
+      res.status(500).json({ message: "Failed to delete API key" });
     }
   });
 

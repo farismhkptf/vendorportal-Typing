@@ -4,7 +4,7 @@ import {
   typingJobs, typingJobResults, typingJobComments, files, messages, woNotes,
   vendorWalletLedger, vendorStatements, vendorInvoices, vendorApprovals, vendorNotifications, appSettings, auditLog,
   woDocuments, documentRequirements, changeNotifications, loginAuditLog, passwordResetRequests,
-  sheetMonths,
+  sheetMonths, apiKeys,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -21,7 +21,8 @@ import {
   type VendorNotification, type InsertVendorNotification,
   type LoginAuditLog, type InsertLoginAuditLog,
   type PasswordResetRequest, type InsertPasswordResetRequest,
-  type SheetMonth
+  type SheetMonth,
+  type ApiKey, type InsertApiKey
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull } from "drizzle-orm";
@@ -228,6 +229,15 @@ export interface IStorage {
   closeSheetMonth(id: string): Promise<SheetMonth>;
   incrementSheetMonthImportedCount(id: string, count: number): Promise<SheetMonth>;
   touchSheetMonthRefresh(id: string): Promise<SheetMonth>;
+
+  // API Keys
+  getApiKeys(): Promise<ApiKey[]>;
+  getApiKeyById(id: string): Promise<ApiKey | undefined>;
+  getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined>;
+  createApiKey(data: InsertApiKey): Promise<ApiKey>;
+  updateApiKey(id: string, data: Partial<InsertApiKey>): Promise<ApiKey | undefined>;
+  deleteApiKey(id: string): Promise<boolean>;
+  touchApiKeyLastUsed(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1636,6 +1646,40 @@ export class DatabaseStorage implements IStorage {
       .where(eq(sheetMonths.id, id))
       .returning();
     return updated;
+  }
+
+  // API Keys
+  async getApiKeys(): Promise<ApiKey[]> {
+    return db.select().from(apiKeys).orderBy(desc(apiKeys.createdAt));
+  }
+
+  async getApiKeyById(id: string): Promise<ApiKey | undefined> {
+    const [row] = await db.select().from(apiKeys).where(eq(apiKeys.id, id));
+    return row || undefined;
+  }
+
+  async getApiKeyByHash(keyHash: string): Promise<ApiKey | undefined> {
+    const [row] = await db.select().from(apiKeys).where(eq(apiKeys.key, keyHash));
+    return row || undefined;
+  }
+
+  async createApiKey(data: InsertApiKey): Promise<ApiKey> {
+    const [created] = await db.insert(apiKeys).values(data).returning();
+    return created;
+  }
+
+  async updateApiKey(id: string, data: Partial<InsertApiKey>): Promise<ApiKey | undefined> {
+    const [updated] = await db.update(apiKeys).set(data).where(eq(apiKeys.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteApiKey(id: string): Promise<boolean> {
+    const result = await db.delete(apiKeys).where(eq(apiKeys.id, id));
+    return (result as any).rowCount > 0;
+  }
+
+  async touchApiKeyLastUsed(id: string): Promise<void> {
+    await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, id));
   }
 }
 

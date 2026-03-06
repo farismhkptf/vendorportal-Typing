@@ -629,6 +629,25 @@ export const insertSheetMonthSchema = createInsertSchema(sheetMonths).omit({ id:
 export type InsertSheetMonth = z.infer<typeof insertSheetMonthSchema>;
 export type SheetMonth = typeof sheetMonths.$inferSelect;
 
+// API Keys for external integrations
+export const apiKeyTypeEnum = pgEnum("api_key_type", ["client", "crm"]);
+
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  key: text("key").notNull().unique(),
+  name: text("name").notNull(),
+  type: apiKeyTypeEnum("type").notNull(),
+  companyId: varchar("company_id").references(() => companies.id),
+  staffId: varchar("staff_id").references(() => staff.id),
+  active: boolean("active").notNull().default(true),
+  lastUsedAt: timestamp("last_used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, lastUsedAt: true, createdAt: true });
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+
 // Login schema
 export const loginSchema = z.object({
   email: z.string().email(),
