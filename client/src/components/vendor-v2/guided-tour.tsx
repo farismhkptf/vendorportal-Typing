@@ -28,12 +28,6 @@ const TOUR_STEPS: TourStep[] = [
     position: "bottom",
   },
   {
-    target: "[data-tour='quicklinks']",
-    title: "Quick Access",
-    description: "Jump directly to Emirates ID jobs, Medical jobs, or your Wallet from these shortcuts.",
-    position: "bottom",
-  },
-  {
     target: "[data-tour='notifications']",
     title: "Notifications",
     description: "Stay updated with real-time alerts for new jobs, wallet top-ups, and status changes. The red badge shows unread count.",

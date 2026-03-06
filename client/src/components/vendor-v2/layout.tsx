@@ -242,23 +242,23 @@ export function V2Layout({ children }: V2LayoutProps) {
           {children}
         </main>
 
-        <nav className="fixed bottom-0 left-0 right-0 z-30 lg:bottom-6 lg:left-1/2 lg:-translate-x-1/2 lg:w-auto lg:right-auto" data-testid="v2-bottom-nav" data-tour="bottom-nav">
-          <div className="glass-nav flex items-center justify-around lg:justify-center lg:gap-1 px-2 py-2 lg:px-3 lg:rounded-2xl mx-0 lg:mx-auto">
+        <nav className="fixed bottom-4 left-4 right-4 z-30 flex justify-center" data-testid="v2-bottom-nav" data-tour="bottom-nav">
+          <div className="v2-dock flex items-center justify-center gap-1 px-3 py-2">
             {tabs.map(tab => {
               const isActive = currentPath === tab.path ||
                 (tab.path !== "/" && currentPath.startsWith(tab.path));
               return (
                 <Link key={tab.path} href={tab.path}>
                   <button
-                    className={`relative flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-xl transition-all ${
+                    className={`v2-dock-item relative flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-all ${
                       isActive
-                        ? "text-white"
-                        : "text-white/45 hover:text-white/70"
+                        ? "text-white v2-dock-item-active"
+                        : "text-white/50 hover:text-white/80"
                     }`}
                     data-testid={`nav-tab-${tab.label.toLowerCase()}`}
                   >
                     {isActive && (
-                      <div className="absolute inset-0 bg-white/15 rounded-xl" />
+                      <div className="absolute inset-0 bg-white/15 rounded-2xl" />
                     )}
                     <div className="relative">
                       <tab.icon className="h-5 w-5" />

@@ -286,48 +286,6 @@ export default function V2Dashboard() {
         </GlassCard>
       )}
 
-      <div className="grid grid-cols-3 gap-3 mb-6" data-tour="quicklinks">
-        <GlassCard
-          className="p-4 text-center"
-          onClick={() => setLocation("/eid")}
-          data-testid="quicklink-eid"
-        >
-          <div className="h-10 w-10 rounded-xl bg-amber-500/15 flex items-center justify-center mx-auto mb-2">
-            <Shield className="h-5 w-5 text-amber-400" />
-          </div>
-          <p className="text-xs font-medium text-white/80">Emirates ID</p>
-          {(stats?.activeEid || 0) > 0 && (
-            <p className="text-[10px] text-amber-400/70 mt-0.5">{stats?.activeEid} active</p>
-          )}
-        </GlassCard>
-
-        <GlassCard
-          className="p-4 text-center"
-          onClick={() => setLocation("/medical")}
-          data-testid="quicklink-medical"
-        >
-          <div className="h-10 w-10 rounded-xl bg-teal-500/15 flex items-center justify-center mx-auto mb-2">
-            <Stethoscope className="h-5 w-5 text-teal-400" />
-          </div>
-          <p className="text-xs font-medium text-white/80">Medical</p>
-          {(stats?.activeMedical || 0) > 0 && (
-            <p className="text-[10px] text-teal-400/70 mt-0.5">{stats?.activeMedical} active</p>
-          )}
-        </GlassCard>
-
-        <GlassCard
-          className="p-4 text-center"
-          onClick={() => setLocation("/wallet")}
-          data-testid="quicklink-wallet"
-        >
-          <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center mx-auto mb-2">
-            <CreditCard className="h-5 w-5 text-emerald-400" />
-          </div>
-          <p className="text-xs font-medium text-white/80">Wallet</p>
-          <p className="text-[10px] text-emerald-400/70 mt-0.5">{balance.toLocaleString()} AED</p>
-        </GlassCard>
-      </div>
-
       {dashData?.woGrouped && dashData.woGrouped.length > 0 && (
         <GlassSection title="Active Work Orders">
           <div className="space-y-2">
