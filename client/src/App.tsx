@@ -163,6 +163,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     location === "/terms-of-service" ||
     location === "/vendor" ||
     location.startsWith("/vendor/") ||
+    location === "/vendor-v2" ||
+    location.startsWith("/vendor-v2/") ||
     location.startsWith("/reschedule/");
 
   if (!user && !isPublicPath) {
@@ -181,14 +183,14 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
 function VendorAuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useVendorAuth();
-  const [location] = useLocation();
 
   if (isLoading) {
     return <BrandedSplash variant="vendor" />;
   }
 
   if (!user) {
-    return <Redirect to="/vendor/login" />;
+    window.location.href = "/vendor/login";
+    return <BrandedSplash variant="vendor" />;
   }
 
   return <>{children}</>;

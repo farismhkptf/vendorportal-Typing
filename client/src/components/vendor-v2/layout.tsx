@@ -188,12 +188,14 @@ export function V2Layout({ children }: V2LayoutProps) {
               <p className="text-xs text-white/50">{user?.email}</p>
             </div>
             {user?.isAdminViewing && (
-              <Link href="/vendor">
-                <button className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-white/70 hover:bg-white/10 transition-colors" data-testid="button-back-to-admin">
-                  <ArrowLeft className="h-4 w-4" />
-                  Back to Admin
-                </button>
-              </Link>
+              <button
+                onClick={() => { window.location.href = "/"; }}
+                className="w-full flex items-center gap-2 p-2 rounded-xl text-sm text-white/70 hover:bg-white/10 transition-colors"
+                data-testid="button-back-to-admin"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Admin
+              </button>
             )}
             <button
               onClick={() => { window.location.href = "/vendor"; }}

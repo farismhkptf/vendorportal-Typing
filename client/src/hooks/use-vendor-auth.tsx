@@ -1,6 +1,5 @@
 import { createContext, useContext, ReactNode } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 type VendorUser = {
@@ -23,8 +22,6 @@ type VendorAuthContextType = {
 const VendorAuthContext = createContext<VendorAuthContextType | null>(null);
 
 export function VendorAuthProvider({ children }: { children: ReactNode }) {
-  const [, setLocation] = useLocation();
-
   const {
     data: user = null,
     isLoading,
@@ -60,7 +57,7 @@ export function VendorAuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/vendor/auth/me"], null);
-      setLocation("/vendor/login");
+      window.location.href = "/vendor/login";
     },
   });
 
