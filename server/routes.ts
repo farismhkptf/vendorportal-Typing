@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { randomUUID } from "crypto";
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import { z } from "zod";
@@ -22,6 +22,49 @@ import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, ge
 import { ObjectStorageService } from "./replit_integrations/object_storage/objectStorage";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+function addJsonSheet(workbook: ExcelJS.Workbook, data: Record<string, any>[], name: string) {
+  const ws = workbook.addWorksheet(name);
+  if (data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  ws.addRow(headers);
+  data.forEach(row => ws.addRow(headers.map(h => row[h] ?? "")));
+}
+
+function addAoaSheet(workbook: ExcelJS.Workbook, data: any[][], name: string, colWidths?: number[]) {
+  const ws = workbook.addWorksheet(name);
+  ws.addRows(data);
+  if (colWidths) {
+    colWidths.forEach((width, i) => { ws.getColumn(i + 1).width = width; });
+  }
+}
+
+function excelSheetToJson(ws: ExcelJS.Worksheet): Record<string, any>[] {
+  const rows: Record<string, any>[] = [];
+  let headers: string[] = [];
+  ws.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    const values = (row.values as any[]).slice(1);
+    if (rowNumber === 1) {
+      headers = values.map(v => v?.toString() ?? "");
+      return;
+    }
+    const obj: Record<string, any> = {};
+    headers.forEach((header, i) => {
+      const val = values[i];
+      if (val === null || val === undefined) {
+        obj[header] = "";
+      } else if (typeof val === 'object' && 'text' in val) {
+        obj[header] = val.text;
+      } else if (typeof val === 'object' && 'result' in val) {
+        obj[header] = val.result?.toString() ?? "";
+      } else {
+        obj[header] = val;
+      }
+    });
+    rows.push(obj);
+  });
+  return rows;
+}
 
 function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
@@ -4904,14 +4947,14 @@ export async function registerRoutes(
         "Active": v.active ? "Yes" : "No",
       }));
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(woSheet), "Work Orders");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(companySheet), "Companies");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(jobSheet), "Typing Jobs");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(apptSheet), "Appointments");
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(vendorSheet), "Vendors");
+      const wb = new ExcelJS.Workbook();
+      addJsonSheet(wb, woSheet, "Work Orders");
+      addJsonSheet(wb, companySheet, "Companies");
+      addJsonSheet(wb, jobSheet, "Typing Jobs");
+      addJsonSheet(wb, apptSheet, "Appointments");
+      addJsonSheet(wb, vendorSheet, "Vendors");
 
-      const buffer = Buffer.from(XLSX.write(wb, { type: "buffer", bookType: "xlsx" }));
+      const buffer = Buffer.from(await wb.xlsx.writeBuffer());
       const dateStr = new Date().toISOString().split("T")[0];
       const fileName = `PRO_Data_Export_${dateStr}.xlsx`;
 
@@ -5069,57 +5112,39 @@ export async function registerRoutes(
   // ========== Admin Excel Template & Import ==========
   app.get("/api/admin/template", requireRole("Admin"), async (req, res) => {
     try {
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
 
       const centersData = [
         ["Name", "Type (Medical/EID/Both)", "Authority (DHA/EHS/ICP)", "Tier (Normal/VIP)", "Address", "Area", "Google Maps URL", "Timing Text", "Notes"],
         ["Example Medical Center", "Medical", "DHA", "Normal", "123 Street, Dubai", "Deira", "", "Sun-Thu: 7AM-9PM", "Walk-in available"],
       ];
-      const centersSheet = XLSX.utils.aoa_to_sheet(centersData);
-      centersSheet["!cols"] = [
-        { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 15 }, { wch: 35 },
-        { wch: 15 }, { wch: 30 }, { wch: 25 }, { wch: 25 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, centersSheet, "Centers");
+      addAoaSheet(workbook, centersData, "Centers", [30, 20, 20, 15, 35, 15, 30, 25, 25]);
 
       const companiesData = [
         ["Name", "Trade License Number", "Delivery Address"],
         ["Example Trading LLC", "TL-123456", "P.O. Box 12345, Dubai"],
       ];
-      const companiesSheet = XLSX.utils.aoa_to_sheet(companiesData);
-      companiesSheet["!cols"] = [{ wch: 30 }, { wch: 25 }, { wch: 35 }];
-      XLSX.utils.book_append_sheet(workbook, companiesSheet, "Companies");
+      addAoaSheet(workbook, companiesData, "Companies", [30, 25, 35]);
 
       const staffData = [
         ["Name", "Role Title", "Staff Type (Permanent/Temporary)", "Phone", "Email", "Status (Active/OnLeave/Cancelled/TempActive/TempInactive)"],
         ["John Doe", "Relationship Manager", "Permanent", "050-123-4567", "john@example.com", "Active"],
       ];
-      const staffSheet = XLSX.utils.aoa_to_sheet(staffData);
-      staffSheet["!cols"] = [
-        { wch: 25 }, { wch: 25 }, { wch: 30 }, { wch: 18 }, { wch: 25 }, { wch: 45 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, staffSheet, "Staff");
+      addAoaSheet(workbook, staffData, "Staff", [25, 25, 30, 18, 25, 45]);
 
       const serviceTypesData = [
         ["Name", "Category (NewVisaInside/NewVisaOutside/GoldenVisa/RenewVisa/NewbornDependent/LostReplaceEid)", "Requires Medical Typing (Yes/No)", "Requires Medical Scheduling (Yes/No)", "Requires ID Typing 2 Years (Yes/No)", "Requires ID Typing 1 Year (Yes/No)", "Requires ID Typing 10 Years (Yes/No)", "Requires ID Biometrics (Yes/No)"],
         ["New Employment Visa", "NewVisaInside", "Yes", "Yes", "Yes", "No", "No", "Yes"],
       ];
-      const serviceTypesSheet = XLSX.utils.aoa_to_sheet(serviceTypesData);
-      serviceTypesSheet["!cols"] = [
-        { wch: 25 }, { wch: 60 }, { wch: 30 }, { wch: 35 },
-        { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 28 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, serviceTypesSheet, "Service Types");
+      addAoaSheet(workbook, serviceTypesData, "Service Types", [25, 60, 30, 35, 30, 30, 30, 28]);
 
       const jobTypesData = [
         ["Name", "Category (Medical/EID)", "Cost"],
         ["Medical Typing", "Medical", "150"],
       ];
-      const jobTypesSheet = XLSX.utils.aoa_to_sheet(jobTypesData);
-      jobTypesSheet["!cols"] = [{ wch: 25 }, { wch: 22 }, { wch: 10 }];
-      XLSX.utils.book_append_sheet(workbook, jobTypesSheet, "Job Types");
+      addAoaSheet(workbook, jobTypesData, "Job Types", [25, 22, 10]);
 
-      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+      const buffer = await workbook.xlsx.writeBuffer();
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="PRO_Company_Import_Template.xlsx"');
       res.send(buffer);
@@ -5147,7 +5172,7 @@ export async function registerRoutes(
       const vendorMap = new Map(allVendors.map(v => [v.id, v.name]));
       const boolToYesNo = (val: any) => val ? "Yes" : "No";
 
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
 
       const companiesRows = allCompanies.map(c => [
         c.name || "",
@@ -5174,14 +5199,7 @@ export async function registerRoutes(
         ["Name", "Trade License", "Preferred Medical Center", "Preferred Medical Center (VIP)", "Preferred Biometrics Center", "Preferred Biometrics Center (VIP)", "RM Staff", "Assistant Staff", "Coordinator Name", "Coordinator Phone", "Coordinator Email", "Manager Name", "Manager Phone", "Manager Email", "Accountant Name", "Accountant Phone", "Accountant Email", "Delivery Address", "Active"],
         ...companiesRows,
       ];
-      const companiesSheet = XLSX.utils.aoa_to_sheet(companiesData);
-      companiesSheet["!cols"] = [
-        { wch: 30 }, { wch: 20 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 },
-        { wch: 20 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 25 },
-        { wch: 20 }, { wch: 18 }, { wch: 25 }, { wch: 20 }, { wch: 18 }, { wch: 25 },
-        { wch: 35 }, { wch: 8 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, companiesSheet, "Companies");
+      addAoaSheet(workbook, companiesData, "Companies", [30, 20, 30, 30, 30, 30, 20, 20, 20, 18, 25, 20, 18, 25, 20, 18, 25, 35, 8]);
 
       const centersRows = allCenters.map(c => [
         c.name || "", c.type || "", c.authority || "", c.tier || "",
@@ -5192,12 +5210,7 @@ export async function registerRoutes(
         ["Name", "Type", "Authority", "Tier", "Address", "Area", "Google Maps URL", "Timing Text", "Notes", "Active"],
         ...centersRows,
       ];
-      const centersSheet = XLSX.utils.aoa_to_sheet(centersData);
-      centersSheet["!cols"] = [
-        { wch: 30 }, { wch: 15 }, { wch: 12 }, { wch: 10 },
-        { wch: 35 }, { wch: 15 }, { wch: 35 }, { wch: 25 }, { wch: 25 }, { wch: 8 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, centersSheet, "Centers");
+      addAoaSheet(workbook, centersData, "Centers", [30, 15, 12, 10, 35, 15, 35, 25, 25, 8]);
 
       const staffRows = allStaff.map(s => [
         s.name || "", s.roleTitle || "", s.staffType || "",
@@ -5209,12 +5222,7 @@ export async function registerRoutes(
         ["Name", "Role Title", "Staff Type", "Phone", "Email", "Status", "Replacement", "Leave End Date", "Active"],
         ...staffRows,
       ];
-      const staffSheet = XLSX.utils.aoa_to_sheet(staffData);
-      staffSheet["!cols"] = [
-        { wch: 25 }, { wch: 25 }, { wch: 15 }, { wch: 18 },
-        { wch: 25 }, { wch: 15 }, { wch: 25 }, { wch: 15 }, { wch: 8 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, staffSheet, "Staff");
+      addAoaSheet(workbook, staffData, "Staff", [25, 25, 15, 18, 25, 15, 25, 15, 8]);
 
       const serviceTypesRows = allServiceTypes.map(st => [
         st.name || "", st.category || "",
@@ -5227,12 +5235,7 @@ export async function registerRoutes(
         ["Name", "Category", "Requires Medical Typing", "Requires Medical Scheduling", "Requires ID Typing 2 Years", "Requires ID Typing 1 Year", "Requires ID Typing 10 Years", "Requires ID Biometrics", "Is Dependent", "Active"],
         ...serviceTypesRows,
       ];
-      const serviceTypesSheet = XLSX.utils.aoa_to_sheet(serviceTypesData);
-      serviceTypesSheet["!cols"] = [
-        { wch: 25 }, { wch: 22 }, { wch: 25 }, { wch: 28 },
-        { wch: 25 }, { wch: 22 }, { wch: 25 }, { wch: 22 }, { wch: 14 }, { wch: 8 },
-      ];
-      XLSX.utils.book_append_sheet(workbook, serviceTypesSheet, "Service Types");
+      addAoaSheet(workbook, serviceTypesData, "Service Types", [25, 22, 25, 28, 25, 22, 25, 22, 14, 8]);
 
       const vendorsRows = allVendors.map(v => [
         v.name || "", v.contactPerson || "", v.phone || "", v.email || "", boolToYesNo(v.active),
@@ -5241,9 +5244,7 @@ export async function registerRoutes(
         ["Name", "Contact Person", "Phone", "Email", "Active"],
         ...vendorsRows,
       ];
-      const vendorsSheet = XLSX.utils.aoa_to_sheet(vendorsData);
-      vendorsSheet["!cols"] = [{ wch: 25 }, { wch: 20 }, { wch: 18 }, { wch: 25 }, { wch: 8 }];
-      XLSX.utils.book_append_sheet(workbook, vendorsSheet, "Vendors");
+      addAoaSheet(workbook, vendorsData, "Vendors", [25, 20, 18, 25, 8]);
 
       const jobTypesRows = allJobTypes.map(jt => [
         jt.name || "", jt.category || "", jt.cost ?? "", boolToYesNo(jt.active),
@@ -5252,9 +5253,7 @@ export async function registerRoutes(
         ["Name", "Category", "Cost", "Active"],
         ...jobTypesRows,
       ];
-      const jobTypesSheet = XLSX.utils.aoa_to_sheet(jobTypesData);
-      jobTypesSheet["!cols"] = [{ wch: 25 }, { wch: 15 }, { wch: 10 }, { wch: 8 }];
-      XLSX.utils.book_append_sheet(workbook, jobTypesSheet, "Vendor Jobs");
+      addAoaSheet(workbook, jobTypesData, "Vendor Jobs", [25, 15, 10, 8]);
 
       const docReqsRows = allDocReqs.map(dr => [
         dr.serviceCategory || "", dr.documentType || "",
@@ -5264,9 +5263,7 @@ export async function registerRoutes(
         ["Service Category", "Document Type", "Is Required", "Applies to Medical", "Applies to EID"],
         ...docReqsRows,
       ];
-      const docReqsSheet = XLSX.utils.aoa_to_sheet(docReqsData);
-      docReqsSheet["!cols"] = [{ wch: 22 }, { wch: 25 }, { wch: 14 }, { wch: 20 }, { wch: 16 }];
-      XLSX.utils.book_append_sheet(workbook, docReqsSheet, "Document Requirements");
+      addAoaSheet(workbook, docReqsData, "Document Requirements", [22, 25, 14, 20, 16]);
 
       const usersRows = allUsers.map(u => [
         u.name || "", u.email || "", u.role || "",
@@ -5279,11 +5276,9 @@ export async function registerRoutes(
         ["Name", "Email", "Role", "Linked Staff", "Linked Vendor", "Active", "Created At"],
         ...usersRows,
       ];
-      const usersSheet = XLSX.utils.aoa_to_sheet(usersData);
-      usersSheet["!cols"] = [{ wch: 25 }, { wch: 30 }, { wch: 22 }, { wch: 25 }, { wch: 25 }, { wch: 8 }, { wch: 14 }];
-      XLSX.utils.book_append_sheet(workbook, usersSheet, "User Accounts");
+      addAoaSheet(workbook, usersData, "User Accounts", [25, 30, 22, 25, 25, 8, 14]);
 
-      const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'buffer' });
+      const buffer = await workbook.xlsx.writeBuffer();
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="PRO_Company_Data_Export.xlsx"');
       res.send(buffer);
@@ -5299,7 +5294,9 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(req.file.buffer);
+      const sheetNames = workbook.worksheets.map(ws => ws.name);
       const results: Record<string, { imported: number; failed: number; errors: string[] }> = {};
       let totalImported = 0;
       let totalFailed = 0;
@@ -5309,9 +5306,9 @@ export async function registerRoutes(
         return !!val;
       };
 
-      if (workbook.SheetNames.includes("Centers")) {
-        const sheet = workbook.Sheets["Centers"];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+      if (sheetNames.includes("Centers")) {
+        const sheet = workbook.getWorksheet("Centers")!;
+        const rows: any[] = excelSheetToJson(sheet);
         const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -5343,9 +5340,9 @@ export async function registerRoutes(
         totalFailed += sheetResult.failed;
       }
 
-      if (workbook.SheetNames.includes("Companies")) {
-        const sheet = workbook.Sheets["Companies"];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+      if (sheetNames.includes("Companies")) {
+        const sheet = workbook.getWorksheet("Companies")!;
+        const rows: any[] = excelSheetToJson(sheet);
         const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -5368,9 +5365,9 @@ export async function registerRoutes(
         totalFailed += sheetResult.failed;
       }
 
-      if (workbook.SheetNames.includes("Staff")) {
-        const sheet = workbook.Sheets["Staff"];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+      if (sheetNames.includes("Staff")) {
+        const sheet = workbook.getWorksheet("Staff")!;
+        const rows: any[] = excelSheetToJson(sheet);
         const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -5396,9 +5393,9 @@ export async function registerRoutes(
         totalFailed += sheetResult.failed;
       }
 
-      if (workbook.SheetNames.includes("Service Types")) {
-        const sheet = workbook.Sheets["Service Types"];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+      if (sheetNames.includes("Service Types")) {
+        const sheet = workbook.getWorksheet("Service Types")!;
+        const rows: any[] = excelSheetToJson(sheet);
         const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -5426,9 +5423,9 @@ export async function registerRoutes(
         totalFailed += sheetResult.failed;
       }
 
-      if (workbook.SheetNames.includes("Job Types")) {
-        const sheet = workbook.Sheets["Job Types"];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
+      if (sheetNames.includes("Job Types")) {
+        const sheet = workbook.getWorksheet("Job Types")!;
+        const rows: any[] = excelSheetToJson(sheet);
         const sheetResult = { imported: 0, failed: 0, errors: [] as string[] };
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
