@@ -269,6 +269,7 @@ export const appointments = pgTable("appointments", {
   notes: text("notes"),
   rescheduleToken: varchar("reschedule_token").unique(),
   status: appointmentStatusEnum("status").notNull().default("Scheduled"),
+  emailDraft: text("email_draft"),
   messageSentAt: timestamp("message_sent_at"),
   messageSentBy: varchar("message_sent_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

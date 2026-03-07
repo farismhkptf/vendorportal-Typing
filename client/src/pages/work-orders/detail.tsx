@@ -71,6 +71,7 @@ import type { ServiceCategory } from "@/components/documents/document-types";
 import { CopyableText } from "@/components/ui/copy-button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Eye } from "lucide-react";
 
 function PipelineBar({ pipeline, serviceType, isMinor }: { pipeline: PipelineInfo; serviceType?: any; isMinor?: boolean }) {
   const medRequired = !isMinor && serviceType && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling);
@@ -394,6 +395,270 @@ function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: strin
   );
 }
 
+function AppointmentStatusTimeline({ apt }: { apt: Appointment }) {
+  const statusSteps = [
+    { label: "Scheduled", date: apt.createdAt, active: true },
+  ];
+
+  if (apt.status === "Rescheduled") {
+    statusSteps.push({ label: "Rescheduled", date: apt.createdAt, active: true });
+  } else if (apt.status === "Cancelled") {
+    statusSteps.push({ label: "Cancelled", date: apt.createdAt, active: true });
+  } else if (apt.status === "Completed") {
+    statusSteps.push({ label: "Completed", date: apt.createdAt, active: true });
+  } else if (apt.status === "FollowUpRequired") {
+    statusSteps.push({ label: "Follow-Up Required", date: apt.createdAt, active: true });
+  } else if (apt.status === "FollowUpScheduled") {
+    statusSteps.push({ label: "Follow-Up Required", date: apt.createdAt, active: true });
+    statusSteps.push({ label: "Follow-Up Scheduled", date: apt.createdAt, active: true });
+  } else if (apt.status === "FollowUpCompleted") {
+    statusSteps.push({ label: "Follow-Up Required", date: apt.createdAt, active: true });
+    statusSteps.push({ label: "Follow-Up Scheduled", date: apt.createdAt, active: true });
+    statusSteps.push({ label: "Follow-Up Completed", date: apt.createdAt, active: true });
+  }
+
+  if (apt.status === "Scheduled") {
+    statusSteps.push({ label: "Completed", date: null as any, active: false });
+  }
+
+  return (
+    <div className="flex items-center gap-1" data-testid={`apt-status-timeline-${apt.id}`}>
+      {statusSteps.map((step, idx) => (
+        <div key={idx} className="flex items-center gap-1">
+          <div className={cn(
+            "h-2 w-2 rounded-full shrink-0",
+            step.active ? "bg-primary" : "bg-muted"
+          )} />
+          <span className={cn(
+            "text-[10px]",
+            step.active ? "text-foreground font-medium" : "text-muted-foreground"
+          )}>
+            {step.label}
+          </span>
+          {idx < statusSteps.length - 1 && (
+            <div className={cn(
+              "h-px w-4",
+              step.active ? "bg-primary" : "bg-muted"
+            )} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ExpandedAppointmentCard({ 
+  apt, 
+  centers, 
+  staffList,
+  onComplete,
+  onReschedule,
+  onCancel,
+}: { 
+  apt: Appointment; 
+  centers: Center[];
+  staffList: Staff[];
+  onComplete: () => void;
+  onReschedule: () => void;
+  onCancel: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [emailDraftOpen, setEmailDraftOpen] = useState(false);
+
+  const center = apt.centerId ? centers.find(c => c.id === apt.centerId) : null;
+  const assignedStaff = apt.assignedStaffId ? staffList.find(s => s.id === apt.assignedStaffId) : null;
+
+  return (
+    <>
+      <Card className="border border-border/50" data-testid={`appointment-card-${apt.id}`}>
+        <Collapsible open={expanded} onOpenChange={setExpanded}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
+                  apt.type === "Medical" ? "bg-rose-50 dark:bg-rose-900/30" : "bg-cyan-50 dark:bg-cyan-900/30"
+                )}>
+                  {apt.type === "Medical" ? (
+                    <Stethoscope className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                  ) : (
+                    <CreditCard className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm">{apt.type === "Medical" ? "Medical" : "Emirates ID"}</span>
+                    <StatusBadge status={apt.status} />
+                  </div>
+                  <p className="text-sm text-foreground">
+                    {formatDateWithWeekday(apt.datetime)} at{" "}
+                    {new Date(apt.datetime).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" })}
+                  </p>
+                  {center && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {center.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                {apt.status === "Scheduled" && (
+                  <>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={onComplete}
+                      data-testid={`button-wo-apt-done-${apt.id}`}
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Done
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={onReschedule}
+                      data-testid={`button-wo-apt-reschedule-${apt.id}`}
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Reschedule
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-destructive"
+                      onClick={onCancel}
+                      data-testid={`button-wo-apt-cancel-${apt.id}`}
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      Cancel
+                    </Button>
+                    <Link href={`/appointments?viewMessages=${apt.id}`}>
+                      <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-wo-view-messages-${apt.id}`}>
+                        <Mail className="h-3.5 w-3.5" />
+                        Messages
+                      </Button>
+                    </Link>
+                  </>
+                )}
+                {apt.emailDraft && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setEmailDraftOpen(true)}
+                    data-testid={`button-view-email-${apt.id}`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    View Email
+                  </Button>
+                )}
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" data-testid={`button-expand-apt-${apt.id}`}>
+                    {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+              </div>
+            </div>
+          </CardContent>
+
+          <CollapsibleContent>
+            <div className="px-4 pb-4 space-y-4 border-t border-border/50 pt-3">
+              <AppointmentStatusTimeline apt={apt} />
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div>
+                  <span className="text-muted-foreground">Type</span>
+                  <p className="font-medium">{apt.type}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Scheduled Date</span>
+                  <p className="font-medium">{formatDateWithWeekday(apt.datetime)}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Time</span>
+                  <p className="font-medium">{new Date(apt.datetime).toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit" })}</p>
+                </div>
+                {center && (
+                  <div>
+                    <span className="text-muted-foreground">Center</span>
+                    <p className="font-medium">{center.name}</p>
+                    {center.area && <p className="text-muted-foreground">{center.area}</p>}
+                  </div>
+                )}
+                {assignedStaff && (
+                  <div>
+                    <span className="text-muted-foreground">Assigned Staff</span>
+                    <p className="font-medium">{assignedStaff.name}</p>
+                  </div>
+                )}
+                {apt.applicationNumber && (
+                  <div>
+                    <span className="text-muted-foreground">Application No</span>
+                    <p className="font-medium text-primary">{apt.applicationNumber}</p>
+                  </div>
+                )}
+                {apt.isVip && (
+                  <div>
+                    <span className="text-muted-foreground">Priority</span>
+                    <p className="font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                      <Star className="h-3 w-3 fill-current" />
+                      VIP
+                    </p>
+                  </div>
+                )}
+                <div>
+                  <span className="text-muted-foreground">Status</span>
+                  <p className="font-medium">{apt.status}</p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Created</span>
+                  <p className="font-medium">{formatDate(apt.createdAt)}</p>
+                </div>
+                {apt.messageSentAt && (
+                  <div>
+                    <span className="text-muted-foreground">Message Sent</span>
+                    <p className="font-medium">{formatDate(apt.messageSentAt)}</p>
+                  </div>
+                )}
+              </div>
+              {apt.notes && (
+                <div className="text-xs">
+                  <span className="text-muted-foreground">Notes</span>
+                  <p className="font-medium mt-0.5">{apt.notes}</p>
+                </div>
+              )}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
+      <Dialog open={emailDraftOpen} onOpenChange={setEmailDraftOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl" data-testid={`dialog-email-draft-${apt.id}`}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email Draft — {apt.type} Appointment
+            </DialogTitle>
+            <DialogDescription>
+              Original email generated when this appointment was scheduled.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="border border-border/50 rounded-lg overflow-hidden">
+            <div
+              className="p-4 bg-white text-black"
+              dangerouslySetInnerHTML={{ __html: apt.emailDraft || "" }}
+              data-testid={`email-draft-content-${apt.id}`}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
 const editWorkOrderSchema = z.object({
   woNumber: z.string().min(1, "Work order number is required").regex(/^[A-Z]\d{5,6}$/, "Format: Letter + 5-6 digits"),
   applicantName: z.string().min(1, "Applicant name is required"),
@@ -534,7 +799,7 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
 }
 
 function ActivityTimelineSection({ workOrderId }: { workOrderId: string }) {
-  const { data: auditLogs, isLoading } = useQuery<AuditLog[]>({
+  const { data: auditLogs, isLoading } = useQuery<(AuditLog & { userName?: string })[]>({
     queryKey: ["/api/audit-logs", "work_order", workOrderId],
     enabled: !!workOrderId,
   });
@@ -557,6 +822,7 @@ function ActivityTimelineSection({ workOrderId }: { workOrderId: string }) {
     userId: log.userId,
     details: log.details as Record<string, unknown> | null,
     createdAt: log.createdAt,
+    userName: log.userName,
   }));
 
   return <ActivityTimeline activities={activities} />;
@@ -636,6 +902,14 @@ export default function WorkOrderDetail() {
 
   const { data: vendors = [] } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
+  });
+
+  const { data: allCenters = [] } = useQuery<Center[]>({
+    queryKey: ["/api/centers"],
+  });
+
+  const { data: allStaff = [] } = useQuery<Staff[]>({
+    queryKey: ["/api/staff"],
   });
 
   const medicalJobType = jobTypes?.find(jt => jt.category === "Medical") || null;
@@ -1303,71 +1577,15 @@ export default function WorkOrderDetail() {
               {workOrder.appointments && workOrder.appointments.length > 0 ? (
                 <div className="space-y-3">
                   {workOrder.appointments.map((apt) => (
-                    <Card key={apt.id} className="border border-border/50">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between gap-2 flex-wrap">
-                          <div className="flex items-center gap-3">
-                            <StatusBadge status={apt.type} />
-                            <div>
-                              <p className="font-medium text-foreground">
-                                {formatDateWithWeekday(apt.datetime)}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(apt.datetime).toLocaleTimeString("en-GB", {
-                                  hour: "numeric",
-                                  minute: "2-digit",
-                                })}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {apt.status === "Scheduled" && (
-                              <>
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  className="gap-1.5"
-                                  onClick={() => setAptConfirmDialog({ open: true, type: "complete", appointment: apt })}
-                                  data-testid={`button-wo-apt-done-${apt.id}`}
-                                >
-                                  <CheckCircle2 className="h-3.5 w-3.5" />
-                                  Done
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-1.5"
-                                  onClick={() => setAptConfirmDialog({ open: true, type: "reschedule", appointment: apt })}
-                                  data-testid={`button-wo-apt-reschedule-${apt.id}`}
-                                >
-                                  <RefreshCw className="h-3.5 w-3.5" />
-                                  Reschedule
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="gap-1.5 text-destructive"
-                                  onClick={() => setAptConfirmDialog({ open: true, type: "cancel", appointment: apt })}
-                                  data-testid={`button-wo-apt-cancel-${apt.id}`}
-                                >
-                                  <XCircle className="h-3.5 w-3.5" />
-                                  Cancel
-                                </Button>
-                                <Link href={`/appointments?viewMessages=${apt.id}`}>
-                                  <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-wo-view-messages-${apt.id}`}>
-                                    <Mail className="h-3.5 w-3.5" />
-                                    Messages
-                                  </Button>
-                                </Link>
-                              </>
-                            )}
-                            {apt.status !== "Scheduled" && (
-                              <StatusBadge status={apt.status} />
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <ExpandedAppointmentCard
+                      key={apt.id}
+                      apt={apt}
+                      centers={allCenters}
+                      staffList={allStaff}
+                      onComplete={() => setAptConfirmDialog({ open: true, type: "complete", appointment: apt })}
+                      onReschedule={() => setAptConfirmDialog({ open: true, type: "reschedule", appointment: apt })}
+                      onCancel={() => setAptConfirmDialog({ open: true, type: "cancel", appointment: apt })}
+                    />
                   ))}
                 </div>
               ) : (

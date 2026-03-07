@@ -20,6 +20,8 @@ import {
   Timer,
   Mail,
   Package,
+  BarChart3,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -27,12 +29,15 @@ import { StatCard } from "@/components/ui/stat-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getGreeting } from "@/lib/greeting";
 import { toProperCase } from "@/lib/proper-case";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardSwitcher } from "@/components/dashboard-switcher";
+import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import { getPipelineInfo, STAGE_CONFIG, PIPELINE_STEPS, type PipelineStage } from "@/lib/pipeline-stage";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 interface DashboardStats {
   totalWorkOrders: number;
@@ -101,6 +106,105 @@ interface AppointmentsSummary {
   counts: { today: number; upcoming: number; needsScheduling: number };
 }
 
+interface WeeklyData {
+  date: string;
+  workOrders: number;
+  appointments: number;
+  typingJobs: number;
+}
+
+function getInitials(name: string): string {
+  return name.split(" ").map(n => n[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
+}
+
+function WeeklyOverviewChart({ data }: { data: WeeklyData[] }) {
+  const formatted = data.map(d => ({
+    ...d,
+    label: new Date(d.date + "T12:00:00").toLocaleDateString("en-US", { weekday: "short" }),
+  }));
+
+  return (
+    <div className="premium-card p-4 opacity-0 animate-fade-in" data-testid="weekly-overview-chart">
+      <div className="flex items-center gap-2 mb-4">
+        <BarChart3 className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-semibold text-foreground">Weekly Overview</span>
+      </div>
+      <ResponsiveContainer width="100%" height={160}>
+        <AreaChart data={formatted} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+          <defs>
+            <linearGradient id="gradWO" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="gradAppt" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="gradTJ" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+          <XAxis dataKey="label" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} />
+          <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" tickLine={false} axisLine={false} allowDecimals={false} />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "hsl(var(--card))",
+              border: "1px solid hsl(var(--border))",
+              borderRadius: "8px",
+              fontSize: "12px",
+            }}
+          />
+          <Area type="monotone" dataKey="workOrders" name="Work Orders" stroke="hsl(var(--primary))" fill="url(#gradWO)" strokeWidth={2} />
+          <Area type="monotone" dataKey="appointments" name="Appointments" stroke="#8b5cf6" fill="url(#gradAppt)" strokeWidth={2} />
+          <Area type="monotone" dataKey="typingJobs" name="Typing Jobs" stroke="#10b981" fill="url(#gradTJ)" strokeWidth={2} />
+        </AreaChart>
+      </ResponsiveContainer>
+      <div className="flex justify-center gap-4 mt-2">
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-primary" />
+          Work Orders
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-violet-500" />
+          Appointments
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          Typing Jobs
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MyActivityPanel({ data, isLoading }: { data?: ActivityItem[]; isLoading: boolean }) {
+  return (
+    <div className="premium-card p-4 opacity-0 animate-fade-in" data-testid="my-activity-panel">
+      <div className="flex items-center gap-2 mb-3">
+        <Activity className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-semibold text-foreground">My Activity</span>
+      </div>
+      {isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-10 rounded-lg" />
+        </div>
+      ) : !data || data.length === 0 ? (
+        <EmptyState
+          icon={<Activity className="h-5 w-5" />}
+          title="No recent activity"
+          description="Your actions will appear here."
+        />
+      ) : (
+        <ActivityTimeline activities={data.slice(0, 10)} />
+      )}
+    </div>
+  );
+}
+
 function TypeIcon({ type, className }: { type: "Medical" | "EID"; className?: string }) {
   return type === "Medical" 
     ? <Stethoscope className={cn("h-3.5 w-3.5 text-rose-500 dark:text-rose-400", className)} />
@@ -110,11 +214,13 @@ function TypeIcon({ type, className }: { type: "Medical" | "EID"; className?: st
 function JobRow({ 
   item, 
   rightContent, 
-  onClick 
+  onClick,
+  photoUrl,
 }: { 
-  item: { woNumber: string; applicantName: string; type: "Medical" | "EID"; urgent?: boolean }; 
+  item: { woNumber: string; applicantName: string; type: "Medical" | "EID"; urgent?: boolean; woId?: string }; 
   rightContent: React.ReactNode;
   onClick: () => void;
+  photoUrl?: string;
 }) {
   return (
     <div
@@ -124,6 +230,10 @@ function JobRow({
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter") onClick(); }}
     >
+      <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-${item.woNumber}`}>
+        {photoUrl && <AvatarImage src={photoUrl} alt={item.applicantName} />}
+        <AvatarFallback className="text-[9px] font-medium">{getInitials(item.applicantName)}</AvatarFallback>
+      </Avatar>
       <TypeIcon type={item.type} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
@@ -321,7 +431,7 @@ function PipelineOverview({ navigate }: { navigate: (path: string) => void }) {
   );
 }
 
-function TypingJobsLane({ data, isLoading }: { data?: TypingJobsSummary; isLoading: boolean }) {
+function TypingJobsLane({ data, isLoading, photoMap }: { data?: TypingJobsSummary; isLoading: boolean; photoMap?: Record<string, string> }) {
   const [, navigate] = useLocation();
   const totalActive = (data?.counts.unaccepted || 0) + (data?.counts.inProgress || 0);
 
@@ -377,6 +487,7 @@ function TypingJobsLane({ data, isLoading }: { data?: TypingJobsSummary; isLoadi
               <JobRow
                 key={job.id}
                 item={job}
+                photoUrl={photoMap?.[job.woId]}
                 onClick={() => navigate(`/typing-jobs/${job.id}`)}
                 rightContent={
                   <div className="flex flex-col items-end gap-0.5">
@@ -404,6 +515,7 @@ function TypingJobsLane({ data, isLoading }: { data?: TypingJobsSummary; isLoadi
               <JobRow
                 key={job.id}
                 item={job}
+                photoUrl={photoMap?.[job.woId]}
                 onClick={() => navigate(`/typing-jobs/${job.id}`)}
                 rightContent={
                   <div className="flex flex-col items-end gap-0.5">
@@ -428,6 +540,7 @@ function TypingJobsLane({ data, isLoading }: { data?: TypingJobsSummary; isLoadi
               <JobRow
                 key={job.id}
                 item={job}
+                photoUrl={photoMap?.[job.woId]}
                 onClick={() => navigate(
                   job.type === "Medical" 
                     ? `/appointments/schedule-medical?woId=${job.woId}` 
@@ -462,7 +575,7 @@ function TypingJobsLane({ data, isLoading }: { data?: TypingJobsSummary; isLoadi
   );
 }
 
-function AppointmentsLane({ data, isLoading }: { data?: AppointmentsSummary; isLoading: boolean }) {
+function AppointmentsLane({ data, isLoading, photoMap }: { data?: AppointmentsSummary; isLoading: boolean; photoMap?: Record<string, string> }) {
   const [, navigate] = useLocation();
   const [showUpcoming, setShowUpcoming] = useState(false);
 
@@ -511,6 +624,10 @@ function AppointmentsLane({ data, isLoading }: { data?: AppointmentsSummary; isL
                     onKeyDown={(e) => { if (e.key === "Enter") navigate(`/work-orders/${apt.woId}`); }}
                     data-testid={`appointment-today-${apt.id}`}
                   >
+                    <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-appt-${apt.id}`}>
+                      {photoMap?.[apt.woId] && <AvatarImage src={photoMap[apt.woId]} alt={apt.applicantName} />}
+                      <AvatarFallback className="text-[9px] font-medium">{getInitials(apt.applicantName)}</AvatarFallback>
+                    </Avatar>
                     <TypeIcon type={apt.type} />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
@@ -564,6 +681,10 @@ function AppointmentsLane({ data, isLoading }: { data?: AppointmentsSummary; isL
                       onKeyDown={(e) => { if (e.key === "Enter") navigate(`/work-orders/${apt.woId}`); }}
                       data-testid={`appointment-upcoming-${apt.id}`}
                     >
+                      <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-upcoming-${apt.id}`}>
+                        {photoMap?.[apt.woId] && <AvatarImage src={photoMap[apt.woId]} alt={apt.applicantName} />}
+                        <AvatarFallback className="text-[9px] font-medium">{getInitials(apt.applicantName)}</AvatarFallback>
+                      </Avatar>
                       <TypeIcon type={apt.type} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -727,6 +848,19 @@ export default function Dashboard() {
     queryKey: ["/api/dashboard/appointments-summary"],
   });
 
+  const { data: weeklyData } = useQuery<WeeklyData[]>({
+    queryKey: ["/api/dashboard/weekly-overview"],
+  });
+
+  const { data: myActivity, isLoading: activityLoading } = useQuery<ActivityItem[]>({
+    queryKey: ["/api/activity/my"],
+  });
+
+  const { data: photoMap } = useQuery<Record<string, string>>({
+    queryKey: ["/api/work-orders/photos"],
+    staleTime: 60000,
+  });
+
   const activeJobs = (typingData?.counts.unaccepted || 0) + (typingData?.counts.inProgress || 0);
 
   return (
@@ -740,7 +874,7 @@ export default function Dashboard() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            {user?.role === "Admin" && <DashboardSwitcher active="admin" />}
+            {(user?.role === "Admin" || user?.role === "Client Relationship Manager") && <DashboardSwitcher active="admin" />}
             <Link href="/work-orders/new">
               <Button size="sm" className="gap-1.5" data-testid="button-new-work-order">
                 <Plus className="h-4 w-4" />
@@ -822,9 +956,15 @@ export default function Dashboard() {
 
         <div className="section-divider" />
 
-        <div className="grid lg:grid-cols-2 gap-4">
-          <TypingJobsLane data={typingData} isLoading={typingLoading} />
-          <AppointmentsLane data={appointmentsData} isLoading={appointmentsLoading} />
+        <div className="grid xl:grid-cols-3 gap-4">
+          <div className="xl:col-span-2 grid lg:grid-cols-2 gap-4">
+            <TypingJobsLane data={typingData} isLoading={typingLoading} photoMap={photoMap} />
+            <AppointmentsLane data={appointmentsData} isLoading={appointmentsLoading} photoMap={photoMap} />
+          </div>
+          <div className="space-y-4">
+            {weeklyData && <WeeklyOverviewChart data={weeklyData} />}
+            <MyActivityPanel data={myActivity} isLoading={activityLoading} />
+          </div>
         </div>
       </div>
     </AppLayout>

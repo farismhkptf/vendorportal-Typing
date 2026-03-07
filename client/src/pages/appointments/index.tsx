@@ -6,7 +6,8 @@ import {
   CheckCircle2, AlertCircle, Building2, User,
   MoreHorizontal, RefreshCw, XCircle, MapPin,
   Mail, MessageCircle, Copy, Check, Maximize2, Download, Filter,
-  CalendarPlus, FileText, ChevronLeft, ChevronRight, LayoutList, CalendarDays
+  CalendarPlus, FileText, ChevronLeft, ChevronRight, LayoutList, CalendarDays,
+  Eye, UserCheck
 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToCsv } from "@/lib/csv-export";
@@ -31,6 +32,14 @@ import { generateEidAppointmentEmailHtml, EidAppointmentEmail } from "@/componen
 import type { Appointment, WorkOrder, Center, Staff, Company, ServiceType, TypingJob, JobType, Vendor } from "@shared/schema";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
 
 interface AppointmentWithRelations extends Appointment {
   workOrder?: WorkOrder & { company?: { name: string } };
@@ -82,6 +91,7 @@ export default function AppointmentsIndex() {
   const [viewMessagesApt, setViewMessagesApt] = useState<AppointmentWithRelations | null>(null);
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
+  const [viewEmailDraftApt, setViewEmailDraftApt] = useState<AppointmentWithRelations | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -110,6 +120,11 @@ export default function AppointmentsIndex() {
 
   const { data: readyToScheduleJobs } = useQuery<ReadyToScheduleJob[]>({
     queryKey: ["/api/typing-jobs/ready-to-schedule"],
+  });
+
+  const { data: photoMap } = useQuery<Record<string, string>>({
+    queryKey: ["/api/work-orders/photos"],
+    staleTime: 60000,
   });
 
   const { data: allTypingJobs } = useQuery<TypingJobWithRelations[]>({
@@ -546,9 +561,17 @@ Thank you,
           <p className="text-lg font-bold text-foreground leading-snug tracking-tight">{formatTime(apt.datetime)}</p>
         </div>
 
+        <Avatar className="h-8 w-8 shrink-0" data-testid={`avatar-apt-${apt.id}`}>
+          {photoMap?.[apt.woId] ? (
+            <AvatarImage src={photoMap[apt.woId]} alt={apt.workOrder?.applicantName || "Applicant"} />
+          ) : null}
+          <AvatarFallback className="text-xs font-medium">
+            {getInitials(apt.workOrder?.applicantName || "?")}
+          </AvatarFallback>
+        </Avatar>
+
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <span className="font-medium text-sm text-foreground truncate">
               {apt.workOrder?.applicantName ? toProperCase(apt.workOrder.applicantName) : "Unknown"}
             </span>
@@ -588,6 +611,26 @@ Thank you,
               <MapPin className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span className="text-sm text-muted-foreground truncate">
                 {apt.center.name}
+              </span>
+            </div>
+          )}
+          {apt.assignedStaffId && staffList && (() => {
+            const assignedStaff = staffList.find(s => s.id === apt.assignedStaffId);
+            if (!assignedStaff) return null;
+            return (
+              <div className="flex items-center gap-1.5" data-testid={`assigned-staff-${apt.id}`}>
+                <UserCheck className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="text-sm text-muted-foreground truncate">
+                  {assignedStaff.name}
+                </span>
+              </div>
+            );
+          })()}
+          {apt.status === "Completed" && apt.datetime && (
+            <div className="flex items-center gap-1.5" data-testid={`completed-info-${apt.id}`}>
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span className="text-xs text-muted-foreground">
+                Completed · <RelativeTime date={apt.datetime} />
               </span>
             </div>
           )}
@@ -657,7 +700,31 @@ Thank you,
             </Button>
           </>
         )}
-        {(apt.status === "Scheduled") && (
+        {apt.status === "Scheduled" && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => { setViewMessagesApt(apt); setMessageCopied(null); }}
+            data-testid={`button-view-messages-${apt.id}`}
+          >
+            <Mail className="h-3.5 w-3.5" />
+            Messages
+          </Button>
+        )}
+        {apt.status !== "Scheduled" && apt.emailDraft && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            onClick={() => setViewEmailDraftApt(apt)}
+            data-testid={`button-view-email-draft-${apt.id}`}
+          >
+            <Eye className="h-3.5 w-3.5" />
+            View Email
+          </Button>
+        )}
+        {apt.status !== "Scheduled" && !apt.emailDraft && (
           <Button
             variant="outline"
             size="sm"
@@ -1270,6 +1337,68 @@ Thank you,
               </Tabs>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewEmailDraftApt} onOpenChange={(open) => { if (!open) setViewEmailDraftApt(null); }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden p-0">
+          <DialogHeader className={`px-6 py-4 border-b ${viewEmailDraftApt?.type === "Medical" ? "bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d]" : "bg-gradient-to-r from-[#2563eb] to-[#1e40af]"}`}>
+            <DialogTitle className="text-white flex items-center gap-2">
+              {viewEmailDraftApt?.type === "Medical" ? (
+                <Stethoscope className="h-5 w-5" />
+              ) : (
+                <CreditCard className="h-5 w-5" />
+              )}
+              Stored Email Draft
+            </DialogTitle>
+          </DialogHeader>
+          <div className="px-6 pt-4 pb-2">
+            {viewEmailDraftApt && (
+              <div className="p-3 rounded-lg bg-muted/30 border border-border/30 mb-4">
+                <div className="flex items-center gap-3 flex-wrap text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-medium">{toProperCase(viewEmailDraftApt.workOrder?.applicantName || "")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">{toProperCase(viewEmailDraftApt.workOrder?.company?.name || "")}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      {formatDateDisplay(viewEmailDraftApt.datetime)} at {formatTime(viewEmailDraftApt.datetime)}
+                    </span>
+                  </div>
+                  <StatusBadge status={viewEmailDraftApt.status} />
+                  {viewEmailDraftApt.assignedStaffId && staffList && (() => {
+                    const s = staffList.find(st => st.id === viewEmailDraftApt.assignedStaffId);
+                    return s ? (
+                      <div className="flex items-center gap-1.5">
+                        <UserCheck className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="text-muted-foreground">{s.name}</span>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="px-6 pb-4 overflow-y-auto max-h-[calc(85vh-200px)]">
+            {viewEmailDraftApt?.emailDraft ? (
+              <div
+                className="rounded-lg border border-border/50 p-4 bg-white dark:bg-gray-950"
+                dangerouslySetInnerHTML={{ __html: viewEmailDraftApt.emailDraft }}
+                data-testid="email-draft-content"
+              />
+            ) : (
+              <EmptyState
+                icon={<Mail className="h-6 w-6" />}
+                title="No email draft stored"
+                description="This appointment was created before email draft storage was enabled."
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

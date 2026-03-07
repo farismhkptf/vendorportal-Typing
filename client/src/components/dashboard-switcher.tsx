@@ -21,7 +21,7 @@ export function DashboardSwitcher({ active }: { active: ViewKey }) {
   const { toast } = useToast();
   const [entering, setEntering] = useState(false);
 
-  if (user?.role !== "Admin") return null;
+  if (user?.role !== "Admin" && user?.role !== "Client Relationship Manager") return null;
 
   async function handleVendorSwitch() {
     setEntering(true);

@@ -231,7 +231,7 @@ async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boolean> {
       entityType: "work_order",
       entityId: woId,
       userId: null,
-      details: { reason: "All required tracks completed" },
+      details: { reason: "All required tracks completed", applicantName: wo.applicantName, woNumber: wo.woNumber },
     });
     console.log(`[auto-complete] Work order ${wo.woNumber} auto-completed`);
     return true;
@@ -275,7 +275,7 @@ async function checkAndMarkDelayedWorkOrders(): Promise<number> {
           entityType: "work_order",
           entityId: wo.id,
           userId: null,
-          details: { reason: `Vendor exceeded ${thresholdHours}h threshold` },
+          details: { reason: `Vendor exceeded ${thresholdHours}h threshold`, applicantName: wo.applicantName, woNumber: wo.woNumber },
         });
         console.log(`[delay-check] Work order ${wo.woNumber} marked as Delayed`);
         markedCount++;
@@ -317,7 +317,7 @@ async function revertDelayedWorkOrder(woId: string): Promise<void> {
       entityType: "work_order",
       entityId: woId,
       userId: null,
-      details: { reason: `All vendor jobs resolved, reverted to ${revertTo}` },
+      details: { reason: `All vendor jobs resolved, reverted to ${revertTo}`, applicantName: wo.applicantName, woNumber: wo.woNumber },
     });
     console.log(`[delay-check] Work order ${wo.woNumber} delay resolved → ${revertTo}`);
   } catch (err) {
@@ -471,6 +471,75 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/dashboard/weekly-overview", requireAuth, async (req, res) => {
+    try {
+      const now = new Date();
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      
+      const [allWOs, allAppointments, allTypingJobs] = await Promise.all([
+        storage.getWorkOrders(),
+        storage.getAllAppointments(),
+        storage.getTypingJobs(),
+      ]);
+      
+      const days: { date: string; workOrders: number; appointments: number; typingJobs: number }[] = [];
+      
+      for (let i = 6; i >= 0; i--) {
+        const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        const dateStr = day.toISOString().split("T")[0];
+        const dayStart = new Date(dateStr + "T00:00:00.000Z");
+        const dayEnd = new Date(dateStr + "T23:59:59.999Z");
+        
+        const wos = allWOs.filter(wo => {
+          const d = new Date(wo.createdAt);
+          return d >= dayStart && d <= dayEnd;
+        });
+        
+        const appts = allAppointments.filter(a => {
+          const d = new Date(a.createdAt);
+          return d >= dayStart && d <= dayEnd;
+        });
+        
+        const tjs = allTypingJobs.filter(tj => {
+          if (!tj.returnedAt) return false;
+          const d = new Date(tj.returnedAt);
+          return d >= dayStart && d <= dayEnd;
+        });
+        
+        days.push({
+          date: dateStr,
+          workOrders: wos.length,
+          appointments: appts.length,
+          typingJobs: tjs.length,
+        });
+      }
+      
+      res.json(days);
+    } catch (error) {
+      console.error("Weekly overview error:", error);
+      res.status(500).json({ message: "Failed to fetch weekly overview" });
+    }
+  });
+
+  app.get("/api/work-orders/photos", requireAuth, async (req, res) => {
+    try {
+      const allDocs = await storage.getAllWoDocuments();
+      const photoDocs = allDocs.filter(d => d.documentType === "Photo" && d.status !== "Rejected" && d.fileUrl);
+      
+      const photoMap: Record<string, string> = {};
+      for (const doc of photoDocs) {
+        if (doc.woId && doc.fileUrl && !photoMap[doc.woId]) {
+          photoMap[doc.woId] = doc.fileUrl;
+        }
+      }
+      
+      res.json(photoMap);
+    } catch (error) {
+      console.error("WO photos error:", error);
+      res.status(500).json({ message: "Failed to fetch photos" });
+    }
+  });
+
   app.get("/api/activity", requireAuth, async (req, res) => {
     try {
       const logs = await storage.getRecentAuditLogs(15);
@@ -478,6 +547,23 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Activity feed error:", error);
       res.status(500).json({ message: "Failed to fetch activity" });
+    }
+  });
+
+  app.get("/api/activity/my", requireAuth, async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+      const logs = await storage.getRecentAuditLogsByUser(userId, 20);
+      const user = await storage.getUser(userId);
+      const enriched = logs.map(log => ({
+        ...log,
+        userName: user?.name || undefined,
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error("My activity feed error:", error);
+      res.status(500).json({ message: "Failed to fetch user activity" });
     }
   });
 
@@ -1089,7 +1175,6 @@ export async function registerRoutes(
         const wo = await storage.getWorkOrderById(job.woId);
         if (!wo) continue;
         const company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
-        const vendor = job.vendorId ? await storage.getVendorById(job.vendorId) : null;
 
         const queueItem = {
           typingJobId: job.id,
@@ -1109,13 +1194,11 @@ export async function registerRoutes(
           preferredBiometricsCenterVipId: company?.preferredBiometricsCenterVipId || null,
           assistStaffId: company?.assistStaffId || null,
           rmStaffId: company?.rmStaffId || null,
-          vendorId: vendor?.id || null,
-          vendorName: vendor?.name || null,
           applicationRefNo: result?.applicationRefNo || null,
           biometricsRequired: result?.biometricsRequired || false,
           biometricsDatetime: result?.biometricsDatetime || null,
           biometricsCenter: result?.biometricsCenter || null,
-          vendorNotes: result?.vendorNotes || null,
+          notes: result?.vendorNotes || null,
           returnedAt: job.returnedAt || null,
           completedAt: job.returnedAt || null,
         };
@@ -1223,7 +1306,8 @@ export async function registerRoutes(
             entityType: "work_order",
             entityId: id,
             action: "status_changed",
-            details: { newStatus: status, bulkAction: true },
+            userId: (req as any).session?.userId || null,
+            details: { newStatus: status, bulkAction: true, applicantName: wo.applicantName, woNumber: wo.woNumber },
           });
 
           if (status === "Cancelled" || status === "Delayed") {
@@ -1386,7 +1470,8 @@ export async function registerRoutes(
         entityType: "work_order",
         entityId: wo.id,
         action: "created",
-        details: { woNumber: wo.woNumber },
+        userId: (req as any).session?.userId || null,
+        details: { woNumber: wo.woNumber, applicantName: wo.applicantName },
       });
       
       // Auto-create Medical and EID typing jobs for the new work order
@@ -1467,6 +1552,7 @@ export async function registerRoutes(
         entityType: 'work_order',
         entityId: id,
         userId: (req as any).session?.userId || null,
+        details: { applicantName: wo.applicantName, woNumber: wo.woNumber },
       });
       res.json(wo);
     } catch (error) {
@@ -1511,7 +1597,8 @@ export async function registerRoutes(
         entityType: "work_order",
         entityId: id,
         action: "activated",
-        details: { isMinor: validation.data.isMinor },
+        userId: (req as any).session?.userId || null,
+        details: { isMinor: validation.data.isMinor, applicantName: wo.applicantName, woNumber: wo.woNumber },
       });
       res.json(updated);
     } catch (error) {
@@ -1563,7 +1650,15 @@ export async function registerRoutes(
     try {
       const { entityType, entityId } = req.params;
       const logs = await storage.getAuditLogsByEntity(entityType, entityId);
-      res.json(logs);
+      const enriched = await Promise.all(logs.map(async (log) => {
+        let userName: string | undefined;
+        if (log.userId) {
+          const user = await storage.getUser(log.userId);
+          userName = user?.name;
+        }
+        return { ...log, userName };
+      }));
+      res.json(enriched);
     } catch (error) {
       console.error("Audit logs error:", error);
       res.status(500).json({ message: "Failed to fetch audit logs" });

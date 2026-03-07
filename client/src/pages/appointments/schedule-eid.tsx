@@ -26,6 +26,14 @@ import type { WorkOrder, Company, Center, Staff, Appointment, ServiceType } from
 import { cn } from "@/lib/utils";
 import { toProperCase } from "@/lib/proper-case";
 import { EidAppointmentEmail, generateEidAppointmentEmailHtml } from "@/components/email-templates/eid-appointment-email";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
 
 const TIME_SLOTS = [
   "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -79,13 +87,11 @@ interface SchedulingQueueItem {
   preferredBiometricsCenterVipId: string | null;
   assistStaffId: string | null;
   rmStaffId: string | null;
-  vendorId: string | null;
-  vendorName: string | null;
   applicationRefNo: string | null;
   biometricsRequired: boolean;
   biometricsDatetime: string | null;
   biometricsCenter: string | null;
-  vendorNotes: string | null;
+  notes: string | null;
   returnedAt: string | null;
   completedAt: string | null;
 }
@@ -139,6 +145,11 @@ export default function ScheduleEid() {
 
   const { data: serviceTypes } = useQuery<ServiceType[]>({
     queryKey: ["/api/service-types"],
+  });
+
+  const { data: photoMap } = useQuery<Record<string, string>>({
+    queryKey: ["/api/work-orders/photos"],
+    staleTime: 60000,
   });
 
   const eidQueue = useMemo(() => {
@@ -217,12 +228,12 @@ export default function ScheduleEid() {
       : item.preferredBiometricsCenterId;
 
     if (item.biometricsCenter && centers) {
-      const vendorCenter = centers.find(c => 
+      const suggestedCenter = centers.find(c => 
         c.name.toLowerCase().includes(item.biometricsCenter!.toLowerCase()) ||
         item.biometricsCenter!.toLowerCase().includes(c.name.toLowerCase())
       );
-      if (vendorCenter) {
-        form.setValue("centerId", vendorCenter.id);
+      if (suggestedCenter) {
+        form.setValue("centerId", suggestedCenter.id);
       } else if (preferredCenter) {
         form.setValue("centerId", preferredCenter);
       }
@@ -270,13 +281,11 @@ export default function ScheduleEid() {
       preferredBiometricsCenterVipId: company?.preferredBiometricsCenterVipId || null,
       assistStaffId: company?.assistStaffId || null,
       rmStaffId: company?.rmStaffId || null,
-      vendorId: null,
-      vendorName: null,
       applicationRefNo: null,
       biometricsRequired: false,
       biometricsDatetime: null,
       biometricsCenter: null,
-      vendorNotes: null,
+      notes: null,
       returnedAt: null,
       completedAt: null,
     };
@@ -342,7 +351,7 @@ export default function ScheduleEid() {
   }, [schedulingQueue, workOrders, searchParams, urlWoProcessed]);
 
   const createAppointmentMutation = useMutation({
-    mutationFn: async (data: AppointmentForm) => {
+    mutationFn: async (data: AppointmentForm & { emailDraft?: string }) => {
       const datetime = new Date(`${data.appointmentDate}T${data.appointmentTime}:00`);
       return apiRequest("POST", "/api/appointments", {
         woId: data.woId,
@@ -354,6 +363,7 @@ export default function ScheduleEid() {
         applicationNumber: data.applicationNumber,
         notes: data.notes,
         status: "Scheduled",
+        emailDraft: data.emailDraft || null,
       });
     },
     onSuccess: async () => {
@@ -547,7 +557,33 @@ Thank you,
       return;
     }
     
-    createAppointmentMutation.mutate(form.getValues());
+    const emailHtml = generateEidAppointmentEmailHtml({
+      woNumber: selectedQueueItem?.woNumber || "",
+      companyName: toProperCase(selectedCompany?.name || ""),
+      applicantName: toProperCase(selectedQueueItem?.applicantName || ""),
+      serviceType: toProperCase(woServiceTypeName),
+      centerName: selectedCenter?.name || "TBD",
+      centerAddress: selectedCenter?.address || undefined,
+      centerType: selectedCenter?.tier === "VIP" ? "VIP" : "Normal",
+      appointmentDate: form.getValues("appointmentDate") 
+        ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+          })
+        : "TBD",
+      appointmentTime: form.getValues("appointmentTime") 
+        ? formatTime12h(form.getValues("appointmentTime"))
+        : "TBD",
+      applicationNumber: form.getValues("applicationNumber") || undefined,
+      assistName: companyAssist?.name,
+      assistPhone: companyAssist?.phone || undefined,
+      crmName: companyCRM?.name,
+      crmPhone: companyCRM?.phone || undefined,
+      notes: form.getValues("notes") || undefined,
+    });
+    
+    createAppointmentMutation.mutate({ ...form.getValues(), emailDraft: emailHtml });
   };
 
   const getTimeSince = (dateStr: string | null) => {
@@ -724,23 +760,25 @@ Thank you,
         <>
           <div className="border-t pt-4 mt-4" />
 
-          {(selectedQueueItem.vendorName || selectedQueueItem.vendorNotes || selectedQueueItem.biometricsDatetime || selectedQueueItem.biometricsCenter) && (
-            <Card className="border-amber-500/20 bg-amber-500/5" data-testid="eid-vendor-context">
+          {(selectedQueueItem.biometricsDatetime || selectedQueueItem.biometricsCenter || selectedQueueItem.completedAt || selectedQueueItem.applicationRefNo || selectedQueueItem.notes) && (
+            <Card className="border-amber-500/20 bg-amber-500/5" data-testid="eid-schedule-context">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <div className="h-5 w-5 rounded bg-amber-500/10 flex items-center justify-center">
-                    <FileText className="h-3 w-3 text-amber-600" />
+                    <Calendar className="h-3 w-3 text-amber-600" />
                   </div>
-                  Vendor Info
-                  {selectedQueueItem.vendorName && (
-                    <span className="text-xs font-normal text-muted-foreground">
-                      {selectedQueueItem.vendorName}
-                    </span>
-                  )}
+                  Suggested Schedule
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs">
+                  {selectedQueueItem.applicationRefNo && (
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">App Ref No:</span>
+                      <span className="font-medium">{selectedQueueItem.applicationRefNo}</span>
+                    </div>
+                  )}
                   {selectedQueueItem.completedAt && (
                     <div className="flex items-center gap-1.5">
                       <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -767,10 +805,10 @@ Thank you,
                     </div>
                   )}
                 </div>
-                {selectedQueueItem.vendorNotes && (
+                {selectedQueueItem.notes && (
                   <div className="text-xs p-2 rounded bg-background/50 border border-amber-500/10">
                     <span className="text-muted-foreground">Notes: </span>
-                    <span>{selectedQueueItem.vendorNotes}</span>
+                    <span>{selectedQueueItem.notes}</span>
                   </div>
                 )}
               </CardContent>
@@ -781,6 +819,14 @@ Thank you,
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2 min-w-0">
+                  <Avatar className="h-8 w-8 shrink-0" data-testid={`avatar-eid-${selectedQueueItem.woNumber}`}>
+                    {photoMap?.[selectedQueueItem.woId] ? (
+                      <AvatarImage src={photoMap[selectedQueueItem.woId]} alt={selectedQueueItem.applicantName} />
+                    ) : null}
+                    <AvatarFallback className="text-xs font-medium">
+                      {getInitials(selectedQueueItem.applicantName)}
+                    </AvatarFallback>
+                  </Avatar>
                   <FileText className="h-4 w-4 text-primary shrink-0" />
                   <span className="font-medium text-sm">{selectedQueueItem.woNumber}</span>
                   {selectedQueueItem.isVip && <Badge className="bg-amber-500 text-white text-xs">VIP</Badge>}

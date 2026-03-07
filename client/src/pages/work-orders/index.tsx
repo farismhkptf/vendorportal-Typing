@@ -11,6 +11,7 @@ import {
 import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -277,6 +278,13 @@ function ProgressBar({ percent }: { percent: number }) {
   );
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 export default function WorkOrdersList() {
   const [, navigate] = useLocation();
   const searchString = useSearch();
@@ -311,6 +319,11 @@ export default function WorkOrdersList() {
   const { data: workOrders, isLoading } = useQuery<WorkOrderEnriched[]>({
     queryKey: ["/api/work-orders"],
     staleTime: 0,
+  });
+
+  const { data: photoMap } = useQuery<Record<string, string>>({
+    queryKey: ["/api/work-orders/photos"],
+    staleTime: 60000,
   });
 
   const stats = useMemo(() => {
@@ -693,6 +706,12 @@ export default function WorkOrdersList() {
             data-testid={`work-order-card-${wo.woNumber}`}
           >
             <div className="flex items-start justify-between gap-3">
+              <Avatar className="h-9 w-9 shrink-0" data-testid={`avatar-wo-${wo.woNumber}`}>
+                {photoMap?.[wo.id] ? (
+                  <AvatarImage src={photoMap[wo.id]} alt={wo.applicantName} />
+                ) : null}
+                <AvatarFallback className="text-xs font-medium">{getInitials(wo.applicantName)}</AvatarFallback>
+              </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono font-semibold text-sm text-foreground">{wo.woNumber}</span>
@@ -813,6 +832,12 @@ export default function WorkOrdersList() {
                 data-testid={`work-order-compact-${wo.woNumber}`}
               >
                 <div className="flex items-center gap-3 min-w-0">
+                  <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-wo-compact-${wo.woNumber}`}>
+                    {photoMap?.[wo.id] ? (
+                      <AvatarImage src={photoMap[wo.id]} alt={wo.applicantName} />
+                    ) : null}
+                    <AvatarFallback className="text-[9px] font-medium">{getInitials(wo.applicantName)}</AvatarFallback>
+                  </Avatar>
                   <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
                   <span className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</span>
                   <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
@@ -903,7 +928,17 @@ export default function WorkOrdersList() {
                     {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                   </div>
                 </TableCell>}
-                {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/work-orders/${wo.id}`)}><span className="block truncate">{toProperCase(wo.applicantName)}</span></TableCell>}
+                {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-wo-table-${wo.woNumber}`}>
+                      {photoMap?.[wo.id] ? (
+                        <AvatarImage src={photoMap[wo.id]} alt={wo.applicantName} />
+                      ) : null}
+                      <AvatarFallback className="text-[9px] font-medium">{getInitials(wo.applicantName)}</AvatarFallback>
+                    </Avatar>
+                    <span className="block truncate">{toProperCase(wo.applicantName)}</span>
+                  </div>
+                </TableCell>}
                 {cv("company") && <TableCell className={`hidden sm:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                   {wo.company?.name ? toProperCase(wo.company.name) : "-"}
                 </TableCell>}
@@ -983,7 +1018,15 @@ export default function WorkOrdersList() {
                         {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                         {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                       </div>
-                      <div className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</div>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-wo-kanban-${wo.woNumber}`}>
+                          {photoMap?.[wo.id] ? (
+                            <AvatarImage src={photoMap[wo.id]} alt={wo.applicantName} />
+                          ) : null}
+                          <AvatarFallback className="text-[9px] font-medium">{getInitials(wo.applicantName)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</span>
+                      </div>
                       {wo.company && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground/70 mt-0.5">
                           <Building2 className="h-3 w-3" />

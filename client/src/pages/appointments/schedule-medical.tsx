@@ -26,6 +26,14 @@ import type { WorkOrder, Company, Center, Staff, Appointment, ServiceType } from
 import { cn } from "@/lib/utils";
 import { toProperCase } from "@/lib/proper-case";
 import { MedicalAppointmentEmail, generateMedicalAppointmentEmailHtml } from "@/components/email-templates/medical-appointment-email";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
 
 const TIME_SLOTS = [
   "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -79,13 +87,11 @@ interface SchedulingQueueItem {
   preferredBiometricsCenterVipId: string | null;
   assistStaffId: string | null;
   rmStaffId: string | null;
-  vendorId: string | null;
-  vendorName: string | null;
   applicationRefNo: string | null;
   biometricsRequired: boolean;
   biometricsDatetime: string | null;
   biometricsCenter: string | null;
-  vendorNotes: string | null;
+  notes: string | null;
   returnedAt: string | null;
   completedAt: string | null;
 }
@@ -141,6 +147,11 @@ export default function ScheduleMedical() {
 
   const { data: appointments } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
+  });
+
+  const { data: photoMap } = useQuery<Record<string, string>>({
+    queryKey: ["/api/work-orders/photos"],
+    staleTime: 60000,
   });
 
   const isFollowUp = useMemo(() => {
@@ -252,13 +263,11 @@ export default function ScheduleMedical() {
       preferredBiometricsCenterVipId: company?.preferredBiometricsCenterVipId || null,
       assistStaffId: company?.assistStaffId || null,
       rmStaffId: company?.rmStaffId || null,
-      vendorId: null,
-      vendorName: null,
       applicationRefNo: null,
       biometricsRequired: false,
       biometricsDatetime: null,
       biometricsCenter: null,
-      vendorNotes: null,
+      notes: null,
       returnedAt: null,
       completedAt: null,
     };
@@ -336,7 +345,7 @@ export default function ScheduleMedical() {
   }, [medicalCenters, watchedIsVip]);
 
   const createAppointmentMutation = useMutation({
-    mutationFn: async (data: AppointmentForm) => {
+    mutationFn: async (data: AppointmentForm & { emailDraft?: string }) => {
       const datetime = new Date(`${data.appointmentDate}T${data.appointmentTime}:00`);
       return apiRequest("POST", "/api/appointments", {
         woId: data.woId,
@@ -348,6 +357,7 @@ export default function ScheduleMedical() {
         applicationNumber: data.applicationNumber,
         notes: data.notes,
         status: "Scheduled",
+        emailDraft: data.emailDraft || null,
       });
     },
     onSuccess: async () => {
@@ -536,7 +546,33 @@ Thank you,
       return;
     }
     
-    createAppointmentMutation.mutate(form.getValues());
+    const emailHtml = generateMedicalAppointmentEmailHtml({
+      woNumber: selectedQueueItem?.woNumber || "",
+      companyName: toProperCase(selectedCompany?.name || ""),
+      applicantName: toProperCase(selectedQueueItem?.applicantName || ""),
+      serviceType: toProperCase(woServiceTypeName),
+      centerName: selectedCenter?.name || "TBD",
+      centerAddress: selectedCenter?.address || undefined,
+      centerType: selectedCenter?.tier === "VIP" ? "VIP" : "Normal",
+      appointmentDate: form.getValues("appointmentDate") 
+        ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "long",
+            year: "numeric"
+          })
+        : "TBD",
+      appointmentTime: form.getValues("appointmentTime") 
+        ? formatTime12h(form.getValues("appointmentTime"))
+        : "TBD",
+      applicationNumber: form.getValues("applicationNumber") || undefined,
+      medicalAssistName: companyMedicalAssist?.name,
+      medicalAssistPhone: companyMedicalAssist?.phone || undefined,
+      crmName: companyCRM?.name,
+      crmPhone: companyCRM?.phone || undefined,
+      notes: form.getValues("notes") || undefined,
+    });
+    
+    createAppointmentMutation.mutate({ ...form.getValues(), emailDraft: emailHtml });
   };
 
   const selectedCenter = centers?.find(c => c.id === form.getValues("centerId"));
@@ -746,7 +782,16 @@ Thank you,
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-start gap-3">
+                <Avatar className="h-10 w-10 shrink-0" data-testid={`avatar-medical-${selectedQueueItem.woNumber}`}>
+                  {photoMap?.[selectedQueueItem.woId] ? (
+                    <AvatarImage src={photoMap[selectedQueueItem.woId]} alt={selectedQueueItem.applicantName} />
+                  ) : null}
+                  <AvatarFallback className="text-xs font-medium">
+                    {getInitials(selectedQueueItem.applicantName)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">{toProperCase(selectedQueueItem.applicantName)}</span>
@@ -767,22 +812,23 @@ Thank you,
                     <span className="text-sm">{selectedQueueItem.applicantEmail}</span>
                   </div>
                 )}
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {(selectedQueueItem.vendorName || selectedQueueItem.vendorNotes || selectedQueueItem.applicationRefNo) && (
-            <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20" data-testid="card-vendor-context">
+          {(selectedQueueItem.applicationRefNo || selectedQueueItem.completedAt || selectedQueueItem.notes) && (
+            <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20" data-testid="card-job-context">
               <CardContent className="p-4 space-y-2">
                 <div className="flex items-center gap-2 mb-1">
-                  <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Vendor Information</span>
+                  <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Job Details</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  {selectedQueueItem.vendorName && (
+                  {selectedQueueItem.applicationRefNo && (
                     <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">Vendor:</span>
-                      <span className="font-medium">{selectedQueueItem.vendorName}</span>
+                      <span className="text-muted-foreground">App Ref No:</span>
+                      <span className="font-medium text-blue-700 dark:text-blue-300">{selectedQueueItem.applicationRefNo}</span>
                     </div>
                   )}
                   {selectedQueueItem.completedAt && (
@@ -791,17 +837,11 @@ Thank you,
                       <span>{new Date(selectedQueueItem.completedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
                     </div>
                   )}
-                  {selectedQueueItem.applicationRefNo && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">App No:</span>
-                      <span className="font-medium text-blue-700 dark:text-blue-300">{selectedQueueItem.applicationRefNo}</span>
-                    </div>
-                  )}
                 </div>
-                {selectedQueueItem.vendorNotes && (
+                {selectedQueueItem.notes && (
                   <div className="pt-2 border-t border-blue-200 dark:border-blue-800">
-                    <span className="text-xs text-muted-foreground">Vendor Notes:</span>
-                    <p className="text-sm mt-0.5">{selectedQueueItem.vendorNotes}</p>
+                    <span className="text-xs text-muted-foreground">Notes:</span>
+                    <p className="text-sm mt-0.5">{selectedQueueItem.notes}</p>
                   </div>
                 )}
               </CardContent>
