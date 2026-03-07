@@ -104,6 +104,10 @@ export default function TypingJobDetail() {
     queryKey: ["/api/audit-logs", "typing_job", id],
     enabled: !!id,
   });
+
+  const { data: photoMap } = useQuery<Record<string, string>>({
+    queryKey: ["/api/work-orders/photos"],
+  });
   
   // Mutations for workflow actions
   const invalidateTypingJobQueries = () => {
@@ -739,7 +743,7 @@ export default function TypingJobDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ActivityTimeline activities={activities} />
+                <ActivityTimeline activities={activities} photoMap={photoMap} />
               </CardContent>
             </Card>
           </TabsContent>

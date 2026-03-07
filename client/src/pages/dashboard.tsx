@@ -179,12 +179,12 @@ function WeeklyOverviewChart({ data }: { data: WeeklyData[] }) {
   );
 }
 
-function MyActivityPanel({ data, isLoading }: { data?: ActivityItem[]; isLoading: boolean }) {
+function MyActivityPanel({ data, isLoading, photoMap }: { data?: ActivityItem[]; isLoading: boolean; photoMap?: Record<string, string> }) {
   return (
     <div className="premium-card p-4 opacity-0 animate-fade-in" data-testid="my-activity-panel">
       <div className="flex items-center gap-2 mb-3">
         <Activity className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-semibold text-foreground">My Activity</span>
+        <span className="text-sm font-semibold text-foreground">Activity Timeline</span>
       </div>
       {isLoading ? (
         <div className="space-y-3">
@@ -199,7 +199,7 @@ function MyActivityPanel({ data, isLoading }: { data?: ActivityItem[]; isLoading
           description="Your actions will appear here."
         />
       ) : (
-        <ActivityTimeline activities={data.slice(0, 10)} />
+        <ActivityTimeline activities={data.slice(0, 10)} photoMap={photoMap} />
       )}
     </div>
   );
@@ -963,7 +963,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-4">
             {weeklyData && <WeeklyOverviewChart data={weeklyData} />}
-            <MyActivityPanel data={myActivity} isLoading={activityLoading} />
+            <MyActivityPanel data={myActivity} isLoading={activityLoading} photoMap={photoMap} />
           </div>
         </div>
       </div>

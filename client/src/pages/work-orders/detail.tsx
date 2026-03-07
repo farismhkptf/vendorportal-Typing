@@ -804,6 +804,10 @@ function ActivityTimelineSection({ workOrderId }: { workOrderId: string }) {
     enabled: !!workOrderId,
   });
 
+  const { data: photoMap } = useQuery<Record<string, string>>({
+    queryKey: ["/api/work-orders/photos"],
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -825,7 +829,7 @@ function ActivityTimelineSection({ workOrderId }: { workOrderId: string }) {
     userName: log.userName,
   }));
 
-  return <ActivityTimeline activities={activities} />;
+  return <ActivityTimeline activities={activities} photoMap={photoMap} />;
 }
 
 export default function WorkOrderDetail() {
