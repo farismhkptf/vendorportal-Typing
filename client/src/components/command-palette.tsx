@@ -55,17 +55,19 @@ const PAGES = [
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const isV2 = location === "/vendor-v2" || location.startsWith("/vendor-v2/");
 
   const isSearching = search.length >= 2;
 
   const { data: searchResults } = useQuery<SearchResult>({
     queryKey: [`/api/search?q=${encodeURIComponent(search)}`],
-    enabled: open && isSearching,
+    enabled: open && isSearching && !isV2,
     staleTime: 1000,
   });
 
   useEffect(() => {
+    if (isV2) return;
     const down = (e: KeyboardEvent) => {
       if (e.key === " " && e.ctrlKey) {
         e.preventDefault();
@@ -78,7 +80,7 @@ export function CommandPalette() {
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, []);
+  }, [isV2]);
 
   useEffect(() => {
     if (open) {
@@ -98,6 +100,8 @@ export function CommandPalette() {
     searchResults.companies.length > 0 ||
     searchResults.staff.length > 0
   );
+
+  if (isV2) return null;
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>

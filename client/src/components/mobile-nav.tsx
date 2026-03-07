@@ -40,6 +40,7 @@ export function MobileBottomNav() {
   const dashboardHref = getDashboardHref(user?.role);
 
   if (!user) return null;
+  if (location === "/vendor-v2" || location.startsWith("/vendor-v2/")) return null;
 
   const resolvedTabs = MAIN_TABS
     .filter(tab => tab.roles === null || (user && tab.roles.includes(user.role)))
