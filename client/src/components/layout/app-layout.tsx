@@ -19,9 +19,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { NotificationsBell } from "@/components/notifications-bell";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import { ThemeSwitcher, getBackgroundSrc } from "@/components/theme-switcher";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
 import { useAuth } from "@/hooks/use-auth";
+import { useTheme } from "@/hooks/use-theme";
 import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 
@@ -72,9 +73,24 @@ export function AppLayout({ children }: AppLayoutProps) {
     .map((item) => item.href === "__dashboard__" ? { ...item, href: dashboardHref } : item);
 
   const userInitial = user?.name?.charAt(0)?.toUpperCase() || "U";
+  const { background } = useTheme();
+  const bgSrc = getBackgroundSrc(background);
+  const hasBg = background !== "none" && !!bgSrc;
 
   return (
-    <div className="min-h-screen bg-background" data-testid="app-layout">
+    <div className={cn("min-h-screen", hasBg ? "bg-background/80" : "bg-background")} data-testid="app-layout">
+      {hasBg && (
+        <div className="fixed inset-0 z-0" data-testid="app-background">
+          <img
+            src={bgSrc!}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="eager"
+            decoding="async"
+          />
+          <div className="absolute inset-0 bg-background/70 dark:bg-background/80 backdrop-blur-sm" />
+        </div>
+      )}
       {sidebarOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[2px] lg:hidden transition-opacity duration-300"
@@ -167,7 +183,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </aside>
 
-      <div className="lg:pl-[280px]">
+      <div className="lg:pl-[280px] relative z-[1]">
         <header ref={mainRef} className={cn("sticky top-0 z-30 h-[72px] bg-background/80 backdrop-blur-xl border-b border-border/40 transition-shadow duration-300", scrolled && "header-scrolled")}>
           <div className="flex h-full items-center gap-4 px-6 lg:px-10">
             <Button
