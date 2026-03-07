@@ -20,7 +20,7 @@ The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API.
 
 ### Database
 
-The PostgreSQL database includes core entities such as Users (with roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns (woId, vendorId, typingJobId, centerId, assignedStaffId, etc.) for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records (appointments, typing jobs, results, comments, approvals, documents, notes, messages, files, reschedule requests). Deleting staff or centers nullifies dangling references in appointments and companies before deletion.
+The PostgreSQL database includes core entities such as Users (with 7 roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor, Client Coordinator, Client Manager), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns (woId, vendorId, typingJobId, centerId, assignedStaffId, etc.) for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records (appointments, typing jobs, results, comments, approvals, documents, notes, messages, files, reschedule requests). Deleting staff or centers nullifies dangling references in appointments and companies before deletion.
 
 ### Authentication and Authorization
 
@@ -30,16 +30,18 @@ Session-based authentication uses `express-session` + `connect-pg-simple` for Po
 -   **Dev-only endpoints**: `/api/auth/quick-login` and `/api/auth/accounts` are gated behind `NODE_ENV !== 'production'`. The login page auto-hides the quick-login account picker when accounts are unavailable (i.e., in production).
 A separate session-based authentication system exists for vendors with `requireVendorAuth` middleware.
 
-#### Staff Roles
--   **Admin**: Full system access, admin console, user management.
--   **Client Relationship Manager (CRM)**: Primary operations user. Can manage work orders, typing jobs, appointments, companies, vendors, wallet top-ups. Cannot access Admin Console.
--   **Medical Support**: On-ground role for appointment day. Can view appointments, mark attendance/completion. Cannot edit work orders, typing jobs, companies, vendors, or access wallet/reports.
--   **Medical Support - Temporary**: Same as Medical Support but for temporary staff. Additional restrictions on wallet data and full document history.
+#### Staff Roles (Our Team)
+-   **Admin** (Designation: Managing Director): Full system access, admin console, user management.
+-   **Client Relationship Manager** (Designation: Client Relationship Manager, Role: Operations): Primary operations user. Assigns PRO staff, oversees client accounts. Can manage work orders, typing jobs, appointments, companies, vendors, wallet top-ups. Cannot access Admin Console.
+-   **Medical Support** (Designation: P.R.O., Role: P.R.O., Medical Support): On-ground role for appointment day. Can view appointments, mark attendance/completion. Cannot edit work orders, typing jobs, companies, vendors, or access wallet/reports.
+-   **Medical Support - Temporary** (Designation: Temporary Staff): Same as Medical Support but for temporary staff. Additional restrictions on wallet data and full document history.
 
-#### Vendor Roles (legacy roles kept for data compatibility)
--   **Vendor**: Active vendor portal user. Linked to a vendor entity via `vendorId`.
--   **Vendor Accountant**: Legacy role, kept in schema.
--   **Vendor Manager**: Legacy role, kept in schema.
+#### Client Roles
+-   **Client Coordinator**: Operational point of contact at a client company.
+-   **Client Manager**: Higher-level role at the client company with broader oversight.
+
+#### Vendor Roles
+-   **Vendor** (Designation: Vendor, Role: Medical and ID Typing): Active vendor portal user. Linked to a vendor entity via `vendorId`.
 
 ### UI/UX Design
 
@@ -136,7 +138,7 @@ These features have code preserved but are not active in the current UI:
 
 ### Integrations
 
--   **Zoho WorkDrive**: Integrated for document storage with hierarchical folder structure (Parent → Company → Applicant). Service module in `server/zoho-workdrive.ts` handles OAuth token refresh, folder creation, and file upload. Documents uploaded through the document panel are automatically synced to WorkDrive in the background. Manual sync available via `/api/documents/:id/sync-workdrive`. Bulk sync via `/api/admin/sync-all-documents`. Business data export to Excel via `/api/admin/export-data-to-workdrive`. Connection status at `/api/workdrive/status`. Document stats at `/api/workdrive/document-stats`. Admin Console has a "WorkDrive Backup" tab for managing sync and exports. Environment variables: `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ACCOUNT_DOMAIN`, `ZOHO_API_DOMAIN`, `ZOHO_WORKDRIVE_PARENT_FOLDER_ID`. The `wo_documents` table has `workdriveFileId` and `workdriveLink` columns for tracking sync status.
+-   **Zoho WorkDrive**: Integrated for document storage with hierarchical folder structure (Parent → Company → Applicant). Service module in `server/zoho-workdrive.ts` handles OAuth token refresh, folder creation, and file upload. Documents uploaded through the document panel are automatically synced to WorkDrive in the background. Manual sync available via `/api/documents/:id/sync-workdrive`. Bulk sync via `/api/admin/sync-all-documents`. Business data export to Excel via `/api/admin/export-data-to-workdrive`. Connection status at `/api/workdrive/status`. Document stats at `/api/workdrive/document-stats`. Admin Console has a "WorkDrive Backup" tab for managing sync and exports. Environment variables (stored as Replit secrets/env vars): `ZOHO_CLIENT_ID`, `ZOHO_CLIENT_SECRET`, `ZOHO_REFRESH_TOKEN`, `ZOHO_ACCOUNT_DOMAIN`, `ZOHO_API_DOMAIN`, `ZOHO_WORKDRIVE_PARENT_FOLDER_ID`. The `wo_documents` table has `workdriveFileId` and `workdriveLink` columns for tracking sync status.
 -   **Email Service**: Configured for notifications (`notifications@procompany.ae`).
 -   **WhatsApp**: Used for generating client communication messages.
 -   **Replit Object Storage**: Utilized for presigned URL document upload flows.

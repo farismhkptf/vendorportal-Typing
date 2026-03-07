@@ -7,18 +7,15 @@ import { z } from "zod";
 // User roles organized by category:
 // Our Team: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary
 // Vendors: Vendor
-// Clients: Client Coordinator, Client Manager, Client Accountant
+// Clients: Client Coordinator, Client Manager
 export const userRoleEnum = pgEnum("user_role", [
   "Admin",
   "Client Relationship Manager",
   "Medical Support",
   "Medical Support - Temporary",
   "Vendor",
-  "Vendor Accountant",
-  "Vendor Manager",
   "Client Coordinator",
-  "Client Manager",
-  "Client Accountant"
+  "Client Manager"
 ]);
 
 // Role category helpers
@@ -30,14 +27,11 @@ export const ROLE_CATEGORIES = {
     "Medical Support - Temporary"
   ],
   "Vendors": [
-    "Vendor",
-    "Vendor Accountant",
-    "Vendor Manager"
+    "Vendor"
   ],
   "Clients": [
     "Client Coordinator",
-    "Client Manager",
-    "Client Accountant"
+    "Client Manager"
   ]
 } as const;
 
@@ -47,11 +41,8 @@ export const ALL_ROLES = [
   "Medical Support",
   "Medical Support - Temporary",
   "Vendor",
-  "Vendor Accountant",
-  "Vendor Manager",
   "Client Coordinator",
-  "Client Manager",
-  "Client Accountant"
+  "Client Manager"
 ] as const;
 
 export type UserRole = typeof ALL_ROLES[number];
@@ -183,7 +174,6 @@ export const companies = pgTable("companies", {
   // Client contacts
   clientCoordinator: json("client_coordinator").$type<ClientContact>(),
   clientManager: json("client_manager").$type<ClientContact>(),
-  clientAccountant: json("client_accountant").$type<ClientContact>(),
   // Our team assignments
   rmStaffId: varchar("rm_staff_id"),
   assistStaffId: varchar("assist_staff_id"),

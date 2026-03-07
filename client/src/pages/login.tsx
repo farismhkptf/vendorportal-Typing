@@ -90,7 +90,7 @@ export default function Login() {
   });
 
   const staffAccounts = accounts.filter(
-    a => !["Vendor", "Vendor Accountant", "Vendor Manager"].includes(a.role)
+    a => !["Vendor"].includes(a.role)
   );
 
   useEffect(() => {

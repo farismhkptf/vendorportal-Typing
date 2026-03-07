@@ -43,7 +43,6 @@ const companyFormSchema = z.object({
   deliveryAddress: z.string().optional().nullable(),
   clientCoordinator: clientContactSchema.optional().nullable(),
   clientManager: clientContactSchema.optional().nullable(),
-  clientAccountant: clientContactSchema.optional().nullable(),
   rmStaffId: z.string().optional().nullable(),
   assistStaffId: z.string().optional().nullable(),
 });
@@ -93,7 +92,6 @@ export default function CompanyDetail() {
       deliveryAddress: company.deliveryAddress || "",
       clientCoordinator: company.clientCoordinator || { name: "", email: "", mobile: "" },
       clientManager: company.clientManager || { name: "", email: "", mobile: "" },
-      clientAccountant: company.clientAccountant || { name: "", email: "", mobile: "" },
       rmStaffId: company.rmStaffId || "",
       assistStaffId: company.assistStaffId || "",
     } : undefined,
@@ -101,7 +99,7 @@ export default function CompanyDetail() {
 
   const isDirty = form.formState.isDirty;
 
-  const handleProperCaseBlur = (fieldName: keyof CompanyFormData | `clientCoordinator.name` | `clientManager.name` | `clientAccountant.name`) => (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleProperCaseBlur = (fieldName: keyof CompanyFormData | `clientCoordinator.name` | `clientManager.name`) => (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value) {
       form.setValue(fieldName as any, toProperCase(value), { shouldDirty: true });
@@ -121,7 +119,6 @@ export default function CompanyDetail() {
         assistStaffId: data.assistStaffId || null,
         clientCoordinator: (data.clientCoordinator as ClientContact)?.name ? data.clientCoordinator : null,
         clientManager: (data.clientManager as ClientContact)?.name ? data.clientManager : null,
-        clientAccountant: (data.clientAccountant as ClientContact)?.name ? data.clientAccountant : null,
       };
       return apiRequest("PUT", `/api/companies/${params.id}`, payload);
     },
@@ -363,14 +360,6 @@ export default function CompanyDetail() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Client Accountant</h3>
-            <div className="grid md:grid-cols-3 gap-3">
-              <Input {...form.register("clientAccountant.name")} placeholder="Name" className="h-9" onBlur={handleProperCaseBlur("clientAccountant.name")} />
-              <Input {...form.register("clientAccountant.email")} type="email" placeholder="Email" className="h-9" />
-              <Input {...form.register("clientAccountant.mobile")} placeholder="Mobile" className="h-9" />
-            </div>
-          </div>
         </div>
 
         {/* Section: Our Team Contact */}

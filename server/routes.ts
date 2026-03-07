@@ -1780,7 +1780,6 @@ export async function registerRoutes(
       const contactEmails = [
         validation.data.clientCoordinator?.email,
         validation.data.clientManager?.email,
-        validation.data.clientAccountant?.email,
       ];
       for (const ce of contactEmails) {
         if (!validateEmailField(ce)) {
@@ -1795,9 +1794,6 @@ export async function registerRoutes(
         }),
         ...(validation.data.clientManager?.name && { 
           clientManager: { ...validation.data.clientManager, name: toProperCase(validation.data.clientManager.name) } 
-        }),
-        ...(validation.data.clientAccountant?.name && { 
-          clientAccountant: { ...validation.data.clientAccountant, name: toProperCase(validation.data.clientAccountant.name) } 
         }),
       };
       const company = await storage.createCompany(companyData);
@@ -1864,7 +1860,6 @@ export async function registerRoutes(
       const contactEmails = [
         validation.data.clientCoordinator?.email,
         validation.data.clientManager?.email,
-        validation.data.clientAccountant?.email,
       ];
       for (const ce of contactEmails) {
         if (!validateEmailField(ce)) {
@@ -1879,9 +1874,6 @@ export async function registerRoutes(
         }),
         ...(validation.data.clientManager?.name && { 
           clientManager: { ...validation.data.clientManager, name: toProperCase(validation.data.clientManager.name) } 
-        }),
-        ...(validation.data.clientAccountant?.name && { 
-          clientAccountant: { ...validation.data.clientAccountant, name: toProperCase(validation.data.clientAccountant.name) } 
         }),
       };
       const company = await storage.updateCompany(id, updateData);
@@ -2300,7 +2292,7 @@ export async function registerRoutes(
       const email = req.query.email as string;
       if (!email) return res.status(400).json({ message: "email required" });
       const user = await storage.getUserByEmail(email);
-      if (!user || !user.vendorId || !["Vendor", "Vendor Accountant", "Vendor Manager"].includes(user.role)) {
+      if (!user || !user.vendorId || user.role !== "Vendor") {
         return res.status(404).json({ message: "Not found" });
       }
       const vendor = await storage.getVendorById(user.vendorId);
@@ -3131,8 +3123,7 @@ export async function registerRoutes(
       if (!user || !user.active) {
         return res.status(401).json({ message: "Account not found or inactive" });
       }
-      const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
-      if (vendorRoles.includes(user.role)) {
+      if (user.role === "Vendor") {
         return res.status(403).json({ message: "Please use the vendor portal" });
       }
       req.session.userId = user.id;
@@ -3162,8 +3153,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Admin access required" });
       }
       const allUsers = await storage.getUsers();
-      const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
-      const vendorUser = allUsers.find(u => vendorRoles.includes(u.role) && u.active && u.vendorId);
+      const vendorUser = allUsers.find(u => u.role === "Vendor" && u.active && u.vendorId);
       if (!vendorUser) {
         return res.status(404).json({ message: "No vendor accounts found" });
       }
@@ -3221,8 +3211,7 @@ export async function registerRoutes(
         return res.status(401).json({ message: "Invalid email or password" });
       }
 
-      const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
-      if (vendorRoles.includes(user.role)) {
+      if (user.role === "Vendor") {
         return res.status(403).json({ message: "Please use the vendor portal" });
       }
 
@@ -3807,8 +3796,7 @@ export async function registerRoutes(
       const { username, password } = validation.data;
       const user = await storage.getUserByEmail(username);
       
-      const vendorRoles = ["Vendor", "Vendor Accountant", "Vendor Manager"];
-      if (!user || !vendorRoles.includes(user.role)) {
+      if (!user || user.role !== "Vendor") {
         await storage.createLoginAuditEntry({
           userId: null,
           email: username,
@@ -4382,7 +4370,7 @@ export async function registerRoutes(
           companyContacts = {
             coordinator: company.clientCoordinator || null,
             manager: company.clientManager || null,
-            accountant: company.clientAccountant || null,
+            accountant: null,
           };
 
           const isVip = wo.isVip;
@@ -5189,17 +5177,14 @@ export async function registerRoutes(
         (c.clientManager as any)?.name || "",
         (c.clientManager as any)?.mobile || "",
         (c.clientManager as any)?.email || "",
-        (c.clientAccountant as any)?.name || "",
-        (c.clientAccountant as any)?.mobile || "",
-        (c.clientAccountant as any)?.email || "",
         c.deliveryAddress || "",
         boolToYesNo(c.active),
       ]);
       const companiesData = [
-        ["Name", "Trade License", "Preferred Medical Center", "Preferred Medical Center (VIP)", "Preferred Biometrics Center", "Preferred Biometrics Center (VIP)", "RM Staff", "Assistant Staff", "Coordinator Name", "Coordinator Phone", "Coordinator Email", "Manager Name", "Manager Phone", "Manager Email", "Accountant Name", "Accountant Phone", "Accountant Email", "Delivery Address", "Active"],
+        ["Name", "Trade License", "Preferred Medical Center", "Preferred Medical Center (VIP)", "Preferred Biometrics Center", "Preferred Biometrics Center (VIP)", "RM Staff", "Assistant Staff", "Coordinator Name", "Coordinator Phone", "Coordinator Email", "Manager Name", "Manager Phone", "Manager Email", "Delivery Address", "Active"],
         ...companiesRows,
       ];
-      addAoaSheet(workbook, companiesData, "Companies", [30, 20, 30, 30, 30, 30, 20, 20, 20, 18, 25, 20, 18, 25, 20, 18, 25, 35, 8]);
+      addAoaSheet(workbook, companiesData, "Companies", [30, 20, 30, 30, 30, 30, 20, 20, 20, 18, 25, 20, 18, 25, 35, 8]);
 
       const centersRows = allCenters.map(c => [
         c.name || "", c.type || "", c.authority || "", c.tier || "",

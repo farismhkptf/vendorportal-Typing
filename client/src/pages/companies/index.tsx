@@ -40,7 +40,6 @@ function getCompanyCompleteness(company: CompanyWithRelations): { complete: bool
   if (!company.tradeLicenseNumber) missing.push("Trade License");
   if (!hasValidContact(company.clientCoordinator as ClientContact)) missing.push("Coordinator");
   if (!hasValidContact(company.clientManager as ClientContact)) missing.push("Manager");
-  if (!hasValidContact(company.clientAccountant as ClientContact)) missing.push("Accountant");
   if (!company.preferredMedicalCenter) missing.push("Medical Center");
   if (!company.preferredBiometricsCenter) missing.push("EID Center");
   if (!company.rmStaff) missing.push("RM Staff");

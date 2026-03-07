@@ -33,7 +33,6 @@ const companyFormSchema = z.object({
   preferredBiometricsCenterVipId: z.string().optional(),
   clientCoordinator: clientContactSchema.optional(),
   clientManager: clientContactSchema.optional(),
-  clientAccountant: clientContactSchema.optional(),
   rmStaffId: z.string().optional(),
   assistStaffId: z.string().optional(),
 });
@@ -65,13 +64,12 @@ export default function NewCompany() {
       preferredBiometricsCenterVipId: "",
       clientCoordinator: { name: "", email: "", mobile: "" },
       clientManager: { name: "", email: "", mobile: "" },
-      clientAccountant: { name: "", email: "", mobile: "" },
       rmStaffId: "",
       assistStaffId: "",
     },
   });
 
-  const handleProperCaseBlur = (fieldName: keyof CompanyFormData | `clientCoordinator.name` | `clientManager.name` | `clientAccountant.name`) => (e: React.FocusEvent<HTMLInputElement>) => {
+  const handleProperCaseBlur = (fieldName: keyof CompanyFormData | `clientCoordinator.name` | `clientManager.name`) => (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (value) {
       form.setValue(fieldName as any, toProperCase(value));
@@ -90,7 +88,6 @@ export default function NewCompany() {
         assistStaffId: data.assistStaffId || null,
         clientCoordinator: data.clientCoordinator?.name ? data.clientCoordinator : null,
         clientManager: data.clientManager?.name ? data.clientManager : null,
-        clientAccountant: data.clientAccountant?.name ? data.clientAccountant : null,
       };
       return apiRequest("POST", "/api/companies", payload);
     },
@@ -307,32 +304,6 @@ export default function NewCompany() {
             </div>
           </div>
 
-          {/* Accountant */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Client Accountant</h3>
-            <div className="grid md:grid-cols-3 gap-3">
-              <Input
-                {...form.register("clientAccountant.name")}
-                placeholder="Name"
-                className="h-9"
-                data-testid="input-accountant-name"
-                onBlur={handleProperCaseBlur("clientAccountant.name")}
-              />
-              <Input
-                {...form.register("clientAccountant.email")}
-                type="email"
-                placeholder="Email"
-                className="h-9"
-                data-testid="input-accountant-email"
-              />
-              <Input
-                {...form.register("clientAccountant.mobile")}
-                placeholder="Mobile"
-                className="h-9"
-                data-testid="input-accountant-mobile"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Section: Our Team Contact */}

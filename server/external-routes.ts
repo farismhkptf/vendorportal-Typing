@@ -92,7 +92,6 @@ function sanitizeCompany(c: any) {
     tradeLicenseNumber: c.tradeLicenseNumber,
     clientCoordinator: c.clientCoordinator,
     clientManager: c.clientManager,
-    clientAccountant: c.clientAccountant,
     deliveryAddress: c.deliveryAddress,
     active: c.active,
   };
