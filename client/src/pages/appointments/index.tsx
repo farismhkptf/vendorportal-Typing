@@ -21,6 +21,7 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { useDataTable } from "@/hooks/use-data-table";
@@ -92,7 +93,6 @@ export default function AppointmentsIndex() {
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [viewEmailDraftApt, setViewEmailDraftApt] = useState<AppointmentWithRelations | null>(null);
-  const emailDraftRef = useRef<HTMLDivElement>(null);
   const [downloadingDraft, setDownloadingDraft] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
@@ -169,9 +169,7 @@ export default function AppointmentsIndex() {
     }
   }, [appointments, searchParams]);
 
-  const viewMessagesData = useMemo(() => {
-    if (!viewMessagesApt) return null;
-    const apt = viewMessagesApt;
+  const buildMessagesData = useCallback((apt: AppointmentWithRelations) => {
     const wo = apt.workOrder;
     const center = apt.center;
     const company = wo?.companyId ? companies?.find(c => c.id === wo.companyId) : null;
@@ -285,7 +283,12 @@ Thank you,
     };
 
     return { emailBody, whatsappBody, medicalEmailProps, eidEmailProps, apt };
-  }, [viewMessagesApt, companies, staffList, serviceTypes]);
+  }, [companies, staffList, serviceTypes]);
+
+  const viewMessagesData = useMemo(() => {
+    if (!viewMessagesApt) return null;
+    return buildMessagesData(viewMessagesApt);
+  }, [viewMessagesApt, buildMessagesData]);
 
   const handleCopyViewMessage = async (type: "email" | "whatsapp") => {
     if (!viewMessagesData) return;
@@ -316,32 +319,65 @@ Thank you,
     });
   };
 
-  const handleDownloadDraftAsJpg = async () => {
-    if (!emailDraftRef.current || !viewEmailDraftApt) return;
+  const handleDownloadAsJpg = async (apt: AppointmentWithRelations, type: "email" | "whatsapp") => {
     setDownloadingDraft(true);
-    const el = emailDraftRef.current;
-    const origBg = el.style.backgroundColor;
-    const origColor = el.style.color;
-    el.style.backgroundColor = "#ffffff";
-    el.style.color = "#000000";
+    let container: HTMLDivElement | null = null;
     try {
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(el, {
+      container = document.createElement("div");
+      container.style.position = "fixed";
+      container.style.left = "-9999px";
+      container.style.top = "0";
+      container.style.backgroundColor = "#ffffff";
+      container.style.color = "#000000";
+      container.style.width = "700px";
+      container.style.padding = "24px";
+      container.style.fontFamily = "system-ui, -apple-system, sans-serif";
+      document.body.appendChild(container);
+
+      const data = buildMessagesData(apt);
+
+      if (type === "email") {
+        if (apt.emailDraft) {
+          container.innerHTML = apt.emailDraft;
+        } else {
+          const emailHtml = apt.type === "Medical"
+            ? generateMedicalAppointmentEmailHtml(data.medicalEmailProps)
+            : generateEidAppointmentEmailHtml(data.eidEmailProps);
+          container.innerHTML = emailHtml;
+        }
+      } else {
+        const pre = document.createElement("pre");
+        pre.style.whiteSpace = "pre-wrap";
+        pre.style.fontFamily = "system-ui, -apple-system, sans-serif";
+        pre.style.fontSize = "14px";
+        pre.style.lineHeight = "1.6";
+        pre.style.margin = "0";
+        pre.style.color = "#000000";
+        pre.textContent = data.whatsappBody;
+        container.appendChild(pre);
+      }
+
+      await new Promise(r => setTimeout(r, 100));
+
+      const canvas = await html2canvas(container, {
         backgroundColor: "#ffffff",
         scale: 2,
         useCORS: true,
       });
+
       const link = document.createElement("a");
-      const woNumber = (viewEmailDraftApt.workOrder?.woNumber || "draft").replace(/[^a-zA-Z0-9_-]/g, "-");
-      const aptType = (viewEmailDraftApt.type || "appointment").replace(/[^a-zA-Z0-9_-]/g, "-");
-      link.download = `${woNumber}-${aptType}-email-draft.jpg`;
+      const woNumber = (apt.workOrder?.woNumber || "draft").replace(/[^a-zA-Z0-9_-]/g, "-");
+      const aptType = (apt.type || "appointment").replace(/[^a-zA-Z0-9_-]/g, "-");
+      link.download = `${woNumber}-${aptType}-${type}-draft.jpg`;
       link.href = canvas.toDataURL("image/jpeg", 0.95);
       link.click();
     } catch (err) {
       toast({ title: "Download failed", description: "Could not generate the image. Please try again." });
     } finally {
-      el.style.backgroundColor = origBg;
-      el.style.color = origColor;
+      if (container && container.parentNode) {
+        container.parentNode.removeChild(container);
+      }
       setDownloadingDraft(false);
     }
   };
@@ -798,6 +834,38 @@ Thank you,
             View WO
           </Button>
         </Link>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={downloadingDraft}
+              data-testid={`button-download-drafts-${apt.id}`}
+            >
+              <Download className="h-3.5 w-3.5" />
+              {downloadingDraft ? "Generating..." : "Download"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-48 p-1" align="end">
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
+              onClick={() => handleDownloadAsJpg(apt, "email")}
+              data-testid={`button-download-email-jpg-${apt.id}`}
+            >
+              <Mail className="h-3.5 w-3.5 text-muted-foreground" />
+              Email Draft (JPG)
+            </button>
+            <button
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm rounded-md hover:bg-muted transition-colors text-left"
+              onClick={() => handleDownloadAsJpg(apt, "whatsapp")}
+              data-testid={`button-download-whatsapp-jpg-${apt.id}`}
+            >
+              <MessageCircle className="h-3.5 w-3.5 text-muted-foreground" />
+              WhatsApp Draft (JPG)
+            </button>
+          </PopoverContent>
+        </Popover>
       </div>
       </div>
     </div>
@@ -1419,7 +1487,6 @@ Thank you,
           <div className="px-6 pb-4 overflow-y-auto max-h-[calc(85vh-200px)]">
             {viewEmailDraftApt?.emailDraft ? (
               <div
-                ref={emailDraftRef}
                 className="rounded-lg border border-border/50 p-4 bg-white dark:bg-gray-950"
                 dangerouslySetInnerHTML={{ __html: viewEmailDraftApt.emailDraft }}
                 data-testid="email-draft-content"
@@ -1432,21 +1499,6 @@ Thank you,
               />
             )}
           </div>
-          {viewEmailDraftApt?.emailDraft && (
-            <div className="px-6 pb-4 flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleDownloadDraftAsJpg}
-                disabled={downloadingDraft}
-                data-testid="button-download-draft-jpg"
-              >
-                <Download className="h-3.5 w-3.5" />
-                {downloadingDraft ? "Generating..." : "Download JPG"}
-              </Button>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
 
