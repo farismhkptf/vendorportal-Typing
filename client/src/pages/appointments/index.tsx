@@ -92,6 +92,8 @@ export default function AppointmentsIndex() {
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [viewEmailDraftApt, setViewEmailDraftApt] = useState<AppointmentWithRelations | null>(null);
+  const emailDraftRef = useRef<HTMLDivElement>(null);
+  const [downloadingDraft, setDownloadingDraft] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -312,6 +314,36 @@ Thank you,
       title: "Copied!",
       description: `${type === "email" ? "Email (with formatting)" : "WhatsApp"} message copied to clipboard.`,
     });
+  };
+
+  const handleDownloadDraftAsJpg = async () => {
+    if (!emailDraftRef.current || !viewEmailDraftApt) return;
+    setDownloadingDraft(true);
+    const el = emailDraftRef.current;
+    const origBg = el.style.backgroundColor;
+    const origColor = el.style.color;
+    el.style.backgroundColor = "#ffffff";
+    el.style.color = "#000000";
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(el, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: true,
+      });
+      const link = document.createElement("a");
+      const woNumber = (viewEmailDraftApt.workOrder?.woNumber || "draft").replace(/[^a-zA-Z0-9_-]/g, "-");
+      const aptType = (viewEmailDraftApt.type || "appointment").replace(/[^a-zA-Z0-9_-]/g, "-");
+      link.download = `${woNumber}-${aptType}-email-draft.jpg`;
+      link.href = canvas.toDataURL("image/jpeg", 0.95);
+      link.click();
+    } catch (err) {
+      toast({ title: "Download failed", description: "Could not generate the image. Please try again." });
+    } finally {
+      el.style.backgroundColor = origBg;
+      el.style.color = origColor;
+      setDownloadingDraft(false);
+    }
   };
 
   const updateStatusMutation = useMutation({
@@ -1387,6 +1419,7 @@ Thank you,
           <div className="px-6 pb-4 overflow-y-auto max-h-[calc(85vh-200px)]">
             {viewEmailDraftApt?.emailDraft ? (
               <div
+                ref={emailDraftRef}
                 className="rounded-lg border border-border/50 p-4 bg-white dark:bg-gray-950"
                 dangerouslySetInnerHTML={{ __html: viewEmailDraftApt.emailDraft }}
                 data-testid="email-draft-content"
@@ -1399,6 +1432,21 @@ Thank you,
               />
             )}
           </div>
+          {viewEmailDraftApt?.emailDraft && (
+            <div className="px-6 pb-4 flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={handleDownloadDraftAsJpg}
+                disabled={downloadingDraft}
+                data-testid="button-download-draft-jpg"
+              >
+                <Download className="h-3.5 w-3.5" />
+                {downloadingDraft ? "Generating..." : "Download JPG"}
+              </Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
