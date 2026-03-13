@@ -995,7 +995,7 @@ export default function WorkOrderDetail() {
       setActivateEntryPermit(false);
       setActivateChangeStatus(false);
       setActivateIsMinor("adult");
-      toast({ title: "Work order activated", description: "The work order is now active and ready for processing." });
+      toast({ title: "Work order activated", description: "The work order is now active and ready for processing.", variant: "success" });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to activate", description: error.message, variant: "destructive" });
@@ -1011,7 +1011,7 @@ export default function WorkOrderDetail() {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setShowDeliverDialog(false);
-      toast({ title: "Work order completed", description: "The work order has been marked as completed and delivered." });
+      toast({ title: "Work order completed", description: "The work order has been marked as completed and delivered.", variant: "success" });
     },
     onError: (error: Error) => {
       toast({ title: "Failed to complete", description: error.message, variant: "destructive" });
@@ -1040,7 +1040,7 @@ export default function WorkOrderDetail() {
           variant: "destructive",
         });
       } else {
-        toast({ title: `${result.updated} job${result.updated !== 1 ? 's' : ''} sent to vendor` });
+        toast({ title: `${result.updated} job${result.updated !== 1 ? 's' : ''} sent to vendor`, variant: "success" });
       }
     },
     onError: (error: Error) => {
@@ -1300,8 +1300,22 @@ export default function WorkOrderDetail() {
               <AlertDialogContent className="rounded-2xl">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete work order {workOrder.woNumber}? This will also delete all associated appointments and typing jobs. This action cannot be undone.
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-2">
+                      <p>Are you sure you want to delete work order <strong>{workOrder.woNumber}</strong>? This action cannot be undone.</p>
+                      {((workOrder.typingJobs?.length || 0) > 0 || (workOrder.appointments?.length || 0) > 0) && (
+                        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm space-y-1">
+                          <p className="font-medium text-destructive">The following will also be deleted:</p>
+                          {(workOrder.typingJobs?.length || 0) > 0 && (
+                            <p>• {workOrder.typingJobs!.length} typing job{workOrder.typingJobs!.length > 1 ? "s" : ""}</p>
+                          )}
+                          {(workOrder.appointments?.length || 0) > 0 && (
+                            <p>• {workOrder.appointments!.length} appointment{workOrder.appointments!.length > 1 ? "s" : ""}</p>
+                          )}
+                          <p>• All associated documents, notes, and files</p>
+                        </div>
+                      )}
+                    </div>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

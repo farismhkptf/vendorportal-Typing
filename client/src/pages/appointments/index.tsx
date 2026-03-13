@@ -1198,6 +1198,22 @@ Thank you,
                 icon={<Calendar className="h-6 w-6" />}
                 title={search ? "No matching appointments today" : "No appointments today"}
                 description={search ? "Try adjusting your search terms." : "Schedule a new appointment to get started."}
+                action={!search ? (
+                  <div className="flex gap-2">
+                    <Link href="/appointments/schedule-medical">
+                      <Button size="sm" variant="outline" className="gap-1.5" data-testid="button-empty-schedule-medical">
+                        <Stethoscope className="h-3.5 w-3.5" />
+                        Schedule Medical
+                      </Button>
+                    </Link>
+                    <Link href="/appointments/schedule-eid">
+                      <Button size="sm" variant="outline" className="gap-1.5" data-testid="button-empty-schedule-eid">
+                        <CreditCard className="h-3.5 w-3.5" />
+                        Schedule EID
+                      </Button>
+                    </Link>
+                  </div>
+                ) : undefined}
               />
             )}
           </CardContent>

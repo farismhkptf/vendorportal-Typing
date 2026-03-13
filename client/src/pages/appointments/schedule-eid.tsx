@@ -374,6 +374,7 @@ export default function ScheduleEid() {
       toast({
         title: "Appointment scheduled",
         description: "Emirates ID appointment has been scheduled successfully.",
+        variant: "success",
       });
     },
     onError: (error: Error) => {

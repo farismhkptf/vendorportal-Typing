@@ -4,13 +4,14 @@ import { useLocation, useParams } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Building2, MapPin, Users, UserCheck, Save, Loader2, Home, Mail, Plus, Trash2, Pencil, Check, X } from "lucide-react";
+import { Building2, MapPin, Users, UserCheck, Save, Loader2, Mail, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AppLayout } from "@/components/layout/app-layout";
+import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -198,14 +199,6 @@ export default function CompanyDetail() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  const handleBack = useCallback(() => {
-    if (isDirty) {
-      setIsUnsavedDialogOpen(true);
-      return;
-    }
-    navigate("/companies");
-  }, [isDirty, navigate]);
-
   const handleConfirmLeave = useCallback(() => {
     setIsUnsavedDialogOpen(false);
     navigate("/companies");
@@ -226,8 +219,12 @@ export default function CompanyDetail() {
   if (!company) {
     return (
       <AppLayout>
+        <PageHeader
+          title="Company Not Found"
+          breadcrumbs={[{ label: "Companies", href: "/companies" }, { label: "Not Found" }]}
+        />
         <div className="px-4 lg:px-6 pt-4 pb-8">
-          <p className="text-muted-foreground">Company not found</p>
+          <p className="text-muted-foreground">The company you're looking for doesn't exist or has been deleted.</p>
         </div>
       </AppLayout>
     );
@@ -235,28 +232,11 @@ export default function CompanyDetail() {
 
   return (
     <AppLayout>
-      <div className="px-4 lg:px-6 pt-4 pb-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="rounded-lg" data-testid="button-back" onClick={handleBack} type="button">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <Link href="/">
-                <Button variant="ghost" size="icon" className="rounded-lg" data-testid="button-home">
-                  <Home className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">{toProperCase(company.name)}</h1>
-              <p className="text-sm text-muted-foreground">
-                {company.tradeLicenseNumber ? `TL: ${company.tradeLicenseNumber}` : "Company details"}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title={toProperCase(company.name)}
+        subtitle={company.tradeLicenseNumber ? `TL: ${company.tradeLicenseNumber}` : "Company details"}
+        breadcrumbs={[{ label: "Companies", href: "/companies" }, { label: toProperCase(company.name) }]}
+      />
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 lg:px-6 pb-8 space-y-6">
         {/* Section: Company Information */}

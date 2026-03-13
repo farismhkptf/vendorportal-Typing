@@ -367,6 +367,7 @@ export default function ScheduleMedical() {
       toast({
         title: "Appointment scheduled",
         description: "Medical appointment has been scheduled successfully.",
+        variant: "success",
       });
     },
     onError: (error: Error) => {
