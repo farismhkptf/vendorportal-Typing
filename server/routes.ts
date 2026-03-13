@@ -1988,6 +1988,61 @@ export async function registerRoutes(
     }
   });
 
+  // ========== Company Emails ==========
+  app.get("/api/companies/:companyId/emails", requireAuth, async (req, res) => {
+    try {
+      const emails = await storage.getCompanyEmails(req.params.companyId);
+      res.json(emails);
+    } catch (error) {
+      console.error("Get company emails error:", error);
+      res.status(500).json({ message: "Failed to fetch company emails" });
+    }
+  });
+
+  app.post("/api/companies/:companyId/emails", requireOpsRole, async (req, res) => {
+    try {
+      const { label, email } = req.body;
+      if (!label || !email) return res.status(400).json({ message: "Label and email are required" });
+      if (!validateEmailField(email)) return res.status(400).json({ message: "Invalid email format" });
+      const created = await storage.createCompanyEmail({ companyId: req.params.companyId, label, email });
+      res.json(created);
+    } catch (error: any) {
+      if (error.message?.includes("Maximum")) return res.status(400).json({ message: error.message });
+      console.error("Create company email error:", error);
+      res.status(500).json({ message: "Failed to create company email" });
+    }
+  });
+
+  app.put("/api/companies/:companyId/emails/:emailId", requireOpsRole, async (req, res) => {
+    try {
+      const { label, email } = req.body;
+      if (email && !validateEmailField(email)) return res.status(400).json({ message: "Invalid email format" });
+      const existing = await storage.getCompanyEmails(req.params.companyId);
+      const owns = existing.some(e => e.id === req.params.emailId);
+      if (!owns) return res.status(404).json({ message: "Email not found for this company" });
+      const updated = await storage.updateCompanyEmail(req.params.emailId, { label, email });
+      if (!updated) return res.status(404).json({ message: "Email not found" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Update company email error:", error);
+      res.status(500).json({ message: "Failed to update company email" });
+    }
+  });
+
+  app.delete("/api/companies/:companyId/emails/:emailId", requireOpsRole, async (req, res) => {
+    try {
+      const existing = await storage.getCompanyEmails(req.params.companyId);
+      const owns = existing.some(e => e.id === req.params.emailId);
+      if (!owns) return res.status(404).json({ message: "Email not found for this company" });
+      const deleted = await storage.deleteCompanyEmail(req.params.emailId);
+      if (!deleted) return res.status(404).json({ message: "Email not found" });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete company email error:", error);
+      res.status(500).json({ message: "Failed to delete company email" });
+    }
+  });
+
   // ========== Staff ==========
   app.get("/api/staff", requireAuth, async (req, res) => {
     try {
@@ -4694,6 +4749,25 @@ export async function registerRoutes(
 
       await revertDelayedWorkOrder(job.woId);
       await checkAndAutoCompleteWorkOrder(job.woId);
+
+      // Create a work_order-level audit entry so team notification bell picks it up
+      try {
+        const wo = await storage.getWorkOrderById(job.woId);
+        await storage.createAuditLog({
+          entityType: "work_order",
+          entityId: job.woId,
+          action: "vendor_job_completed",
+          details: {
+            jobCode: job.jobCode,
+            jobTypeName: jobType?.name || undefined,
+            applicantName: wo?.applicantName,
+            woNumber: wo?.woNumber,
+            category: jobType?.category,
+          },
+        });
+      } catch (auditErr) {
+        console.error("Failed to create team notification audit:", auditErr);
+      }
 
       res.json(result.job);
     } catch (error) {

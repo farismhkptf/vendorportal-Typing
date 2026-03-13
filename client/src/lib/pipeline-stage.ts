@@ -125,7 +125,7 @@ export function getNextAction(
   typingJobs: any[],
   appointments: any[],
   pipeline: PipelineInfo
-): { message: string; actionLabel?: string; actionType?: "create_typing" | "send_vendor" | "schedule_medical" | "schedule_eid" | "attention"; variant: "info" | "action" | "warning" | "success" } {
+): { message: string; actionLabel?: string; actionType?: "create_typing" | "send_vendor" | "schedule_medical" | "schedule_eid" | "attention" | "deliver"; variant: "info" | "action" | "warning" | "success" } {
   const medJobs = typingJobs.filter((j: any) => j.jobType?.category === "Medical" && j.status !== "Aborted");
   const eidJobs = typingJobs.filter((j: any) => j.jobType?.category === "EID" && j.status !== "Aborted");
   const draftJobs = typingJobs.filter((j: any) => j.status === "Draft");
@@ -144,7 +144,7 @@ export function getNextAction(
   }
 
   if (pipeline.overall === "complete") {
-    return { message: "All steps complete", variant: "success" };
+    return { message: "All steps complete — ready to deliver", actionLabel: "Complete & Deliver", variant: "success", actionType: "deliver" };
   }
 
   if (medJobs.length === 0 && eidJobs.length === 0) {

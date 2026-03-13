@@ -10,6 +10,7 @@ import {
   CreditCard,
   CheckCircle2,
   CalendarDays,
+  CalendarPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -147,6 +148,11 @@ export default function MedicalDashboard() {
     enabled: isAdmin || !!user?.staffId,
   });
 
+  const { data: rawSchedulingQueue } = useQuery<{ medical: any[]; eid: any[] }>({
+    queryKey: ["/api/appointments/scheduling-queue"],
+    enabled: isAdmin || !!user?.staffId,
+  });
+
   const myCompanyIds = useMemo(() => {
     if (!companies) return new Set<string>();
     if (isAdmin) return new Set(companies.map((c) => c.id));
@@ -155,6 +161,15 @@ export default function MedicalDashboard() {
       companies.filter((c) => c.assistStaffId === user.staffId).map((c) => c.id)
     );
   }, [companies, user?.staffId, isAdmin]);
+
+  const schedulingQueue = useMemo(() => {
+    if (!rawSchedulingQueue) return undefined;
+    if (isAdmin) return rawSchedulingQueue;
+    return {
+      medical: rawSchedulingQueue.medical.filter((item: any) => item.companyId && myCompanyIds.has(item.companyId)),
+      eid: rawSchedulingQueue.eid.filter((item: any) => item.companyId && myCompanyIds.has(item.companyId)),
+    };
+  }, [rawSchedulingQueue, myCompanyIds, isAdmin]);
 
   const myAppointments = useMemo(() => {
     if (!allAppointments) return [];
@@ -244,9 +259,10 @@ export default function MedicalDashboard() {
       </div>
 
       <div className="px-4 lg:px-6 pb-6 space-y-4">
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {isLoading ? (
             <>
+              <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
@@ -254,27 +270,115 @@ export default function MedicalDashboard() {
           ) : (
             <>
               <StatCard
+                title="Ready to Schedule"
+                value={(schedulingQueue?.medical?.length || 0) + (schedulingQueue?.eid?.length || 0)}
+                icon={<CalendarPlus className="h-4 w-4" />}
+                animationDelay={1}
+              />
+              <StatCard
                 title="Today's Appointments"
                 value={todayAppointments.length}
                 icon={<Calendar className="h-4 w-4" />}
-                animationDelay={1}
+                animationDelay={2}
                 onClick={() => navigate("/appointments")}
               />
               <StatCard
                 title="This Week"
                 value={thisWeekCount}
                 icon={<CalendarDays className="h-4 w-4" />}
-                animationDelay={2}
+                animationDelay={3}
               />
               <StatCard
                 title="Completed This Week"
                 value={completedThisWeek}
                 icon={<CheckCircle2 className="h-4 w-4" />}
-                animationDelay={3}
+                animationDelay={4}
               />
             </>
           )}
         </div>
+
+        {((schedulingQueue?.medical?.length || 0) + (schedulingQueue?.eid?.length || 0)) > 0 && (
+          <div className="space-y-3 opacity-0 animate-fade-in animate-delay-2" data-testid="section-needs-scheduling">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <CalendarPlus className="h-4 w-4 text-amber-500" />
+                <h2 className="text-base font-semibold text-foreground">Needs Scheduling</h2>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  ({(schedulingQueue?.medical?.length || 0) + (schedulingQueue?.eid?.length || 0)})
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {schedulingQueue?.medical?.map((item: any, i: number) => (
+                <Link key={`med-${item.woId}`} href={`/appointments/schedule-medical?wo=${item.woId}`}>
+                  <div
+                    className="opacity-0 animate-fade-in"
+                    style={{ animationDelay: `${i * 60 + 200}ms` }}
+                  >
+                    <DataTableRow>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-rose-50 dark:bg-rose-950/40">
+                            <Stethoscope className="h-4 w-4 text-rose-500 dark:text-rose-400" />
+                          </div>
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-foreground" data-testid={`text-queue-wo-${item.woNumber}`}>
+                                {item.woNumber}
+                              </span>
+                              <StatusBadge status="Medical" />
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate" data-testid={`text-queue-applicant-${item.woNumber}`}>
+                              {toProperCase(item.applicantName)}
+                            </p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline" className="gap-1.5 shrink-0" data-testid={`button-schedule-med-${item.woNumber}`}>
+                          Schedule
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </DataTableRow>
+                  </div>
+                </Link>
+              ))}
+              {schedulingQueue?.eid?.map((item: any, i: number) => (
+                <Link key={`eid-${item.woId}`} href={`/appointments/schedule-eid?wo=${item.woId}`}>
+                  <div
+                    className="opacity-0 animate-fade-in"
+                    style={{ animationDelay: `${(i + (schedulingQueue?.medical?.length || 0)) * 60 + 200}ms` }}
+                  >
+                    <DataTableRow>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-cyan-50 dark:bg-cyan-950/40">
+                            <CreditCard className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+                          </div>
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-foreground" data-testid={`text-queue-wo-${item.woNumber}`}>
+                                {item.woNumber}
+                              </span>
+                              <StatusBadge status="EID" />
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate" data-testid={`text-queue-applicant-${item.woNumber}`}>
+                              {toProperCase(item.applicantName)}
+                            </p>
+                          </div>
+                        </div>
+                        <Button size="sm" variant="outline" className="gap-1.5 shrink-0" data-testid={`button-schedule-eid-${item.woNumber}`}>
+                          Schedule
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </DataTableRow>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="space-y-3 opacity-0 animate-fade-in animate-delay-2" data-testid="section-today-appointments">
           <div className="flex items-center justify-between gap-2">

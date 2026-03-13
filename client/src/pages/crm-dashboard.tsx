@@ -9,6 +9,7 @@ import {
   ChevronRight,
   AlertCircle,
   Briefcase,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -66,6 +67,11 @@ export default function CrmDashboard() {
 
   const { data: allAppointments, isLoading: appointmentsLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments"],
+    enabled: isAdmin || !!user?.staffId,
+  });
+
+  const { data: dashStats } = useQuery<{ walletBalance?: number }>({
+    queryKey: ["/api/dashboard/stats"],
     enabled: isAdmin || !!user?.staffId,
   });
 
@@ -159,9 +165,10 @@ export default function CrmDashboard() {
       </div>
 
       <div className="px-4 lg:px-6 pb-6 space-y-4">
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {isLoading ? (
             <>
+              <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
@@ -188,6 +195,12 @@ export default function CrmDashboard() {
                 icon={<Calendar className="h-4 w-4" />}
                 animationDelay={3}
                 onClick={() => navigate("/appointments")}
+              />
+              <StatCard
+                title="Wallet Balance"
+                value={`AED ${(dashStats?.walletBalance ?? 0).toLocaleString()}`}
+                icon={<Wallet className="h-4 w-4" />}
+                animationDelay={4}
               />
             </>
           )}

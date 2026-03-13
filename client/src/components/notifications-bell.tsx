@@ -58,6 +58,10 @@ function formatAction(log: AuditLogEntry): string {
       return `Typing job sent to vendor${woNumber ? ` — ${woNumber}` : ""}`;
     case "wallet_topup":
       return `Wallet topped up${details?.amount ? ` — AED ${details.amount}` : ""}`;
+    case "vendor_job_completed":
+      return `Vendor completed ${details?.jobCode || "job"} — ready to schedule${woNumber ? ` (${woNumber})` : ""}`;
+    case "auto_delayed":
+      return `WO auto-delayed${woNumber ? ` — ${woNumber}` : ""}${name ? ` (${toProperCase(name)})` : ""}`;
     default:
       return `${log.action.replace(/_/g, " ")}${woNumber ? ` — ${woNumber}` : ""}`;
   }

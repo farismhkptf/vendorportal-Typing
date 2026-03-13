@@ -73,7 +73,7 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Eye } from "lucide-react";
 
-function PipelineBar({ pipeline, serviceType, isMinor }: { pipeline: PipelineInfo; serviceType?: any; isMinor?: boolean }) {
+function PipelineBar({ pipeline, serviceType, isMinor, onTrackClick }: { pipeline: PipelineInfo; serviceType?: any; isMinor?: boolean; onTrackClick?: (track: "medical" | "eid") => void }) {
   const medRequired = !isMinor && serviceType && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling);
   const eidRequired = serviceType && (serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years || serviceType.requiresIdBiometrics);
 
@@ -84,7 +84,7 @@ function PipelineBar({ pipeline, serviceType, isMinor }: { pipeline: PipelineInf
         <span className="text-sm font-medium text-foreground">Workflow Progress</span>
       </div>
       {pipeline.medical.exists ? (
-        <TrackRow label="Medical" icon={<Stethoscope className="h-3.5 w-3.5" />} track={pipeline.medical} />
+        <TrackRow label="Medical" icon={<Stethoscope className="h-3.5 w-3.5" />} track={pipeline.medical} onClick={() => onTrackClick?.("medical")} />
       ) : medRequired ? (
         <div className="flex items-center gap-3 py-2" data-testid="track-medical-not-started">
           <div className="flex items-center gap-1.5 w-24 shrink-0">
@@ -109,7 +109,7 @@ function PipelineBar({ pipeline, serviceType, isMinor }: { pipeline: PipelineInf
         </div>
       )}
       {pipeline.eid.exists ? (
-        <TrackRow label="Emirates ID" icon={<CreditCard className="h-3.5 w-3.5" />} track={pipeline.eid} />
+        <TrackRow label="Emirates ID" icon={<CreditCard className="h-3.5 w-3.5" />} track={pipeline.eid} onClick={() => onTrackClick?.("eid")} />
       ) : eidRequired ? (
         <div className="flex items-center gap-3 py-2" data-testid="track-eid-not-started">
           <div className="flex items-center gap-1.5 w-24 shrink-0">
@@ -137,12 +137,16 @@ function PipelineBar({ pipeline, serviceType, isMinor }: { pipeline: PipelineInf
   );
 }
 
-function TrackRow({ label, icon, track }: { label: string; icon: React.ReactNode; track: import("@/lib/pipeline-stage").TrackStatus }) {
+function TrackRow({ label, icon, track, onClick }: { label: string; icon: React.ReactNode; track: import("@/lib/pipeline-stage").TrackStatus; onClick?: () => void }) {
   const currentIdx = PIPELINE_STEPS.indexOf(track.stage as any);
   const isAttention = track.stage === "needs_attention";
 
   return (
-    <div className="flex items-center gap-3 py-2" data-testid={`track-${label.toLowerCase().replace(/\s/g, "-")}`}>
+    <div
+      className={cn("flex items-center gap-3 py-2 rounded-lg px-1 -mx-1 transition-colors", onClick && "cursor-pointer hover:bg-muted/50")}
+      onClick={onClick}
+      data-testid={`track-${label.toLowerCase().replace(/\s/g, "-")}`}
+    >
       <div className="flex items-center gap-1.5 w-24 shrink-0">
         {icon}
         <span className="text-xs font-medium text-foreground">{label}</span>
@@ -923,6 +927,7 @@ export default function WorkOrderDetail() {
   const [showSendToVendorDialog, setShowSendToVendorDialog] = useState(false);
   const [sendVendorId, setSendVendorId] = useState("");
   const [showActivateDialog, setShowActivateDialog] = useState(false);
+  const [showDeliverDialog, setShowDeliverDialog] = useState(false);
   const [activateEntryPermit, setActivateEntryPermit] = useState(false);
   const [activateChangeStatus, setActivateChangeStatus] = useState(false);
   const [activateIsMinor, setActivateIsMinor] = useState<"adult" | "minor">("adult");
@@ -962,7 +967,7 @@ export default function WorkOrderDetail() {
         setLocation(`/appointments/schedule-eid?wo=${id}`);
         break;
       case "deliver":
-        setActiveTab("typing");
+        setShowDeliverDialog(true);
         break;
       case "attention":
         setActiveTab("typing");
@@ -994,6 +999,22 @@ export default function WorkOrderDetail() {
     },
     onError: (error: Error) => {
       toast({ title: "Failed to activate", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deliverMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("PUT", `/api/work-orders/${id}`, { status: "Completed" });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      setShowDeliverDialog(false);
+      toast({ title: "Work order completed", description: "The work order has been marked as completed and delivered." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to complete", description: error.message, variant: "destructive" });
     },
   });
 
@@ -1348,7 +1369,19 @@ export default function WorkOrderDetail() {
           </div>
         ) : pipeline && (
           <div className="space-y-3">
-            <PipelineBar pipeline={pipeline} serviceType={(workOrder as any).serviceType} isMinor={(workOrder as any).isMinor} />
+            <PipelineBar
+              pipeline={pipeline}
+              serviceType={(workOrder as any).serviceType}
+              isMinor={(workOrder as any).isMinor}
+              onTrackClick={(track) => {
+                const stage = track === "medical" ? pipeline.medical.stage : pipeline.eid.stage;
+                if (stage === "at_vendor" || stage === "new" || stage === "needs_attention") {
+                  setActiveTab("typing");
+                } else {
+                  setActiveTab("appointments");
+                }
+              }}
+            />
             <NextActionBanner
               pipeline={pipeline}
               typingJobs={effectiveTypingJobs}
@@ -2234,6 +2267,51 @@ export default function WorkOrderDetail() {
                 <>
                   <PlayCircle className="h-4 w-4" />
                   Activate Work Order
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDeliverDialog} onOpenChange={setShowDeliverDialog}>
+        <DialogContent className="sm:max-w-md" data-testid="dialog-deliver">
+          <DialogHeader>
+            <DialogTitle>Complete & Deliver</DialogTitle>
+            <DialogDescription>
+              Mark this work order as completed and delivered. This will change the status to "Completed".
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 dark:bg-emerald-900/20 dark:border-emerald-800 p-3">
+            <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>All pipeline steps are complete for <strong>{workOrder?.woNumber}</strong></span>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setShowDeliverDialog(false)}
+              data-testid="button-cancel-deliver"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-xl gap-1.5 bg-emerald-600 hover:bg-emerald-700"
+              disabled={deliverMutation.isPending}
+              onClick={() => deliverMutation.mutate()}
+              data-testid="button-confirm-deliver"
+            >
+              {deliverMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Completing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4" />
+                  Complete & Deliver
                 </>
               )}
             </Button>

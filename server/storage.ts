@@ -63,6 +63,8 @@ export interface IStorage {
   getCompanyEmails(companyId: string): Promise<CompanyEmail[]>;
   getAllCompanyEmails(): Promise<CompanyEmail[]>;
   createCompanyEmail(data: InsertCompanyEmail): Promise<CompanyEmail>;
+  updateCompanyEmail(id: string, data: Partial<InsertCompanyEmail>): Promise<CompanyEmail | undefined>;
+  deleteCompanyEmail(id: string): Promise<boolean>;
   getWorkOrderCountsByCompany(): Promise<Record<string, number>>;
   
   // Service Types
@@ -399,6 +401,16 @@ export class DatabaseStorage implements IStorage {
     }
     const [email] = await db.insert(companyEmails).values(data).returning();
     return email;
+  }
+
+  async updateCompanyEmail(id: string, data: Partial<InsertCompanyEmail>): Promise<CompanyEmail | undefined> {
+    const [updated] = await db.update(companyEmails).set(data).where(eq(companyEmails.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCompanyEmail(id: string): Promise<boolean> {
+    const result = await db.delete(companyEmails).where(eq(companyEmails.id, id)).returning();
+    return result.length > 0;
   }
 
   async getWorkOrderCountsByCompany(): Promise<Record<string, number>> {

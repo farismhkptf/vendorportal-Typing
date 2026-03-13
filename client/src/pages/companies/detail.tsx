@@ -4,7 +4,7 @@ import { useLocation, useParams } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ArrowLeft, Building2, MapPin, Users, UserCheck, Save, Loader2, Home } from "lucide-react";
+import { ArrowLeft, Building2, MapPin, Users, UserCheck, Save, Loader2, Home, Mail, Plus, Trash2, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,9 +55,19 @@ export default function CompanyDetail() {
   const { toast } = useToast();
 
   const [isUnsavedDialogOpen, setIsUnsavedDialogOpen] = useState(false);
+  const [newEmailLabel, setNewEmailLabel] = useState("");
+  const [newEmailAddress, setNewEmailAddress] = useState("");
+  const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+  const [editAddress, setEditAddress] = useState("");
 
   const { data: company, isLoading } = useQuery<CompanyWithRelations>({
     queryKey: ["/api/companies", params.id],
+  });
+
+  const { data: companyEmails = [] } = useQuery<CompanyEmail[]>({
+    queryKey: ["/api/companies", params.id, "emails"],
+    enabled: !!params.id,
   });
 
   const { data: centers } = useQuery<Center[]>({ queryKey: ["/api/centers"] });
@@ -130,6 +140,37 @@ export default function CompanyDetail() {
     onError: () => {
       toast({ title: "Failed to update company", variant: "destructive" });
     },
+  });
+
+  const addEmailMutation = useMutation({
+    mutationFn: async () => apiRequest("POST", `/api/companies/${params.id}/emails`, { label: newEmailLabel, email: newEmailAddress }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", params.id, "emails"] });
+      setNewEmailLabel("");
+      setNewEmailAddress("");
+      toast({ title: "Email added" });
+    },
+    onError: (err: Error) => toast({ title: "Failed to add email", description: err.message, variant: "destructive" }),
+  });
+
+  const updateEmailMutation = useMutation({
+    mutationFn: async ({ id, label, email }: { id: string; label: string; email: string }) =>
+      apiRequest("PUT", `/api/companies/${params.id}/emails/${id}`, { label, email }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", params.id, "emails"] });
+      setEditingEmailId(null);
+      toast({ title: "Email updated" });
+    },
+    onError: (err: Error) => toast({ title: "Failed to update email", description: err.message, variant: "destructive" }),
+  });
+
+  const deleteEmailMutation = useMutation({
+    mutationFn: async (id: string) => apiRequest("DELETE", `/api/companies/${params.id}/emails/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies", params.id, "emails"] });
+      toast({ title: "Email removed" });
+    },
+    onError: (err: Error) => toast({ title: "Failed to remove email", description: err.message, variant: "destructive" }),
   });
 
   const onSubmit = useCallback((data: CompanyFormData) => {
@@ -404,6 +445,122 @@ export default function CompanyDetail() {
               </Select>
             </div>
           </div>
+        </div>
+
+        {/* Section: Company Emails */}
+        <div className="premium-card p-4 space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+            <Mail className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">Company Emails</h2>
+            <span className="text-xs text-muted-foreground ml-auto">{companyEmails.length} / 3</span>
+          </div>
+
+          {companyEmails.length > 0 && (
+            <div className="space-y-2">
+              {companyEmails.map((ce) => (
+                <div key={ce.id} className="flex items-center gap-2 group" data-testid={`email-row-${ce.id}`}>
+                  {editingEmailId === ce.id ? (
+                    <>
+                      <Input
+                        value={editLabel}
+                        onChange={(e) => setEditLabel(e.target.value)}
+                        placeholder="Label"
+                        className="h-8 w-32"
+                        data-testid="input-edit-email-label"
+                      />
+                      <Input
+                        value={editAddress}
+                        onChange={(e) => setEditAddress(e.target.value)}
+                        placeholder="Email"
+                        type="email"
+                        className="h-8 flex-1"
+                        data-testid="input-edit-email-address"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => updateEmailMutation.mutate({ id: ce.id, label: editLabel, email: editAddress })}
+                        disabled={updateEmailMutation.isPending || !editLabel || !editAddress}
+                        data-testid="button-save-edit-email"
+                      >
+                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={() => setEditingEmailId(null)}
+                        data-testid="button-cancel-edit-email"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs font-medium text-muted-foreground w-32 shrink-0 truncate">{ce.label}</span>
+                      <span className="text-sm text-foreground flex-1 truncate">{ce.email}</span>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => { setEditingEmailId(ce.id); setEditLabel(ce.label); setEditAddress(ce.email); }}
+                        data-testid={`button-edit-email-${ce.id}`}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                        onClick={() => deleteEmailMutation.mutate(ce.id)}
+                        disabled={deleteEmailMutation.isPending}
+                        data-testid={`button-delete-email-${ce.id}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {companyEmails.length < 3 && (
+            <div className="flex items-center gap-2">
+              <Input
+                value={newEmailLabel}
+                onChange={(e) => setNewEmailLabel(e.target.value)}
+                placeholder="Label (e.g. HR, Accounts)"
+                className="h-8 w-32"
+                data-testid="input-new-email-label"
+              />
+              <Input
+                value={newEmailAddress}
+                onChange={(e) => setNewEmailAddress(e.target.value)}
+                placeholder="email@company.com"
+                type="email"
+                className="h-8 flex-1"
+                data-testid="input-new-email-address"
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 gap-1"
+                onClick={() => addEmailMutation.mutate()}
+                disabled={addEmailMutation.isPending || !newEmailLabel || !newEmailAddress}
+                data-testid="button-add-email"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Save Button */}
