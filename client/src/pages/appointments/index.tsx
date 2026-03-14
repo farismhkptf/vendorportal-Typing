@@ -28,8 +28,6 @@ import { useDataTable } from "@/hooks/use-data-table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { toProperCase } from "@/lib/proper-case";
-import { generateMedicalAppointmentEmailHtml, MedicalAppointmentEmail } from "@/components/email-templates/medical-appointment-email";
-import { generateEidAppointmentEmailHtml, EidAppointmentEmail } from "@/components/email-templates/eid-appointment-email";
 import type { Appointment, WorkOrder, Center, Staff, Company, ServiceType, TypingJob, JobType, Vendor } from "@shared/schema";
 import { RelativeTime } from "@/components/ui/relative-time";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -90,6 +88,7 @@ export default function AppointmentsIndex() {
     appointment: AppointmentWithRelations | null;
   }>({ open: false, type: "complete", appointment: null });
   const [viewMessagesApt, setViewMessagesApt] = useState<AppointmentWithRelations | null>(null);
+  const [viewEmailPreviewHtml, setViewEmailPreviewHtml] = useState<string>("");
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [viewEmailDraftApt, setViewEmailDraftApt] = useState<AppointmentWithRelations | null>(null);
@@ -254,35 +253,7 @@ ${apt.type === "EID" ? "\nOnce the Emirates ID process is completed, we will upd
 Thank you,
 *The P.R.O. Company\u2122*`;
 
-    const emailHtmlProps = {
-      woNumber: wo?.woNumber || "",
-      companyName: toProperCase(company?.name || wo?.company?.name || ""),
-      applicantName: toProperCase(wo?.applicantName || ""),
-      serviceType: toProperCase(serviceName),
-      centerName: center?.name || "TBD",
-      centerAddress: center?.address || undefined,
-      centerType: (center?.tier === "VIP" ? "VIP" : "Normal") as "Normal" | "VIP",
-      appointmentDate: aptDate.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
-      appointmentTime: formattedTime,
-      applicationNumber: apt.applicationNumber || undefined,
-      crmName: crm?.name,
-      crmPhone: crm?.phone || undefined,
-      notes: apt.notes || undefined,
-    };
-
-    const medicalEmailProps = {
-      ...emailHtmlProps,
-      medicalAssistName: assist?.name,
-      medicalAssistPhone: assist?.phone || undefined,
-    };
-
-    const eidEmailProps = {
-      ...emailHtmlProps,
-      assistName: assist?.name,
-      assistPhone: assist?.phone || undefined,
-    };
-
-    return { emailBody, whatsappBody, medicalEmailProps, eidEmailProps, apt };
+    return { emailBody, whatsappBody, apt };
   }, [companies, staffList, serviceTypes]);
 
   const viewMessagesData = useMemo(() => {
@@ -290,20 +261,44 @@ Thank you,
     return buildMessagesData(viewMessagesApt);
   }, [viewMessagesApt, buildMessagesData]);
 
+  useEffect(() => {
+    if (!viewMessagesApt) {
+      setViewEmailPreviewHtml("");
+      return;
+    }
+    if (viewMessagesApt.emailDraft) {
+      setViewEmailPreviewHtml(viewMessagesApt.emailDraft);
+      return;
+    }
+    fetch("/api/appointments/email-preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        woId: viewMessagesApt.woId,
+        centerId: viewMessagesApt.centerId || undefined,
+        assignedStaffId: viewMessagesApt.assignedStaffId || undefined,
+        datetime: viewMessagesApt.datetime,
+        type: viewMessagesApt.type,
+        applicationNumber: viewMessagesApt.applicationNumber || undefined,
+      }),
+    })
+      .then(r => r.ok ? r.text() : Promise.reject())
+      .then(html => setViewEmailPreviewHtml(html))
+      .catch(() => {});
+  }, [viewMessagesApt]);
+
   const handleCopyViewMessage = async (type: "email" | "whatsapp") => {
     if (!viewMessagesData) return;
-    const { apt, emailBody, whatsappBody, medicalEmailProps, eidEmailProps } = viewMessagesData;
+    const { emailBody, whatsappBody } = viewMessagesData;
 
     if (type === "whatsapp") {
       await navigator.clipboard.writeText(whatsappBody);
     } else {
-      const emailHtml = apt.type === "Medical"
-        ? generateMedicalAppointmentEmailHtml(medicalEmailProps)
-        : generateEidAppointmentEmailHtml(eidEmailProps);
+      const htmlToCopy = viewEmailPreviewHtml || emailBody;
       try {
         await navigator.clipboard.write([
           new ClipboardItem({
-            "text/html": new Blob([emailHtml], { type: "text/html" }),
+            "text/html": new Blob([htmlToCopy], { type: "text/html" }),
             "text/plain": new Blob([emailBody], { type: "text/plain" }),
           }),
         ]);
@@ -341,10 +336,23 @@ Thank you,
         if (apt.emailDraft) {
           container.innerHTML = apt.emailDraft;
         } else {
-          const emailHtml = apt.type === "Medical"
-            ? generateMedicalAppointmentEmailHtml(data.medicalEmailProps)
-            : generateEidAppointmentEmailHtml(data.eidEmailProps);
-          container.innerHTML = emailHtml;
+          try {
+            const res = await fetch("/api/appointments/email-preview", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                woId: apt.woId,
+                centerId: apt.centerId || undefined,
+                assignedStaffId: apt.assignedStaffId || undefined,
+                datetime: apt.datetime,
+                type: apt.type,
+                applicationNumber: apt.applicationNumber || undefined,
+              }),
+            });
+            container.innerHTML = await res.text();
+          } catch {
+            container.innerHTML = "<p>Email preview unavailable</p>";
+          }
         }
       } else {
         const pre = document.createElement("pre");
@@ -1406,14 +1414,20 @@ Thank you,
                 </TabsList>
 
                 <TabsContent value="email" className="space-y-3 mt-3">
-                  <div className="rounded-lg border border-border/50 overflow-hidden max-h-[40vh] overflow-y-auto">
-                    <div className="p-1 scale-[0.85] origin-top-left" style={{ width: "117.6%" }}>
-                      {viewMessagesApt?.type === "Medical" ? (
-                        <MedicalAppointmentEmail {...viewMessagesData.medicalEmailProps} />
-                      ) : (
-                        <EidAppointmentEmail {...viewMessagesData.eidEmailProps} />
-                      )}
-                    </div>
+                  <div className="rounded-lg border border-border/50 overflow-hidden">
+                    {viewEmailPreviewHtml ? (
+                      <iframe
+                        srcDoc={viewEmailPreviewHtml}
+                        className="w-full"
+                        style={{ height: "320px", border: "none" }}
+                        sandbox="allow-same-origin"
+                        title="Email Preview"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                        Loading email preview…
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
@@ -1531,11 +1545,19 @@ Thank you,
             </DialogTitle>
           </DialogHeader>
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-            {viewMessagesData && viewMessagesApt?.type === "Medical" ? (
-              <MedicalAppointmentEmail {...viewMessagesData.medicalEmailProps} />
-            ) : viewMessagesData ? (
-              <EidAppointmentEmail {...viewMessagesData.eidEmailProps} />
-            ) : null}
+            {viewEmailPreviewHtml ? (
+              <iframe
+                srcDoc={viewEmailPreviewHtml}
+                className="w-full"
+                style={{ height: "calc(90vh - 200px)", border: "none" }}
+                sandbox="allow-same-origin"
+                title="Email Preview Full"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+                Loading email preview…
+              </div>
+            )}
           </div>
           <div className="px-6 py-4 border-t flex items-center justify-end gap-2">
             <Button

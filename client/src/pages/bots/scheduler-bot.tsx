@@ -16,8 +16,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { toProperCase } from "@/lib/proper-case";
-import { MedicalAppointmentEmail, generateMedicalAppointmentEmailHtml } from "@/components/email-templates/medical-appointment-email";
-import { EidAppointmentEmail, generateEidAppointmentEmailHtml } from "@/components/email-templates/eid-appointment-email";
 import type { Company, ServiceType, WorkOrder, Center, Staff } from "@shared/schema";
 import {
   ChatMessage,
@@ -63,6 +61,7 @@ export default function SchedulerBot() {
 
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string>("");
 
   const processedStepRef = useRef<string>("");
   const initRef = useRef(false);
@@ -438,37 +437,7 @@ ${appointmentType === "EID" ? "\nOnce the Emirates ID process is completed, we w
 Thank you,
 *The P.R.O. Company\u2122*`;
 
-    const emailHtmlProps = {
-      woNumber: selectedWO.woNumber,
-      companyName: toProperCase(company?.name || ""),
-      applicantName: toProperCase(selectedWO.applicantName),
-      serviceType: toProperCase(serviceTypeName),
-      centerName: selectedCenter?.name || "TBD",
-      centerAddress: selectedCenter?.address || undefined,
-      centerType: (selectedCenter?.tier === "VIP" ? "VIP" : "Normal") as "Normal" | "VIP",
-      appointmentDate: aptDate ? new Date(aptDate + "T00:00:00").toLocaleDateString("en-GB", {
-        day: "numeric", month: "long", year: "numeric"
-      }) : "TBD",
-      appointmentTime: formattedTime,
-      applicationNumber: appNumber || undefined,
-      crmName: crm?.name,
-      crmPhone: crm?.phone || undefined,
-      notes: aptNotes || undefined,
-    };
-
-    const medicalEmailProps = {
-      ...emailHtmlProps,
-      medicalAssistName: assist?.name,
-      medicalAssistPhone: assist?.phone || undefined,
-    };
-
-    const eidEmailProps = {
-      ...emailHtmlProps,
-      assistName: assist?.name,
-      assistPhone: assist?.phone || undefined,
-    };
-
-    return { emailBody, whatsappBody, medicalEmailProps, eidEmailProps };
+    return { emailBody, whatsappBody };
   }, [selectedWO, appointmentType, selectedCenter, appNumber, aptDate, aptTime, aptNotes, getCompany, getServiceTypeName, staffList]);
 
   const handleCopyMessage = async (type: "email" | "whatsapp") => {
@@ -478,13 +447,11 @@ Thank you,
     if (type === "whatsapp") {
       await navigator.clipboard.writeText(content.whatsappBody);
     } else {
-      const emailHtml = appointmentType === "Medical"
-        ? generateMedicalAppointmentEmailHtml(content.medicalEmailProps)
-        : generateEidAppointmentEmailHtml(content.eidEmailProps);
+      const htmlToCopy = previewHtml || content.emailBody;
       try {
         await navigator.clipboard.write([
           new ClipboardItem({
-            "text/html": new Blob([emailHtml], { type: "text/html" }),
+            "text/html": new Blob([htmlToCopy], { type: "text/html" }),
             "text/plain": new Blob([content.emailBody], { type: "text/plain" }),
           }),
         ]);
@@ -519,6 +486,29 @@ Thank you,
       return () => clearTimeout(timer);
     }
   }, [step, addBotMessage]);
+
+  useEffect(() => {
+    if (step !== "generateMessages" || !selectedWO) {
+      setPreviewHtml("");
+      return;
+    }
+    const datetime = aptDate && aptTime ? `${aptDate}T${aptTime}:00` : undefined;
+    fetch("/api/appointments/email-preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        woId: selectedWO.id,
+        centerId: selectedCenter?.id || undefined,
+        assignedStaffId: undefined,
+        datetime,
+        type: appointmentType,
+        applicationNumber: appNumber || undefined,
+      }),
+    })
+      .then(r => r.ok ? r.text() : Promise.reject())
+      .then(html => setPreviewHtml(html))
+      .catch(() => {});
+  }, [step, selectedWO, selectedCenter, appointmentType, aptDate, aptTime, appNumber]);
 
   const handleSend = useCallback(() => {
     if (!input.trim() || isProcessing) return;
@@ -722,14 +712,20 @@ Thank you,
               </TabsList>
 
               <TabsContent value="email" className="space-y-3 mt-3">
-                <div className="rounded-lg border border-border/50 overflow-hidden max-h-[35vh] overflow-y-auto bg-background">
-                  <div className="p-1 scale-[0.85] origin-top-left" style={{ width: "117.6%" }}>
-                    {appointmentType === "Medical" ? (
-                      <MedicalAppointmentEmail {...content.medicalEmailProps} />
-                    ) : (
-                      <EidAppointmentEmail {...content.eidEmailProps} />
-                    )}
-                  </div>
+                <div className="rounded-lg border border-border/50 overflow-hidden bg-background">
+                  {previewHtml ? (
+                    <iframe
+                      srcDoc={previewHtml}
+                      className="w-full"
+                      style={{ height: "280px", border: "none" }}
+                      sandbox="allow-same-origin"
+                      title="Email Preview"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                      Loading email preview…
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -807,11 +803,19 @@ Thank you,
             </DialogTitle>
           </DialogHeader>
           <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-            {content && appointmentType === "Medical" ? (
-              <MedicalAppointmentEmail {...content.medicalEmailProps} />
-            ) : content ? (
-              <EidAppointmentEmail {...content.eidEmailProps} />
-            ) : null}
+            {previewHtml ? (
+              <iframe
+                srcDoc={previewHtml}
+                className="w-full"
+                style={{ height: "calc(90vh - 200px)", border: "none" }}
+                sandbox="allow-same-origin"
+                title="Email Preview Full"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+                Loading email preview…
+              </div>
+            )}
           </div>
           <div className="px-6 py-4 border-t flex items-center justify-end gap-2">
             <Button

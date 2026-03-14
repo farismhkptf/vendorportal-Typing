@@ -468,12 +468,12 @@ Thank you,
     setEmailPreview(emailBody);
     setWhatsappPreview(whatsappBody);
 
-    const date = form.getValues("appointmentDate");
-    const time = form.getValues("appointmentTime");
+    const previewDate = form.getValues("appointmentDate");
+    const previewTime = form.getValues("appointmentTime");
     let datetimeIso: string | undefined;
-    if (date && time) {
-      const [h, m] = time.split(":").map(Number);
-      const dt = new Date(date);
+    if (previewDate && previewTime) {
+      const [h, m] = previewTime.split(":").map(Number);
+      const dt = new Date(previewDate);
       dt.setHours(h, m, 0, 0);
       datetimeIso = dt.toISOString();
     }
