@@ -1772,6 +1772,77 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/appointments/email-preview", requireAuth, async (req, res) => {
+    try {
+      const { woId, centerId, assignedStaffId, datetime, type, applicationNumber } = req.body;
+
+      const workOrder = woId ? await storage.getWorkOrderById(woId).catch(() => undefined) : undefined;
+      const company = workOrder?.companyId ? await storage.getCompanyById(workOrder.companyId).catch(() => undefined) : undefined;
+      const serviceType = workOrder?.serviceTypeId ? await storage.getServiceTypeById(workOrder.serviceTypeId).catch(() => undefined) : undefined;
+      const center = centerId ? await storage.getCenterById(centerId).catch(() => undefined) : undefined;
+      const assignedStaff = assignedStaffId ? await storage.getStaffById(assignedStaffId).catch(() => undefined) : undefined;
+
+      let rmStaff: Staff | undefined;
+      let rmUserEmail: string | undefined;
+      if (company?.rmStaffId) {
+        rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => undefined);
+        rmUserEmail = rmStaff?.email || undefined;
+      }
+
+      let applicantPhotoUrl: string | undefined;
+      if (workOrder) {
+        try {
+          const docs = await storage.getWoDocuments(workOrder.id);
+          const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
+          if (photo) applicantPhotoUrl = photo.fileUrl;
+        } catch {}
+      }
+
+      let appLogoUrl: string | undefined;
+      try {
+        const settings = await storage.getAppSettings();
+        if (settings?.logoUrl) appLogoUrl = settings.logoUrl;
+      } catch {}
+
+      const mockAppointment = {
+        id: "preview",
+        woId: woId || "",
+        type: (type || "Medical") as "Medical" | "EID",
+        isVip: false,
+        datetime: datetime ? new Date(datetime) : new Date(),
+        centerId: centerId || null,
+        assignedStaffId: assignedStaffId || null,
+        applicationNumber: applicationNumber || null,
+        notes: null,
+        rescheduleToken: null,
+        status: "Scheduled" as const,
+        emailDraft: null,
+        messageSentAt: null,
+        messageSentBy: null,
+        createdAt: new Date(),
+      };
+
+      const html = buildAppointmentEmail({
+        workOrder,
+        company,
+        serviceType,
+        appointment: mockAppointment,
+        center,
+        assignedStaff,
+        rmStaff,
+        rmUserEmail,
+        applicantPhotoUrl,
+        appLogoUrl,
+      });
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(html);
+    } catch (error) {
+      console.error("Email preview generate error:", error);
+      res.status(500).json({ message: "Failed to generate email preview" });
+    }
+  });
+
   app.post("/api/appointments", requireAuth, async (req, res) => {
     try {
       // Convert datetime string to Date object

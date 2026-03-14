@@ -25,7 +25,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WorkOrder, Company, Center, Staff, Appointment, ServiceType } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { toProperCase } from "@/lib/proper-case";
-import { EidAppointmentEmail, generateEidAppointmentEmailHtml } from "@/components/email-templates/eid-appointment-email";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 function getInitials(name: string): string {
@@ -113,6 +112,7 @@ export default function ScheduleEid() {
   const [showCenterWarning, setShowCenterWarning] = useState(false);
   const [emailPreview, setEmailPreview] = useState("");
   const [whatsappPreview, setWhatsappPreview] = useState("");
+  const [previewHtml, setPreviewHtml] = useState("");
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [urlWoProcessed, setUrlWoProcessed] = useState(false);
@@ -351,7 +351,7 @@ export default function ScheduleEid() {
   }, [schedulingQueue, workOrders, searchParams, urlWoProcessed]);
 
   const createAppointmentMutation = useMutation({
-    mutationFn: async (data: AppointmentForm & { emailDraft?: string }) => {
+    mutationFn: async (data: AppointmentForm) => {
       const datetime = new Date(`${data.appointmentDate}T${data.appointmentTime}:00`);
       return apiRequest("POST", "/api/appointments", {
         woId: data.woId,
@@ -363,7 +363,6 @@ export default function ScheduleEid() {
         applicationNumber: data.applicationNumber,
         notes: data.notes,
         status: "Scheduled",
-        emailDraft: data.emailDraft || null,
       });
     },
     onSuccess: async () => {
@@ -479,42 +478,43 @@ Thank you,
 
     setEmailPreview(emailBody);
     setWhatsappPreview(whatsappBody);
+
+    const date2 = form.getValues("appointmentDate");
+    const time2 = form.getValues("appointmentTime");
+    let datetimeIso: string | undefined;
+    if (date2 && time2) {
+      const [h, m] = time2.split(":").map(Number);
+      const dt = new Date(date2);
+      dt.setHours(h, m, 0, 0);
+      datetimeIso = dt.toISOString();
+    }
+
+    fetch("/api/appointments/email-preview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        woId: form.getValues("woId"),
+        centerId: form.getValues("centerId") || undefined,
+        assignedStaffId: form.getValues("assignedStaffId") || undefined,
+        datetime: datetimeIso,
+        applicationNumber: form.getValues("applicationNumber") || undefined,
+        type: "EID",
+      }),
+    })
+      .then(r => r.text())
+      .then(html => setPreviewHtml(html))
+      .catch(() => {});
   };
 
   const handleCopyMessage = async (type: "email" | "whatsapp") => {
     if (type === "whatsapp") {
       await navigator.clipboard.writeText(whatsappPreview);
     } else {
-      const emailHtml = generateEidAppointmentEmailHtml({
-        woNumber: selectedQueueItem?.woNumber || "",
-        companyName: toProperCase(selectedCompany?.name || ""),
-        applicantName: toProperCase(selectedQueueItem?.applicantName || ""),
-        serviceType: toProperCase(woServiceTypeName),
-        centerName: selectedCenter?.name || "TBD",
-        centerAddress: selectedCenter?.address || undefined,
-        centerType: selectedCenter?.tier === "VIP" ? "VIP" : "Normal",
-        appointmentDate: form.getValues("appointmentDate") 
-          ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "long",
-              year: "numeric"
-            })
-          : "TBD",
-        appointmentTime: form.getValues("appointmentTime") 
-          ? formatTime12h(form.getValues("appointmentTime"))
-          : "TBD",
-        applicationNumber: form.getValues("applicationNumber") || undefined,
-        assistName: companyAssist?.name,
-        assistPhone: companyAssist?.phone || undefined,
-        crmName: companyCRM?.name,
-        crmPhone: companyCRM?.phone || undefined,
-        notes: form.getValues("notes") || undefined,
-      });
-      
+      const htmlToCopy = previewHtml || emailPreview;
       try {
         await navigator.clipboard.write([
           new ClipboardItem({
-            "text/html": new Blob([emailHtml], { type: "text/html" }),
+            "text/html": new Blob([htmlToCopy], { type: "text/html" }),
             "text/plain": new Blob([emailPreview], { type: "text/plain" }),
           }),
         ]);
@@ -558,33 +558,7 @@ Thank you,
       return;
     }
     
-    const emailHtml = generateEidAppointmentEmailHtml({
-      woNumber: selectedQueueItem?.woNumber || "",
-      companyName: toProperCase(selectedCompany?.name || ""),
-      applicantName: toProperCase(selectedQueueItem?.applicantName || ""),
-      serviceType: toProperCase(woServiceTypeName),
-      centerName: selectedCenter?.name || "TBD",
-      centerAddress: selectedCenter?.address || undefined,
-      centerType: selectedCenter?.tier === "VIP" ? "VIP" : "Normal",
-      appointmentDate: form.getValues("appointmentDate") 
-        ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
-            day: "numeric",
-            month: "long",
-            year: "numeric"
-          })
-        : "TBD",
-      appointmentTime: form.getValues("appointmentTime") 
-        ? formatTime12h(form.getValues("appointmentTime"))
-        : "TBD",
-      applicationNumber: form.getValues("applicationNumber") || undefined,
-      assistName: companyAssist?.name,
-      assistPhone: companyAssist?.phone || undefined,
-      crmName: companyCRM?.name,
-      crmPhone: companyCRM?.phone || undefined,
-      notes: form.getValues("notes") || undefined,
-    });
-    
-    createAppointmentMutation.mutate({ ...form.getValues(), emailDraft: emailHtml });
+    createAppointmentMutation.mutate(form.getValues());
   };
 
   const getTimeSince = (dateStr: string | null) => {
@@ -1206,31 +1180,19 @@ Thank you,
               >
                 <Maximize2 className="h-4 w-4" />
               </Button>
-              <EidAppointmentEmail
-                woNumber={selectedQueueItem?.woNumber || ""}
-                companyName={toProperCase(selectedCompany?.name || "")}
-                applicantName={toProperCase(selectedQueueItem?.applicantName || "")}
-                serviceType={toProperCase(woServiceTypeName)}
-                centerName={selectedCenter?.name || "TBD"}
-                centerAddress={selectedCenter?.address || undefined}
-                centerType={selectedCenter?.tier === "VIP" ? "VIP" : "Normal"}
-                appointmentDate={form.getValues("appointmentDate") 
-                  ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric"
-                    })
-                  : "TBD"}
-                appointmentTime={form.getValues("appointmentTime") 
-                  ? formatTime12h(form.getValues("appointmentTime"))
-                  : "TBD"}
-                applicationNumber={form.getValues("applicationNumber") || undefined}
-                assistName={companyAssist?.name}
-                assistPhone={companyAssist?.phone || undefined}
-                crmName={companyCRM?.name}
-                crmPhone={companyCRM?.phone || undefined}
-                notes={form.getValues("notes") || undefined}
-              />
+              {previewHtml ? (
+                <iframe
+                  srcDoc={previewHtml}
+                  className="w-full"
+                  style={{ height: "280px", border: "none" }}
+                  sandbox="allow-same-origin"
+                  title="Email Preview"
+                />
+              ) : (
+                <div className="flex items-center justify-center h-32 text-muted-foreground text-sm">
+                  Loading email preview…
+                </div>
+              )}
             </div>
             <Button 
               variant="default"
@@ -1411,31 +1373,19 @@ Thank you,
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-auto max-h-[calc(90vh-140px)]">
-            <EidAppointmentEmail
-              woNumber={selectedQueueItem?.woNumber || ""}
-              companyName={toProperCase(selectedCompany?.name || "")}
-              applicantName={toProperCase(selectedQueueItem?.applicantName || "")}
-              serviceType={toProperCase(woServiceTypeName)}
-              centerName={selectedCenter?.name || "TBD"}
-              centerAddress={selectedCenter?.address || undefined}
-              centerType={selectedCenter?.tier === "VIP" ? "VIP" : "Normal"}
-              appointmentDate={form.getValues("appointmentDate") 
-                ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric"
-                  })
-                : "TBD"}
-              appointmentTime={form.getValues("appointmentTime") 
-                ? formatTime12h(form.getValues("appointmentTime"))
-                : "TBD"}
-              applicationNumber={form.getValues("applicationNumber") || undefined}
-              assistName={companyAssist?.name}
-              assistPhone={companyAssist?.phone || undefined}
-              crmName={companyCRM?.name}
-              crmPhone={companyCRM?.phone || undefined}
-              notes={form.getValues("notes") || undefined}
-            />
+            {previewHtml ? (
+              <iframe
+                srcDoc={previewHtml}
+                className="w-full"
+                style={{ height: "calc(90vh - 200px)", border: "none" }}
+                sandbox="allow-same-origin"
+                title="Email Preview Full"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-48 text-muted-foreground text-sm">
+                Loading email preview…
+              </div>
+            )}
           </div>
           <DialogFooter className="px-6 py-4 border-t">
             <Button 
