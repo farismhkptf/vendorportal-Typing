@@ -96,6 +96,7 @@ export default function AppointmentsIndex() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [dateRangeFilter, setDateRangeFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
   const [calendarDate, setCalendarDate] = useState(() => {
     const d = new Date();
@@ -432,9 +433,31 @@ Thank you,
 
   const filteredAppointments = useMemo(() => {
     if (!appointments) return [];
+    const now = new Date();
+    const startOfDay = (d: Date) => { const r = new Date(d); r.setHours(0,0,0,0); return r; };
+    const endOfDay = (d: Date) => { const r = new Date(d); r.setHours(23,59,59,999); return r; };
+    const getWeekStart = () => { const d = startOfDay(now); d.setDate(d.getDate() - d.getDay()); return d; };
+    const getWeekEnd = () => { const d = getWeekStart(); d.setDate(d.getDate() + 6); return endOfDay(d); };
+    const getMonthStart = () => { const d = startOfDay(now); d.setDate(1); return d; };
+    const getMonthEnd = () => { const d = new Date(now.getFullYear(), now.getMonth() + 1, 0); return endOfDay(d); };
+    const getLastMonthStart = () => { const d = startOfDay(now); d.setDate(1); d.setMonth(d.getMonth() - 1); return d; };
+    const getLastMonthEnd = () => { const d = new Date(now.getFullYear(), now.getMonth(), 0); return endOfDay(d); };
+
     return appointments.filter(a => {
       if (typeFilter !== "all" && a.type !== typeFilter) return false;
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
+      if (dateRangeFilter !== "all") {
+        const aptDate = new Date(a.datetime);
+        if (dateRangeFilter === "today") {
+          if (aptDate < startOfDay(now) || aptDate > endOfDay(now)) return false;
+        } else if (dateRangeFilter === "week") {
+          if (aptDate < getWeekStart() || aptDate > getWeekEnd()) return false;
+        } else if (dateRangeFilter === "month") {
+          if (aptDate < getMonthStart() || aptDate > getMonthEnd()) return false;
+        } else if (dateRangeFilter === "last_month") {
+          if (aptDate < getLastMonthStart() || aptDate > getLastMonthEnd()) return false;
+        }
+      }
       if (search.trim()) {
         const q = search.toLowerCase();
         const woNumber = a.workOrder?.woNumber?.toLowerCase() || "";
@@ -444,7 +467,7 @@ Thank you,
       }
       return true;
     });
-  }, [appointments, search, typeFilter, statusFilter]);
+  }, [appointments, search, typeFilter, statusFilter, dateRangeFilter]);
 
   const todayAppointments = useMemo(() =>
     filteredAppointments.filter(a => {
@@ -1061,10 +1084,22 @@ Thank you,
                   <SelectItem value="FollowUpCompleted">Follow-Up Completed</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+                <SelectTrigger className="w-36 rounded-lg" data-testid="select-date-range-filter">
+                  <SelectValue placeholder="Date Range" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Dates</SelectItem>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="week">This Week</SelectItem>
+                  <SelectItem value="month">This Month</SelectItem>
+                  <SelectItem value="last_month">Last Month</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           }
-          activeFilterCount={(typeFilter !== "all" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0)}
-          onClearFilters={() => { setTypeFilter("all"); setStatusFilter("all"); }}
+          activeFilterCount={(typeFilter !== "all" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0) + (dateRangeFilter !== "all" ? 1 : 0)}
+          onClearFilters={() => { setTypeFilter("all"); setStatusFilter("all"); setDateRangeFilter("all"); }}
           selectionActions={
             <Button
               variant="outline"

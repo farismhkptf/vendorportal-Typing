@@ -293,6 +293,7 @@ export default function WorkOrdersList() {
   const initialPipeline = (urlParams.get("pipeline") || "all") as PipelineStage | "all";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
+  const [dateRangeFilter, setDateRangeFilter] = useState<string>("all");
 
   useEffect(() => {
     const params = new URLSearchParams(searchString);
@@ -439,7 +440,27 @@ export default function WorkOrdersList() {
         }
       }
 
-      return matchesSearch && matchesStatus && matchesPipeline && matchesSpecial;
+      let matchesDateRange = true;
+      if (dateRangeFilter !== "all") {
+        const now = new Date();
+        const startOfDay = (d: Date) => { const r = new Date(d); r.setHours(0,0,0,0); return r; };
+        const woDate = new Date(wo.createdAt);
+        if (dateRangeFilter === "today") {
+          matchesDateRange = woDate >= startOfDay(now) && woDate < new Date(startOfDay(now).getTime() + 86400000);
+        } else if (dateRangeFilter === "week") {
+          const wk = startOfDay(now); wk.setDate(wk.getDate() - wk.getDay());
+          matchesDateRange = woDate >= wk && woDate <= now;
+        } else if (dateRangeFilter === "month") {
+          const m = startOfDay(now); m.setDate(1);
+          matchesDateRange = woDate >= m && woDate <= now;
+        } else if (dateRangeFilter === "last_month") {
+          const lmStart = startOfDay(now); lmStart.setDate(1); lmStart.setMonth(lmStart.getMonth() - 1);
+          const lmEnd = startOfDay(now); lmEnd.setDate(0); lmEnd.setHours(23,59,59,999);
+          matchesDateRange = woDate >= lmStart && woDate <= lmEnd;
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesPipeline && matchesSpecial && matchesDateRange;
     });
     
     if (result) {
@@ -479,7 +500,7 @@ export default function WorkOrdersList() {
     }
     
     return result;
-  }, [workOrders, search, statusFilter, pipelineFilter, specialFilter, sortBy, columnSort]);
+  }, [workOrders, search, statusFilter, dateRangeFilter, pipelineFilter, specialFilter, sortBy, columnSort]);
 
   const getId = useCallback((wo: WorkOrderEnriched) => wo.id, []);
 
@@ -539,12 +560,13 @@ export default function WorkOrdersList() {
     return groups;
   }, [filteredAndSortedWorkOrders]);
 
-  const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (specialFilter !== "all" ? 1 : 0) + (pipelineFilter !== "all" ? 1 : 0);
+  const activeFilterCount = (statusFilter !== "all" ? 1 : 0) + (specialFilter !== "all" ? 1 : 0) + (pipelineFilter !== "all" ? 1 : 0) + (dateRangeFilter !== "all" ? 1 : 0);
 
   const clearAllFilters = useCallback(() => {
     setStatusFilter("all");
     setPipelineFilter("all");
     setSpecialFilter("all");
+    setDateRangeFilter("all");
     setSearch("");
   }, []);
 
@@ -1131,6 +1153,18 @@ export default function WorkOrdersList() {
           <SelectItem value="med_typing_pending">Medical Typing Pending</SelectItem>
           <SelectItem value="eid_typing_pending">EID Typing Pending</SelectItem>
           <SelectItem value="completed">Completed</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={dateRangeFilter} onValueChange={setDateRangeFilter}>
+        <SelectTrigger className="w-36 h-9 rounded-lg" data-testid="select-date-range-filter">
+          <SelectValue placeholder="Date Range" />
+        </SelectTrigger>
+        <SelectContent className="rounded-xl">
+          <SelectItem value="all">All Dates</SelectItem>
+          <SelectItem value="today">Today</SelectItem>
+          <SelectItem value="week">This Week</SelectItem>
+          <SelectItem value="month">This Month</SelectItem>
+          <SelectItem value="last_month">Last Month</SelectItem>
         </SelectContent>
       </Select>
       <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortByOption)}>

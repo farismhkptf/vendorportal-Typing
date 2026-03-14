@@ -122,6 +122,18 @@
   /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* V2 portal status badge colors */
+  --v2-blue: 213 93% 47%;
+  --v2-amber: 38 92% 50%;
+  --v2-green: 160 68% 37%;
+  --v2-red: 0 72% 51%;
+  --v2-slate: 215 16% 47%;
+
+  /* Login page brand accent (navy blue, dark-background optimized) */
+  --login-brand: 215 57% 30%;
+  --login-brand-hover: 214 57% 35%;
+  --login-success: 160 68% 37%;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -211,6 +223,17 @@
   --shadow-xl: 0 16px 32px -8px rgba(0, 0, 0, 0.45), 0 24px 48px -12px rgba(0, 0, 0, 0.35);
   --shadow-2xl: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
 
+  /* V2 portal status badge colors — dark mode (lighter for contrast on dark bg) */
+  --v2-blue: 213 93% 70%;
+  --v2-amber: 38 92% 72%;
+  --v2-green: 160 68% 60%;
+  --v2-red: 0 72% 70%;
+  --v2-slate: 215 16% 72%;
+
+  /* Login page brand accent — dark mode (same values: login is always dark-bg) */
+  --login-brand: 215 57% 30%;
+  --login-brand-hover: 214 57% 35%;
+  --login-success: 160 68% 37%;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1258,13 +1281,13 @@
 .login-glass-input:focus {
   outline: none;
   background: rgba(255, 255, 255, 0.15) !important;
-  border-color: rgba(32, 70, 122, 0.7) !important;
-  box-shadow: 0 0 0 3px rgba(32, 70, 122, 0.25) !important;
+  border-color: hsl(var(--login-brand) / 0.7) !important;
+  box-shadow: 0 0 0 3px hsl(var(--login-brand) / 0.25) !important;
 }
 
 .login-brand-button {
-  background: #20467a !important;
-  border: 1px solid rgba(32, 70, 122, 0.8) !important;
+  background: hsl(var(--login-brand)) !important;
+  border: 1px solid hsl(var(--login-brand) / 0.8) !important;
   color: white !important;
   font-weight: 500;
   letter-spacing: 0.02em;
@@ -1273,8 +1296,8 @@
 }
 
 .login-brand-button:hover:not(:disabled) {
-  background: #264f8a !important;
-  box-shadow: 0 4px 16px rgba(32, 70, 122, 0.4) !important;
+  background: hsl(var(--login-brand-hover)) !important;
+  box-shadow: 0 4px 16px hsl(var(--login-brand) / 0.4) !important;
 }
 
 .login-brand-button:disabled {
@@ -1283,8 +1306,8 @@
 }
 
 .login-brand-button--success {
-  background: rgba(16, 185, 129, 0.85) !important;
-  border-color: rgba(16, 185, 129, 0.5) !important;
+  background: hsl(var(--login-success) / 0.85) !important;
+  border-color: hsl(var(--login-success) / 0.5) !important;
 }
 
 .login-card-slider {
@@ -1644,17 +1667,11 @@
   backdrop-filter: blur(8px);
 }
 
-.v2-status-new { background: rgba(59, 130, 246, 0.1); color: #2563eb; border: 1px solid rgba(59, 130, 246, 0.2); }
-.v2-status-inprogress { background: rgba(245, 158, 11, 0.1); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.2); }
-.v2-status-completed { background: rgba(16, 185, 129, 0.1); color: #059669; border: 1px solid rgba(16, 185, 129, 0.2); }
-.v2-status-urgent { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
-.v2-status-default { background: rgba(100, 116, 139, 0.08); color: #475569; border: 1px solid rgba(100, 116, 139, 0.15); }
-
-.dark .v2-status-new { background: rgba(59, 130, 246, 0.25); color: rgba(147, 197, 253, 1); border-color: rgba(59, 130, 246, 0.3); }
-.dark .v2-status-inprogress { background: rgba(245, 158, 11, 0.25); color: rgba(253, 224, 71, 1); border-color: rgba(245, 158, 11, 0.3); }
-.dark .v2-status-completed { background: rgba(16, 185, 129, 0.25); color: rgba(110, 231, 183, 1); border-color: rgba(16, 185, 129, 0.3); }
-.dark .v2-status-urgent { background: rgba(239, 68, 68, 0.3); color: rgba(252, 165, 165, 1); border-color: rgba(239, 68, 68, 0.35); }
-.dark .v2-status-default { background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.7); border-color: rgba(255, 255, 255, 0.15); }
+.v2-status-new { background: hsl(var(--v2-blue) / 0.12); color: hsl(var(--v2-blue)); border: 1px solid hsl(var(--v2-blue) / 0.25); }
+.v2-status-inprogress { background: hsl(var(--v2-amber) / 0.12); color: hsl(var(--v2-amber)); border: 1px solid hsl(var(--v2-amber) / 0.25); }
+.v2-status-completed { background: hsl(var(--v2-green) / 0.12); color: hsl(var(--v2-green)); border: 1px solid hsl(var(--v2-green) / 0.25); }
+.v2-status-urgent { background: hsl(var(--v2-red) / 0.12); color: hsl(var(--v2-red)); border: 1px solid hsl(var(--v2-red) / 0.25); }
+.v2-status-default { background: hsl(var(--v2-slate) / 0.1); color: hsl(var(--v2-slate)); border: 1px solid hsl(var(--v2-slate) / 0.2); }
 
 .v2-alert-pulse {
   animation: v2-pulse 2.5s ease-in-out infinite;

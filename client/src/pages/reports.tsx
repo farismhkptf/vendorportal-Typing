@@ -4,7 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, ClipboardList, Building2, Users, BarChart3 } from "lucide-react";
+import { FileText, ClipboardList, Building2, Users, BarChart3, TrendingUp, Award } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+} from "recharts";
 
 interface ReportSummary {
   overview: {
@@ -35,6 +45,23 @@ interface ReportSummary {
   topCompanies: Array<{ name: string; woCount: number }>;
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2 text-sm">
+        <p className="font-medium text-foreground mb-1">{label}</p>
+        {payload.map((entry: any) => (
+          <p key={entry.name} style={{ color: entry.color }} className="flex items-center gap-1.5">
+            <span className="inline-block w-2 h-2 rounded-sm" style={{ background: entry.color }} />
+            {entry.name}: <span className="font-semibold">{entry.value}</span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function ReportsPage() {
   const { data, isLoading } = useQuery<ReportSummary>({
     queryKey: ["/api/reports/summary"],
@@ -53,7 +80,7 @@ export default function ReportsPage() {
               <Skeleton key={i} className="h-28" />
             ))}
           </div>
-          <Skeleton className="h-64" />
+          <Skeleton className="h-72" />
         </div>
       </AppLayout>
     );
@@ -61,7 +88,27 @@ export default function ReportsPage() {
 
   if (!data) return null;
 
-  const maxMonthly = Math.max(...data.monthly.workOrders, ...data.monthly.typingJobs, 1);
+  const monthlyChartData = data.monthly.labels.map((label, i) => ({
+    month: label,
+    "Work Orders": data.monthly.workOrders[i],
+    "Typing Jobs": data.monthly.typingJobs[i],
+  }));
+
+  const woStatusData = Object.entries(data.statusDistribution.wo).map(([status, count]) => ({
+    status,
+    count,
+  }));
+
+  const tjStatusData = Object.entries(data.statusDistribution.tj).map(([status, count]) => ({
+    status,
+    count,
+  }));
+
+  const topCompaniesData = data.topCompanies.map(c => ({
+    name: c.name.length > 18 ? c.name.slice(0, 18) + "…" : c.name,
+    fullName: c.name,
+    "Work Orders": c.woCount,
+  }));
 
   return (
     <AppLayout>
@@ -85,7 +132,7 @@ export default function ReportsPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Active Work Orders</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-xl sm:text-2xl font-bold" data-testid="text-active-wo">{data.overview.activeWorkOrders}</div>
@@ -119,43 +166,31 @@ export default function ReportsPage() {
             <CardTitle className="text-base">Monthly Volume ({new Date().getFullYear()})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-6 mb-4">
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-sm bg-blue-500" />
-                <span className="text-xs text-muted-foreground">Work Orders</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-sm bg-violet-500" />
-                <span className="text-xs text-muted-foreground">Typing Jobs</span>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {data.monthly.labels.map((label, i) => (
-                <div key={label} className="flex items-center gap-3" data-testid={`chart-month-${label}`}>
-                  <span className="text-xs text-muted-foreground w-8 text-right">{label}</span>
-                  <div className="flex-1 flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-4 rounded-sm bg-blue-500 transition-all"
-                        style={{ width: `${Math.max((data.monthly.workOrders[i] / maxMonthly) * 100, 0)}%`, minWidth: data.monthly.workOrders[i] > 0 ? "8px" : "0px" }}
-                      />
-                      {data.monthly.workOrders[i] > 0 && (
-                        <span className="text-xs text-muted-foreground">{data.monthly.workOrders[i]}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-4 rounded-sm bg-violet-500 transition-all"
-                        style={{ width: `${Math.max((data.monthly.typingJobs[i] / maxMonthly) * 100, 0)}%`, minWidth: data.monthly.typingJobs[i] > 0 ? "8px" : "0px" }}
-                      />
-                      {data.monthly.typingJobs[i] > 0 && (
-                        <span className="text-xs text-muted-foreground">{data.monthly.typingJobs[i]}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={monthlyChartData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }} />
+                <Legend
+                  iconType="square"
+                  iconSize={10}
+                  wrapperStyle={{ fontSize: "12px", paddingTop: "12px" }}
+                />
+                <Bar dataKey="Work Orders" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="Typing Jobs" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} maxBarSize={28} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
@@ -165,17 +200,18 @@ export default function ReportsPage() {
               <CardTitle className="text-base">Work Order Status</CardTitle>
             </CardHeader>
             <CardContent>
-              {Object.keys(data.statusDistribution.wo).length === 0 ? (
+              {woStatusData.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No work orders yet</p>
               ) : (
-                <div className="space-y-2">
-                  {Object.entries(data.statusDistribution.wo).map(([status, count]) => (
-                    <div key={status} className="flex items-center justify-between" data-testid={`status-wo-${status}`}>
-                      <span className="text-sm">{status}</span>
-                      <Badge variant="secondary">{count}</Badge>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={woStatusData} layout="vertical" margin={{ top: 0, right: 32, bottom: 0, left: 16 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="status" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={90} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }} />
+                    <Bar dataKey="count" name="Work Orders" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]} maxBarSize={18} />
+                  </BarChart>
+                </ResponsiveContainer>
               )}
             </CardContent>
           </Card>
@@ -184,17 +220,18 @@ export default function ReportsPage() {
               <CardTitle className="text-base">Typing Job Status</CardTitle>
             </CardHeader>
             <CardContent>
-              {Object.keys(data.statusDistribution.tj).length === 0 ? (
+              {tjStatusData.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No typing jobs yet</p>
               ) : (
-                <div className="space-y-2">
-                  {Object.entries(data.statusDistribution.tj).map(([status, count]) => (
-                    <div key={status} className="flex items-center justify-between" data-testid={`status-tj-${status}`}>
-                      <span className="text-sm">{status}</span>
-                      <Badge variant="secondary">{count}</Badge>
-                    </div>
-                  ))}
-                </div>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={tjStatusData} layout="vertical" margin={{ top: 0, right: 32, bottom: 0, left: 16 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="status" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={130} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }} />
+                    <Bar dataKey="count" name="Typing Jobs" fill="hsl(var(--chart-3))" radius={[0, 4, 4, 0]} maxBarSize={18} />
+                  </BarChart>
+                </ResponsiveContainer>
               )}
             </CardContent>
           </Card>
@@ -203,7 +240,10 @@ export default function ReportsPage() {
         {data.turnaroundByVendor.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Vendor Performance</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Award className="h-4 w-4 text-muted-foreground" />
+                Vendor Performance
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -243,23 +283,33 @@ export default function ReportsPage() {
           </Card>
         )}
 
-        {data.topCompanies.length > 0 && (
+        {topCompaniesData.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Top Companies by Work Orders</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {data.topCompanies.map((c, i) => (
-                  <div key={c.name} className="flex items-center justify-between" data-testid={`top-company-${i}`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm font-medium text-muted-foreground w-5">{i + 1}.</span>
-                      <span className="text-sm">{c.name}</span>
-                    </div>
-                    <Badge variant="secondary">{c.woCount} WOs</Badge>
-                  </div>
-                ))}
-              </div>
+              <ResponsiveContainer width="100%" height={Math.max(180, topCompaniesData.length * 36)}>
+                <BarChart data={topCompaniesData} layout="vertical" margin={{ top: 0, right: 40, bottom: 0, left: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(var(--border))" strokeOpacity={0.5} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} width={130} />
+                  <Tooltip
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div className="bg-card border border-border/50 rounded-lg shadow-lg px-3 py-2 text-sm">
+                          <p className="font-medium text-foreground">{d.fullName}</p>
+                          <p className="text-muted-foreground">{d["Work Orders"]} Work Orders</p>
+                        </div>
+                      );
+                    }}
+                    cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
+                  />
+                  <Bar dataKey="Work Orders" fill="hsl(var(--chart-4))" radius={[0, 4, 4, 0]} maxBarSize={22} />
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         )}
