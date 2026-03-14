@@ -25,7 +25,7 @@ import {
   type ApiKey, type InsertApiKey
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull } from "drizzle-orm";
+import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
@@ -79,6 +79,8 @@ export interface IStorage {
   
   // Work Orders
   getWorkOrders(search?: string, status?: string): Promise<WorkOrder[]>;
+  getRecentWorkOrders(limit: number): Promise<WorkOrder[]>;
+  countDuplicateApplicants(applicantName: string): Promise<number>;
   getWorkOrderById(id: string): Promise<WorkOrder | undefined>;
   getWorkOrdersByIds(ids: string[]): Promise<WorkOrder[]>;
   getWorkOrderByWoNumber(woNumber: string): Promise<WorkOrder | undefined>;
@@ -172,6 +174,7 @@ export interface IStorage {
   // Work Order Documents
   getWoDocuments(woId: string): Promise<WoDocument[]>;
   getAllWoDocuments(): Promise<WoDocument[]>;
+  getWoPhotoMap(): Promise<Record<string, string>>;
   getUnsyncedWoDocuments(): Promise<WoDocument[]>;
   getWoDocumentById(id: string): Promise<WoDocument | undefined>;
   createWoDocument(data: InsertWoDocument): Promise<WoDocument>;
@@ -476,6 +479,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Work Orders
+  async getRecentWorkOrders(count: number): Promise<WorkOrder[]> {
+    return db.select().from(workOrders).orderBy(desc(workOrders.createdAt)).limit(count);
+  }
+
+  async countDuplicateApplicants(applicantName: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(workOrders)
+      .where(
+        and(
+          ilike(workOrders.applicantName, applicantName),
+          sql`${workOrders.status} NOT IN ('Completed', 'Cancelled')`
+        )
+      );
+    return Number(result[0]?.count || 0);
+  }
+
   async getWorkOrders(search?: string, status?: string): Promise<WorkOrder[]> {
     let query = db.select().from(workOrders);
     
@@ -1482,6 +1501,26 @@ export class DatabaseStorage implements IStorage {
 
   async getAllWoDocuments(): Promise<WoDocument[]> {
     return db.select().from(woDocuments).orderBy(desc(woDocuments.uploadedAt));
+  }
+
+  async getWoPhotoMap(): Promise<Record<string, string>> {
+    const photoDocs = await db.select({
+      woId: woDocuments.woId,
+      fileUrl: woDocuments.fileUrl,
+    }).from(woDocuments).where(
+      and(
+        eq(woDocuments.documentType, "Photo"),
+        isNotNull(woDocuments.fileUrl)
+      )
+    ).orderBy(desc(woDocuments.uploadedAt));
+
+    const photoMap: Record<string, string> = {};
+    for (const doc of photoDocs) {
+      if (doc.woId && doc.fileUrl && !photoMap[doc.woId]) {
+        photoMap[doc.woId] = doc.fileUrl;
+      }
+    }
+    return photoMap;
   }
 
   async getUnsyncedWoDocuments(): Promise<WoDocument[]> {

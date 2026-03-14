@@ -22,6 +22,14 @@ The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API.
 
 The PostgreSQL database includes core entities such as Users (with 7 roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor, Client Coordinator, Client Manager), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns (woId, vendorId, typingJobId, centerId, assignedStaffId, etc.) for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records (appointments, typing jobs, results, comments, approvals, documents, notes, messages, files, reschedule requests). Deleting staff or centers nullifies dangling references in appointments and companies before deletion.
 
+### Performance Optimizations
+
+-   **Bulk Fetches**: Dashboard routes use bulk `getWorkOrdersByIds()`, `getCenters()`, and `getCompanies()` with Map lookups instead of per-record N+1 queries.
+-   **Targeted DB Queries**: `getWoPhotoMap()` queries only photo documents at the database level (filtered by `documentType='Photo'` and `fileUrl IS NOT NULL`) instead of fetching all documents. `countDuplicateApplicants()` uses SQL `COUNT(*)` instead of fetching all work orders for duplicate checking. `getRecentWorkOrders(limit)` uses SQL `LIMIT` instead of fetching all work orders and slicing.
+-   **Input Validation**: All update routes (centers, service types, job types) and creation routes (comments, files) validate `req.body` through Zod schemas (`.partial()` for updates) before passing to storage, preventing field injection.
+-   **Frontend Caching**: Dashboard queries use `staleTime: 30000` (30s) for stats and activity, `staleTime: 60000` (1min) for weekly overview and photos. All other queries default to `staleTime: Infinity` with manual invalidation via `queryClient.invalidateQueries` after mutations. Notifications poll every 30 seconds (`refetchInterval: 30000`).
+-   **Session Management**: Auth heartbeat checks `/api/auth/me` every 5 minutes. Session expiry shows a modal overlay prompting re-login (with `intentionalLogout` flag to prevent false triggers on normal logout).
+
 ### Authentication and Authorization
 
 Session-based authentication uses `express-session` + `connect-pg-simple` for PostgreSQL session storage, with passwords hashed via `bcryptjs`. Role-Based Access Control (RBAC) is enforced at both layers:

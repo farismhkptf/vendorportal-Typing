@@ -838,22 +838,27 @@ export default function Dashboard() {
 
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
+    staleTime: 30000,
   });
 
   const { data: typingData, isLoading: typingLoading } = useQuery<TypingJobsSummary>({
     queryKey: ["/api/dashboard/typing-jobs-summary"],
+    staleTime: 30000,
   });
 
   const { data: appointmentsData, isLoading: appointmentsLoading } = useQuery<AppointmentsSummary>({
     queryKey: ["/api/dashboard/appointments-summary"],
+    staleTime: 30000,
   });
 
   const { data: weeklyData } = useQuery<WeeklyData[]>({
     queryKey: ["/api/dashboard/weekly-overview"],
+    staleTime: 60000,
   });
 
   const { data: myActivity, isLoading: activityLoading } = useQuery<ActivityItem[]>({
     queryKey: ["/api/activity/my"],
+    staleTime: 30000,
   });
 
   const { data: photoMap } = useQuery<Record<string, string>>({

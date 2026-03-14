@@ -73,6 +73,7 @@ export default function CrmDashboard() {
   const { data: dashStats } = useQuery<{ walletBalance?: number }>({
     queryKey: ["/api/dashboard/stats"],
     enabled: isAdmin || !!user?.staffId,
+    staleTime: 30000,
   });
 
   const myCompanies = useMemo(() => {

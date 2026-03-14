@@ -10,6 +10,7 @@ import {
   insertWorkOrderSchema, insertCompanySchema, insertStaffSchema,
   insertCenterSchema, insertServiceTypeSchema, insertJobTypeSchema, loginSchema,
   insertAppointmentSchema, insertTypingJobSchema, insertWoNoteSchema,
+  insertTypingJobCommentSchema, insertFileSchema,
   type CenterTimings, type InsertVendorNotification
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
@@ -404,20 +405,30 @@ export async function registerRoutes(
   app.get("/api/dashboard/today-appointments", requireAuth, async (req, res) => {
     try {
       const appointments = await storage.getTodayAppointments();
-      const result = await Promise.all(
-        appointments.map(async (apt) => {
-          const wo = await storage.getWorkOrderById(apt.woId);
-          const center = apt.centerId ? await storage.getCenterById(apt.centerId) : null;
-          return {
-            id: wo?.id || apt.id,
-            woNumber: wo?.woNumber || "N/A",
-            applicantName: wo?.applicantName || "N/A",
-            type: apt.type,
-            time: new Date(apt.datetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-            center: center?.name || "TBD",
-          };
-        })
-      );
+      if (appointments.length === 0) return res.json([]);
+
+      const woIds = [...new Set(appointments.map(a => a.woId))];
+
+      const [bulkWOs, allCenters] = await Promise.all([
+        storage.getWorkOrdersByIds(woIds),
+        storage.getCenters(),
+      ]);
+
+      const woMap = new Map(bulkWOs.map(wo => [wo.id, wo]));
+      const centerMap = new Map(allCenters.map(c => [c.id, c]));
+
+      const result = appointments.map((apt) => {
+        const wo = woMap.get(apt.woId);
+        const center = apt.centerId ? centerMap.get(apt.centerId) : null;
+        return {
+          id: wo?.id || apt.id,
+          woNumber: wo?.woNumber || "N/A",
+          applicantName: wo?.applicantName || "N/A",
+          type: apt.type,
+          time: new Date(apt.datetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+          center: center?.name || "TBD",
+        };
+      });
       res.json(result);
     } catch (error) {
       console.error("Today appointments error:", error);
@@ -427,43 +438,53 @@ export async function registerRoutes(
 
   app.get("/api/dashboard/recent-work-orders", requireAuth, async (req, res) => {
     try {
-      const workOrders = await storage.getWorkOrders();
-      const recent = workOrders.slice(0, 5);
+      const recent = await storage.getRecentWorkOrders(5);
+      if (recent.length === 0) return res.json([]);
+
       const allJobTypes = await storage.getJobTypes();
       const jobTypeMap = new Map(allJobTypes.map(jt => [jt.id, jt]));
 
-      const result = await Promise.all(
+      const allCompanies = await storage.getCompanies();
+      const companyMap = new Map(allCompanies.map(c => [c.id, c]));
+
+      const enrichments = await Promise.all(
         recent.map(async (wo) => {
-          const [company, typingJobs, appointments] = await Promise.all([
-            storage.getCompanyById(wo.companyId),
+          const [typingJobs, appointments] = await Promise.all([
             storage.getTypingJobsByWoId(wo.id),
             storage.getAppointmentsByWoId(wo.id),
           ]);
-
-          const medTypingJobs = typingJobs.filter(j => jobTypeMap.get(j.jobTypeId)?.category === "Medical");
-          const eidTypingJobs = typingJobs.filter(j => jobTypeMap.get(j.jobTypeId)?.category === "EID");
-          const medAppts = appointments.filter(a => a.type === "Medical" && a.status !== "Cancelled" && a.status !== "Rescheduled");
-          const eidAppts = appointments.filter(a => a.type === "EID" && a.status !== "Cancelled" && a.status !== "Rescheduled");
-
-          const latestMedTyping = medTypingJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-          const latestEidTyping = eidTypingJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-          const latestMedAppt = medAppts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-          const latestEidAppt = eidAppts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-          return {
-            id: wo.id,
-            woNumber: wo.woNumber,
-            applicantName: wo.applicantName,
-            companyName: company?.name || "N/A",
-            status: wo.status,
-            createdAt: wo.createdAt,
-            medicalTyping: latestMedTyping?.status || null,
-            medicalAppt: latestMedAppt?.status || null,
-            eidTyping: latestEidTyping?.status || null,
-            eidAppt: latestEidAppt?.status || null,
-          };
+          return { woId: wo.id, typingJobs, appointments };
         })
       );
+      const enrichMap = new Map(enrichments.map(e => [e.woId, e]));
+
+      const result = recent.map((wo) => {
+        const company = companyMap.get(wo.companyId);
+        const { typingJobs, appointments } = enrichMap.get(wo.id)!;
+
+        const medTypingJobs = typingJobs.filter(j => jobTypeMap.get(j.jobTypeId)?.category === "Medical");
+        const eidTypingJobs = typingJobs.filter(j => jobTypeMap.get(j.jobTypeId)?.category === "EID");
+        const medAppts = appointments.filter(a => a.type === "Medical" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+        const eidAppts = appointments.filter(a => a.type === "EID" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+
+        const latestMedTyping = medTypingJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        const latestEidTyping = eidTypingJobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        const latestMedAppt = medAppts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        const latestEidAppt = eidAppts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+        return {
+          id: wo.id,
+          woNumber: wo.woNumber,
+          applicantName: wo.applicantName,
+          companyName: company?.name || "N/A",
+          status: wo.status,
+          createdAt: wo.createdAt,
+          medicalTyping: latestMedTyping?.status || null,
+          medicalAppt: latestMedAppt?.status || null,
+          eidTyping: latestEidTyping?.status || null,
+          eidAppt: latestEidAppt?.status || null,
+        };
+      });
       res.json(result);
     } catch (error) {
       console.error("Recent work orders error:", error);
@@ -523,16 +544,7 @@ export async function registerRoutes(
 
   app.get("/api/work-orders/photos", requireAuth, async (req, res) => {
     try {
-      const allDocs = await storage.getAllWoDocuments();
-      const photoDocs = allDocs.filter(d => d.documentType === "Photo" && d.status !== "Rejected" && d.fileUrl);
-      
-      const photoMap: Record<string, string> = {};
-      for (const doc of photoDocs) {
-        if (doc.woId && doc.fileUrl && !photoMap[doc.woId]) {
-          photoMap[doc.woId] = doc.fileUrl;
-        }
-      }
-      
+      const photoMap = await storage.getWoPhotoMap();
       res.json(photoMap);
     } catch (error) {
       console.error("WO photos error:", error);
@@ -1452,14 +1464,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: `Work order ${validation.data.woNumber} already exists` });
       }
 
-      // Check for duplicate applicant (warning only, does not block creation)
-      const allWorkOrders = await storage.getWorkOrders();
-      const duplicateApplicants = allWorkOrders.filter(
-        wo =>
-          wo.applicantName.toLowerCase() === validation.data.applicantName.toLowerCase() &&
-          wo.status !== "Completed" &&
-          wo.status !== "Cancelled"
-      );
+      const duplicateCount = await storage.countDuplicateApplicants(validation.data.applicantName);
       
       const wo = await storage.createWorkOrder({
         ...validation.data,
@@ -1506,10 +1511,10 @@ export async function registerRoutes(
       }
       
       const responseData: any = { ...wo };
-      if (duplicateApplicants.length > 0) {
+      if (duplicateCount > 0) {
         responseData.duplicateWarning = {
           message: "An active work order for this applicant already exists",
-          count: duplicateApplicants.length,
+          count: duplicateCount,
         };
       }
       
@@ -2184,9 +2189,11 @@ export async function registerRoutes(
   app.put("/api/centers/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
+      const validation = validateBody(insertCenterSchema.partial(), req.body);
+      if ("error" in validation) return res.status(400).json({ message: validation.error });
       const updateData = {
-        ...req.body,
-        ...(req.body.name && { name: toProperCase(req.body.name) }),
+        ...validation.data,
+        ...(validation.data.name && { name: toProperCase(validation.data.name) }),
       };
       const center = await storage.updateCenter(id, updateData);
       if (!center) {
@@ -2486,9 +2493,11 @@ export async function registerRoutes(
   app.put("/api/service-types/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
+      const validation = validateBody(insertServiceTypeSchema.partial(), req.body);
+      if ("error" in validation) return res.status(400).json({ message: validation.error });
       const updateData = {
-        ...req.body,
-        ...(req.body.name && { name: toProperCase(req.body.name) }),
+        ...validation.data,
+        ...(validation.data.name && { name: toProperCase(validation.data.name) }),
       };
       const type = await storage.updateServiceType(id, updateData);
       if (!type) {
@@ -2575,9 +2584,11 @@ export async function registerRoutes(
   app.put("/api/job-types/:id", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;
+      const validation = validateBody(insertJobTypeSchema.partial(), req.body);
+      if ("error" in validation) return res.status(400).json({ message: validation.error });
       const updateData = {
-        ...req.body,
-        ...(req.body.name && { name: toProperCase(req.body.name) }),
+        ...validation.data,
+        ...(validation.data.name && { name: toProperCase(validation.data.name) }),
       };
       const type = await storage.updateJobType(id, updateData);
       if (!type) {
@@ -2848,9 +2859,11 @@ export async function registerRoutes(
   app.post("/api/typing-jobs/:id/comments", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
+      const validation = validateBody(insertTypingJobCommentSchema.omit({ typingJobId: true }), req.body);
+      if ("error" in validation) return res.status(400).json({ message: validation.error });
       const comment = await storage.createTypingJobComment({
         typingJobId: id,
-        ...req.body
+        ...validation.data
       });
       
       await storage.createAuditLog({
@@ -3012,17 +3025,19 @@ export async function registerRoutes(
 
   app.post("/api/files", requireAuth, async (req, res) => {
     try {
-      const file = await storage.createFile(req.body);
+      const validation = validateBody(insertFileSchema, req.body);
+      if ("error" in validation) return res.status(400).json({ message: validation.error });
+      const file = await storage.createFile(validation.data);
       
-      if (req.body.relatedType === "TypingJob") {
+      if (validation.data.relatedType === "TypingJob") {
         await storage.createAuditLog({
           entityType: "typing_job",
-          entityId: req.body.relatedId,
+          entityId: validation.data.relatedId,
           action: "file_uploaded",
           details: { 
-            fileName: req.body.fileName, 
-            direction: req.body.direction,
-            uploadedBy: req.body.uploadedByType 
+            fileName: validation.data.fileName, 
+            direction: (validation.data as any).direction,
+            uploadedBy: (validation.data as any).uploadedByType 
           },
         });
       }
@@ -3416,9 +3431,16 @@ export async function registerRoutes(
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    req.session.destroy(() => {
-      res.json({ message: "Logged out" });
-    });
+    try {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ message: "Failed to logout" });
+        }
+        res.json({ message: "Logged out" });
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to logout" });
+    }
   });
 
   app.put("/api/auth/change-password", requireAuth, async (req, res) => {
