@@ -136,11 +136,15 @@ export default function AppointmentsIndex() {
   const woTypingStatusMap = useMemo(() => {
     const map = new Map<string, WoTypingStatus>();
     if (!allTypingJobs) return map;
-    for (const job of allTypingJobs) {
+    const sorted = [...allTypingJobs]
+      .filter(j => j.status !== "Aborted")
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    for (const job of sorted) {
       const category = job.jobType?.category;
       if (!category) continue;
       const existing = map.get(job.woId) || { medical: null, eid: null };
       const track = category === "Medical" ? "medical" : "eid";
+      if (existing[track] !== null) { map.set(job.woId, existing); continue; }
       const completedStatuses = ["ReadyForScheduling", "Returned"];
       const inProgressStatuses = ["SubmittedToVendor", "InProcess"];
       let statusLabel = "Not Started";
@@ -149,7 +153,6 @@ export default function AppointmentsIndex() {
       else if (job.status === "Draft") statusLabel = "Draft";
       else if (job.status === "OnHold") statusLabel = "On Hold";
       else if (job.status === "Rejected") statusLabel = "Rejected";
-      else if (job.status === "Aborted") statusLabel = "Aborted";
       existing[track] = { status: statusLabel, completedAt: job.returnedAt };
       map.set(job.woId, existing);
     }
@@ -407,10 +410,13 @@ Thank you,
     },
   });
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const { today, tomorrow } = useMemo(() => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    const tm = new Date(t);
+    tm.setDate(tm.getDate() + 1);
+    return { today: t, tomorrow: tm };
+  }, []);
 
   const readyJobsWithoutAppointment = useMemo(() => 
     readyToScheduleJobs?.filter(j => !j.hasAppointment) || [],
@@ -520,7 +526,8 @@ Thank you,
       
       const dayApts = (appointments || []).filter(a => {
         if (typeFilter !== "all" && a.type !== typeFilter) return false;
-        if (a.status === "Cancelled" || a.status === "Rescheduled") return false;
+        if (statusFilter !== "all" && a.status !== statusFilter) return false;
+        if (statusFilter === "all" && (a.status === "Cancelled" || a.status === "Rescheduled")) return false;
         const aptDate = new Date(a.datetime);
         return aptDate >= dayStart && aptDate < dayEnd;
       }).sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
@@ -528,7 +535,7 @@ Thank you,
       days.push({ date: d, appointments: dayApts });
     }
     return days;
-  }, [calendarDate, appointments, typeFilter]);
+  }, [calendarDate, appointments, typeFilter, statusFilter]);
 
   const calendarWeekLabel = useMemo(() => {
     if (calendarWeekDays.length === 0) return "";

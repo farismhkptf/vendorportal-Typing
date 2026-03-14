@@ -55,7 +55,7 @@ const STATUS_ORDER = ["Delayed", "Draft", "Scheduled", "Completed", "Cancelled"]
 type MedEidStatus = "not_started" | "typing_pending" | "typing_sent" | "typing_returned" | "typing_done" | "appt_scheduled" | "appt_done" | "complete";
 
 function getMedicalStatus(wo: WorkOrderEnriched): { typing: string | null; appointment: string | null; hasMedical: boolean } {
-  const medTypingJobs = (wo.typingJobs || []).filter(j => j.jobType?.category === "Medical");
+  const medTypingJobs = (wo.typingJobs || []).filter(j => j.jobType?.category === "Medical" && j.status !== "Aborted");
   const medAppointments = (wo.appointments || []).filter(a => a.type === "Medical" && a.status !== "Cancelled" && a.status !== "Rescheduled");
   
   const hasMedical = medTypingJobs.length > 0 || medAppointments.length > 0;
@@ -76,7 +76,7 @@ function getMedicalStatus(wo: WorkOrderEnriched): { typing: string | null; appoi
 }
 
 function getEidStatus(wo: WorkOrderEnriched): { typing: string | null; appointment: string | null; hasEid: boolean } {
-  const eidTypingJobs = (wo.typingJobs || []).filter(j => j.jobType?.category === "EID");
+  const eidTypingJobs = (wo.typingJobs || []).filter(j => j.jobType?.category === "EID" && j.status !== "Aborted");
   const eidAppointments = (wo.appointments || []).filter(a => a.type === "EID" && a.status !== "Cancelled" && a.status !== "Rescheduled");
   
   const hasEid = eidTypingJobs.length > 0 || eidAppointments.length > 0;
@@ -106,12 +106,6 @@ function getScheduledDisplayStatus(wo: WorkOrderEnriched): string {
   if (medScheduled && eidScheduled) return "BothScheduled";
   if (medScheduled) return "MedScheduled";
   if (eidScheduled) return "EIDScheduled";
-  const st = wo.serviceType;
-  const hasMedService = st && (st.requiresMedicalTyping || st.requiresMedicalScheduling);
-  const hasEidService = st && (st.requiresIdTyping2Years || st.requiresIdTyping1Year || st.requiresIdTyping10Years || st.requiresIdBiometrics);
-  if (hasMedService && hasEidService) return "BothScheduled";
-  if (hasMedService) return "MedScheduled";
-  if (hasEidService) return "EIDScheduled";
   return "Scheduled";
 }
 
@@ -347,11 +341,13 @@ export default function WorkOrdersList() {
       const med = getMedicalStatus(wo);
       const eid = getEidStatus(wo);
 
-      if (med.hasMedical && (!med.typing || med.typing === "Draft" || med.typing === "SubmittedToVendor")) awaitingTyping++;
-      if (eid.hasEid && (!eid.typing || eid.typing === "Draft" || eid.typing === "SubmittedToVendor")) awaitingTyping++;
+      const medAwaitingTyping = med.hasMedical && (!med.typing || med.typing === "Draft" || med.typing === "SubmittedToVendor" || med.typing === "InProcess");
+      const eidAwaitingTyping = eid.hasEid && (!eid.typing || eid.typing === "Draft" || eid.typing === "SubmittedToVendor" || eid.typing === "InProcess");
+      if (medAwaitingTyping || eidAwaitingTyping) awaitingTyping++;
 
-      if (med.hasMedical && (med.typing === "ReadyForScheduling" || med.typing === "Returned") && !med.appointment) needScheduling++;
-      if (eid.hasEid && (eid.typing === "ReadyForScheduling" || eid.typing === "Returned") && !eid.appointment) needScheduling++;
+      const medNeedsScheduling = med.hasMedical && (med.typing === "ReadyForScheduling" || med.typing === "Returned") && !med.appointment;
+      const eidNeedsScheduling = eid.hasEid && (eid.typing === "ReadyForScheduling" || eid.typing === "Returned") && !eid.appointment;
+      if (medNeedsScheduling || eidNeedsScheduling) needScheduling++;
 
       if (needsAttention(wo)) attentionNeeded++;
     });

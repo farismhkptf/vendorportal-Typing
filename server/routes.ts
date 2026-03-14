@@ -422,9 +422,10 @@ export async function registerRoutes(
       let lowBalanceWarning = false;
       
       if (vendors.length > 0) {
-        walletBalance = await storage.getWalletBalance(vendors[0].id);
         const settings = await storage.getAppSettings();
-        lowBalanceWarning = walletBalance < (settings?.lowBalanceThreshold || 1000);
+        const balances = await Promise.all(vendors.map(v => storage.getWalletBalance(v.id)));
+        walletBalance = balances.reduce((sum, b) => sum + b, 0);
+        lowBalanceWarning = balances.some(b => b < (settings?.lowBalanceThreshold || 1000));
       }
 
       res.json({
@@ -555,7 +556,7 @@ export async function registerRoutes(
         });
         
         const appts = allAppointments.filter(a => {
-          const d = new Date(a.createdAt);
+          const d = new Date(a.datetime);
           return d >= dayStart && d <= dayEnd;
         });
         
