@@ -11,7 +11,8 @@ import {
   insertCenterSchema, insertServiceTypeSchema, insertJobTypeSchema, loginSchema,
   insertAppointmentSchema, insertTypingJobSchema, insertWoNoteSchema,
   insertTypingJobCommentSchema, insertFileSchema,
-  type CenterTimings, type InsertVendorNotification
+  type CenterTimings, type InsertVendorNotification,
+  type Staff, type WoDocument
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -21,6 +22,7 @@ import { WalletService } from "./wallet-service";
 import { registerExternalRoutes, hashApiKey } from "./external-routes";
 import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "./zoho-workdrive";
 import { ObjectStorageService } from "./replit_integrations/object_storage/objectStorage";
+import { buildAppointmentEmail } from "./email-templates/appointment-confirmation";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -1813,6 +1815,57 @@ export async function registerRoutes(
       }
       
       res.status(201).json(appointment);
+
+      (async () => {
+        try {
+          const wo = await storage.getWorkOrderById(appointment.woId).catch(() => undefined);
+          const comp = wo?.companyId ? await storage.getCompanyById(wo.companyId).catch(() => undefined) : undefined;
+          const st = wo?.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId).catch(() => undefined) : undefined;
+          const ctr = appointment.centerId ? await storage.getCenterById(appointment.centerId).catch(() => undefined) : undefined;
+          const guide = appointment.assignedStaffId ? await storage.getStaffById(appointment.assignedStaffId).catch(() => undefined) : undefined;
+
+          let rm: Staff | undefined;
+          let rmEmail: string | undefined;
+          if (comp?.rmStaffId) {
+            rm = await storage.getStaffById(comp.rmStaffId).catch(() => undefined);
+            if (rm?.email) rmEmail = rm.email;
+          }
+
+          let photoUrl: string | undefined;
+          if (wo) {
+            try {
+              const docs = await storage.getWoDocuments(wo.id);
+              const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
+              if (photo) photoUrl = photo.fileUrl;
+            } catch {}
+          }
+
+          let logoUrl: string | undefined;
+          try {
+            const settings = await storage.getAppSettings();
+            if (settings?.logoUrl) {
+              logoUrl = settings.logoUrl;
+            }
+          } catch {}
+
+          const html = buildAppointmentEmail({
+            workOrder: wo,
+            company: comp,
+            serviceType: st,
+            appointment,
+            center: ctr,
+            assignedStaff: guide,
+            rmStaff: rm,
+            rmUserEmail: rmEmail,
+            applicantPhotoUrl: photoUrl,
+            appLogoUrl: logoUrl,
+          });
+
+          await storage.updateAppointment(appointment.id, { emailDraft: html });
+        } catch (err) {
+          console.error("Email draft generation error:", err);
+        }
+      })();
     } catch (error) {
       console.error("Create appointment error:", error);
       res.status(500).json({ message: "Failed to create appointment" });
@@ -3291,6 +3344,74 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Seed staff error:", error);
       res.status(500).json({ message: "Failed to seed staff" });
+    }
+  });
+
+  app.get("/api/admin/email-preview/appointment/:id", requireRole("Admin"), async (req, res) => {
+    try {
+      const appointment = await storage.getAppointmentById(req.params.id);
+      if (!appointment) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+
+      const workOrder = await storage.getWorkOrderById(appointment.woId).catch(() => undefined);
+      const company = workOrder?.companyId
+        ? await storage.getCompanyById(workOrder.companyId).catch(() => undefined)
+        : undefined;
+      const serviceType = workOrder?.serviceTypeId
+        ? await storage.getServiceTypeById(workOrder.serviceTypeId).catch(() => undefined)
+        : undefined;
+      const center = appointment.centerId
+        ? await storage.getCenterById(appointment.centerId).catch(() => undefined)
+        : undefined;
+      const assignedStaff = appointment.assignedStaffId
+        ? await storage.getStaffById(appointment.assignedStaffId).catch(() => undefined)
+        : undefined;
+
+      let rmStaff: Staff | undefined;
+      let rmUserEmail: string | undefined;
+      if (company?.rmStaffId) {
+        rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => undefined);
+        if (rmStaff?.email) {
+          rmUserEmail = rmStaff.email;
+        }
+      }
+
+      let applicantPhotoUrl: string | undefined;
+      if (workOrder) {
+        try {
+          const docs = await storage.getWoDocuments(workOrder.id);
+          const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
+          if (photo) applicantPhotoUrl = photo.fileUrl;
+        } catch {}
+      }
+
+      let appLogoUrl: string | undefined;
+      try {
+        const settings = await storage.getAppSettings();
+        if (settings?.logoUrl) {
+          appLogoUrl = settings.logoUrl;
+        }
+      } catch {}
+
+      const html = buildAppointmentEmail({
+        workOrder,
+        company,
+        serviceType,
+        appointment,
+        center,
+        assignedStaff,
+        rmStaff,
+        rmUserEmail,
+        applicantPhotoUrl,
+        appLogoUrl,
+      });
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(html);
+    } catch (error) {
+      console.error("Email preview error:", error);
+      res.status(500).json({ message: "Failed to generate email preview" });
     }
   });
 

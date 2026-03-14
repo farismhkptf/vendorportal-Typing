@@ -91,6 +91,7 @@ export interface IStorage {
   activateWorkOrder(id: string, isMinor: boolean): Promise<WorkOrder | undefined>;
   
   // Appointments
+  getAppointmentById(id: string): Promise<Appointment | undefined>;
   getAppointmentsByWoId(woId: string): Promise<Appointment[]>;
   getAppointmentsByWoIds(woIds: string[]): Promise<Appointment[]>;
   getAppointmentByToken(token: string): Promise<Appointment | undefined>;
@@ -592,6 +593,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Appointments
+  async getAppointmentById(id: string): Promise<Appointment | undefined> {
+    const [apt] = await db.select().from(appointments).where(eq(appointments.id, id));
+    return apt || undefined;
+  }
+
   async getAppointmentsByWoId(woId: string): Promise<Appointment[]> {
     return db.select().from(appointments).where(eq(appointments.woId, woId));
   }

@@ -497,6 +497,7 @@ export const appSettings = pgTable("app_settings", {
   termsOfServiceHtml: text("terms_of_service_html"),
   followUpCenter: text("follow_up_center"),
   vendorDelayThresholdHours: integer("vendor_delay_threshold_hours").notNull().default(48),
+  logoUrl: text("logo_url"),
 });
 
 // Change notifications table (manager edits for admin review)

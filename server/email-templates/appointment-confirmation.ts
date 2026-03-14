@@ -1,10 +1,227 @@
-<!DOCTYPE html>
+import type { WorkOrder, Company, ServiceType, Appointment, Center, Staff } from "@shared/schema";
 
+export interface AppointmentEmailData {
+  workOrder?: WorkOrder;
+  company?: Company;
+  serviceType?: ServiceType;
+  appointment: Appointment;
+  center?: Center;
+  assignedStaff?: Staff;
+  rmStaff?: Staff;
+  rmUserEmail?: string;
+  applicantPhotoUrl?: string;
+  appLogoUrl?: string;
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getInitials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase())
+    .slice(0, 2)
+    .join("");
+}
+
+function formatDateTimeParts(dt: Date): { dateStr: string; timeStr: string; dayNum: string } {
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  const day = dt.getDate();
+  const month = months[dt.getMonth()];
+  const year = dt.getFullYear();
+  let hours = dt.getHours();
+  const mins = dt.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  return {
+    dateStr: `${day} ${month} ${year}`,
+    timeStr: `${hours}:${mins} ${ampm}`,
+    dayNum: String(day),
+  };
+}
+
+function toUtcIso(dt: Date): string {
+  return dt.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+function buildGoogleCalendarUrl(
+  title: string,
+  dt: Date,
+  location: string,
+): string {
+  const start = toUtcIso(dt);
+  const end = toUtcIso(new Date(dt.getTime() + 60 * 60 * 1000));
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${start}/${end}`,
+    location,
+    details: `Appointment scheduled by Keystone Business Solutions`,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function buildIcsDataUri(
+  title: string,
+  dt: Date,
+  location: string,
+): string {
+  const start = toUtcIso(dt);
+  const end = toUtcIso(new Date(dt.getTime() + 60 * 60 * 1000));
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Keystone//Appointment//EN",
+    "BEGIN:VEVENT",
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${title}`,
+    `LOCATION:${location}`,
+    "DESCRIPTION:Appointment scheduled by Keystone Business Solutions",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+  return `data:text/calendar;charset=utf-8,${encodeURIComponent(ics)}`;
+}
+
+function buildOutlookUrl(
+  title: string,
+  dt: Date,
+  location: string,
+): string {
+  const start = dt.toISOString();
+  const end = new Date(dt.getTime() + 60 * 60 * 1000).toISOString();
+  const params = new URLSearchParams({
+    rru: "addevent",
+    startdt: start,
+    enddt: end,
+    subject: title,
+    location,
+    body: "Appointment scheduled by Keystone Business Solutions",
+    path: "/calendar/action/compose",
+  });
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${params.toString()}`;
+}
+
+export function buildAppointmentEmail(data: AppointmentEmailData): string {
+  const {
+    workOrder,
+    company,
+    serviceType,
+    appointment,
+    center,
+    assignedStaff,
+    rmStaff,
+    rmUserEmail,
+    applicantPhotoUrl,
+    appLogoUrl,
+  } = data;
+
+  const applicantName = workOrder?.applicantName ?? "—";
+  const companyName = company?.name ?? "—";
+  const serviceTypeName = serviceType?.name ?? "—";
+  const woNumber = workOrder?.woNumber ?? "—";
+  const appointmentType = appointment.type ?? "Medical";
+  const emailTitle = `${appointmentType} Test Confirmed – Keystone Business Solutions`;
+
+  const dt = new Date(appointment.datetime);
+  const isValidDate = !isNaN(dt.getTime());
+  const { dateStr, timeStr, dayNum } = isValidDate
+    ? formatDateTimeParts(dt)
+    : { dateStr: "—", timeStr: "", dayNum: "?" };
+
+  const centerName = center?.name ?? "—";
+  const centerAddress = center?.address ?? "";
+  const mapsUrl = center?.googleMapsUrl ?? `https://www.google.com/maps/search/${encodeURIComponent(centerName + " " + centerAddress)}`;
+  const applicationNumber = appointment.applicationNumber ?? "";
+
+  const calTitle = `${appointmentType} Appointment – ${applicantName}`;
+  const calLocation = centerAddress || centerName;
+  const googleCalUrl = isValidDate ? buildGoogleCalendarUrl(calTitle, dt, calLocation) : "#";
+  const icsUrl = isValidDate ? buildIcsDataUri(calTitle, dt, calLocation) : "#";
+  const outlookUrl = isValidDate ? buildOutlookUrl(calTitle, dt, calLocation) : "#";
+
+  const initials = getInitials(applicantName);
+  const guideName = assignedStaff?.name ?? "";
+  const guideInitials = guideName ? getInitials(guideName) : "";
+  const guidePhone = assignedStaff?.phone ?? "";
+
+  const rmName = rmStaff?.name ?? "";
+  const rmPhone = rmStaff?.phone ?? "";
+  const rmEmail = rmUserEmail ?? rmStaff?.email ?? "";
+
+  const logoBlock = appLogoUrl
+    ? `<img src="${escapeHtml(appLogoUrl)}" alt="Logo" style="width:34px;height:34px;border-radius:8px;flex-shrink:0;margin-right:12px;" />`
+    : `<div class="logo">K</div>`;
+
+  const avatarBlock = applicantPhotoUrl
+    ? `<img src="${escapeHtml(applicantPhotoUrl)}" alt="${escapeHtml(applicantName)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid #ffffff;box-shadow:0 3px 12px rgba(0,0,0,0.08);" />`
+    : `<div class="avatar avatar-a">${escapeHtml(initials)}</div>`;
+
+  const applicationNumberBlock = applicationNumber
+    ? `<div class="appt-divider"></div>
+        <div class="appt-ref-row">
+            <div class="data-label" style="margin-bottom:0;">${escapeHtml(appointmentType)} Application</div>
+            <div class="appt-ref-value">${escapeHtml(applicationNumber)}</div>
+        </div>`
+    : "";
+
+  const guideSection = guideName
+    ? `<div class="section-heading">Your On-Site Guide</div>
+    <div class="guide-row">
+        <div class="avatar avatar-s">${escapeHtml(guideInitials)}</div>
+        <div class="guide-info">
+            <div class="guide-name">${escapeHtml(guideName)} <span class="guide-role-inline">· On-Site Support</span></div>
+            ${guidePhone ? `<div class="guide-phone">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:4px;opacity:0.4"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z" fill="currentColor"/></svg>
+                <a href="tel:${escapeHtml(guidePhone)}">${escapeHtml(guidePhone)}</a>
+            </div>` : ""}
+            <div class="guide-description">Our on-site support will meet your employee on site and guide them through the entire process. All required documentation will be checked, registration will be completed, and the queue will be managed on their behalf.</div>
+        </div>
+    </div>`
+    : "";
+
+  const rescheduleSection = (() => {
+    if (!rmName && !rmPhone && !rmEmail) return "";
+    const parts: string[] = [];
+    if (rmName) parts.push(`<span class="reschedule-rm-name">${escapeHtml(rmName)}</span>`);
+    if (rmPhone) {
+      if (parts.length) parts.push(`<span class="reschedule-rm-dot"></span>`);
+      parts.push(`<a href="tel:${escapeHtml(rmPhone)}" class="reschedule-rm-link">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:3px;opacity:0.4"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z" fill="currentColor"/></svg>${escapeHtml(rmPhone)}
+            </a>`);
+    }
+    if (rmEmail) {
+      if (parts.length) parts.push(`<span class="reschedule-rm-dot"></span>`);
+      parts.push(`<a href="mailto:${escapeHtml(rmEmail)}" class="reschedule-rm-link">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:3px;opacity:0.4"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/></svg>${escapeHtml(rmEmail)}
+            </a>`);
+    }
+    return `<div class="reschedule-box">
+        <div class="reschedule-text">
+            <strong>Need to reschedule?</strong> Contact your Relationship Manager and we'll arrange a new slot at no cost.
+        </div>
+        <div class="reschedule-rm">
+            ${parts.join("\n            ")}
+        </div>
+    </div>`;
+  })();
+
+  return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical Test Confirmed – First Edge Technologies</title>
+    <title>${escapeHtml(emailTitle)}</title>
     <style>
     :root {
         --black:        #1d1d1f;
@@ -36,7 +253,6 @@
         padding: 32px 20px;
     }
 
-    /* ── SHELL ── */
     .email {
         max-width: 680px;
         margin: 0 auto;
@@ -48,7 +264,6 @@
 
     .content { padding: 52px 48px 52px; }
 
-    /* ── HEADER ── */
     .header {
         display: flex;
         align-items: center;
@@ -85,7 +300,6 @@
         margin-top: 2px;
     }
 
-    /* ── HERO ── */
     .company {
         font-size: 30px;
         font-weight: 600;
@@ -103,7 +317,6 @@
         margin-bottom: 32px;
     }
 
-    /* ── APPLICANT ROW ── */
     .applicant-row {
         display: flex;
         align-items: center;
@@ -159,7 +372,6 @@
         flex-shrink: 0;
     }
 
-    /* ── APPOINTMENT CARD ── */
     .appt-card {
         background: var(--card);
         border: 1px solid var(--border);
@@ -258,7 +470,6 @@
         letter-spacing: 0.04em;
     }
 
-    /* ── SECTION HEADING ── */
     .section-heading {
         font-size: 10px;
         font-weight: 600;
@@ -269,7 +480,6 @@
         margin-bottom: 16px;
     }
 
-    /* ── GUIDE ── */
     .guide-row {
         display: flex;
         align-items: flex-start;
@@ -319,7 +529,6 @@
         letter-spacing: 0.005em;
     }
 
-    /* ── BEFORE YOU GO ── */
     .notice-card {
         background: var(--card);
         border: 1px solid var(--border);
@@ -348,7 +557,6 @@
         opacity: 0.4;
     }
 
-    /* ── AFTER APPOINTMENT ── */
     .after-text {
         font-size: 14px;
         font-weight: 400;
@@ -357,7 +565,6 @@
         letter-spacing: 0.005em;
     }
 
-    /* ── RESCHEDULE ── */
     .reschedule-box {
         background: var(--card);
         border: 1px solid var(--border);
@@ -412,7 +619,6 @@
 
     .reschedule-rm-link:hover { color: var(--black); border-color: var(--black); }
 
-    /* ── FOOTER ── */
     .footer {
         margin-top: 48px;
         padding-top: 24px;
@@ -459,7 +665,6 @@
         letter-spacing: 0.015em;
     }
 
-    /* ── MOBILE ── */
     @media only screen and (max-width: 600px) {
         .content          { padding: 36px 24px 40px; }
         .company          { font-size: 26px; }
@@ -469,7 +674,6 @@
         .appt-datetime-row { flex-direction: column; align-items: flex-start; gap: 10px; }
     }
 
-    /* ── DARK MODE ── */
     @media (prefers-color-scheme: dark) {
         body  { background: #000; }
         .email { background: #1c1c1e; box-shadow: 0 20px 48px -8px rgba(0,0,0,0.5); }
@@ -510,8 +714,7 @@
         .avatar-a { background: #1e3a8a; color: #93c5fd; }
         .avatar-s { background: #14532d; color: #86efac; }
     }
-
-</style>
+    </style>
 </head>
 <body>
 <div class="email">
@@ -519,7 +722,7 @@
 
     <!-- HEADER -->
     <div class="header">
-        <div class="logo">K</div>
+        ${logoBlock}
         <div>
             <div class="brand-name">Keystone Business Solutions</div>
             <div class="brand-tagline">Everything. In Order.</div>
@@ -527,20 +730,20 @@
     </div>
 
     <!-- HERO -->
-    <div class="company">First Edge Technologies</div>
-    <div class="service-type">Medical Test Appointment</div>
+    <div class="company">${escapeHtml(companyName)}</div>
+    <div class="service-type">${escapeHtml(appointmentType)} Test Appointment</div>
 
     <!-- APPLICANT -->
     <div class="applicant-row">
-        <div class="avatar avatar-a">AS</div>
+        ${avatarBlock}
         <div>
-            <div class="applicant-name">Amira Saleh</div>
+            <div class="applicant-name">${escapeHtml(applicantName)}</div>
             <div class="applicant-meta">
                 Applicant
                 <span class="meta-dot"></span>
-                New Employment Visa
+                ${escapeHtml(serviceTypeName)}
                 <span class="meta-dot"></span>
-                F26332
+                ${escapeHtml(woNumber)}
             </div>
         </div>
     </div>
@@ -551,9 +754,9 @@
         <div class="appt-block">
             <div class="data-label">Date &amp; Time</div>
             <div class="appt-datetime-row">
-                <div class="appt-datetime">12 March 2026 &nbsp;·&nbsp; 11:00 AM</div>
+                <div class="appt-datetime">${escapeHtml(dateStr)} &nbsp;&middot;&nbsp; ${escapeHtml(timeStr)}</div>
                 <div class="calendar-icons">
-                    <a href="#" class="calendar-icon" title="Add to Google Calendar">
+                    <a href="${escapeHtml(googleCalUrl)}" class="calendar-icon" title="Add to Google Calendar">
                         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="3" y="4" width="18" height="17" rx="2" fill="white" stroke="#dadce0"/>
                             <rect x="3" y="4" width="18" height="5" rx="2" fill="#4285F4"/>
@@ -563,17 +766,17 @@
                             <path d="M10 14.5L11.5 16L14.5 13" stroke="#34A853" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </a>
-                    <a href="#" class="calendar-icon" title="Add to Apple Calendar">
+                    <a href="${escapeHtml(icsUrl)}" class="calendar-icon" title="Add to Apple Calendar" download="appointment.ics">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <rect x="3" y="4" width="18" height="17" rx="2.5" fill="white" stroke="#d1d1d6" stroke-width="1"/>
                             <rect x="3" y="4" width="18" height="6" rx="2.5" fill="#ff3b30"/>
                             <rect x="3" y="8" width="18" height="2" fill="#ff3b30"/>
                             <rect x="7.5" y="2.5" width="1.5" height="3.5" rx="0.75" fill="#5e5e6a"/>
                             <rect x="15" y="2.5" width="1.5" height="3.5" rx="0.75" fill="#5e5e6a"/>
-                            <text x="12" y="18" font-size="7" fill="#1d1d1f" text-anchor="middle" font-family="-apple-system,sans-serif" font-weight="600">12</text>
+                            <text x="12" y="18" font-size="7" fill="#1d1d1f" text-anchor="middle" font-family="-apple-system,sans-serif" font-weight="600">${escapeHtml(dayNum)}</text>
                         </svg>
                     </a>
-                    <a href="#" class="calendar-icon" title="Add to Outlook">
+                    <a href="${escapeHtml(outlookUrl)}" class="calendar-icon" title="Add to Outlook">
                         <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <rect x="9" y="3" width="13" height="13" rx="1.5" fill="#0078D4"/>
                             <rect x="9" y="3" width="13" height="4" rx="1.5" fill="#005fa3"/>
@@ -592,33 +795,16 @@
 
         <div class="appt-block">
             <div class="data-label">Location</div>
-            <div class="appt-location-name">Karama Medical Fitness Center</div>
-            <div class="appt-location-address">Fajer Building, 25, 24 Street, Al Karama, Bur Dubai</div>
-            <a href="#" class="map-link">View on Google Maps ↗</a>
+            <div class="appt-location-name">${escapeHtml(centerName)}</div>
+            ${centerAddress ? `<div class="appt-location-address">${escapeHtml(centerAddress)}</div>` : ""}
+            <a href="${escapeHtml(mapsUrl)}" class="map-link">View on Google Maps &#8599;</a>
         </div>
 
-        <div class="appt-divider"></div>
-
-        <div class="appt-ref-row">
-            <div class="data-label" style="margin-bottom:0;">Medical Application</div>
-            <div class="appt-ref-value">MED-2412-089456</div>
-        </div>
+        ${applicationNumberBlock}
 
     </div>
 
-    <!-- YOUR ON-SITE GUIDE -->
-    <div class="section-heading">Your On-Site Guide</div>
-    <div class="guide-row">
-        <div class="avatar avatar-s">SH</div>
-        <div class="guide-info">
-            <div class="guide-name">Shahul Hameed <span class="guide-role-inline">· On-Site Support</span></div>
-            <div class="guide-phone">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:4px;opacity:0.4"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z" fill="currentColor"/></svg>
-                <a href="tel:+971568115077">+971 56 811 5077</a>
-            </div>
-            <div class="guide-description">Our on-site support will meet your employee on site and guide them through the entire process. All required documentation will be checked, registration will be completed, and the queue will be managed on their behalf.</div>
-        </div>
-    </div>
+    ${guideSection}
 
     <!-- BEFORE YOU GO -->
     <div class="section-heading">Before You Go</div>
@@ -644,34 +830,18 @@
     <div class="section-heading">After the Appointment</div>
     <div class="after-text">Results are shared within 24 hours. We handle everything that follows — no action needed on your end.</div>
 
-    <!-- RESCHEDULE -->
-    <div class="reschedule-box">
-        <div class="reschedule-text">
-            <strong>Need to reschedule?</strong> Contact your Relationship Manager and we'll arrange a new slot at no cost.
-        </div>
-        <div class="reschedule-rm">
-            <span class="reschedule-rm-name">Yasin Aboo</span>
-            <span class="reschedule-rm-dot"></span>
-            <a href="tel:+971566008833" class="reschedule-rm-link">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:3px;opacity:0.4"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z" fill="currentColor"/></svg>+971 56 600 8833
-            </a>
-            <span class="reschedule-rm-dot"></span>
-            <a href="mailto:yasin@procompany.ae" class="reschedule-rm-link">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" style="display:inline;vertical-align:middle;margin-right:3px;opacity:0.4"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/></svg>yasin@procompany.ae
-            </a>
-        </div>
-    </div>
+    ${rescheduleSection}
 
     <!-- FOOTER -->
     <div class="footer">
-        <div class="footer-brand"><a href="https://www.procompany.ae">The P.R.O. Company™</a></div>
+        <div class="footer-brand"><a href="https://www.procompany.ae">Keystone Business Solutions</a></div>
         <div class="footer-divider"></div>
         <div class="footer-powered">Powered by <a href="https://www.procompany.ae">Keystone Business Solutions</a></div>
-        <div class="footer-legal">© 2026 The P.R.O. Company™. All rights reserved.</div>
+        <div class="footer-legal">&copy; ${new Date().getFullYear()} Keystone Business Solutions. All rights reserved.</div>
     </div>
 
 </div>
-
 </div>
 </body>
-</html>
+</html>`;
+}
