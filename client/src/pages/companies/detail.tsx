@@ -207,10 +207,27 @@ export default function CompanyDetail() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="px-4 lg:px-6 pt-4 pb-8 space-y-6">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-40 rounded-2xl" />
-          <Skeleton className="h-40 rounded-2xl" />
+        <PageHeader
+          title="Loading company…"
+          breadcrumbs={[{ label: "Companies", href: "/companies" }]}
+        />
+        <div className="px-4 lg:px-6 pb-8 space-y-6">
+          <div className="premium-card p-4 space-y-4">
+            <Skeleton className="h-5 w-1/3" />
+            <div className="grid md:grid-cols-2 gap-4">
+              <Skeleton className="h-10 rounded-lg" />
+              <Skeleton className="h-10 rounded-lg" />
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <Skeleton className="h-10 rounded-lg" />
+              <Skeleton className="h-10 rounded-lg" />
+            </div>
+          </div>
+          <div className="premium-card p-4 space-y-4">
+            <Skeleton className="h-5 w-1/4" />
+            <Skeleton className="h-10 rounded-lg" />
+            <Skeleton className="h-10 rounded-lg" />
+          </div>
         </div>
       </AppLayout>
     );

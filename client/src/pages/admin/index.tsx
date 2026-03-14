@@ -5592,7 +5592,15 @@ function ChangeLogTab() {
     },
   });
 
-  if (isLoading) return <div className="py-8 text-center text-muted-foreground">Loading...</div>;
+  if (isLoading) return (
+    <div className="py-6 space-y-4">
+      <Skeleton className="h-6 w-48" />
+      <div className="space-y-3">
+        <Skeleton className="h-16 rounded-xl" />
+        <Skeleton className="h-16 rounded-xl" />
+      </div>
+    </div>
+  );
 
   const pending = notifications.filter((n: any) => n.status === "pending");
   const reviewed = notifications.filter((n: any) => n.status !== "pending");
