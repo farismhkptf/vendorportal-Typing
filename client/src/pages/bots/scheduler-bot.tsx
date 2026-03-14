@@ -492,10 +492,12 @@ Thank you,
       setPreviewHtml("");
       return;
     }
+    const controller = new AbortController();
     const datetime = aptDate && aptTime ? `${aptDate}T${aptTime}:00` : undefined;
     fetch("/api/appointments/email-preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         woId: selectedWO.id,
         centerId: selectedCenter?.id || undefined,
@@ -507,7 +509,12 @@ Thank you,
     })
       .then(r => r.ok ? r.text() : Promise.reject())
       .then(html => setPreviewHtml(html))
-      .catch(() => {});
+      .catch((err) => {
+        if (err?.name !== "AbortError") {
+          toast({ title: "Preview unavailable", description: "Could not load email preview.", variant: "destructive" });
+        }
+      });
+    return () => controller.abort();
   }, [step, selectedWO, selectedCenter, appointmentType, aptDate, aptTime, appNumber]);
 
   const handleSend = useCallback(() => {

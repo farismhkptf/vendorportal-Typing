@@ -270,9 +270,11 @@ Thank you,
       setViewEmailPreviewHtml(viewMessagesApt.emailDraft);
       return;
     }
+    const controller = new AbortController();
     fetch("/api/appointments/email-preview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: controller.signal,
       body: JSON.stringify({
         woId: viewMessagesApt.woId,
         centerId: viewMessagesApt.centerId || undefined,
@@ -284,7 +286,12 @@ Thank you,
     })
       .then(r => r.ok ? r.text() : Promise.reject())
       .then(html => setViewEmailPreviewHtml(html))
-      .catch(() => {});
+      .catch((err) => {
+        if (err?.name !== "AbortError") {
+          toast({ title: "Preview unavailable", description: "Could not load email preview.", variant: "destructive" });
+        }
+      });
+    return () => controller.abort();
   }, [viewMessagesApt]);
 
   const handleCopyViewMessage = async (type: "email" | "whatsapp") => {
