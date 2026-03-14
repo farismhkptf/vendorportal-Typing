@@ -134,6 +134,42 @@ function validateBody<T>(schema: z.ZodSchema<T>, body: unknown): { data: T } | {
   return { data: result.data };
 }
 
+const loginRateMap = new Map<string, { count: number; resetAt: number; blockedUntil: number }>();
+const LOGIN_RATE_LIMIT = 5;
+const LOGIN_RATE_WINDOW = 60 * 1000;
+const LOGIN_BLOCK_DURATION = 5 * 60 * 1000;
+
+function loginRateLimit(req: any, res: any, next: any) {
+  const ip = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown';
+  const now = Date.now();
+  const entry = loginRateMap.get(ip);
+
+  if (entry && now < entry.blockedUntil) {
+    const retryAfter = Math.ceil((entry.blockedUntil - now) / 1000);
+    return res.status(429).json({ message: `Too many login attempts. Try again in ${retryAfter} seconds.` });
+  }
+
+  if (entry && now > entry.resetAt) {
+    loginRateMap.delete(ip);
+  }
+
+  next();
+}
+
+function recordFailedLogin(ip: string) {
+  const now = Date.now();
+  const entry = loginRateMap.get(ip) || { count: 0, resetAt: now + LOGIN_RATE_WINDOW, blockedUntil: 0 };
+  entry.count++;
+  if (entry.count >= LOGIN_RATE_LIMIT) {
+    entry.blockedUntil = now + LOGIN_BLOCK_DURATION;
+  }
+  loginRateMap.set(ip, entry);
+}
+
+function clearFailedLogins(ip: string) {
+  loginRateMap.delete(ip);
+}
+
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function validateEmailField(email: string | null | undefined): boolean {
   if (!email || email.trim() === "") return true;
@@ -3331,7 +3367,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", loginRateLimit, async (req, res) => {
     try {
       const validation = validateBody(loginSchema, req.body);
       if ('error' in validation) {
@@ -3341,12 +3377,15 @@ export async function registerRoutes(
       const { email, password } = validation.data;
       const user = await storage.getUserByEmail(email);
       
+      const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown';
+
       if (!user || !user.active) {
+        recordFailedLogin(clientIp);
         await storage.createLoginAuditEntry({
           userId: null,
           email,
           success: false,
-          ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+          ipAddress: clientIp,
           userAgent: req.headers['user-agent'] || 'unknown',
           portal: 'team',
         });
@@ -3365,11 +3404,12 @@ export async function registerRoutes(
       }
 
       if (!isValid) {
+        recordFailedLogin(clientIp);
         await storage.createLoginAuditEntry({
           userId: user.id,
           email,
           success: false,
-          ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+          ipAddress: clientIp,
           userAgent: req.headers['user-agent'] || 'unknown',
           portal: 'team',
         });
@@ -3380,11 +3420,12 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Please use the vendor portal" });
       }
 
+      clearFailedLogins(clientIp);
       await storage.createLoginAuditEntry({
         userId: user.id,
         email,
         success: true,
-        ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+        ipAddress: clientIp,
         userAgent: req.headers['user-agent'] || 'unknown',
         portal: 'team',
       });
@@ -3958,7 +3999,7 @@ export async function registerRoutes(
   });
 
   // ========== Vendor Portal ==========
-  app.post("/api/vendor/auth/login", async (req, res) => {
+  app.post("/api/vendor/auth/login", loginRateLimit, async (req, res) => {
     try {
       const validation = validateBody(vendorLoginSchema, req.body);
       if ('error' in validation) {
@@ -3967,13 +4008,15 @@ export async function registerRoutes(
       
       const { username, password } = validation.data;
       const user = await storage.getUserByEmail(username);
+      const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown';
       
       if (!user || user.role !== "Vendor") {
+        recordFailedLogin(clientIp);
         await storage.createLoginAuditEntry({
           userId: null,
           email: username,
           success: false,
-          ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+          ipAddress: clientIp,
           userAgent: req.headers['user-agent'] || 'unknown',
           portal: 'vendor',
         });
@@ -3982,22 +4025,24 @@ export async function registerRoutes(
 
       const validPassword = await bcrypt.compare(password, user.passwordHash);
       if (!validPassword) {
+        recordFailedLogin(clientIp);
         await storage.createLoginAuditEntry({
           userId: user.id,
           email: username,
           success: false,
-          ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+          ipAddress: clientIp,
           userAgent: req.headers['user-agent'] || 'unknown',
           portal: 'vendor',
         });
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
+      clearFailedLogins(clientIp);
       await storage.createLoginAuditEntry({
         userId: user.id,
         email: username,
         success: true,
-        ipAddress: req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown',
+        ipAddress: clientIp,
         userAgent: req.headers['user-agent'] || 'unknown',
         portal: 'vendor',
       });
@@ -4610,6 +4655,14 @@ export async function registerRoutes(
   app.post("/api/vendor/jobs/:id/files", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
+      const vendorId = req.session.vendorId;
+      if (!vendorId) return res.status(403).json({ message: "Forbidden" });
+
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== vendorId) {
+        return res.status(403).json({ message: "You do not have access to this job" });
+      }
+
       const validation = validateBody(vendorFileSchema, req.body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
@@ -4687,6 +4740,14 @@ export async function registerRoutes(
   app.post("/api/vendor/jobs/:id/comments", requireVendorAuth, async (req, res) => {
     try {
       const jobId = req.params.id;
+      const vendorId = req.session.vendorId;
+      if (!vendorId) return res.status(403).json({ message: "Forbidden" });
+
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== vendorId) {
+        return res.status(403).json({ message: "You do not have access to this job" });
+      }
+
       const validation = validateBody(vendorCommentSchema, req.body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });

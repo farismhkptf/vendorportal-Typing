@@ -55,14 +55,21 @@ app.use(
       pool: pool as any,
       createTableIfMissing: true,
     }),
-    secret: process.env.SESSION_SECRET || "pro-company-portal-secret-2026",
+    secret: (() => {
+      const s = process.env.SESSION_SECRET;
+      if (!s && process.env.NODE_ENV === 'production') {
+        throw new Error("SESSION_SECRET environment variable is required in production");
+      }
+      return s || "pro-company-portal-secret-2026";
+    })(),
     resave: false,
     saveUninitialized: false,
+    name: "pro.sid",
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === 'production' ? "strict" : "lax",
     },
   })
 );
@@ -76,6 +83,24 @@ export function log(message: string, source = "express") {
   });
 
   console.log(`${formattedTime} [${source}] ${message}`);
+}
+
+const SENSITIVE_FIELDS = new Set(["password", "passwordHash", "currentPassword", "newPassword", "masterPassword", "pin", "managerPin", "secret", "token", "refreshToken", "key", "apiKey", "accessToken", "authorization"]);
+
+function sanitizeForLog(obj: any): any {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForLog);
+  const sanitized: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (SENSITIVE_FIELDS.has(key)) {
+      sanitized[key] = "***";
+    } else if (typeof value === "object" && value !== null) {
+      sanitized[key] = sanitizeForLog(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
 }
 
 app.use((req, res, next) => {
@@ -94,7 +119,7 @@ app.use((req, res, next) => {
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        logLine += ` :: ${JSON.stringify(sanitizeForLog(capturedJsonResponse))}`;
       }
 
       log(logLine);
