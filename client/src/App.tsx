@@ -8,6 +8,7 @@ import { PageTransition } from "@/components/ui/page-transition";
 import NotFound from "@/pages/not-found";
 import AccessDenied from "@/pages/access-denied";
 import { CommandPalette } from "@/components/command-palette";
+import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { MobileBottomNav } from "@/components/mobile-nav";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { VendorAuthProvider, useVendorAuth } from "@/hooks/use-vendor-auth";
@@ -314,9 +315,11 @@ function App() {
             <AuthProvider>
               <SplashOverlay />
               <CommandPalette />
-              <MobileBottomNav />
-              <Toaster />
-              <Router />
+              <KeyboardShortcutsModal>
+                <MobileBottomNav />
+                <Toaster />
+                <Router />
+              </KeyboardShortcutsModal>
             </AuthProvider>
           </TooltipProvider>
         </ThemeProvider>

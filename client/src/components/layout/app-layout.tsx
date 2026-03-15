@@ -15,7 +15,8 @@ import {
   BarChart3,
   KeyRound,
   Clock,
-  Shield
+  Shield,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ import { useTheme } from "@/hooks/use-theme";
 import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 import { InstallPromptBanner } from "@/components/install-prompt-banner";
+import { useOpenShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -60,6 +62,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useSwipeBack();
+  const openShortcuts = useOpenShortcutsModal();
 
   const mainRef = useRef<HTMLDivElement>(null);
   const [scrolled, setScrolled] = useState(false);
@@ -225,6 +228,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                   Ctrl Space
                 </kbd>
               </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl text-muted-foreground"
+                onClick={openShortcuts}
+                data-testid="button-keyboard-shortcuts"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
               <ThemeSwitcher compact />
               <StaffNotificationsBell />
               <NotificationsBell />
