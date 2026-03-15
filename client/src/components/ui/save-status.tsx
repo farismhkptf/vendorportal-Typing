@@ -7,6 +7,7 @@ interface SaveStatusIndicatorProps {
   status: SaveStatus;
   className?: string;
   showText?: boolean;
+  onRetry?: () => void;
 }
 
 const statusConfig: Record<SaveStatus, { icon: typeof Cloud; text: string; className: string; animate?: boolean }> = {
@@ -33,14 +34,28 @@ const statusConfig: Record<SaveStatus, { icon: typeof Cloud; text: string; class
   },
 };
 
-export function SaveStatusIndicator({ status, className, showText = true }: SaveStatusIndicatorProps) {
+export function SaveStatusIndicator({ status, className, showText = true, onRetry }: SaveStatusIndicatorProps) {
   const config = statusConfig[status];
   const Icon = config.icon;
 
+  const isClickable = status === "error" && onRetry;
+
   return (
-    <div className={cn("flex items-center gap-1.5 text-sm", config.className, className)}>
+    <div
+      className={cn(
+        "flex items-center gap-1.5 text-sm",
+        config.className,
+        isClickable && "cursor-pointer hover:underline",
+        className,
+      )}
+      onClick={isClickable ? onRetry : undefined}
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") onRetry?.(); } : undefined}
+      data-testid="save-status-indicator"
+    >
       <Icon className={cn("h-4 w-4", config.animate && "animate-spin")} />
-      {showText && <span>{config.text}</span>}
+      {showText && <span>{status === "error" && onRetry ? "Error — click to retry" : config.text}</span>}
     </div>
   );
 }

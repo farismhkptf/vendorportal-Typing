@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute, Link, useLocation } from "wouter";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toProperCase } from "@/lib/proper-case";
@@ -70,6 +70,8 @@ import { DocumentPanel } from "@/components/documents/document-panel";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { CopyableText } from "@/components/ui/copy-button";
 import { Badge } from "@/components/ui/badge";
+import { SaveStatusIndicator } from "@/components/ui/save-status";
+import { useAutosave } from "@/hooks/use-autosave";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Eye } from "lucide-react";
 
@@ -1147,6 +1149,23 @@ export default function WorkOrderDetail() {
     },
   });
 
+  const watchedValues = useWatch({ control: form.control });
+
+  const handleAutosave = useCallback(async (data: EditWorkOrderForm) => {
+    const valid = editWorkOrderSchema.safeParse(data);
+    if (!valid.success) throw new Error("Validation failed");
+    await apiRequest("PUT", `/api/work-orders/${id}`, valid.data);
+    queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+    queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+  }, [id]);
+
+  const { status: autosaveStatus, retry: autosaveRetry, resetBaseline: resetAutosaveBaseline, flush: flushAutosave } = useAutosave({
+    data: watchedValues as EditWorkOrderForm,
+    onSave: handleAutosave,
+    debounceMs: 1500,
+    enabled: editDialogOpen,
+  });
+
   const updateMutation = useMutation({
     mutationFn: async (data: EditWorkOrderForm) => {
       return apiRequest("PUT", `/api/work-orders/${id}`, data);
@@ -1178,7 +1197,7 @@ export default function WorkOrderDetail() {
 
   const handleOpenEdit = () => {
     if (workOrder) {
-      form.reset({
+      const values = {
         woNumber: workOrder.woNumber,
         applicantName: workOrder.applicantName,
         applicantPhone: workOrder.applicantPhone || "",
@@ -1188,7 +1207,9 @@ export default function WorkOrderDetail() {
         serviceTypeId: workOrder.serviceTypeId || "",
         status: workOrder.status,
         notes: workOrder.notes || "",
-      });
+      };
+      form.reset(values);
+      resetAutosaveBaseline(values);
       setEditDialogOpen(true);
     }
   };
@@ -1824,10 +1845,16 @@ export default function WorkOrderDetail() {
       </div>
 
       {/* Edit Work Order Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+      <Dialog open={editDialogOpen} onOpenChange={async (open) => {
+        if (!open) await flushAutosave();
+        setEditDialogOpen(open);
+      }}>
         <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Work Order</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Edit Work Order</DialogTitle>
+              <SaveStatusIndicator status={autosaveStatus} onRetry={autosaveRetry} />
+            </div>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-4">
@@ -2017,11 +2044,11 @@ export default function WorkOrderDetail() {
                 )}
               />
               <div className="flex justify-end gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setEditDialogOpen(false)}>
-                  Cancel
+                <Button type="button" variant="outline" onClick={async () => { await flushAutosave(); setEditDialogOpen(false); }} data-testid="button-close-edit-wo">
+                  Close
                 </Button>
                 <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-wo">
-                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                  {updateMutation.isPending ? "Saving..." : "Save & Close"}
                 </Button>
               </div>
             </form>
