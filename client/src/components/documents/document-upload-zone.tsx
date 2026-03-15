@@ -1,10 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Upload, X, File, FileText, Image, CheckCircle, AlertCircle, Loader2, RotateCcw, ExternalLink, Cloud, CloudOff } from "lucide-react";
+import { Upload, X, File, FileText, Image, CheckCircle, AlertCircle, Loader2, RotateCcw, ExternalLink, Cloud, CloudOff, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "./document-types";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { ExpiryBadge } from "./document-expiry";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp", "application/pdf"];
@@ -19,6 +21,7 @@ interface WoDocument {
   fileSize: number | null;
   status: "Pending" | "Uploaded" | "Verified";
   uploadedAt: string;
+  expiresAt?: string | null;
   workdriveFileId?: string | null;
   workdriveLink?: string | null;
 }
@@ -28,13 +31,90 @@ interface DocumentUploadZoneProps {
   documents: WoDocument[];
   documentType: DocumentType;
   isRequired?: boolean;
-  onUpload: (file: File, documentType: DocumentType) => Promise<void>;
+  onUpload: (file: File, documentType: DocumentType, expiresAt?: string | null) => Promise<void>;
   onDelete: (documentId: string) => Promise<void>;
   onStatusChange?: (documentId: string, status: "Pending" | "Uploaded" | "Verified") => Promise<void>;
   onPreviewFile?: (fileUrl: string, fileName: string) => void;
   disabled?: boolean;
   externalProgress?: number | null;
   externalUploading?: boolean;
+}
+
+function toDateInputValue(dateStr: string | null | undefined): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function ExpiryDateInline({ documentId, woId, currentExpiresAt }: { documentId: string; woId: string; currentExpiresAt?: string | null }) {
+  const [editing, setEditing] = useState(false);
+  const [dateValue, setDateValue] = useState(toDateInputValue(currentExpiresAt));
+
+  const updateMutation = useMutation({
+    mutationFn: (expiresAt: string | null) =>
+      apiRequest("PUT", `/api/documents/${documentId}/expiry`, { expiresAt }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", woId, "documents"] });
+      setEditing(false);
+    },
+  });
+
+  if (!editing) {
+    return (
+      <button
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        onClick={(e) => { e.stopPropagation(); setEditing(true); }}
+        data-testid={`button-set-expiry-${documentId}`}
+      >
+        <Calendar className="h-3 w-3" />
+        {currentExpiresAt
+          ? `Exp: ${new Date(currentExpiresAt).toLocaleDateString()}`
+          : "Set expiry"}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <Input
+        type="date"
+        value={dateValue}
+        onChange={(e) => setDateValue(e.target.value)}
+        className="h-6 text-xs w-32 px-1"
+        data-testid={`input-expiry-date-${documentId}`}
+      />
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-6 px-1 text-xs"
+        onClick={() => {
+          updateMutation.mutate(dateValue ? `${dateValue}T12:00:00.000Z` : null);
+        }}
+        disabled={updateMutation.isPending}
+        data-testid={`button-save-expiry-${documentId}`}
+      >
+        {updateMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+      </Button>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-6 px-1 text-xs"
+        onClick={() => {
+          if (currentExpiresAt) {
+            updateMutation.mutate(null);
+          } else {
+            setEditing(false);
+          }
+        }}
+        data-testid={`button-cancel-expiry-${documentId}`}
+      >
+        {currentExpiresAt ? "Clear" : "Cancel"}
+      </Button>
+    </div>
+  );
 }
 
 function validateFile(file: File): string | null {
@@ -66,6 +146,7 @@ export function DocumentUploadZone({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadingFileName, setUploadingFileName] = useState<string | null>(null);
   const [lastFile, setLastFile] = useState<File | null>(null);
+  const [uploadExpiryDate, setUploadExpiryDate] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -120,11 +201,16 @@ export function DocumentUploadZone({
     setUploadStatus("uploading");
     startSimulatedProgress();
 
+    const expiresAt = uploadExpiryDate
+      ? `${uploadExpiryDate}T12:00:00.000Z`
+      : null;
+
     try {
-      await onUpload(file, documentType);
+      await onUpload(file, documentType, expiresAt);
       stopSimulatedProgress();
       setUploadProgress(100);
       setUploadStatus("success");
+      setUploadExpiryDate("");
       setTimeout(() => {
         setUploadStatus("idle");
         setUploadProgress(0);
@@ -136,7 +222,7 @@ export function DocumentUploadZone({
       setUploadStatus("failed");
       setUploadError("Upload failed. Please try again.");
     }
-  }, [onUpload, documentType, startSimulatedProgress, stopSimulatedProgress]);
+  }, [onUpload, documentType, startSimulatedProgress, stopSimulatedProgress, uploadExpiryDate]);
 
   const handleRetry = useCallback(() => {
     if (lastFile) {
@@ -238,13 +324,21 @@ export function DocumentUploadZone({
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{existingDoc.fileName}</p>
               <div className="flex items-center gap-2">
+                <p className="text-sm font-medium truncate">{existingDoc.fileName}</p>
+                <ExpiryBadge expiresAt={existingDoc.expiresAt} />
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
                 {existingDoc.fileSize && (
                   <p className="text-xs text-muted-foreground">
                     {formatFileSize(existingDoc.fileSize)}
                   </p>
                 )}
+                <ExpiryDateInline
+                  documentId={existingDoc.id}
+                  woId={woId}
+                  currentExpiresAt={existingDoc.expiresAt}
+                />
                 {existingDoc.workdriveLink ? (
                   <a
                     href={existingDoc.workdriveLink}
@@ -292,6 +386,7 @@ export function DocumentUploadZone({
           </div>
         </div>
       ) : (
+        <>
         <div
           className={cn(
             "border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer",
@@ -368,6 +463,31 @@ export function DocumentUploadZone({
             )}
           </div>
         </div>
+        {!isUploading && uploadStatus !== "success" && (
+          <div className="flex items-center gap-2 mt-2">
+            <label className="text-xs text-muted-foreground whitespace-nowrap" htmlFor={`expiry-${documentType}`}>
+              Expiry date:
+            </label>
+            <input
+              id={`expiry-${documentType}`}
+              type="date"
+              value={uploadExpiryDate}
+              onChange={(e) => setUploadExpiryDate(e.target.value)}
+              className="text-xs border rounded px-2 py-1 bg-background text-foreground"
+              data-testid={`input-upload-expiry-${documentType}`}
+            />
+            {uploadExpiryDate && (
+              <button
+                onClick={() => setUploadExpiryDate("")}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                data-testid={`button-clear-upload-expiry-${documentType}`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        )}
+        </>
       )}
 
       {uploadError && uploadStatus !== "uploading" && (

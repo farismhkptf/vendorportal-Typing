@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ExpiryBadge } from "@/components/documents/document-expiry";
 
 interface UploadedFile {
   id: string;
@@ -21,11 +22,12 @@ interface UploadedFile {
   mimeType?: string | null;
   fileSize?: number | null;
   createdAt?: string;
+  expiresAt?: string | null;
 }
 
 interface EnhancedUploaderProps {
   existingFiles?: UploadedFile[];
-  onUploadComplete: (file: { fileName: string; objectPath: string }) => void;
+  onUploadComplete: (file: { fileName: string; objectPath: string; expiresAt?: string | null }) => void;
   onDelete?: (fileId: string) => void;
   maxFiles?: number;
   maxFileSize?: number;
@@ -34,6 +36,7 @@ interface EnhancedUploaderProps {
   onPreviewFile?: (file: UploadedFile) => void;
   showRequirements?: boolean;
   requirementsList?: { label: string; fulfilled: boolean }[];
+  showExpiryDate?: boolean;
 }
 
 type QueueItemStatus = "uploading" | "success" | "failed";
@@ -83,10 +86,12 @@ export function EnhancedUploader({
   onPreviewFile,
   showRequirements = false,
   requirementsList = [],
+  showExpiryDate = false,
 }: EnhancedUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [uploadExpiryDate, setUploadExpiryDate] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalFileCount =
@@ -172,7 +177,10 @@ export function EnhancedUploader({
           )
         );
 
-        onUploadComplete({ fileName: file.name, objectPath });
+        const expiresAt = uploadExpiryDate
+          ? `${uploadExpiryDate}T12:00:00.000Z`
+          : null;
+        onUploadComplete({ fileName: file.name, objectPath, expiresAt });
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Upload failed";
@@ -185,7 +193,7 @@ export function EnhancedUploader({
         );
       }
     },
-    [onUploadComplete]
+    [onUploadComplete, uploadExpiryDate]
   );
 
   const processFiles = useCallback(
@@ -359,6 +367,31 @@ export function EnhancedUploader({
         </div>
       </div>
 
+      {showExpiryDate && (
+        <div className="flex items-center gap-2 mt-2">
+          <label className="text-xs text-muted-foreground whitespace-nowrap" htmlFor="enhanced-upload-expiry">
+            Expiry date (optional):
+          </label>
+          <input
+            id="enhanced-upload-expiry"
+            type="date"
+            value={uploadExpiryDate}
+            onChange={(e) => setUploadExpiryDate(e.target.value)}
+            className="text-xs border rounded px-2 py-1 bg-background text-foreground"
+            data-testid="input-upload-expiry"
+          />
+          {uploadExpiryDate && (
+            <button
+              onClick={() => setUploadExpiryDate("")}
+              className="text-xs text-muted-foreground hover:text-foreground"
+              data-testid="button-clear-upload-expiry"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      )}
+
       {queue.length > 0 && (
         <div className="space-y-2" data-testid="upload-queue">
           {queue.map((item) => (
@@ -468,9 +501,12 @@ export function EnhancedUploader({
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">
-                    {file.fileName}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">
+                      {file.fileName}
+                    </p>
+                    <ExpiryBadge expiresAt={file.expiresAt} />
+                  </div>
                   {file.fileSize != null && (
                     <p className="text-xs text-muted-foreground">
                       {formatFileSize(file.fileSize)}

@@ -194,7 +194,7 @@ export default function TypingJobDetail() {
   });
 
   const saveFileMutation = useMutation({
-    mutationFn: async (data: { fileName: string; objectPath: string; direction: "Input" | "Output" }) => {
+    mutationFn: async (data: { fileName: string; objectPath: string; direction: "Input" | "Output"; expiresAt?: string | null }) => {
       return apiRequest("POST", "/api/files", {
         relatedType: "TypingJob",
         relatedId: id,
@@ -202,6 +202,7 @@ export default function TypingJobDetail() {
         fileName: data.fileName,
         workdriveLink: data.objectPath,
         uploadedByType: "Internal",
+        ...(data.expiresAt ? { expiresAt: data.expiresAt } : {}),
       });
     },
     onSuccess: () => {
@@ -592,10 +593,12 @@ export default function TypingJobDetail() {
                       mimeType: f.mimeType,
                       fileSize: null,
                       createdAt: f.createdAt ? String(f.createdAt) : undefined,
+                      expiresAt: f.expiresAt || null,
                     }))}
                     onUploadComplete={(file) => {
-                      saveFileMutation.mutate({ fileName: file.fileName, objectPath: file.objectPath, direction: "Input" });
+                      saveFileMutation.mutate({ fileName: file.fileName, objectPath: file.objectPath, direction: "Input", expiresAt: file.expiresAt });
                     }}
+                    showExpiryDate
                     onDelete={(fileId) => deleteFileMutation.mutate(fileId)}
                     maxFiles={10}
                     onPreviewFile={(file) => {

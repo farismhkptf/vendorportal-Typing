@@ -3,11 +3,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, FileText, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { DocumentUploadZone } from "./document-upload-zone";
 import { DOCUMENT_TYPE_LABELS, SERVICE_CATEGORY_LABELS, type DocumentType, type ServiceCategory } from "./document-types";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageLightbox, type LightboxFile } from "@/components/image-lightbox";
+import { ExpiryBadge, getExpiryStatus } from "./document-expiry";
 
 interface WoDocument {
   id: string;
@@ -19,6 +21,7 @@ interface WoDocument {
   fileSize: number | null;
   status: "Pending" | "Uploaded" | "Verified";
   uploadedAt: string;
+  expiresAt?: string | null;
   workdriveFileId?: string | null;
   workdriveLink?: string | null;
 }
@@ -79,7 +82,7 @@ export function DocumentPanel({
   };
 
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, documentType }: { file: File; documentType: DocumentType }) => {
+    mutationFn: async ({ file, documentType, expiresAt }: { file: File; documentType: DocumentType; expiresAt?: string | null }) => {
       setUploadingDocType(documentType);
       setUploadProgress(0);
 
@@ -132,6 +135,7 @@ export function DocumentPanel({
         fileUrl: objectPath,
         mimeType: file.type,
         fileSize: file.size,
+        ...(expiresAt ? { expiresAt } : {}),
       });
 
       setUploadProgress(100);
@@ -182,8 +186,17 @@ export function DocumentPanel({
   const missingRequired = requiredTypes.filter((t) => !uploadedTypes.includes(t));
   const hasAllRequired = missingRequired.length === 0;
 
-  const handleUpload = async (file: File, documentType: DocumentType) => {
-    await uploadMutation.mutateAsync({ file, documentType });
+  const [docTab, setDocTab] = useState("all");
+
+  const expiringDocs = documents.filter(d => {
+    const status = getExpiryStatus(d.expiresAt);
+    return status === "expired" || status === "expiring";
+  });
+
+  const expiringCount = expiringDocs.length;
+
+  const handleUpload = async (file: File, documentType: DocumentType, expiresAt?: string | null) => {
+    await uploadMutation.mutateAsync({ file, documentType, expiresAt });
   };
 
   const handleDelete = async (documentId: string) => {
@@ -199,6 +212,75 @@ export function DocumentPanel({
       </Card>
     );
   }
+
+  const renderExpiringDocsList = () => {
+    const sorted = [...expiringDocs].sort((a, b) => {
+      const aDate = new Date(a.expiresAt!).getTime();
+      const bDate = new Date(b.expiresAt!).getTime();
+      return aDate - bDate;
+    });
+
+    if (sorted.length === 0) {
+      return (
+        <p className="text-sm text-muted-foreground py-4 text-center">
+          No documents expiring within 30 days.
+        </p>
+      );
+    }
+
+    return (
+      <div className="space-y-2">
+        {sorted.map((doc) => {
+          const fileUrl = doc.fileUrl || "";
+          const isImage = doc.mimeType?.startsWith("image/") || doc.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+          const isPdf = doc.mimeType === "application/pdf" || doc.fileName?.match(/\.pdf$/i);
+          const expiryStatus = getExpiryStatus(doc.expiresAt);
+          return (
+            <div
+              key={doc.id}
+              className={`flex items-center justify-between gap-2 p-3 rounded-lg border text-sm ${
+                expiryStatus === "expired" ? "border-red-200 bg-red-50/50 dark:border-red-800 dark:bg-red-900/10" :
+                "border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-900/10"
+              }`}
+              data-testid={`expiring-doc-${doc.id}`}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                {isImage && fileUrl ? (
+                  <div
+                    className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted cursor-pointer"
+                    onClick={() => openLightbox(fileUrl, doc.fileName)}
+                  >
+                    <img src={fileUrl} alt={doc.fileName} className="h-full w-full object-cover" />
+                  </div>
+                ) : isPdf && fileUrl ? (
+                  <div
+                    className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted cursor-pointer"
+                    onClick={() => openLightbox(fileUrl, doc.fileName)}
+                  >
+                    <FileText className="h-5 w-5 text-red-500" />
+                  </div>
+                ) : (
+                  <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
+                    <FileText className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <span className="truncate block font-medium">{doc.fileName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {DOCUMENT_TYPE_LABELS[doc.documentType as DocumentType] || doc.documentType}
+                    {doc.expiresAt && ` · Expires ${new Date(doc.expiresAt).toLocaleDateString()}`}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <ExpiryBadge expiresAt={doc.expiresAt} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <Card>
@@ -233,75 +315,98 @@ export function DocumentPanel({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {!serviceCategory && (
-          <p className="text-sm text-muted-foreground">
-            Select a service type on the work order to see required documents.
-          </p>
-        )}
+        <Tabs value={docTab} onValueChange={setDocTab}>
+          <TabsList data-testid="document-tabs">
+            <TabsTrigger value="all" data-testid="tab-all-documents">All</TabsTrigger>
+            <TabsTrigger value="expiring" data-testid="tab-expiring-documents" className="gap-1.5">
+              Expiring Soon
+              {expiringCount > 0 && (
+                <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                  {expiringCount}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
-        {serviceCategory && documentTypesToShow.length === 0 && (
-          <p className="text-sm text-muted-foreground">
-            No document requirements for this service type.
-          </p>
-        )}
+          <TabsContent value="all" className="mt-4 space-y-4">
+            {!serviceCategory && (
+              <p className="text-sm text-muted-foreground">
+                Select a service type on the work order to see required documents.
+              </p>
+            )}
 
-        {documentTypesToShow.map((docType) => (
-          <DocumentUploadZone
-            key={docType}
-            woId={woId}
-            documents={documents}
-            documentType={docType}
-            isRequired={requiredTypes.includes(docType)}
-            onUpload={handleUpload}
-            onDelete={handleDelete}
-            onPreviewFile={(fileUrl, fileName) => openLightbox(fileUrl, fileName)}
-            disabled={uploadMutation.isPending || deleteMutation.isPending}
-            externalProgress={uploadingDocType === docType ? uploadProgress : null}
-            externalUploading={uploadingDocType === docType && uploadMutation.isPending}
-          />
-        ))}
+            {serviceCategory && documentTypesToShow.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No document requirements for this service type.
+              </p>
+            )}
 
-        {documents.filter((d) => !documentTypesToShow.includes(d.documentType as DocumentType)).length > 0 && (
-          <div className="pt-4 border-t">
-            <p className="text-sm font-medium mb-2 text-muted-foreground">Other Uploaded Documents</p>
-            {documents
-              .filter((d) => !documentTypesToShow.includes(d.documentType as DocumentType))
-              .map((doc) => {
-                const fileUrl = doc.fileUrl || "";
-                const isImage = doc.mimeType?.startsWith("image/") || doc.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
-                const isPdf = doc.mimeType === "application/pdf" || doc.fileName?.match(/\.pdf$/i);
-                return (
-                  <div key={doc.id} className="flex items-center justify-between gap-2 py-2 text-sm">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {isImage && fileUrl ? (
-                        <div
-                          className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted cursor-pointer"
-                          onClick={() => openLightbox(fileUrl, doc.fileName)}
-                          data-testid={`preview-other-image-${doc.id}`}
-                        >
-                          <img src={fileUrl} alt={doc.fileName} className="h-full w-full object-cover" />
+            {documentTypesToShow.map((docType) => (
+              <DocumentUploadZone
+                key={docType}
+                woId={woId}
+                documents={documents}
+                documentType={docType}
+                isRequired={requiredTypes.includes(docType)}
+                onUpload={handleUpload}
+                onDelete={handleDelete}
+                onPreviewFile={(fileUrl, fileName) => openLightbox(fileUrl, fileName)}
+                disabled={uploadMutation.isPending || deleteMutation.isPending}
+                externalProgress={uploadingDocType === docType ? uploadProgress : null}
+                externalUploading={uploadingDocType === docType && uploadMutation.isPending}
+              />
+            ))}
+
+            {documents.filter((d) => !documentTypesToShow.includes(d.documentType as DocumentType)).length > 0 && (
+              <div className="pt-4 border-t">
+                <p className="text-sm font-medium mb-2 text-muted-foreground">Other Uploaded Documents</p>
+                {documents
+                  .filter((d) => !documentTypesToShow.includes(d.documentType as DocumentType))
+                  .map((doc) => {
+                    const fileUrl = doc.fileUrl || "";
+                    const isImage = doc.mimeType?.startsWith("image/") || doc.fileName?.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i);
+                    const isPdf = doc.mimeType === "application/pdf" || doc.fileName?.match(/\.pdf$/i);
+                    return (
+                      <div key={doc.id} className="flex items-center justify-between gap-2 py-2 text-sm">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {isImage && fileUrl ? (
+                            <div
+                              className="h-10 w-10 rounded border overflow-hidden flex-shrink-0 bg-muted cursor-pointer"
+                              onClick={() => openLightbox(fileUrl, doc.fileName)}
+                              data-testid={`preview-other-image-${doc.id}`}
+                            >
+                              <img src={fileUrl} alt={doc.fileName} className="h-full w-full object-cover" />
+                            </div>
+                          ) : isPdf && fileUrl ? (
+                            <div
+                              className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer"
+                              onClick={() => openLightbox(fileUrl, doc.fileName)}
+                              data-testid={`preview-other-pdf-${doc.id}`}
+                            >
+                              <FileText className="h-5 w-5 text-red-500" />
+                            </div>
+                          ) : (
+                            <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
+                              <FileText className="h-5 w-5 text-muted-foreground" />
+                            </div>
+                          )}
+                          <span className="truncate">{doc.fileName}</span>
                         </div>
-                      ) : isPdf && fileUrl ? (
-                        <div
-                          className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted hover-elevate cursor-pointer"
-                          onClick={() => openLightbox(fileUrl, doc.fileName)}
-                          data-testid={`preview-other-pdf-${doc.id}`}
-                        >
-                          <FileText className="h-5 w-5 text-red-500" />
+                        <div className="flex items-center gap-2">
+                          <ExpiryBadge expiresAt={doc.expiresAt} />
+                          <Badge variant="secondary">{doc.documentType}</Badge>
                         </div>
-                      ) : (
-                        <div className="h-10 w-10 rounded border flex items-center justify-center flex-shrink-0 bg-muted">
-                          <FileText className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <span className="truncate">{doc.fileName}</span>
-                    </div>
-                    <Badge variant="secondary">{doc.documentType}</Badge>
-                  </div>
-                );
-              })}
-          </div>
-        )}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="expiring" className="mt-4">
+            {renderExpiringDocsList()}
+          </TabsContent>
+        </Tabs>
       </CardContent>
 
       <ImageLightbox

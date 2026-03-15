@@ -5277,7 +5277,7 @@ export async function registerRoutes(
   app.post("/api/work-orders/:id/documents", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const { documentType, fileName, fileUrl, mimeType, fileSize } = req.body;
+      const { documentType, fileName, fileUrl, mimeType, fileSize, expiresAt } = req.body;
       
       if (!documentType || !fileName || !fileUrl) {
         return res.status(400).json({ message: "documentType, fileName, and fileUrl are required" });
@@ -5291,6 +5291,7 @@ export async function registerRoutes(
         mimeType,
         fileSize,
         status: "Uploaded",
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
       });
 
       await storage.createAuditLog({
@@ -5363,6 +5364,90 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update document status error:", error);
       res.status(500).json({ message: "Failed to update document status" });
+    }
+  });
+
+  app.put("/api/documents/:id/expiry", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { expiresAt } = req.body;
+
+      if (expiresAt !== null && expiresAt !== undefined) {
+        const parsed = new Date(expiresAt);
+        if (isNaN(parsed.getTime())) {
+          return res.status(400).json({ message: "Invalid date format for expiresAt" });
+        }
+      }
+
+      const document = await storage.updateWoDocument(id, {
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      });
+      if (!document) {
+        return res.status(404).json({ message: "Document not found" });
+      }
+
+      await storage.createAuditLog({
+        entityType: "work_order",
+        entityId: document.woId,
+        action: "document_expiry_updated",
+        details: { documentId: id, expiresAt: expiresAt || null },
+      });
+
+      res.json(document);
+    } catch (error) {
+      console.error("Update document expiry error:", error);
+      res.status(500).json({ message: "Failed to update document expiry" });
+    }
+  });
+
+  app.get("/api/documents/expiring-soon", requireAuth, async (req, res) => {
+    try {
+      const days = parseInt(req.query.days as string) || 30;
+      const threshold = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+      const expiringWoDocs = await storage.getExpiringWoDocuments(threshold);
+
+      const woIds = [...new Set(expiringWoDocs.map(d => d.woId))];
+      const workOrders = woIds.length > 0 ? await storage.getWorkOrdersByIds(woIds) : [];
+      const woMap = new Map(workOrders.map(wo => [wo.id, wo]));
+
+      const enrichedWoDocs = expiringWoDocs.map(doc => ({
+        ...doc,
+        source: "work_order" as const,
+        workOrder: woMap.get(doc.woId) ? {
+          id: woMap.get(doc.woId)!.id,
+          woNumber: woMap.get(doc.woId)!.woNumber,
+          applicantName: woMap.get(doc.woId)!.applicantName,
+        } : null,
+      }));
+
+      const expiringFiles = await storage.getExpiringFiles(threshold);
+
+      const enrichedFiles = expiringFiles.map(f => ({
+        id: f.id,
+        documentType: f.direction || "File",
+        fileName: f.fileName,
+        fileUrl: f.workdriveLink || "",
+        expiresAt: f.expiresAt,
+        status: "Uploaded",
+        woId: "",
+        source: "file" as const,
+        relatedType: f.relatedType,
+        relatedId: f.relatedId,
+        workOrder: null,
+      }));
+
+      const combined = [...enrichedWoDocs, ...enrichedFiles];
+      combined.sort((a, b) => {
+        const aDate = new Date(a.expiresAt!).getTime();
+        const bDate = new Date(b.expiresAt!).getTime();
+        return aDate - bDate;
+      });
+
+      res.json(combined);
+    } catch (error) {
+      console.error("Expiring documents error:", error);
+      res.status(500).json({ message: "Failed to fetch expiring documents" });
     }
   });
 

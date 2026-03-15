@@ -143,6 +143,8 @@ export interface IStorage {
   
   // Files
   getFilesByRelated(relatedType: string, relatedId: string): Promise<File[]>;
+  getAllFiles(): Promise<File[]>;
+  getExpiringFiles(thresholdDate: Date): Promise<File[]>;
   createFile(data: InsertFile): Promise<File>;
   deleteFile(id: string): Promise<boolean>;
   
@@ -176,6 +178,7 @@ export interface IStorage {
   // Work Order Documents
   getWoDocuments(woId: string): Promise<WoDocument[]>;
   getAllWoDocuments(): Promise<WoDocument[]>;
+  getExpiringWoDocuments(thresholdDate: Date): Promise<WoDocument[]>;
   getWoPhotoMap(): Promise<Record<string, string>>;
   getUnsyncedWoDocuments(): Promise<WoDocument[]>;
   getWoDocumentById(id: string): Promise<WoDocument | undefined>;
@@ -832,6 +835,16 @@ export class DatabaseStorage implements IStorage {
   // Files
   async getFilesByRelated(relatedType: string, relatedId: string): Promise<File[]> {
     return db.select().from(files).where(and(eq(files.relatedType, relatedType), eq(files.relatedId, relatedId))).orderBy(desc(files.createdAt));
+  }
+
+  async getAllFiles(): Promise<File[]> {
+    return db.select().from(files).orderBy(desc(files.createdAt));
+  }
+
+  async getExpiringFiles(thresholdDate: Date): Promise<File[]> {
+    return db.select().from(files)
+      .where(and(isNotNull(files.expiresAt), lte(files.expiresAt, thresholdDate)))
+      .orderBy(files.expiresAt);
   }
 
   async createFile(data: InsertFile): Promise<File> {
@@ -1515,6 +1528,12 @@ export class DatabaseStorage implements IStorage {
 
   async getAllWoDocuments(): Promise<WoDocument[]> {
     return db.select().from(woDocuments).orderBy(desc(woDocuments.uploadedAt));
+  }
+
+  async getExpiringWoDocuments(thresholdDate: Date): Promise<WoDocument[]> {
+    return db.select().from(woDocuments)
+      .where(and(isNotNull(woDocuments.expiresAt), lte(woDocuments.expiresAt, thresholdDate)))
+      .orderBy(woDocuments.expiresAt);
   }
 
   async getWoPhotoMap(): Promise<Record<string, string>> {

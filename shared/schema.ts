@@ -222,6 +222,7 @@ export const woDocuments = pgTable("wo_documents", {
   status: documentStatusEnum("status").notNull().default("Uploaded"),
   uploadedBy: varchar("uploaded_by"),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
   workdriveFileId: text("workdrive_file_id"),
   workdriveLink: text("workdrive_link"),
 }, (table) => [
@@ -372,6 +373,7 @@ export const files = pgTable("files", {
   mimeType: text("mime_type"),
   uploadedByType: uploadedByTypeEnum("uploaded_by_type").notNull(),
   uploadedByUserId: varchar("uploaded_by_user_id"),
+  expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_files_related_id").on(table.relatedId),

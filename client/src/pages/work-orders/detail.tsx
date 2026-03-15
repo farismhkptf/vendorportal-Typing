@@ -65,7 +65,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType, WoNote, Vendor } from "@shared/schema";
+import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType, WoNote, Vendor, WoDocument } from "@shared/schema";
 import { DocumentPanel } from "@/components/documents/document-panel";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { CopyableText } from "@/components/ui/copy-button";
@@ -922,6 +922,20 @@ export default function WorkOrderDetail() {
     queryKey: ["/api/staff"],
   });
 
+  const { data: woDocuments = [] } = useQuery<WoDocument[]>({
+    queryKey: ["/api/work-orders", id, "documents"],
+    queryFn: () => fetch(`/api/work-orders/${id}/documents`).then(r => r.json()),
+    enabled: !!id,
+  });
+
+  const expiringOrExpiredDocs = woDocuments.filter((d) => {
+    if (!d.expiresAt) return false;
+    const now = new Date();
+    const expiryDate = new Date(d.expiresAt);
+    const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return expiryDate <= thirtyDaysFromNow;
+  });
+
   const medicalJobType = jobTypes?.find(jt => jt.category === "Medical") || null;
   const eidJobType = jobTypes?.find(jt => jt.category === "EID") || null;
 
@@ -1386,6 +1400,26 @@ export default function WorkOrderDetail() {
               <p className="text-sm font-bold text-red-700 dark:text-red-300">DELAYED — Vendor Has Not Completed</p>
               <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-0.5">
                 This work order is delayed — vendor has not completed the typing job within the expected timeframe. Immediate follow-up is recommended.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {expiringOrExpiredDocs.length > 0 && (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700" data-testid="document-expiry-banner">
+            <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-amber-700 dark:text-amber-300">
+                {expiringOrExpiredDocs.some((d) => d.expiresAt && new Date(d.expiresAt) <= new Date())
+                  ? "Document(s) Expired"
+                  : "Document(s) Expiring Soon"}
+              </p>
+              <p className="text-sm text-amber-600/80 dark:text-amber-400/80 mt-0.5">
+                {expiringOrExpiredDocs.length} document{expiringOrExpiredDocs.length !== 1 ? "s" : ""}{" "}
+                {expiringOrExpiredDocs.some((d) => d.expiresAt && new Date(d.expiresAt) <= new Date()) ? "expired or expiring" : "expiring"}{" "}
+                within 30 days. Check the Documents tab for details.
               </p>
             </div>
           </div>
