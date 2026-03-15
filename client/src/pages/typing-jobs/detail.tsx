@@ -118,79 +118,108 @@ export default function TypingJobDetail() {
     queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet"] });
   };
 
+  const applyOptimisticStatus = async (newStatus: TypingJobWithDetails["status"]) => {
+    await queryClient.cancelQueries({ queryKey: ["/api/typing-jobs", id] });
+    await queryClient.cancelQueries({ queryKey: ["/api/typing-jobs"] });
+    const previousDetail = queryClient.getQueryData<TypingJobWithDetails>(["/api/typing-jobs", id]);
+    const previousList = queryClient.getQueryData<TypingJob[]>(["/api/typing-jobs"]);
+    if (previousDetail) {
+      queryClient.setQueryData<TypingJobWithDetails>(["/api/typing-jobs", id], { ...previousDetail, status: newStatus });
+    }
+    if (previousList) {
+      queryClient.setQueryData<TypingJob[]>(["/api/typing-jobs"], previousList.map(j => j.id === id ? { ...j, status: newStatus } : j));
+    }
+    return { previousDetail, previousList };
+  };
+
+  const rollbackOptimistic = (context: { previousDetail?: TypingJobWithDetails; previousList?: TypingJob[] } | undefined) => {
+    if (context?.previousDetail) queryClient.setQueryData(["/api/typing-jobs", id], context.previousDetail);
+    if (context?.previousList) queryClient.setQueryData(["/api/typing-jobs"], context.previousList);
+  };
+
   const submitToVendorMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/typing-jobs/${id}/submit-to-vendor`, {
         vendorId: selectedVendorId,
       });
     },
+    onMutate: () => applyOptimisticStatus("SubmittedToVendor"),
     onSuccess: () => {
-      invalidateTypingJobQueries();
       setShowSubmitDialog(false);
       setSelectedVendorId("");
       toast({ title: "Job submitted to vendor" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      rollbackOptimistic(context);
       toast({ title: "Failed to submit", description: error.message, variant: "destructive" });
     },
+    onSettled: () => invalidateTypingJobQueries(),
   });
   
   const onHoldMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/typing-jobs/${id}/on-hold`, { reason: onHoldReason });
     },
+    onMutate: () => applyOptimisticStatus("OnHold"),
     onSuccess: () => {
-      invalidateTypingJobQueries();
       setShowOnHoldDialog(false);
       setOnHoldReason("");
       toast({ title: "Job put on hold" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      rollbackOptimistic(context);
       toast({ title: "Failed to put on hold", description: error.message, variant: "destructive" });
     },
+    onSettled: () => invalidateTypingJobQueries(),
   });
 
   const resumeMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/typing-jobs/${id}/resume`, {});
     },
+    onMutate: () => applyOptimisticStatus("SubmittedToVendor"),
     onSuccess: () => {
-      invalidateTypingJobQueries();
       toast({ title: "Job resumed" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      rollbackOptimistic(context);
       toast({ title: "Failed to resume job", description: error.message, variant: "destructive" });
     },
+    onSettled: () => invalidateTypingJobQueries(),
   });
 
   const abortMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/typing-jobs/${id}/abort`, { reason: abortReason });
     },
+    onMutate: () => applyOptimisticStatus("Aborted"),
     onSuccess: () => {
-      invalidateTypingJobQueries();
       setShowAbortDialog(false);
       setAbortReason("");
       toast({ title: "Job aborted" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      rollbackOptimistic(context);
       toast({ title: "Failed to abort job", description: error.message, variant: "destructive" });
     },
+    onSettled: () => invalidateTypingJobQueries(),
   });
   
   const reassignMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/typing-jobs/${id}/reassign`, { vendorId: reassignVendorId });
     },
+    onMutate: () => applyOptimisticStatus("SubmittedToVendor"),
     onSuccess: () => {
-      invalidateTypingJobQueries();
       setShowReassignDialog(false);
       setReassignVendorId("");
       toast({ title: "Job reassigned to new vendor" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      rollbackOptimistic(context);
       toast({ title: "Failed to reassign", description: error.message, variant: "destructive" });
     },
+    onSettled: () => invalidateTypingJobQueries(),
   });
 
   const saveFileMutation = useMutation({

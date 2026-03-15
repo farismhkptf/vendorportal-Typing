@@ -412,7 +412,23 @@ Thank you,
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       return apiRequest("PATCH", `/api/appointments/${id}`, { status });
     },
-    onSuccess: () => {
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/appointments"] });
+      const previous = queryClient.getQueryData<AppointmentWithRelations[]>(["/api/appointments"]);
+      if (previous) {
+        queryClient.setQueryData<AppointmentWithRelations[]>(
+          ["/api/appointments"],
+          previous.map(a => a.id === id ? { ...a, status: status as AppointmentWithRelations["status"] } : a),
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["/api/appointments"], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
     },
   });

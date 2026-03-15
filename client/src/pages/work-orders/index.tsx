@@ -536,16 +536,31 @@ export default function WorkOrdersList() {
       const res = await apiRequest("POST", "/api/work-orders/bulk-status", { ids, status });
       return res.json() as Promise<{ updated: number; failed: number; errors: string[] }>;
     },
+    onMutate: async ({ ids, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders"] });
+      const previous = queryClient.getQueryData<WorkOrderEnriched[]>(["/api/work-orders"]);
+      if (previous) {
+        const idSet = new Set(ids);
+        queryClient.setQueryData<WorkOrderEnriched[]>(
+          ["/api/work-orders"],
+          previous.map(wo => idSet.has(wo.id) ? { ...wo, status: status as WorkOrder["status"] } : wo),
+        );
+      }
+      return { previous };
+    },
     onSuccess: (result, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       dt.clearSelection();
       const desc = result.failed > 0
         ? `${result.updated} updated to ${variables.status}, ${result.failed} failed.`
         : `${result.updated} work orders updated to ${variables.status}.`;
       toast({ title: "Status updated", description: desc, variant: result.failed > 0 ? "destructive" : "default" });
     },
-    onError: (error: any) => {
+    onError: (error: Error, _vars, context) => {
+      if (context?.previous) queryClient.setQueryData(["/api/work-orders"], context.previous);
       toast({ title: "Error", description: error.message || "Failed to update work orders", variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
     },
   });
 

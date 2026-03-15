@@ -857,7 +857,27 @@ export default function WorkOrderDetail() {
     mutationFn: async ({ aptId, status }: { aptId: string; status: string }) => {
       return apiRequest("PATCH", `/api/appointments/${aptId}`, { status });
     },
-    onSuccess: () => {
+    onMutate: async ({ aptId, status }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
+      await queryClient.cancelQueries({ queryKey: ["/api/appointments"] });
+      const previousWo = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      const previousApts = queryClient.getQueryData<Appointment[]>(["/api/appointments"]);
+      if (previousWo?.appointments) {
+        queryClient.setQueryData<WorkOrderDetail>(
+          ["/api/work-orders", id],
+          { ...previousWo, appointments: previousWo.appointments.map(a => a.id === aptId ? { ...a, status: status as Appointment["status"] } : a) },
+        );
+      }
+      if (previousApts) {
+        queryClient.setQueryData<Appointment[]>(["/api/appointments"], previousApts.map(a => a.id === aptId ? { ...a, status: status as Appointment["status"] } : a));
+      }
+      return { previousWo, previousApts };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousWo) queryClient.setQueryData(["/api/work-orders", id], context.previousWo);
+      if (context?.previousApts) queryClient.setQueryData(["/api/appointments"], context.previousApts);
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
     },
@@ -1003,9 +1023,20 @@ export default function WorkOrderDetail() {
       });
       return res.json();
     },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders"] });
+      const previousDetail = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      const previousList = queryClient.getQueryData<WorkOrder[]>(["/api/work-orders"]);
+      if (previousDetail) {
+        queryClient.setQueryData<WorkOrderDetail>(["/api/work-orders", id], { ...previousDetail, status: "Scheduled" });
+      }
+      if (previousList) {
+        queryClient.setQueryData<WorkOrder[]>(["/api/work-orders"], previousList.map(wo => wo.id === id ? { ...wo, status: "Scheduled" } : wo));
+      }
+      return { previousDetail, previousList };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setShowActivateDialog(false);
       setActivateEntryPermit(false);
@@ -1013,8 +1044,14 @@ export default function WorkOrderDetail() {
       setActivateIsMinor("adult");
       toast({ title: "Work order activated", description: "The work order is now active and ready for processing.", variant: "success" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      if (context?.previousDetail) queryClient.setQueryData(["/api/work-orders", id], context.previousDetail);
+      if (context?.previousList) queryClient.setQueryData(["/api/work-orders"], context.previousList);
       toast({ title: "Failed to activate", description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
     },
   });
 
@@ -1022,15 +1059,32 @@ export default function WorkOrderDetail() {
     mutationFn: async () => {
       return apiRequest("PUT", `/api/work-orders/${id}`, { status: "Completed" });
     },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders"] });
+      const previousDetail = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      const previousList = queryClient.getQueryData<WorkOrder[]>(["/api/work-orders"]);
+      if (previousDetail) {
+        queryClient.setQueryData<WorkOrderDetail>(["/api/work-orders", id], { ...previousDetail, status: "Completed" });
+      }
+      if (previousList) {
+        queryClient.setQueryData<WorkOrder[]>(["/api/work-orders"], previousList.map(wo => wo.id === id ? { ...wo, status: "Completed" } : wo));
+      }
+      return { previousDetail, previousList };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setShowDeliverDialog(false);
       toast({ title: "Work order completed", description: "The work order has been marked as completed and delivered.", variant: "success" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      if (context?.previousDetail) queryClient.setQueryData(["/api/work-orders", id], context.previousDetail);
+      if (context?.previousList) queryClient.setQueryData(["/api/work-orders"], context.previousList);
       toast({ title: "Failed to complete", description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
     },
   });
 
@@ -1042,10 +1096,20 @@ export default function WorkOrderDetail() {
         vendorId: sendVendorId,
       });
     },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
+      const previousWo = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      const jobIds = new Set(draftTypingJobs.map(j => j.id));
+      if (previousWo?.typingJobs) {
+        queryClient.setQueryData<WorkOrderDetail>(
+          ["/api/work-orders", id],
+          { ...previousWo, typingJobs: previousWo.typingJobs.map(j => jobIds.has(j.id) ? { ...j, status: "SubmittedToVendor" } : j) },
+        );
+      }
+      return { previousWo };
+    },
     onSuccess: async (res) => {
       const result = await res.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       setShowSendToVendorDialog(false);
       setSendVendorId("");
@@ -1059,8 +1123,13 @@ export default function WorkOrderDetail() {
         toast({ title: `${result.updated} job${result.updated !== 1 ? 's' : ''} sent to vendor`, variant: "success" });
       }
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      if (context?.previousWo) queryClient.setQueryData(["/api/work-orders", id], context.previousWo);
       toast({ title: "Failed to send jobs", description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
     },
   });
 
@@ -1068,12 +1137,26 @@ export default function WorkOrderDetail() {
     mutationFn: async (jobId: string) => {
       return apiRequest("POST", `/api/typing-jobs/${jobId}/on-hold`);
     },
+    onMutate: async (jobId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
+      const previousWo = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      if (previousWo?.typingJobs) {
+        queryClient.setQueryData<WorkOrderDetail>(
+          ["/api/work-orders", id],
+          { ...previousWo, typingJobs: previousWo.typingJobs.map(j => j.id === jobId ? { ...j, status: "OnHold" } : j) },
+        );
+      }
+      return { previousWo };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
       toast({ title: "Job placed on hold" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _jobId, context) => {
+      if (context?.previousWo) queryClient.setQueryData(["/api/work-orders", id], context.previousWo);
       toast({ title: "Failed to put job on hold", description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
     },
   });
 
@@ -1081,12 +1164,26 @@ export default function WorkOrderDetail() {
     mutationFn: async (jobId: string) => {
       return apiRequest("POST", `/api/typing-jobs/${jobId}/resume`);
     },
+    onMutate: async (jobId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
+      const previousWo = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      if (previousWo?.typingJobs) {
+        queryClient.setQueryData<WorkOrderDetail>(
+          ["/api/work-orders", id],
+          { ...previousWo, typingJobs: previousWo.typingJobs.map(j => j.id === jobId ? { ...j, status: "SubmittedToVendor" } : j) },
+        );
+      }
+      return { previousWo };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
       toast({ title: "Job resumed" });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _jobId, context) => {
+      if (context?.previousWo) queryClient.setQueryData(["/api/work-orders", id], context.previousWo);
       toast({ title: "Failed to resume job", description: error.message, variant: "destructive" });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
     },
   });
 
