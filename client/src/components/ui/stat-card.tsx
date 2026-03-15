@@ -46,7 +46,7 @@ export function StatCard({ title, value, icon, trend, className, animationDelay 
   return (
     <div 
       className={cn(
-        "stat-card p-4 opacity-0 animate-fade-in",
+        "stat-card p-5 opacity-0 animate-fade-in",
         animationDelay === 1 && "animate-delay-1",
         animationDelay === 2 && "animate-delay-2",
         animationDelay === 3 && "animate-delay-3",
@@ -60,10 +60,10 @@ export function StatCard({ title, value, icon, trend, className, animationDelay 
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
     >
-      <div className="relative z-10 flex items-start justify-between gap-2">
-        <div className="space-y-1.5 min-w-0">
-          <p className="text-xs font-medium text-muted-foreground truncate">{title}</p>
-          <p className="text-xl font-semibold text-foreground tracking-tight tabular-nums">
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="space-y-2 min-w-0">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">{title}</p>
+          <p className="text-2xl font-bold text-foreground tracking-tight tabular-nums">
             <AnimatedValue value={value} delay={delayMs} />
           </p>
           {trend && (
@@ -76,7 +76,7 @@ export function StatCard({ title, value, icon, trend, className, animationDelay 
           )}
         </div>
         {icon && (
-          <div className="icon-container icon-container-sm shrink-0">
+          <div className="icon-container icon-container-md shrink-0">
             {icon}
           </div>
         )}

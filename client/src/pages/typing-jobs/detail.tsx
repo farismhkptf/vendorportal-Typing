@@ -352,7 +352,7 @@ export default function TypingJobDetail() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl font-semibold text-foreground" data-testid="page-title">
+              <h1 className="text-xl font-bold text-foreground tracking-tight" data-testid="page-title">
                 Typing Job
               </h1>
               <StatusBadge status={job.status} />
@@ -810,7 +810,7 @@ export default function TypingJobDetail() {
             {job?.jobType?.cost && (
               <div className="p-3 bg-muted rounded-lg">
                 <p className="text-sm text-muted-foreground">Cost to deduct</p>
-                <p className="text-lg font-semibold">AED {job.jobType.cost}</p>
+                <p className="text-lg font-bold tabular-nums">AED {job.jobType.cost}</p>
               </div>
             )}
           </div>

@@ -1610,7 +1610,7 @@ export default function AdminPage() {
             </Button>
           )}
           <div>
-            <h1 className="text-xl font-semibold text-foreground">
+            <h1 className="text-xl font-bold text-foreground tracking-tight">
               {activeSection === "organization" ? "Organization" :
                activeSection === "vendor" ? "Vendor Management" :
                activeSection === "admin" ? "Administration" :
@@ -5736,7 +5736,7 @@ function WorkDriveBackupSection() {
   return (
     <div className="space-y-6" data-testid="workdrive-backup-section">
       <div>
-        <h3 className="text-lg font-semibold mb-1">Zoho WorkDrive Backup</h3>
+        <h3 className="text-lg font-semibold tracking-tight mb-1">Zoho WorkDrive Backup</h3>
         <p className="text-sm text-muted-foreground">
           Sync documents and export business data to Zoho WorkDrive for backup.
         </p>

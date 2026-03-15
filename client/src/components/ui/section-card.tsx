@@ -13,10 +13,10 @@ interface SectionCardProps {
 
 export function SectionCard({ title, required, children, className, actions }: SectionCardProps) {
   return (
-    <Card className={cn("border border-border/50 shadow-sm", className)} data-testid={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}>
+    <Card className={cn("border border-border/40 shadow-sm", className)} data-testid={`section-${title.toLowerCase().replace(/\s+/g, "-")}`}>
       <CardHeader className="flex flex-row items-center justify-between gap-4 pb-4">
         <div className="flex items-center gap-3">
-          <CardTitle className="text-base font-medium text-foreground">
+          <CardTitle className="text-base font-semibold text-foreground tracking-tight">
             {title}
           </CardTitle>
           {required && (

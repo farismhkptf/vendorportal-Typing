@@ -782,13 +782,13 @@ export default function WorkOrdersList() {
             }}
             data-testid={`stat-tile-${tile.label.toLowerCase().replace(/\s/g, "-")}`}
           >
-            <div className="flex items-center gap-2">
-              <div className={`p-1.5 rounded-md ${tile.bg}`}>
-                <tile.icon className={`h-3.5 w-3.5 ${tile.color}`} />
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${tile.bg}`}>
+                <tile.icon className={`h-4 w-4 ${tile.color}`} />
               </div>
               <div>
-                <p className="text-lg font-semibold text-foreground leading-none">{tile.value}</p>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{tile.label}</p>
+                <p className="text-xl font-bold text-foreground leading-none tabular-nums">{tile.value}</p>
+                <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{tile.label}</p>
               </div>
             </div>
           </Card>

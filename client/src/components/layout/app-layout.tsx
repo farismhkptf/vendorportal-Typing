@@ -144,12 +144,12 @@ export function AppLayout({ children }: AppLayoutProps) {
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 cursor-pointer",
                       isActive
-                        ? "bg-primary text-white shadow-sm nav-item-active-pill"
+                        ? "bg-primary text-primary-foreground shadow-sm nav-item-active-pill"
                         : "text-muted-foreground hover-elevate"
                     )}
                     data-testid={`nav-${item.name.toLowerCase().replace(" ", "-")}`}
                   >
-                    <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-white")} />
+                    <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-primary-foreground")} />
                     {item.name}
                   </div>
                 </Link>

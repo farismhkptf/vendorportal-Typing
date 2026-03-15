@@ -540,7 +540,7 @@ export default function NewWorkOrder() {
                     <FileText className="h-5 w-5 text-blue-500" />
                   </div>
                   <div>
-                    <CardTitle className="text-base font-semibold">Work Order Number</CardTitle>
+                    <CardTitle className="text-base font-semibold tracking-tight">Work Order Number</CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">Unique identifier for this order</p>
                   </div>
                 </div>
@@ -578,7 +578,7 @@ export default function NewWorkOrder() {
                       <User className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <CardTitle className="text-base font-semibold">Applicant Details</CardTitle>
+                      <CardTitle className="text-base font-semibold tracking-tight">Applicant Details</CardTitle>
                       <p className="text-xs text-muted-foreground mt-0.5">Personal information and contact</p>
                     </div>
                   </div>
@@ -723,7 +723,7 @@ export default function NewWorkOrder() {
                     <Building2 className="h-5 w-5 text-emerald-500" />
                   </div>
                   <div>
-                    <CardTitle className="text-base font-semibold">Company</CardTitle>
+                    <CardTitle className="text-base font-semibold tracking-tight">Company</CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">Client organization for this work order</p>
                   </div>
                 </div>
@@ -790,7 +790,7 @@ export default function NewWorkOrder() {
                     <FileText className="h-5 w-5 text-violet-500" />
                   </div>
                   <div>
-                    <CardTitle className="text-base font-semibold">Service Details</CardTitle>
+                    <CardTitle className="text-base font-semibold tracking-tight">Service Details</CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">Type of service and additional notes</p>
                   </div>
                 </div>

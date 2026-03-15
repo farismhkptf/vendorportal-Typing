@@ -114,48 +114,48 @@ export default function ReportsPage() {
     <AppLayout>
       <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold tracking-tight" data-testid="text-reports-title">Reports & Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-1">Overview of work orders, typing jobs, and vendor performance</p>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight" data-testid="text-reports-title">Reports & Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">Overview of work orders, typing jobs, and vendor performance</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Work Orders</CardTitle>
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Work Orders</CardTitle>
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold" data-testid="text-total-wo">{data.overview.totalWorkOrders}</div>
+              <div className="text-2xl font-bold tracking-tight tabular-nums" data-testid="text-total-wo">{data.overview.totalWorkOrders}</div>
               <p className="text-xs text-muted-foreground mt-1">{data.overview.completedWorkOrders} completed</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Work Orders</CardTitle>
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Active Work Orders</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold" data-testid="text-active-wo">{data.overview.activeWorkOrders}</div>
+              <div className="text-2xl font-bold tracking-tight tabular-nums" data-testid="text-active-wo">{data.overview.activeWorkOrders}</div>
               <p className="text-xs text-muted-foreground mt-1">In progress</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Typing Jobs</CardTitle>
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Typing Jobs</CardTitle>
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold" data-testid="text-total-tj">{data.overview.totalTypingJobs}</div>
+              <div className="text-2xl font-bold tracking-tight tabular-nums" data-testid="text-total-tj">{data.overview.totalTypingJobs}</div>
               <p className="text-xs text-muted-foreground mt-1">{data.overview.completedTypingJobs} completed</p>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Companies</CardTitle>
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Companies</CardTitle>
               <Building2 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl sm:text-2xl font-bold" data-testid="text-total-companies">{data.overview.totalCompanies}</div>
+              <div className="text-2xl font-bold tracking-tight tabular-nums" data-testid="text-total-companies">{data.overview.totalCompanies}</div>
               <p className="text-xs text-muted-foreground mt-1">{data.overview.totalVendors} vendor{data.overview.totalVendors !== 1 ? "s" : ""}</p>
             </CardContent>
           </Card>
@@ -163,7 +163,7 @@ export default function ReportsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Monthly Volume ({new Date().getFullYear()})</CardTitle>
+            <CardTitle className="text-base font-semibold tracking-tight">Monthly Volume ({new Date().getFullYear()})</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={260}>
@@ -197,7 +197,7 @@ export default function ReportsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Work Order Status</CardTitle>
+              <CardTitle className="text-base font-semibold tracking-tight">Work Order Status</CardTitle>
             </CardHeader>
             <CardContent>
               {woStatusData.length === 0 ? (
@@ -217,7 +217,7 @@ export default function ReportsPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Typing Job Status</CardTitle>
+              <CardTitle className="text-base font-semibold tracking-tight">Typing Job Status</CardTitle>
             </CardHeader>
             <CardContent>
               {tjStatusData.length === 0 ? (
@@ -240,7 +240,7 @@ export default function ReportsPage() {
         {data.turnaroundByVendor.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base font-semibold tracking-tight flex items-center gap-2">
                 <Award className="h-4 w-4 text-muted-foreground" />
                 Vendor Performance
               </CardTitle>
@@ -286,7 +286,7 @@ export default function ReportsPage() {
         {topCompaniesData.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Top Companies by Work Orders</CardTitle>
+              <CardTitle className="text-base font-semibold tracking-tight">Top Companies by Work Orders</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={Math.max(180, topCompaniesData.length * 36)}>

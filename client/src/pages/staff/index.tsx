@@ -395,7 +395,7 @@ export default function StaffList() {
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Staff</h1>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">Staff</h1>
             <p className="text-sm text-muted-foreground">Manage your team members</p>
           </div>
           <Button 

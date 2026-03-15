@@ -149,7 +149,7 @@ export default function CrmDashboard() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
-            <h1 className="text-xl font-semibold text-foreground" data-testid="text-user-greeting">
+            <h1 className="text-xl font-bold text-foreground tracking-tight" data-testid="text-user-greeting">
               {isAdmin ? "CRM Dashboard" : (user?.name || "Dashboard")}
             </h1>
           </div>
@@ -211,7 +211,7 @@ export default function CrmDashboard() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Building2 className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-base font-semibold text-foreground">My Companies</h2>
+              <h2 className="text-base font-semibold text-foreground tracking-tight">My Companies</h2>
               {!companiesLoading && (
                 <span className="text-xs text-muted-foreground tabular-nums">({myCompanies.length})</span>
               )}
@@ -272,7 +272,7 @@ export default function CrmDashboard() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-base font-semibold text-foreground">Today's Appointments</h2>
+                <h2 className="text-base font-semibold text-foreground tracking-tight">Today's Appointments</h2>
                 {!appointmentsLoading && (
                   <span className="text-xs text-muted-foreground tabular-nums">({todayAppointments.length})</span>
                 )}
@@ -340,7 +340,7 @@ export default function CrmDashboard() {
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Briefcase className="h-4 w-4 text-muted-foreground" />
-                <h2 className="text-base font-semibold text-foreground">My Work Orders</h2>
+                <h2 className="text-base font-semibold text-foreground tracking-tight">My Work Orders</h2>
                 {!workOrdersLoading && (
                   <span className="text-xs text-muted-foreground tabular-nums">({myWorkOrders.length})</span>
                 )}

@@ -70,7 +70,7 @@ export function VendorHeader() {
       <div className="flex h-16 items-center justify-between gap-2 px-4 lg:px-8">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center">
+            <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center">
               <span className="text-sm font-semibold text-white">V</span>
             </div>
             <div className="hidden sm:block">

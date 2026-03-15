@@ -91,7 +91,7 @@ export default function AdminApprovals() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-lg font-semibold" data-testid="text-approvals-heading">Pending Approvals</h2>
+        <h2 className="text-lg font-bold tracking-tight" data-testid="text-approvals-heading">Pending Approvals</h2>
         <Badge variant="secondary">{approvals.length} pending</Badge>
       </div>
 

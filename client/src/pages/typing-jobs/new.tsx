@@ -442,7 +442,7 @@ The P.R.O. Company™`;
                   </Button>
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold text-foreground">New Typing Job</h1>
+                  <h1 className="text-xl font-bold text-foreground tracking-tight">New Typing Job</h1>
                   <p className="text-sm text-muted-foreground">Send applications to vendor for typing</p>
                 </div>
               </div>

@@ -150,7 +150,7 @@ export default function ReschedulePage() {
             <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
               <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
-            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Invalid Link</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-foreground tracking-tight mb-2">Invalid Link</h2>
             <p className="text-muted-foreground">
               This reschedule link is invalid or has expired. Please contact us for assistance.
             </p>
@@ -168,7 +168,7 @@ export default function ReschedulePage() {
             <div className="h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-2">Request Submitted</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-foreground tracking-tight mb-2">Request Submitted</h2>
             <p className="text-muted-foreground">
               Your reschedule request has been submitted successfully. Our team will review and confirm your new appointment time shortly.
             </p>
@@ -188,7 +188,7 @@ export default function ReschedulePage() {
           <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center mx-auto mb-4">
             <span className="text-lg font-bold text-white">P</span>
           </div>
-          <h1 className="text-xl font-semibold text-foreground"><CompanyName /></h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight"><CompanyName /></h1>
           <p className="text-sm text-muted-foreground mt-1">Appointment Reschedule</p>
         </div>
 

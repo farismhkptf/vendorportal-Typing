@@ -82,7 +82,7 @@ export function DataTableToolbar({
         <div className="flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="flex items-center gap-0.5 p-0.5 rounded-md bg-muted/50">
+              <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-muted/50">
                 <Button
                   size="icon"
                   variant={density === "comfortable" ? "secondary" : "ghost"}

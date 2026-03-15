@@ -2,86 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE - Fresh sophisticated premium palette */
+/* LIGHT MODE - Premium warm neutral with gold/amber accent */
 :root {
   --button-outline: rgba(0,0,0, .08);
   --badge-outline: rgba(0,0,0, .04);
 
-  /* Automatic computation of border around primary / danger buttons */
-  --opaque-button-border-intensity: -8; /* In terms of percentages */
+  --opaque-button-border-intensity: -8;
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
   --elevate-1: rgba(0,0,0, .025);
   --elevate-2: rgba(0,0,0, .06);
 
-  --background: 210 25% 97%; /* Cool off-white with blue undertone */
+  --background: 36 20% 97%;
 
-  --foreground: 220 30% 15%; /* Rich charcoal with depth */
+  --foreground: 222 25% 14%;
 
-  --border: 214 20% 88%; /* Soft cool gray border */
+  --border: 36 14% 88%;
 
-  --card: 0 0% 100%; /* Pure white cards */
+  --card: 40 20% 99.5%;
 
-  --card-foreground: 220 30% 15%;
+  --card-foreground: 222 25% 14%;
 
-  --card-border: 214 20% 90%;
+  --card-border: 36 14% 90%;
 
-  --sidebar: 225 25% 98%; /* Slightly cooler sidebar */
+  --sidebar: 36 18% 97.5%;
 
-  --sidebar-foreground: 220 30% 15%;
+  --sidebar-foreground: 222 25% 14%;
 
-  --sidebar-border: 214 20% 90%;
+  --sidebar-border: 36 14% 90%;
 
-  --sidebar-primary: 235 70% 60%; /* Rich indigo accent */
+  --sidebar-primary: 38 78% 50%;
 
-  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-primary-foreground: 30 30% 10%;
 
-  --sidebar-accent: 230 20% 95%;
+  --sidebar-accent: 36 20% 94%;
 
-  --sidebar-accent-foreground: 220 30% 15%;
+  --sidebar-accent-foreground: 222 25% 14%;
 
-  --sidebar-ring: 235 70% 60%;
+  --sidebar-ring: 38 78% 50%;
 
-  --popover: 0 0% 100%;
+  --popover: 40 20% 99.5%;
 
-  --popover-foreground: 220 30% 15%;
+  --popover-foreground: 222 25% 14%;
 
-  --popover-border: 214 20% 90%;
+  --popover-border: 36 14% 90%;
 
-  --primary: 235 70% 58%; /* Fresh indigo - more vibrant */
+  --primary: 38 78% 50%;
 
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 30 30% 10%;
 
-  --secondary: 230 25% 95%; /* Cool light gray */
+  --secondary: 36 16% 94%;
 
-  --secondary-foreground: 220 30% 25%;
+  --secondary-foreground: 222 20% 25%;
 
-  --muted: 225 20% 95%;
+  --muted: 36 14% 95%;
 
-  --muted-foreground: 220 15% 50%; /* Refined gray for secondary text */
+  --muted-foreground: 222 12% 50%;
 
-  --accent: 235 60% 95%; /* Light indigo tint */
+  --accent: 38 45% 94%;
 
-  --accent-foreground: 235 70% 45%;
+  --accent-foreground: 38 70% 35%;
 
   --destructive: 0 75% 55%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 214 20% 88%;
-  --ring: 235 70% 58%;
-  --chart-1: 235 70% 58%;
-  --chart-2: 162 75% 45%;
-  --chart-3: 280 70% 58%;
-  --chart-4: 38 95% 52%;
-  --chart-5: 15 85% 60%;
+  --input: 36 14% 88%;
+  --ring: 38 78% 50%;
+  --chart-1: 38 78% 50%;
+  --chart-2: 162 65% 42%;
+  --chart-3: 222 55% 52%;
+  --chart-4: 280 55% 55%;
+  --chart-5: 15 75% 55%;
 
   --logo-color: 215 57% 29%;
 
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
-  --radius: .625rem; /* Slightly tighter radius for refined look */
+  --radius: .625rem;
   --shadow-2xs: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
   --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 2px 4px 0 rgba(0, 0, 0, 0.02);
@@ -93,44 +91,33 @@
   --tracking-normal: -0.01em;
   --spacing: 0.25rem;
 
-  /* Automatically computed borders - intensity can be controlled by the user by the --opaque-button-border-intensity setting */
-
-  /* Fallback for older browsers */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --sidebar-accent-border: hsl(var(--sidebar-accent));
   --sidebar-accent-border: hsl(from hsl(var(--sidebar-accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --primary-border: hsl(var(--primary));
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --secondary-border: hsl(var(--secondary));
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --muted-border: hsl(var(--muted));
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --accent-border: hsl(var(--accent));
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* Fallback for older browsers */
   --destructive-border: hsl(var(--destructive));
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 
-  /* V2 portal status badge colors */
   --v2-blue: 213 93% 47%;
   --v2-amber: 38 92% 50%;
   --v2-green: 160 68% 37%;
   --v2-red: 0 72% 51%;
   --v2-slate: 215 16% 47%;
 
-  /* Login page brand accent (navy blue, dark-background optimized) */
   --login-brand: 215 57% 30%;
   --login-brand-hover: 214 57% 35%;
   --login-success: 160 68% 37%;
@@ -143,74 +130,72 @@
   --button-outline: rgba(255,255,255, .08);
   --badge-outline: rgba(255,255,255, .04);
 
-  --opaque-button-border-intensity: 8;  /* In terms of percentages */
+  --opaque-button-border-intensity: 8;
 
-  /* Backgrounds applied on top of other backgrounds when hovered/active */
   --elevate-1: rgba(255,255,255, .03);
   --elevate-2: rgba(255,255,255, .07);
 
-  --background: 230 25% 8%; /* Deep cool dark with subtle blue */
+  --background: 225 20% 8%;
 
-  --foreground: 220 20% 95%; /* Crisp white with warmth */
+  --foreground: 36 15% 95%;
 
-  --border: 230 20% 18%; /* Refined dark border */
+  --border: 225 15% 18%;
 
-  --card: 230 25% 11%; /* Slightly elevated dark surface */
+  --card: 225 18% 11%;
 
-  --card-foreground: 220 20% 95%;
+  --card-foreground: 36 15% 95%;
 
-  --card-border: 230 20% 18%;
+  --card-border: 225 15% 18%;
 
-  --sidebar: 230 25% 7%; /* Deepest dark for sidebar */
+  --sidebar: 225 20% 7%;
 
-  --sidebar-foreground: 220 20% 95%;
+  --sidebar-foreground: 36 15% 95%;
 
-  --sidebar-border: 230 20% 16%;
+  --sidebar-border: 225 15% 16%;
 
-  --sidebar-primary: 235 75% 65%; /* Vibrant indigo in dark mode */
+  --sidebar-primary: 38 85% 55%;
 
-  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-primary-foreground: 30 30% 10%;
 
-  --sidebar-accent: 235 30% 18%;
+  --sidebar-accent: 38 25% 16%;
 
-  --sidebar-accent-foreground: 220 20% 95%;
+  --sidebar-accent-foreground: 36 15% 95%;
 
-  --sidebar-ring: 235 75% 65%;
+  --sidebar-ring: 38 85% 55%;
 
-  --popover: 230 25% 11%;
+  --popover: 225 18% 11%;
 
-  --popover-foreground: 220 20% 95%;
+  --popover-foreground: 36 15% 95%;
 
-  --popover-border: 230 20% 18%;
+  --popover-border: 225 15% 18%;
 
-  --primary: 235 75% 65%; /* Bright indigo accent */
+  --primary: 38 85% 55%;
 
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 30 30% 10%;
 
-  --secondary: 230 20% 15%;
+  --secondary: 225 15% 15%;
 
-  --secondary-foreground: 220 20% 90%;
+  --secondary-foreground: 36 15% 90%;
 
-  --muted: 230 20% 15%;
+  --muted: 225 15% 15%;
 
-  --muted-foreground: 220 15% 60%; /* Balanced secondary text */
+  --muted-foreground: 222 12% 58%;
 
-  --accent: 235 40% 20%;
+  --accent: 38 35% 18%;
 
-  --accent-foreground: 235 75% 75%;
+  --accent-foreground: 38 80% 70%;
 
   --destructive: 0 70% 55%;
 
   --destructive-foreground: 0 0% 100%;
 
-  /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background */
-  --input: 230 20% 22%;
-  --ring: 235 75% 65%;
-  --chart-1: 235 75% 65%;
-  --chart-2: 162 70% 50%;
-  --chart-3: 280 70% 62%;
-  --chart-4: 38 90% 55%;
-  --chart-5: 15 80% 62%;
+  --input: 225 15% 22%;
+  --ring: 38 85% 55%;
+  --chart-1: 38 85% 55%;
+  --chart-2: 162 65% 48%;
+  --chart-3: 222 55% 58%;
+  --chart-4: 280 55% 62%;
+  --chart-5: 15 75% 60%;
 
   --logo-color: 215 57% 29%;
 
@@ -223,14 +208,12 @@
   --shadow-xl: 0 16px 32px -8px rgba(0, 0, 0, 0.45), 0 24px 48px -12px rgba(0, 0, 0, 0.35);
   --shadow-2xl: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
 
-  /* V2 portal status badge colors — dark mode (lighter for contrast on dark bg) */
   --v2-blue: 213 93% 70%;
   --v2-amber: 38 92% 72%;
   --v2-green: 160 68% 60%;
   --v2-red: 0 72% 70%;
   --v2-slate: 215 16% 72%;
 
-  /* Login page brand accent — dark mode (same values: login is always dark-bg) */
   --login-brand: 215 57% 30%;
   --login-brand-hover: 214 57% 35%;
   --login-success: 160 68% 37%;
@@ -669,16 +652,19 @@
     border: 1px solid rgba(255, 255, 255, 0.04);
   }
 
-  /* Premium card styles - refined with layered soft shadows */
+  .gradient-header {
+    background: linear-gradient(180deg, hsl(var(--card) / 0.6) 0%, transparent 100%);
+  }
+
   .premium-card {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border) / 0.5);
     border-radius: 12px;
     box-shadow:
       0 0 0 1px hsl(var(--border) / 0.05),
-      0 1px 2px rgba(100, 100, 140, 0.03),
-      0 2px 8px rgba(100, 100, 140, 0.04),
-      0 8px 24px rgba(100, 100, 140, 0.03);
+      0 1px 2px rgba(120, 110, 90, 0.03),
+      0 2px 8px rgba(120, 110, 90, 0.04),
+      0 8px 24px rgba(120, 110, 90, 0.03);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
@@ -686,9 +672,9 @@
     border-color: hsl(var(--border) / 0.7);
     box-shadow:
       0 0 0 1px hsl(var(--border) / 0.08),
-      0 2px 4px rgba(100, 100, 140, 0.05),
-      0 4px 12px rgba(100, 100, 140, 0.06),
-      0 12px 32px rgba(100, 100, 140, 0.05);
+      0 2px 4px rgba(120, 110, 90, 0.05),
+      0 4px 12px rgba(120, 110, 90, 0.06),
+      0 12px 32px rgba(120, 110, 90, 0.05);
   }
 
   .dark .premium-card {
@@ -716,9 +702,9 @@
     border-radius: 14px;
     box-shadow:
       0 0 0 1px hsl(var(--border) / 0.04),
-      0 1px 2px rgba(100, 100, 140, 0.03),
-      0 2px 8px rgba(100, 100, 140, 0.03),
-      0 6px 20px rgba(100, 100, 140, 0.03);
+      0 1px 2px rgba(120, 110, 90, 0.03),
+      0 2px 8px rgba(120, 110, 90, 0.03),
+      0 6px 20px rgba(120, 110, 90, 0.03);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
@@ -728,7 +714,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, transparent 0%, hsl(var(--primary) / 0.03) 100%);
+    background: linear-gradient(135deg, transparent 0%, hsl(var(--primary) / 0.04) 100%);
     opacity: 0;
     transition: opacity 0.25s ease;
   }
@@ -738,12 +724,13 @@
   }
 
   .stat-card:hover {
-    border-color: hsl(var(--primary) / 0.15);
+    border-color: hsl(var(--primary) / 0.2);
     box-shadow:
-      0 0 0 1px hsl(var(--primary) / 0.06),
-      0 2px 6px rgba(100, 100, 140, 0.05),
-      0 6px 16px rgba(100, 100, 140, 0.05),
-      0 12px 32px rgba(100, 100, 140, 0.04);
+      0 0 0 1px hsl(var(--primary) / 0.08),
+      0 2px 6px rgba(120, 110, 90, 0.05),
+      0 6px 16px rgba(120, 110, 90, 0.05),
+      0 12px 32px rgba(120, 110, 90, 0.04);
+    transform: translateY(-1px);
   }
 
   .dark .stat-card {
@@ -818,7 +805,7 @@
     }
   }
 
-  /* Premium icon container - refined with indigo accents */
+  /* Premium icon container - refined with primary accents */
   .icon-container {
     display: flex;
     align-items: center;
@@ -1414,19 +1401,19 @@
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 120% 80% at 20% 10%, rgba(99, 102, 241, 0.07) 0%, transparent 50%),
-    radial-gradient(ellipse 100% 60% at 80% 90%, rgba(16, 185, 129, 0.05) 0%, transparent 45%),
-    radial-gradient(ellipse 80% 100% at 60% 40%, rgba(139, 92, 246, 0.04) 0%, transparent 55%),
-    linear-gradient(165deg, #f8fafc 0%, #eef2ff 35%, #f0f9ff 70%, #f8fafc 100%);
+    radial-gradient(ellipse 120% 80% at 20% 10%, rgba(212, 148, 10, 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 60% at 80% 90%, rgba(16, 185, 129, 0.04) 0%, transparent 45%),
+    radial-gradient(ellipse 80% 100% at 60% 40%, rgba(180, 140, 60, 0.04) 0%, transparent 55%),
+    linear-gradient(165deg, #faf9f7 0%, #fdf6e8 35%, #f8f7f4 70%, #faf9f7 100%);
   background-size: cover;
 }
 
 .dark .v2-bg-layer {
   background:
-    radial-gradient(ellipse 120% 80% at 20% 10%, rgba(99, 102, 241, 0.25) 0%, transparent 50%),
-    radial-gradient(ellipse 100% 60% at 80% 90%, rgba(16, 185, 129, 0.15) 0%, transparent 45%),
-    radial-gradient(ellipse 80% 100% at 60% 40%, rgba(139, 92, 246, 0.12) 0%, transparent 55%),
-    linear-gradient(165deg, #0f172a 0%, #1e1b4b 35%, #0c1222 70%, #0f172a 100%);
+    radial-gradient(ellipse 120% 80% at 20% 10%, rgba(212, 148, 10, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 60% at 80% 90%, rgba(16, 185, 129, 0.1) 0%, transparent 45%),
+    radial-gradient(ellipse 80% 100% at 60% 40%, rgba(180, 140, 60, 0.08) 0%, transparent 55%),
+    linear-gradient(165deg, #0f172a 0%, #1a1710 35%, #0c1222 70%, #0f172a 100%);
 }
 
 .glass-card {
@@ -1522,7 +1509,7 @@
 }
 
 .v2-dock-item-active {
-  text-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+  text-shadow: 0 0 12px rgba(217, 169, 19, 0.3);
 }
 
 .dark .v2-dock-item-active {
@@ -1545,7 +1532,7 @@
 
 .glass-input:focus {
   outline: none;
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: rgba(217, 169, 19, 0.4);
   background: rgba(0, 0, 0, 0.02);
 }
 
@@ -1579,9 +1566,9 @@
 }
 
 .glass-pill-active {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: rgba(99, 102, 241, 0.2);
-  color: #4f46e5;
+  background: rgba(217, 169, 19, 0.1);
+  border-color: rgba(217, 169, 19, 0.2);
+  color: hsl(38 78% 40%);
 }
 
 .dark .glass-pill {
@@ -1628,10 +1615,10 @@
 }
 
 .glass-btn-primary {
-  background: rgba(99, 102, 241, 0.85);
+  background: rgba(217, 169, 19, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(129, 140, 248, 0.4);
+  border: 1px solid rgba(217, 169, 19, 0.4);
   border-radius: 0.75rem;
   color: white;
   font-weight: 500;
@@ -1639,17 +1626,17 @@
 }
 
 .dark .glass-btn-primary {
-  background: rgba(99, 102, 241, 0.7);
+  background: rgba(217, 169, 19, 0.7);
 }
 
 .glass-btn-primary:hover {
-  background: rgba(99, 102, 241, 0.95);
+  background: rgba(217, 169, 19, 0.95);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 16px rgba(217, 169, 19, 0.3);
 }
 
 .dark .glass-btn-primary:hover {
-  background: rgba(99, 102, 241, 0.85);
+  background: rgba(217, 169, 19, 0.85);
 }
 
 .glass-btn-primary:active {
@@ -1703,7 +1690,7 @@
   z-index: 101;
   pointer-events: none;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 2px solid rgba(129, 140, 248, 0.4);
+  border: 2px solid rgba(217, 169, 19, 0.4);
 }
 
 .tour-spotlight::after {
@@ -1711,7 +1698,7 @@
   position: absolute;
   inset: -4px;
   border-radius: 20px;
-  border: 2px solid rgba(129, 140, 248, 0.2);
+  border: 2px solid rgba(217, 169, 19, 0.2);
   animation: tour-pulse-ring 2s ease-in-out infinite;
 }
 
@@ -1725,10 +1712,10 @@
   background: rgba(15, 15, 35, 0.85);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(129, 140, 248, 0.25);
+  border: 1px solid rgba(217, 169, 19, 0.25);
   border-radius: 20px;
   padding: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(217, 169, 19, 0.1);
   animation: tour-tooltip-enter 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 

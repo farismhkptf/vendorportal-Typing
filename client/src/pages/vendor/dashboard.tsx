@@ -175,7 +175,7 @@ export default function VendorDashboard() {
   return (
     <div className="p-5 lg:p-8 max-w-5xl mx-auto" data-testid="vendor-dashboard">
       <div className="mb-8">
-        <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight text-foreground" data-testid="text-greeting">
+        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground" data-testid="text-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0] || "there"}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -317,7 +317,7 @@ export default function VendorDashboard() {
         <div className="lg:col-span-2 space-y-6">
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground" data-testid="heading-action-queue">Active Work Orders</h2>
+              <h2 className="text-sm font-semibold text-foreground tracking-tight" data-testid="heading-action-queue">Active Work Orders</h2>
               {woGrouped.length > 0 && (
                 <span className="text-xs text-muted-foreground">{woGrouped.length} {woGrouped.length === 1 ? "order" : "orders"}</span>
               )}
@@ -412,7 +412,7 @@ export default function VendorDashboard() {
           </section>
 
           <section>
-            <h2 className="text-sm font-semibold text-foreground mb-3" data-testid="heading-activity">Recent Activity</h2>
+            <h2 className="text-sm font-semibold text-foreground tracking-tight mb-3" data-testid="heading-activity">Recent Activity</h2>
             {activityFeed.length > 0 ? (
               <Card className="border-0 shadow-sm overflow-hidden">
                 <div className="divide-y divide-border/30">
@@ -456,7 +456,7 @@ export default function VendorDashboard() {
 
         <div className="space-y-6">
           <section>
-            <h2 className="text-sm font-semibold text-foreground mb-3">Navigate</h2>
+            <h2 className="text-sm font-semibold text-foreground tracking-tight mb-3">Navigate</h2>
             <div className="space-y-2">
               <Link href="/eid">
                 <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200" data-testid="nav-eid">
@@ -505,7 +505,7 @@ export default function VendorDashboard() {
 
           {perfData && (perfData.statusBreakdown.completed > 0 || perfData.monthlyEarnings > 0) && (
             <section data-testid="section-performance">
-              <h2 className="text-sm font-semibold text-foreground mb-3">Performance</h2>
+              <h2 className="text-sm font-semibold text-foreground tracking-tight mb-3">Performance</h2>
               <Card className="border-0 shadow-sm">
                 <CardContent className="p-4 space-y-3.5">
                   <div className="flex items-center justify-between">
@@ -552,7 +552,7 @@ export default function VendorDashboard() {
 
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-foreground" data-testid="heading-notifications">Notifications</h2>
+              <h2 className="text-sm font-semibold text-foreground tracking-tight" data-testid="heading-notifications">Notifications</h2>
               {unreadNotifications.length > 0 && (
                 <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{unreadNotifications.length}</Badge>
               )}

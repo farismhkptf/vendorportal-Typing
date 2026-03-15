@@ -21,7 +21,7 @@ import mossBg from "@/assets/backgrounds/moss.png";
 import arcticBg from "@/assets/backgrounds/arctic.png";
 
 const themes: { id: ThemeName; label: string; icon: typeof Zap; colors: [string, string] }[] = [
-  { id: "default", label: "Classic", icon: Palette, colors: ["#4f46e5", "#818cf8"] },
+  { id: "default", label: "Classic", icon: Palette, colors: ["#d4940a", "#e8b44c"] },
   { id: "cyber", label: "Neon Cyber", icon: Zap, colors: ["#00b8d4", "#06d6a0"] },
   { id: "desert", label: "Desert Sand", icon: Mountain, colors: ["#d2691e", "#e8a54b"] },
   { id: "ocean", label: "Ocean Breeze", icon: Waves, colors: ["#2e8b82", "#5ec4b6"] },

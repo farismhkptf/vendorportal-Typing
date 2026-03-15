@@ -615,7 +615,7 @@ Thank you,
   const renderStep1 = () => (
     <div className="space-y-4">
       <div className="text-center mb-4">
-        <h2 className="text-lg font-semibold">Select & Configure</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Select & Configure</h2>
         <p className="text-sm text-muted-foreground">Choose from the ready-to-schedule queue and configure details</p>
       </div>
 
@@ -1066,7 +1066,7 @@ Thank you,
   const renderStep2 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <h2 className="text-lg font-semibold">Review & Send</h2>
+        <h2 className="text-lg font-semibold tracking-tight">Review & Send</h2>
         <p className="text-sm text-muted-foreground">Preview and send appointment notification</p>
       </div>
 
@@ -1246,7 +1246,7 @@ Thank you,
             </Button>
           </div>
           <div>
-            <h1 className="text-xl font-semibold">Schedule Emirates ID</h1>
+            <h1 className="text-xl font-bold tracking-tight">Schedule Emirates ID</h1>
             <p className="text-sm text-muted-foreground">Create an Emirates ID appointment and notify the client</p>
           </div>
         </div>

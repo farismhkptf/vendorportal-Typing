@@ -112,7 +112,7 @@ export default function ManagerConsole() {
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-xl font-semibold" data-testid="text-manager-title">Manager Console</h1>
+            <h1 className="text-xl font-bold tracking-tight" data-testid="text-manager-title">Manager Console</h1>
           </div>
           <ChangePinButton />
         </div>

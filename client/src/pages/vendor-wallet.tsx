@@ -205,7 +205,7 @@ export default function VendorWallet() {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-3 flex-wrap">
             <div>
-              <h1 className="text-xl font-semibold text-foreground">
+              <h1 className="text-xl font-bold text-foreground tracking-tight">
                 Vendor Wallet
               </h1>
               <p className="text-sm text-muted-foreground mt-1">Vendor advance balance and transaction history</p>
@@ -362,7 +362,7 @@ export default function VendorWallet() {
         {/* Ledger */}
         <div id="section-ledger" className="space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-foreground">
+            <h2 className="text-sm font-semibold text-foreground tracking-tight">
               Transaction Ledger
               {filteredLedger.length !== (ledger?.length || 0) && (
                 <span className="ml-1.5 text-xs font-normal text-muted-foreground">

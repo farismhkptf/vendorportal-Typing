@@ -213,8 +213,8 @@ export function GuidedTour({ isOpen, onComplete }: GuidedTourProps) {
       >
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-indigo-500/30 flex items-center justify-center">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-300" />
+            <div className="h-6 w-6 rounded-lg bg-amber-500/30 flex items-center justify-center">
+              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
             </div>
             <span className="text-[11px] font-medium text-white/40 uppercase tracking-wider">
               Step {currentStep + 1} of {TOUR_STEPS.length}
@@ -239,7 +239,7 @@ export function GuidedTour({ isOpen, onComplete }: GuidedTourProps) {
                 key={i}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   i === currentStep
-                    ? "w-6 bg-indigo-400"
+                    ? "w-6 bg-amber-400"
                     : i < currentStep
                     ? "w-1.5 bg-white/30"
                     : "w-1.5 bg-white/10"

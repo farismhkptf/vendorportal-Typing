@@ -20,7 +20,7 @@ export function EmptyState({ icon, title, description, action, className, compac
       <div className="relative mb-5">
         <div className="absolute inset-0 rounded-full bg-primary/5 scale-[2] blur-xl" />
         <div className={cn(
-          "relative rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground/60",
+          "relative rounded-2xl bg-muted/50 flex items-center justify-center text-muted-foreground/50",
           compact ? "h-11 w-11" : "h-14 w-14"
         )}>
           {icon}

@@ -127,7 +127,7 @@ function WeeklyOverviewChart({ data }: { data: WeeklyData[] }) {
     <div className="premium-card p-4 opacity-0 animate-fade-in" data-testid="weekly-overview-chart">
       <div className="flex items-center gap-2 mb-4">
         <BarChart3 className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-semibold text-foreground">Weekly Overview</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">Weekly Overview</span>
       </div>
       <ResponsiveContainer width="100%" height={160}>
         <AreaChart data={formatted} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
@@ -137,8 +137,8 @@ function WeeklyOverviewChart({ data }: { data: WeeklyData[] }) {
               <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradAppt" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+              <stop offset="5%" stopColor="#0d9488" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#0d9488" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="gradTJ" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -157,7 +157,7 @@ function WeeklyOverviewChart({ data }: { data: WeeklyData[] }) {
             }}
           />
           <Area type="monotone" dataKey="workOrders" name="Work Orders" stroke="hsl(var(--primary))" fill="url(#gradWO)" strokeWidth={2} />
-          <Area type="monotone" dataKey="appointments" name="Appointments" stroke="#8b5cf6" fill="url(#gradAppt)" strokeWidth={2} />
+          <Area type="monotone" dataKey="appointments" name="Appointments" stroke="#0d9488" fill="url(#gradAppt)" strokeWidth={2} />
           <Area type="monotone" dataKey="typingJobs" name="Typing Jobs" stroke="#10b981" fill="url(#gradTJ)" strokeWidth={2} />
         </AreaChart>
       </ResponsiveContainer>
@@ -167,7 +167,7 @@ function WeeklyOverviewChart({ data }: { data: WeeklyData[] }) {
           Work Orders
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="h-2 w-2 rounded-full bg-violet-500" />
+          <span className="h-2 w-2 rounded-full bg-teal-600" />
           Appointments
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -184,7 +184,7 @@ function MyActivityPanel({ data, isLoading, photoMap }: { data?: ActivityItem[];
     <div className="premium-card p-4 opacity-0 animate-fade-in" data-testid="my-activity-panel">
       <div className="flex items-center gap-2 mb-3">
         <Activity className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-semibold text-foreground">Activity Timeline</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">Activity Timeline</span>
       </div>
       {isLoading ? (
         <div className="space-y-3">
@@ -271,7 +271,7 @@ function LaneHeader({
         <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", color)}>
           {icon}
         </div>
-        <h2 className="text-base font-semibold text-foreground">{title}</h2>
+        <h2 className="text-base font-semibold text-foreground tracking-tight">{title}</h2>
         {count !== undefined && count > 0 && (
           <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full tabular-nums">{count}</span>
         )}
@@ -361,7 +361,7 @@ function PipelineOverview({ navigate }: { navigate: (path: string) => void }) {
     <div className="premium-card p-4 opacity-0 animate-fade-in" data-testid="pipeline-overview">
       <div className="flex items-center gap-2 mb-3">
         <Package className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-semibold text-foreground">Work Order Pipeline</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">Work Order Pipeline</span>
         <span className="text-xs text-muted-foreground ml-auto">{total} active</span>
       </div>
 
@@ -438,10 +438,10 @@ function TypingJobsLane({ data, isLoading, photoMap }: { data?: TypingJobsSummar
   return (
     <div className="premium-card p-4 opacity-0 animate-fade-in animate-delay-2" data-testid="lane-typing-jobs">
       <LaneHeader
-        icon={<Send className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />}
+        icon={<Send className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
         title="Typing Jobs"
         count={totalActive}
-        color="bg-indigo-100 dark:bg-indigo-900/40"
+        color="bg-amber-100 dark:bg-amber-900/40"
         action={
           <Link href="/typing-jobs">
             <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground h-7" data-testid="link-view-all-jobs">
@@ -874,7 +874,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
-            <h1 className="text-xl font-semibold text-foreground">
+            <h1 className="text-xl font-bold text-foreground tracking-tight">
               Dashboard
             </h1>
           </div>

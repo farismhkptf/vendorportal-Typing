@@ -382,7 +382,7 @@ export default function V2JobDetail() {
                 isViewing
                   ? state === "completed"
                     ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300"
-                    : "bg-indigo-50 dark:bg-white/15 text-slate-900 dark:text-white"
+                    : "bg-amber-50 dark:bg-white/15 text-slate-900 dark:text-white"
                   : canClick
                     ? "text-slate-500 dark:text-white/50 hover:text-slate-700 dark:hover:text-white/70 hover:bg-slate-50 dark:hover:bg-white/5"
                     : "text-slate-300 dark:text-white/20 cursor-not-allowed"
@@ -690,7 +690,7 @@ export default function V2JobDetail() {
                   onCheckedChange={(checked) => setBioRequired(!!checked)}
                   disabled={isTerminal}
                   data-testid="v2-checkbox-bio"
-                  className="border-slate-300 dark:border-white/30 data-[state=checked]:bg-indigo-100 dark:data-[state=checked]:bg-white/20 data-[state=checked]:border-indigo-300 dark:data-[state=checked]:border-white/40"
+                  className="border-slate-300 dark:border-white/30 data-[state=checked]:bg-amber-100 dark:data-[state=checked]:bg-white/20 data-[state=checked]:border-amber-300 dark:data-[state=checked]:border-white/40"
                 />
                 <label htmlFor="v2-bio-required" className="text-sm text-slate-700 dark:text-white/80">Biometrics appointment required</label>
               </div>

@@ -100,7 +100,7 @@ export default function VendorJobs() {
       {/* Page Header */}
       <div className="gradient-header border-b border-border/50">
         <div className="px-4 lg:px-8 py-6">
-          <h1 className="text-xl lg:text-2xl font-semibold text-foreground">My Jobs</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">My Jobs</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             View and manage your assigned typing jobs
           </p>
@@ -140,24 +140,24 @@ export default function VendorJobs() {
         <div className="grid grid-cols-1 xs:grid-cols-3 gap-4">
           <Card className="border border-border/50">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">New Jobs</p>
-              <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">New Jobs</p>
+              <p className="text-2xl font-bold text-foreground mt-1.5 tabular-nums">
                 {jobs?.filter(j => j.status === "SubmittedToVendor").length || 0}
               </p>
             </CardContent>
           </Card>
           <Card className="border border-border/50">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">In Progress</p>
-              <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">In Progress</p>
+              <p className="text-2xl font-bold text-foreground mt-1.5 tabular-nums">
                 {jobs?.filter(j => j.status === "InProcess").length || 0}
               </p>
             </CardContent>
           </Card>
           <Card className="border border-border/50">
             <CardContent className="p-4">
-              <p className="text-sm text-muted-foreground">Completed</p>
-              <p className="text-xl sm:text-2xl font-semibold text-foreground mt-1">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Completed</p>
+              <p className="text-2xl font-bold text-foreground mt-1.5 tabular-nums">
                 {jobs?.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned").length || 0}
               </p>
             </CardContent>

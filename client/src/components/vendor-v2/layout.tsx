@@ -56,7 +56,7 @@ function NotificationSheet({ open, onClose }: { open: boolean; onClose: () => vo
                 <button
                   key={n.id}
                   onClick={() => markReadMutation.mutate(n.id)}
-                  className="w-full text-left p-3 rounded-2xl bg-indigo-50 dark:bg-white/10 hover:bg-indigo-100 dark:hover:bg-white/15 transition-all group"
+                  className="w-full text-left p-3 rounded-2xl bg-amber-50 dark:bg-white/10 hover:bg-amber-100 dark:hover:bg-white/15 transition-all group"
                   data-testid={`notification-unread-${n.id}`}
                 >
                   <div className="flex items-start gap-3">
@@ -152,8 +152,8 @@ export function V2Layout({ children }: V2LayoutProps) {
         <header className="flex items-center justify-between px-5 pt-4 pb-2 lg:px-8 lg:pt-6">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-indigo-100 dark:bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-indigo-600 dark:text-white font-bold text-sm">P</span>
+              <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                <span className="text-amber-700 dark:text-white font-bold text-sm">P</span>
               </div>
               <span className="text-slate-700 dark:text-white/90 font-medium text-sm hidden sm:block">
                 {user?.vendorName || "Vendor Portal"}
@@ -196,8 +196,8 @@ export function V2Layout({ children }: V2LayoutProps) {
               data-testid="button-v2-profile"
               data-tour="profile"
             >
-              <div className="h-6 w-6 rounded-full bg-indigo-100 dark:bg-white/20 flex items-center justify-center">
-                <span className="text-[11px] font-bold text-indigo-600 dark:text-white">{user?.name?.charAt(0) || "V"}</span>
+              <div className="h-6 w-6 rounded-full bg-amber-100 dark:bg-white/20 flex items-center justify-center">
+                <span className="text-[11px] font-bold text-amber-700 dark:text-white">{user?.name?.charAt(0) || "V"}</span>
               </div>
             </button>
           </div>
@@ -252,13 +252,13 @@ export function V2Layout({ children }: V2LayoutProps) {
                   <button
                     className={`v2-dock-item relative flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-all ${
                       isActive
-                        ? "text-indigo-600 dark:text-white v2-dock-item-active"
+                        ? "text-amber-700 dark:text-white v2-dock-item-active"
                         : "text-slate-400 dark:text-white/50 hover:text-slate-600 dark:hover:text-white/80"
                     }`}
                     data-testid={`nav-tab-${tab.label.toLowerCase()}`}
                   >
                     {isActive && (
-                      <div className="absolute inset-0 bg-indigo-50 dark:bg-white/15 rounded-2xl" />
+                      <div className="absolute inset-0 bg-amber-50 dark:bg-white/15 rounded-2xl" />
                     )}
                     <div className="relative">
                       <tab.icon className="h-5 w-5" />

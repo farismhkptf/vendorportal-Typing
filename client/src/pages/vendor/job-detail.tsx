@@ -216,7 +216,7 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
           )}
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="text-lg font-semibold" data-testid="text-wo-number">{job.workOrder?.woNumber || "N/A"}</h2>
+              <h2 className="text-lg font-bold tracking-tight" data-testid="text-wo-number">{job.workOrder?.woNumber || "N/A"}</h2>
               <StatusBadge status={job.status} vendorContext />
               {isEid && (
                 <div className="flex items-center gap-1.5">
@@ -270,7 +270,7 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Job Type</p>
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-base font-semibold" data-testid="text-job-type">
+            <span className="text-base font-bold tracking-tight" data-testid="text-job-type">
               {job.jobType ? formatJobTypeName(job.jobType.name) : "N/A"}
             </span>
           </div>

@@ -606,7 +606,7 @@ Thank you,
   const renderStep1 = () => (
     <div className="space-y-6">
       <div className="text-center mb-4">
-        <h2 className="text-lg font-semibold" data-testid="text-step1-title">Select & Configure</h2>
+        <h2 className="text-lg font-semibold tracking-tight" data-testid="text-step1-title">Select & Configure</h2>
         <p className="text-sm text-muted-foreground">Choose from the ready-to-schedule queue or search manually</p>
       </div>
 
@@ -1062,7 +1062,7 @@ Thank you,
   const renderStep2 = () => (
     <div className="space-y-4">
       <div className="text-center mb-6">
-        <h2 className="text-lg font-semibold" data-testid="text-step2-title">Review & Send</h2>
+        <h2 className="text-lg font-semibold tracking-tight" data-testid="text-step2-title">Review & Send</h2>
         <p className="text-sm text-muted-foreground">Preview and send appointment notification</p>
       </div>
 
@@ -1242,7 +1242,7 @@ Thank you,
             </Button>
           </div>
           <div>
-            <h1 className="text-xl font-semibold" data-testid="text-page-title">
+            <h1 className="text-xl font-bold tracking-tight" data-testid="text-page-title">
               {isFollowUp ? "Schedule Follow-Up Medical" : "Schedule Medical"}
             </h1>
             <p className="text-sm text-muted-foreground">
