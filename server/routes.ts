@@ -11,8 +11,8 @@ import {
   insertCenterSchema, insertServiceTypeSchema, insertJobTypeSchema, loginSchema,
   insertAppointmentSchema, insertTypingJobSchema, insertWoNoteSchema,
   insertTypingJobCommentSchema, insertFileSchema,
-  type CenterTimings, type InsertVendorNotification,
-  type Staff, type WoDocument
+  type CenterTimings, type InsertVendorNotification, type InsertStaffNotification,
+  type Staff, type WoDocument, ROLE_CATEGORIES
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -280,6 +280,21 @@ async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boolean> {
   }
 }
 
+async function notifyStaffByRoles(roles: string[], notification: Omit<InsertStaffNotification, 'userId'>) {
+  try {
+    const allUsers = await storage.getUsers();
+    const staffUsers = allUsers.filter(u => u.active && roles.includes(u.role));
+    for (const user of staffUsers) {
+      await storage.createStaffNotification({
+        ...notification,
+        userId: user.id,
+      });
+    }
+  } catch (error) {
+    console.error("Failed to create staff notification:", error);
+  }
+}
+
 async function checkAndMarkDelayedWorkOrders(): Promise<number> {
   try {
     const settings = await storage.getAppSettings();
@@ -317,6 +332,15 @@ async function checkAndMarkDelayedWorkOrders(): Promise<number> {
           details: { reason: `Vendor exceeded ${thresholdHours}h threshold`, applicantName: wo.applicantName, woNumber: wo.woNumber },
         });
         console.log(`[delay-check] Work order ${wo.woNumber} marked as Delayed`);
+
+        notifyStaffByRoles(["Admin", "Client Relationship Manager"], {
+          type: "wo_delayed",
+          title: "Work Order Delayed",
+          message: `Work order ${wo.woNumber} (${wo.applicantName}) marked as Delayed — vendor exceeded ${thresholdHours}h threshold`,
+          relatedEntityType: "work_order",
+          relatedEntityId: wo.id,
+        });
+
         markedCount++;
       }
     }
@@ -390,6 +414,64 @@ export async function registerRoutes(
       console.error("[delay-check] Initial check error:", err)
     );
   }, 5000);
+
+  const sentApptReminders = new Set<string>();
+  let lastApptReminderPruneDate = "";
+
+  async function checkAppointmentsTomorrow() {
+    try {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const dayAfter = new Date(tomorrow);
+      dayAfter.setDate(dayAfter.getDate() + 1);
+      const dateKey = tomorrow.toISOString().slice(0, 10);
+
+      if (lastApptReminderPruneDate !== dateKey) {
+        sentApptReminders.clear();
+        lastApptReminderPruneDate = dateKey;
+      }
+
+      const allAppointments = await storage.getAllAppointments();
+      const tomorrowAppts = allAppointments.filter(a => {
+        const d = new Date(a.datetime);
+        return d >= tomorrow && d < dayAfter && a.status === "Scheduled";
+      });
+
+      let sent = 0;
+      for (const appt of tomorrowAppts) {
+        const dedupeKey = `${dateKey}:${appt.id}`;
+        if (sentApptReminders.has(dedupeKey)) continue;
+        sentApptReminders.add(dedupeKey);
+
+        const wo = await storage.getWorkOrderById(appt.woId);
+        notifyStaffByRoles(["Admin", "Medical Support", "Medical Support - Temporary"], {
+          type: "appointment_tomorrow",
+          title: "Appointment Tomorrow",
+          message: `${appt.type} appointment tomorrow for ${wo?.applicantName || "applicant"} (${wo?.woNumber || ""})`,
+          relatedEntityType: "appointment",
+          relatedEntityId: appt.id,
+        });
+        sent++;
+      }
+      if (sent > 0) {
+        console.log(`[appt-reminder] Sent ${sent} appointment reminders`);
+      }
+    } catch (err) {
+      console.error("[appt-reminder] Error:", err);
+    }
+  }
+
+  setInterval(() => {
+    checkAppointmentsTomorrow().catch(err =>
+      console.error("[appt-reminder] Interval error:", err)
+    );
+  }, 6 * 60 * 60 * 1000);
+  setTimeout(() => {
+    checkAppointmentsTomorrow().catch(err =>
+      console.error("[appt-reminder] Initial check error:", err)
+    );
+  }, 10000);
 
   async function notifyVendorUsers(vendorId: string, notification: Omit<InsertVendorNotification, 'vendorUserId' | 'vendorId'>) {
     try {
@@ -1516,6 +1598,14 @@ export async function registerRoutes(
         action: "created",
         userId: (req as any).session?.userId || null,
         details: { woNumber: wo.woNumber, applicantName: wo.applicantName },
+      });
+
+      notifyStaffByRoles(["Admin"], {
+        type: "wo_created",
+        title: "New Work Order Created",
+        message: `Work order ${wo.woNumber} created for ${wo.applicantName}`,
+        relatedEntityType: "work_order",
+        relatedEntityId: wo.id,
       });
       
       // Auto-create Medical and EID typing jobs for the new work order
@@ -2907,6 +2997,7 @@ export async function registerRoutes(
             actorId: req.session?.userId,
             storage,
             notifyVendorUsers,
+          notifyStaffByRoles,
             updateFields: { vendorId, costSnapshot: cost },
           });
 
@@ -2979,6 +3070,7 @@ export async function registerRoutes(
         actorId: req.session?.userId,
         storage,
         notifyVendorUsers,
+          notifyStaffByRoles,
         updateFields: { vendorId },
       });
       if (!result.success) return res.status(400).json({ message: result.error });
@@ -3083,6 +3175,7 @@ export async function registerRoutes(
         actorId: req.session?.userId,
         storage,
         notifyVendorUsers,
+          notifyStaffByRoles,
         updateFields: { vendorId, costSnapshot: cost },
         reason: undefined,
       });
@@ -3107,6 +3200,7 @@ export async function registerRoutes(
         actorId: req.session?.userId,
         storage,
         notifyVendorUsers,
+          notifyStaffByRoles,
         reason: req.body.reason,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
@@ -3126,6 +3220,7 @@ export async function registerRoutes(
         actorId: req.session?.userId,
         storage,
         notifyVendorUsers,
+          notifyStaffByRoles,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
       res.json(result.job);
@@ -3144,6 +3239,7 @@ export async function registerRoutes(
         actorId: req.session?.userId,
         storage,
         notifyVendorUsers,
+          notifyStaffByRoles,
         reason: req.body.reason,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
@@ -3163,6 +3259,7 @@ export async function registerRoutes(
         actorId: req.session?.userId,
         storage,
         notifyVendorUsers,
+          notifyStaffByRoles,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
       res.json(result.job);
@@ -3957,6 +4054,58 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Review change notification error:", error);
       res.status(500).json({ message: "Failed to review notification" });
+    }
+  });
+
+  // ========== Staff Notifications ==========
+  app.get("/api/staff-notifications", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) return res.json([]);
+      const notifications = await storage.getStaffNotifications(userId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Get staff notifications error:", error);
+      res.status(500).json({ message: "Failed to get notifications" });
+    }
+  });
+
+  app.get("/api/staff-notifications/unread-count", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) return res.json({ count: 0 });
+      const count = await storage.getUnreadStaffNotificationCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error("Staff unread count error:", error);
+      res.status(500).json({ message: "Failed to get count" });
+    }
+  });
+
+  app.put("/api/staff-notifications/read-all", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) return res.json({ message: "Done" });
+      await storage.markAllStaffNotificationsRead(userId);
+      res.json({ message: "All marked as read" });
+    } catch (error) {
+      console.error("Mark all staff read error:", error);
+      res.status(500).json({ message: "Failed to mark all as read" });
+    }
+  });
+
+  app.put("/api/staff-notifications/:id/read", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+      const notifications = await storage.getStaffNotifications(userId);
+      const owns = notifications.some(n => n.id === req.params.id);
+      if (!owns) return res.status(404).json({ message: "Notification not found" });
+      await storage.markStaffNotificationRead(req.params.id);
+      res.json({ message: "Marked as read" });
+    } catch (error) {
+      console.error("Mark staff read error:", error);
+      res.status(500).json({ message: "Failed to mark as read" });
     }
   });
 
@@ -4982,6 +5131,7 @@ export async function registerRoutes(
         actorId: req.session.vendorUserId || undefined,
         storage,
         notifyVendorUsers,
+          notifyStaffByRoles,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
       res.json(result.job);
@@ -5010,6 +5160,7 @@ export async function registerRoutes(
         actorId: req.session.vendorUserId || undefined,
         storage,
         notifyVendorUsers,
+          notifyStaffByRoles,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
 
@@ -5040,6 +5191,14 @@ export async function registerRoutes(
             woNumber: wo?.woNumber,
             category: jobType?.category,
           },
+        });
+
+        notifyStaffByRoles(["Admin", "Medical Support", "Medical Support - Temporary"], {
+          type: "job_returned_from_vendor",
+          title: "Typing Job Returned from Vendor",
+          message: `Job ${job.jobCode || ""} completed by vendor${wo ? ` — ${wo.woNumber} (${wo.applicantName})` : ""}`,
+          relatedEntityType: "typing_job",
+          relatedEntityId: jobId,
         });
       } catch (auditErr) {
         console.error("Failed to create team notification audit:", auditErr);

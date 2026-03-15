@@ -516,6 +516,21 @@ export const changeNotifications = pgTable("change_notifications", {
   reviewedAt: timestamp("reviewed_at"),
 });
 
+// Staff Notifications table
+export const staffNotifications = pgTable("staff_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  relatedEntityType: text("related_entity_type"),
+  relatedEntityId: varchar("related_entity_id"),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_staff_notifications_user_id").on(table.userId),
+]);
+
 // Audit Log table
 export const auditLog = pgTable("audit_log", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -579,6 +594,7 @@ export const insertChangeNotificationSchema = createInsertSchema(changeNotificat
 export const insertAuditLogSchema = createInsertSchema(auditLog).omit({ id: true, createdAt: true });
 export const insertVendorApprovalSchema = createInsertSchema(vendorApprovals).omit({ id: true, createdAt: true, resolvedAt: true });
 export const insertVendorNotificationSchema = createInsertSchema(vendorNotifications).omit({ id: true, createdAt: true });
+export const insertStaffNotificationSchema = createInsertSchema(staffNotifications).omit({ id: true, createdAt: true });
 export const insertLoginAuditLogSchema = createInsertSchema(loginAuditLog).omit({ id: true, createdAt: true });
 export const insertPasswordResetRequestSchema = createInsertSchema(passwordResetRequests).omit({ id: true, createdAt: true, resolvedAt: true });
 
@@ -636,6 +652,8 @@ export type InsertVendorApproval = z.infer<typeof insertVendorApprovalSchema>;
 export type VendorApproval = typeof vendorApprovals.$inferSelect;
 export type InsertVendorNotification = z.infer<typeof insertVendorNotificationSchema>;
 export type VendorNotification = typeof vendorNotifications.$inferSelect;
+export type InsertStaffNotification = z.infer<typeof insertStaffNotificationSchema>;
+export type StaffNotification = typeof staffNotifications.$inferSelect;
 export type InsertLoginAuditLog = z.infer<typeof insertLoginAuditLogSchema>;
 export type LoginAuditLog = typeof loginAuditLog.$inferSelect;
 export type InsertPasswordResetRequest = z.infer<typeof insertPasswordResetRequestSchema>;

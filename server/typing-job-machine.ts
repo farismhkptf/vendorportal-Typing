@@ -22,6 +22,7 @@ export interface TransitionDef {
 export type SideEffect =
   | { type: "audit"; action: string }
   | { type: "notify_vendor"; notificationType: string; title: string; messageFn: (ctx: TransitionContext) => string }
+  | { type: "notify_staff"; roles: string[]; notificationType: string; title: string; messageFn: (ctx: TransitionContext) => string; entityType: string }
   | { type: "comment"; messageFn: (ctx: TransitionContext) => string };
 
 export interface TransitionContext {
@@ -79,6 +80,7 @@ const TRANSITIONS: Record<string, TransitionDef> = {
     sideEffects: [
       { type: "audit", action: "vendor_returned" },
       { type: "comment", messageFn: (ctx) => `Vendor returned job${ctx.reason ? `: ${ctx.reason}` : " due to incorrect documents"}` },
+      { type: "notify_staff", roles: ["Admin", "Medical Support", "Medical Support - Temporary"], notificationType: "job_returned_from_vendor", title: "Typing Job Returned by Vendor", messageFn: (ctx) => `Job ${ctx.jobCode || ""} returned by vendor${ctx.reason ? `: ${ctx.reason}` : ""}`, entityType: "typing_job" },
     ],
   },
 
@@ -189,6 +191,7 @@ export interface ExecuteTransitionParams {
   actorId?: string;
   storage: IStorage;
   notifyVendorUsers: (vendorId: string, notification: any) => Promise<void>;
+  notifyStaffByRoles?: (roles: string[], notification: any) => Promise<void>;
   updateFields?: Record<string, unknown>;
   reason?: string;
 }
@@ -199,7 +202,7 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
   job?: any;
   context?: TransitionContext;
 }> {
-  const { action, jobId, actor, actorId, storage, notifyVendorUsers, updateFields, reason } = params;
+  const { action, jobId, actor, actorId, storage, notifyVendorUsers, notifyStaffByRoles, updateFields, reason } = params;
 
   const job = await storage.getTypingJobById(jobId);
   if (!job) {
@@ -284,6 +287,18 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
                 message: effect.messageFn(ctx),
                 relatedJobId: jobId,
                 isRead: false,
+              });
+            }
+            break;
+
+          case "notify_staff":
+            if (notifyStaffByRoles) {
+              await notifyStaffByRoles(effect.roles, {
+                type: effect.notificationType,
+                title: effect.title,
+                message: effect.messageFn(ctx),
+                relatedEntityType: effect.entityType,
+                relatedEntityId: jobId,
               });
             }
             break;

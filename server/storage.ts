@@ -2,7 +2,7 @@ import {
   users, staff, centers, companies, companyEmails, serviceTypes, 
   workOrders, appointments, rescheduleRequests, jobTypes, vendors,
   typingJobs, typingJobResults, typingJobComments, files, messages, woNotes,
-  vendorWalletLedger, vendorStatements, vendorInvoices, vendorApprovals, vendorNotifications, appSettings, auditLog,
+  vendorWalletLedger, vendorStatements, vendorInvoices, vendorApprovals, vendorNotifications, staffNotifications, appSettings, auditLog,
   woDocuments, documentRequirements, changeNotifications, loginAuditLog, passwordResetRequests,
   sheetMonths, apiKeys,
   type User, type InsertUser, type Staff, type InsertStaff,
@@ -19,6 +19,7 @@ import {
   type ChangeNotification, type InsertChangeNotification,
   type VendorApproval, type InsertVendorApproval,
   type VendorNotification, type InsertVendorNotification,
+  type StaffNotification, type InsertStaffNotification,
   type LoginAuditLog, type InsertLoginAuditLog,
   type PasswordResetRequest, type InsertPasswordResetRequest,
   type SheetMonth,
@@ -205,6 +206,13 @@ export interface IStorage {
   getUnreadNotificationCount(vendorUserId: string): Promise<number>;
   markNotificationRead(id: string): Promise<void>;
   markAllNotificationsRead(vendorUserId: string): Promise<void>;
+
+  // Staff Notifications
+  createStaffNotification(data: InsertStaffNotification): Promise<StaffNotification>;
+  getStaffNotifications(userId: string, limit?: number): Promise<StaffNotification[]>;
+  getUnreadStaffNotificationCount(userId: string): Promise<number>;
+  markStaffNotificationRead(id: string): Promise<void>;
+  markAllStaffNotificationsRead(userId: string): Promise<void>;
 
   // Login audit
   createLoginAuditEntry(data: InsertLoginAuditLog): Promise<LoginAuditLog>;
@@ -1598,6 +1606,38 @@ export class DatabaseStorage implements IStorage {
     await db.update(vendorNotifications)
       .set({ isRead: true })
       .where(eq(vendorNotifications.vendorUserId, vendorUserId));
+  }
+
+  async createStaffNotification(data: InsertStaffNotification): Promise<StaffNotification> {
+    const [result] = await db.insert(staffNotifications).values(data).returning();
+    return result;
+  }
+
+  async getStaffNotifications(userId: string, limit = 50): Promise<StaffNotification[]> {
+    return db.select().from(staffNotifications)
+      .where(eq(staffNotifications.userId, userId))
+      .orderBy(desc(staffNotifications.createdAt))
+      .limit(limit);
+  }
+
+  async getUnreadStaffNotificationCount(userId: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(staffNotifications)
+      .where(and(
+        eq(staffNotifications.userId, userId),
+        eq(staffNotifications.isRead, false)
+      ));
+    return result[0]?.count || 0;
+  }
+
+  async markStaffNotificationRead(id: string): Promise<void> {
+    await db.update(staffNotifications).set({ isRead: true }).where(eq(staffNotifications.id, id));
+  }
+
+  async markAllStaffNotificationsRead(userId: string): Promise<void> {
+    await db.update(staffNotifications)
+      .set({ isRead: true })
+      .where(eq(staffNotifications.userId, userId));
   }
 
   async createLoginAuditEntry(data: InsertLoginAuditLog): Promise<LoginAuditLog> {
