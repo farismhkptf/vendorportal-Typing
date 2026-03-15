@@ -6,11 +6,21 @@ import {
   List, LayoutGrid, Columns3, Table2, Star, Tag,
   Clock, AlertTriangle, CheckCircle2, CircleDot, 
   Stethoscope, Fingerprint, CalendarCheck, Send as SendIcon,
-  Loader2, Download, Circle, ArrowRight
+  Loader2, Download, Circle, ArrowRight, ExternalLink, Copy, StarOff
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
+} from "@/components/ui/context-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -539,6 +549,97 @@ export default function WorkOrdersList() {
     },
   });
 
+  const toggleVipMutation = useMutation({
+    mutationFn: async ({ id, isVip }: { id: string; isVip: boolean }) => {
+      return apiRequest("PUT", `/api/work-orders/${id}`, { isVip });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      toast({ title: variables.isVip ? "Marked as VIP" : "VIP removed" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update VIP status", variant: "destructive" });
+    },
+  });
+
+  const singleStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      return apiRequest("PUT", `/api/work-orders/${id}`, { status });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      toast({ title: "Status updated", description: `Work order set to ${variables.status}.` });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "Failed to update status", variant: "destructive" });
+    },
+  });
+
+  const handleCopyWoNumber = useCallback((woNumber: string) => {
+    navigator.clipboard.writeText(woNumber);
+    toast({ title: "Copied", description: `${woNumber} copied to clipboard.` });
+  }, [toast]);
+
+  const renderWoContextMenu = useCallback((wo: WorkOrderEnriched, children: React.ReactNode) => (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        {children}
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem
+          onClick={() => navigate(`/work-orders/${wo.id}`)}
+          data-testid={`ctx-open-${wo.woNumber}`}
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Open
+        </ContextMenuItem>
+        <ContextMenuItem
+          onClick={() => handleCopyWoNumber(wo.woNumber)}
+          data-testid={`ctx-copy-wo-${wo.woNumber}`}
+        >
+          <Copy className="h-4 w-4 mr-2" />
+          Copy WO#
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuSub>
+          <ContextMenuSubTrigger data-testid={`ctx-change-status-${wo.woNumber}`}>
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            Change Status
+          </ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            {["Draft", "Scheduled", "Completed", "Cancelled"].map(status => (
+              <ContextMenuItem
+                key={status}
+                disabled={wo.status === status}
+                onClick={() => singleStatusMutation.mutate({ id: wo.id, status })}
+                data-testid={`ctx-status-${status.toLowerCase()}-${wo.woNumber}`}
+              >
+                {status}
+              </ContextMenuItem>
+            ))}
+          </ContextMenuSubContent>
+        </ContextMenuSub>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          onClick={() => toggleVipMutation.mutate({ id: wo.id, isVip: !wo.isVip })}
+          data-testid={`ctx-vip-${wo.woNumber}`}
+        >
+          {wo.isVip ? (
+            <>
+              <StarOff className="h-4 w-4 mr-2" />
+              Unmark VIP
+            </>
+          ) : (
+            <>
+              <Star className="h-4 w-4 mr-2" />
+              Mark VIP
+            </>
+          )}
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  ), [navigate, handleCopyWoNumber, singleStatusMutation, toggleVipMutation]);
+
   const viewMode = dt.viewMode as ViewMode;
 
   const isKanban = viewMode === "kanban";
@@ -717,6 +818,7 @@ export default function WorkOrdersList() {
             data-testid={`checkbox-wo-${wo.woNumber}`}
           />
         </div>
+        {renderWoContextMenu(wo,
         <Link href={`/work-orders/${wo.id}`} className="flex-1 min-w-0">
           <div 
             className={`premium-card ${isComfortable ? "p-4" : "p-2.5"} border-l-[3px] ${borderColor} opacity-0 animate-fade-in ${isDelayed ? "bg-red-50/50 dark:bg-red-950/20" : ""}`}
@@ -816,6 +918,7 @@ export default function WorkOrdersList() {
             )}
           </div>
         </Link>
+        )}
       </div>
     );
   };
@@ -843,6 +946,7 @@ export default function WorkOrdersList() {
               aria-label={`Select ${wo.woNumber}`}
               data-testid={`checkbox-wo-compact-${wo.woNumber}`}
             />
+            {renderWoContextMenu(wo,
             <Link href={`/work-orders/${wo.id}`} className="flex-1 min-w-0">
               <div 
                 className={`flex items-center justify-between gap-3 ${dt.density === "comfortable" ? "py-2 px-3" : "py-1.5 px-2"} rounded-lg hover-elevate border-l-[3px] ${borderColor} opacity-0 animate-fade-in`}
@@ -880,6 +984,7 @@ export default function WorkOrdersList() {
                 </div>
               </div>
             </Link>
+            )}
           </div>
         );
       })}
@@ -925,77 +1030,113 @@ export default function WorkOrdersList() {
             const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
             const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
             return (
-              <TableRow 
-                key={wo.id} 
-                className={`cursor-pointer hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
-                data-state={isSelected ? "selected" : undefined}
-                data-testid={`work-order-table-${wo.woNumber}`}
-              >
-                <TableCell className={cellPadding}>
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => dt.toggleSelected(wo.id)}
-                    aria-label={`Select ${wo.woNumber}`}
-                    data-testid={`checkbox-wo-table-${wo.woNumber}`}
-                  />
-                </TableCell>
-                {cv("woNumber") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-mono font-medium text-primary">{wo.woNumber}</span>
-                    {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
-                    {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
-                  </div>
-                </TableCell>}
-                {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-wo-table-${wo.woNumber}`}>
-                      {photoMap?.[wo.id] ? (
-                        <AvatarImage src={photoMap[wo.id]} alt={wo.applicantName} />
-                      ) : null}
-                      <AvatarFallback className="text-[9px] font-medium">{getInitials(wo.applicantName)}</AvatarFallback>
-                    </Avatar>
-                    <span className="block truncate">{toProperCase(wo.applicantName)}</span>
-                  </div>
-                </TableCell>}
-                {cv("company") && <TableCell className={`hidden sm:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  {wo.company?.name ? toProperCase(wo.company.name) : "-"}
-                </TableCell>}
-                {cv("service") && <TableCell className={`hidden lg:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  {wo.serviceType?.name || "-"}
-                </TableCell>}
-                {cv("pipeline") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
-                </TableCell>}
-                {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
-                </TableCell>}
-                {cv("medical") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  {med.hasMedical ? (
-                    <div className="flex items-center gap-1">
-                      <TypingStatusPill status={med.typing} />
-                      <AppointmentStatusPill status={med.appointment} />
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground/40">--</span>
-                  )}
-                </TableCell>}
-                {cv("eid") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  {eid.hasEid ? (
-                    <div className="flex items-center gap-1">
-                      <TypingStatusPill status={eid.typing} />
-                      <AppointmentStatusPill status={eid.appointment} />
-                    </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground/40">--</span>
-                  )}
-                </TableCell>}
-                {cv("age") && <TableCell className={`text-right text-xs text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  {daysOld === 0 ? "Today" : `${daysOld}d`}
-                </TableCell>}
-                {cv("nextAction") && <TableCell className={`hidden lg:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                  <NextActionIndicator message={nextAction.message} variant={nextAction.variant} />
-                </TableCell>}
-              </TableRow>
+              <ContextMenu key={wo.id}>
+                <ContextMenuTrigger asChild>
+                  <TableRow 
+                    className={`cursor-pointer hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
+                    data-state={isSelected ? "selected" : undefined}
+                    data-testid={`work-order-table-${wo.woNumber}`}
+                  >
+                    <TableCell className={cellPadding}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => dt.toggleSelected(wo.id)}
+                        aria-label={`Select ${wo.woNumber}`}
+                        data-testid={`checkbox-wo-table-${wo.woNumber}`}
+                      />
+                    </TableCell>
+                    {cv("woNumber") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-medium text-primary">{wo.woNumber}</span>
+                        {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                        {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
+                      </div>
+                    </TableCell>}
+                    {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-wo-table-${wo.woNumber}`}>
+                          {photoMap?.[wo.id] ? (
+                            <AvatarImage src={photoMap[wo.id]} alt={wo.applicantName} />
+                          ) : null}
+                          <AvatarFallback className="text-[9px] font-medium">{getInitials(wo.applicantName)}</AvatarFallback>
+                        </Avatar>
+                        <span className="block truncate">{toProperCase(wo.applicantName)}</span>
+                      </div>
+                    </TableCell>}
+                    {cv("company") && <TableCell className={`hidden sm:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      {wo.company?.name ? toProperCase(wo.company.name) : "-"}
+                    </TableCell>}
+                    {cv("service") && <TableCell className={`hidden lg:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      {wo.serviceType?.name || "-"}
+                    </TableCell>}
+                    {cv("pipeline") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
+                    </TableCell>}
+                    {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
+                    </TableCell>}
+                    {cv("medical") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      {med.hasMedical ? (
+                        <div className="flex items-center gap-1">
+                          <TypingStatusPill status={med.typing} />
+                          <AppointmentStatusPill status={med.appointment} />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/40">--</span>
+                      )}
+                    </TableCell>}
+                    {cv("eid") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      {eid.hasEid ? (
+                        <div className="flex items-center gap-1">
+                          <TypingStatusPill status={eid.typing} />
+                          <AppointmentStatusPill status={eid.appointment} />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/40">--</span>
+                      )}
+                    </TableCell>}
+                    {cv("age") && <TableCell className={`text-right text-xs text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      {daysOld === 0 ? "Today" : `${daysOld}d`}
+                    </TableCell>}
+                    {cv("nextAction") && <TableCell className={`hidden lg:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                      <NextActionIndicator message={nextAction.message} variant={nextAction.variant} />
+                    </TableCell>}
+                  </TableRow>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => navigate(`/work-orders/${wo.id}`)} data-testid={`ctx-table-open-${wo.woNumber}`}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open
+                  </ContextMenuItem>
+                  <ContextMenuItem onClick={() => handleCopyWoNumber(wo.woNumber)} data-testid={`ctx-table-copy-wo-${wo.woNumber}`}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy WO#
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuSub>
+                    <ContextMenuSubTrigger data-testid={`ctx-table-change-status-${wo.woNumber}`}>
+                      <ArrowUpDown className="h-4 w-4 mr-2" />
+                      Change Status
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent>
+                      {["Draft", "Scheduled", "Completed", "Cancelled"].map(status => (
+                        <ContextMenuItem
+                          key={status}
+                          disabled={wo.status === status}
+                          onClick={() => singleStatusMutation.mutate({ id: wo.id, status })}
+                          data-testid={`ctx-table-status-${status.toLowerCase()}-${wo.woNumber}`}
+                        >
+                          {status}
+                        </ContextMenuItem>
+                      ))}
+                    </ContextMenuSubContent>
+                  </ContextMenuSub>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem onClick={() => toggleVipMutation.mutate({ id: wo.id, isVip: !wo.isVip })} data-testid={`ctx-table-vip-${wo.woNumber}`}>
+                    {wo.isVip ? <><StarOff className="h-4 w-4 mr-2" />Unmark VIP</> : <><Star className="h-4 w-4 mr-2" />Mark VIP</>}
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             );
           })}
         </TableBody>
@@ -1024,7 +1165,9 @@ export default function WorkOrdersList() {
                 const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
                 const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
                 return (
-                  <Link key={wo.id} href={`/work-orders/${wo.id}`}>
+                  <div key={wo.id}>
+                  {renderWoContextMenu(wo,
+                  <Link href={`/work-orders/${wo.id}`}>
                     <div 
                       className={`premium-card p-3 border-l-[3px] ${borderColor} opacity-0 animate-fade-in`}
                       style={{ animationDelay: `${index * 0.03}s` }}
@@ -1065,6 +1208,8 @@ export default function WorkOrdersList() {
                       )}
                     </div>
                   </Link>
+                  )}
+                  </div>
                 );
               })}
               {(!kanbanGroups[status] || kanbanGroups[status].length === 0) && (

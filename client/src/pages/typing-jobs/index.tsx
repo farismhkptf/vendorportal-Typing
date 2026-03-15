@@ -1,7 +1,14 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation, useSearch } from "wouter";
-import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download, CalendarCheck, CalendarX2, CalendarClock, CalendarMinus } from "lucide-react";
+import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download, CalendarCheck, CalendarX2, CalendarClock, CalendarMinus, ExternalLink, Copy } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
 import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
 import { RelativeTime } from "@/components/ui/relative-time";
@@ -232,6 +239,46 @@ export default function TypingJobsList() {
     setSearch("");
   }, []);
 
+  const handleCopyJobCode = useCallback((jobCode: string | null) => {
+    if (!jobCode) return;
+    navigator.clipboard.writeText(jobCode);
+    toast({ title: "Copied", description: `${jobCode} copied to clipboard.` });
+  }, [toast]);
+
+  const renderTjContextMenu = useCallback((job: TypingJobWithRelations, children: React.ReactNode) => (
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        {children}
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem
+          onClick={() => navigate(`/typing-jobs/${job.id}`)}
+          data-testid={`ctx-tj-open-${job.id}`}
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Open
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!job.jobCode}
+          onClick={() => handleCopyJobCode(job.jobCode)}
+          data-testid={`ctx-tj-copy-${job.id}`}
+        >
+          <Copy className="h-4 w-4 mr-2" />
+          Copy Job Code
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          disabled={!job.workOrder?.id}
+          onClick={() => job.workOrder?.id && navigate(`/work-orders/${job.workOrder.id}`)}
+          data-testid={`ctx-tj-view-wo-${job.id}`}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          View WO
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
+  ), [navigate, handleCopyJobCode]);
+
   const AppointmentIndicator = useCallback(({ job, compact = false }: { job: TypingJobWithRelations; compact?: boolean }) => {
     const aptInfo = getAppointmentStatus(job);
     if (!aptInfo) return null;
@@ -314,6 +361,7 @@ export default function TypingJobsList() {
               aria-label={`Select ${job.jobCode || job.id}`}
               data-testid={`checkbox-tj-compact-${job.id}`}
             />
+            {renderTjContextMenu(job,
             <Link href={`/typing-jobs/${job.id}`} className="flex-1 min-w-0">
               <div 
                 className={`flex items-center justify-between gap-3 ${dt.density === "comfortable" ? "py-2 px-3" : "py-1.5 px-2"} rounded-lg hover-elevate opacity-0 animate-fade-in`}
@@ -337,6 +385,7 @@ export default function TypingJobsList() {
                 </div>
               </div>
             </Link>
+            )}
           </div>
         );
       })}
@@ -346,7 +395,9 @@ export default function TypingJobsList() {
   const renderCards = (items: TypingJobWithRelations[]) => (
     <div className="space-y-2 stagger-children">
       {items.map((job, index) => (
-        <Link key={job.id} href={`/typing-jobs/${job.id}`}>
+        <div key={job.id}>
+        {renderTjContextMenu(job,
+        <Link href={`/typing-jobs/${job.id}`}>
           <div 
             className={`premium-card ${dt.density === "comfortable" ? "p-4" : "p-2.5"} opacity-0 animate-fade-in`}
             style={{ animationDelay: `${index * 0.03}s` }}
@@ -379,6 +430,8 @@ export default function TypingJobsList() {
             </div>
           </div>
         </Link>
+        )}
+        </div>
       ))}
     </div>
   );
@@ -413,40 +466,58 @@ export default function TypingJobsList() {
             const isSelected = dt.selectedIds.has(job.id);
             const cellPadding = dt.density === "compact" ? "py-1.5" : "";
             return (
-              <TableRow 
-                key={job.id} 
-                className={`cursor-pointer hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
-                data-state={isSelected ? "selected" : undefined}
-                data-testid={`typing-job-table-${job.id}`}
-              >
-                <TableCell className={cellPadding}>
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => dt.toggleSelected(job.id)}
-                    aria-label={`Select ${job.jobCode || job.id}`}
-                    data-testid={`checkbox-tj-table-${job.id}`}
-                  />
-                </TableCell>
-                {cv("jobCode") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
-                  <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
-                </TableCell>}
-                {cv("woNumber") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
-                  <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
-                </TableCell>}
-                {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/typing-jobs/${job.id}`)}><span className="block truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</span></TableCell>}
-                {cv("jobType") && <TableCell className={`hidden sm:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
-                  {job.jobType?.name || "-"}
-                </TableCell>}
-                {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
-                  <StatusBadge status={job.status} />
-                </TableCell>}
-                {cv("appointment") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
-                  <AppointmentIndicator job={job} />
-                </TableCell>}
-                {cv("cost") && <TableCell className={`text-right font-medium ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
-                  {job.costSnapshot ? `AED ${job.costSnapshot}` : "-"}
-                </TableCell>}
-              </TableRow>
+              <ContextMenu key={job.id}>
+                <ContextMenuTrigger asChild>
+                  <TableRow 
+                    className={`cursor-pointer hover-elevate ${isSelected ? "bg-primary/5" : ""}`}
+                    data-state={isSelected ? "selected" : undefined}
+                    data-testid={`typing-job-table-${job.id}`}
+                  >
+                    <TableCell className={cellPadding}>
+                      <Checkbox
+                        checked={isSelected}
+                        onCheckedChange={() => dt.toggleSelected(job.id)}
+                        aria-label={`Select ${job.jobCode || job.id}`}
+                        data-testid={`checkbox-tj-table-${job.id}`}
+                      />
+                    </TableCell>
+                    {cv("jobCode") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                      <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
+                    </TableCell>}
+                    {cv("woNumber") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                      <span className="font-mono font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
+                    </TableCell>}
+                    {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/typing-jobs/${job.id}`)}><span className="block truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : "-"}</span></TableCell>}
+                    {cv("jobType") && <TableCell className={`hidden sm:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                      {job.jobType?.name || "-"}
+                    </TableCell>}
+                    {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                      <StatusBadge status={job.status} />
+                    </TableCell>}
+                    {cv("appointment") && <TableCell className={cellPadding} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                      <AppointmentIndicator job={job} />
+                    </TableCell>}
+                    {cv("cost") && <TableCell className={`text-right font-medium ${cellPadding}`} onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                      {job.costSnapshot ? `AED ${job.costSnapshot}` : "-"}
+                    </TableCell>}
+                  </TableRow>
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => navigate(`/typing-jobs/${job.id}`)} data-testid={`ctx-tj-table-open-${job.id}`}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open
+                  </ContextMenuItem>
+                  <ContextMenuItem disabled={!job.jobCode} onClick={() => handleCopyJobCode(job.jobCode)} data-testid={`ctx-tj-table-copy-${job.id}`}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Job Code
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem disabled={!job.workOrder?.id} onClick={() => job.workOrder?.id && navigate(`/work-orders/${job.workOrder.id}`)} data-testid={`ctx-tj-table-view-wo-${job.id}`}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    View WO
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             );
           })}
         </TableBody>
@@ -468,7 +539,9 @@ export default function TypingJobsList() {
             </div>
             <div className="space-y-2 min-h-[200px] p-2 rounded-xl bg-muted/30">
               {kanbanGroups[status]?.map((job, index) => (
-                <Link key={job.id} href={`/typing-jobs/${job.id}`}>
+                <div key={job.id}>
+                {renderTjContextMenu(job,
+                <Link href={`/typing-jobs/${job.id}`}>
                   <div 
                     className="premium-card p-3 opacity-0 animate-fade-in"
                     style={{ animationDelay: `${index * 0.03}s` }}
@@ -490,6 +563,8 @@ export default function TypingJobsList() {
                     </div>
                   </div>
                 </Link>
+                )}
+                </div>
               ))}
               {(!kanbanGroups[status] || kanbanGroups[status].length === 0) && (
                 <div className="text-center py-8 text-xs text-muted-foreground">

@@ -7,8 +7,15 @@ import {
   MoreHorizontal, RefreshCw, XCircle, MapPin,
   Mail, MessageCircle, Copy, Check, Maximize2, Download, Filter,
   CalendarPlus, FileText, ChevronLeft, ChevronRight, LayoutList, CalendarDays,
-  Eye, UserCheck
+  Eye, UserCheck, ExternalLink
 } from "lucide-react";
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "@/components/ui/context-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToCsv } from "@/lib/csv-export";
 import { formatDateWithWeekday } from "@/lib/format-date";
@@ -649,9 +656,24 @@ Thank you,
 
   const isComfortable = dt.density === "comfortable";
 
+  const handleCopyAptDetails = useCallback((apt: AppointmentWithRelations) => {
+    const lines = [
+      `Type: ${apt.type}`,
+      `Applicant: ${apt.workOrder?.applicantName ? toProperCase(apt.workOrder.applicantName) : "Unknown"}`,
+      `WO#: ${apt.workOrder?.woNumber || "N/A"}`,
+      `Date: ${new Date(apt.datetime).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}`,
+      `Time: ${new Date(apt.datetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true })}`,
+      apt.center?.name ? `Center: ${apt.center.name}` : null,
+      apt.applicationNumber ? `Application #: ${apt.applicationNumber}` : null,
+    ].filter(Boolean).join("\n");
+    navigator.clipboard.writeText(lines);
+    toast({ title: "Copied", description: "Appointment details copied to clipboard." });
+  }, [toast]);
+
   const renderAppointmentCard = (apt: AppointmentWithRelations, showDate: boolean, showActions: boolean) => (
+    <ContextMenu key={apt.id}>
+      <ContextMenuTrigger asChild>
     <div
-      key={apt.id}
       className="flex items-start gap-2"
       data-testid={`appointment-card-${apt.id}`}
     >
@@ -914,6 +936,50 @@ Thank you,
       </div>
       </div>
     </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem
+          onClick={() => navigate(`/work-orders/${apt.woId}`)}
+          data-testid={`ctx-apt-open-${apt.id}`}
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Open
+        </ContextMenuItem>
+        <ContextMenuItem
+          onClick={() => handleCopyAptDetails(apt)}
+          data-testid={`ctx-apt-copy-${apt.id}`}
+        >
+          <Copy className="h-4 w-4 mr-2" />
+          Copy Details
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        {apt.status === "Scheduled" && (
+          <>
+            <ContextMenuItem
+              onClick={() => setConfirmDialog({ open: true, type: "complete", appointment: apt })}
+              data-testid={`ctx-apt-complete-${apt.id}`}
+            >
+              <CheckCircle2 className="h-4 w-4 mr-2" />
+              Complete
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => setConfirmDialog({ open: true, type: "cancel", appointment: apt })}
+              data-testid={`ctx-apt-cancel-${apt.id}`}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Cancel
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => setConfirmDialog({ open: true, type: "reschedule", appointment: apt })}
+              data-testid={`ctx-apt-reschedule-${apt.id}`}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reschedule
+            </ContextMenuItem>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
   );
 
   return (
