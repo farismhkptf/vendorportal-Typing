@@ -23,6 +23,7 @@ import { registerExternalRoutes, hashApiKey } from "./external-routes";
 import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "./zoho-workdrive";
 import { ObjectStorageService } from "./replit_integrations/object_storage/objectStorage";
 import { buildAppointmentEmail } from "./email-templates/appointment-confirmation";
+import UAParser from "ua-parser-js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -3771,6 +3772,57 @@ export async function registerRoutes(
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to logout" });
+    }
+  });
+
+  app.get("/api/auth/login-history", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const currentUserAgent = req.headers['user-agent'] || '';
+      const entries = await storage.getLoginAuditLogByUser(userId, 10);
+
+      let currentSessionMarked = false;
+
+      const enriched = entries.map((entry) => {
+        const parser = new UAParser(entry.userAgent || '');
+        const browser = parser.getBrowser();
+        const os = parser.getOS();
+        const device = parser.getDevice();
+
+        const deviceType = device.type === 'mobile' || device.type === 'tablet'
+          ? device.type
+          : 'desktop';
+
+        const isCurrentSession = !currentSessionMarked && entry.success && entry.userAgent === currentUserAgent;
+        if (isCurrentSession) {
+          currentSessionMarked = true;
+        }
+
+        return {
+          id: entry.id,
+          success: entry.success,
+          ipAddress: entry.ipAddress,
+          createdAt: entry.createdAt,
+          portal: entry.portal,
+          device: {
+            type: deviceType,
+            browser: browser.name || 'Unknown',
+            browserVersion: browser.version || '',
+            os: os.name || 'Unknown',
+            osVersion: os.version || '',
+          },
+          isCurrentSession,
+        };
+      });
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Login history error:", error);
+      res.status(500).json({ message: "Failed to fetch login history" });
     }
   });
 

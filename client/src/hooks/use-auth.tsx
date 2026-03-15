@@ -69,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/auth/me"], null);
+      queryClient.removeQueries({ queryKey: ["/api/auth/login-history"] });
       setLocation("/login");
     },
   });

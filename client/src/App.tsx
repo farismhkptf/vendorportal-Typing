@@ -99,6 +99,7 @@ import SchedulerBot from "@/pages/bots/scheduler-bot";
 import ManagerConsole from "@/pages/manager-console";
 import ReportsPage from "@/pages/reports";
 import ExpiringDocuments from "@/pages/expiring-documents";
+import AccountSecurity from "@/pages/account-security";
 import LegalPage from "@/pages/legal";
 
 function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
@@ -272,6 +273,7 @@ function AppRoutes() {
       <Route path="/manager-console" component={ManagerConsole} />
       <Route path="/reports" component={ReportsPage} />
       <Route path="/expiring-documents" component={ExpiringDocuments} />
+      <Route path="/account/security" component={AccountSecurity} />
       <Route path="/vendor/login" component={VendorLogin} />
       <Route path="/vendor-v2" nest component={VendorV2Layout} />
       <Route path="/vendor" nest component={VendorLayout} />

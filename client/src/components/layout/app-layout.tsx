@@ -14,7 +14,8 @@ import {
   Search,
   BarChart3,
   KeyRound,
-  Clock
+  Clock,
+  Shield
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -163,6 +164,16 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <p className="text-xs text-muted-foreground" data-testid="text-user-role">{user?.role || "Unknown"}</p>
               </div>
               <div className="flex items-center gap-1">
+                <Link href="/account/security">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-xl text-muted-foreground"
+                    data-testid="button-account-security"
+                  >
+                    <Shield className="h-4 w-4" />
+                  </Button>
+                </Link>
                 <Button
                   variant="ghost"
                   size="icon"

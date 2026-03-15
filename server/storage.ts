@@ -220,6 +220,7 @@ export interface IStorage {
   // Login audit
   createLoginAuditEntry(data: InsertLoginAuditLog): Promise<LoginAuditLog>;
   getLoginAuditLog(limit?: number): Promise<LoginAuditLog[]>;
+  getLoginAuditLogByUser(userId: string, limit?: number): Promise<LoginAuditLog[]>;
 
   // Password reset requests
   createPasswordResetRequest(data: InsertPasswordResetRequest): Promise<PasswordResetRequest>;
@@ -1666,6 +1667,13 @@ export class DatabaseStorage implements IStorage {
 
   async getLoginAuditLog(limit: number = 100): Promise<LoginAuditLog[]> {
     return db.select().from(loginAuditLog).orderBy(desc(loginAuditLog.createdAt)).limit(limit);
+  }
+
+  async getLoginAuditLogByUser(userId: string, limit: number = 10): Promise<LoginAuditLog[]> {
+    return db.select().from(loginAuditLog)
+      .where(eq(loginAuditLog.userId, userId))
+      .orderBy(desc(loginAuditLog.createdAt))
+      .limit(limit);
   }
 
   async createPasswordResetRequest(data: InsertPasswordResetRequest): Promise<PasswordResetRequest> {
