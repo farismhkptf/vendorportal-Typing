@@ -26,6 +26,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
+import { InstallPromptBanner } from "@/components/install-prompt-banner";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -227,6 +228,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         onOpenChange={setChangePasswordOpen}
         apiEndpoint="/api/auth/change-password"
       />
+      <InstallPromptBanner />
     </div>
   );
 }

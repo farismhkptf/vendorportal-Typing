@@ -12,7 +12,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend
 
-The frontend is built with React and TypeScript, using Vite, Wouter for routing, and TanStack React Query for state management. It leverages `shadcn/ui` (built on Radix UI) for components and TailwindCSS for styling, supporting light/dark modes. Forms are managed with React Hook Form and Zod validation. The structure is pages-based, with shared components and custom UI extensions.
+The frontend is built with React and TypeScript, using Vite, Wouter for routing, and TanStack React Query for state management. It leverages `shadcn/ui` (built on Radix UI) for components and TailwindCSS for styling, supporting light/dark modes. Forms are managed with React Hook Form and Zod validation. The structure is pages-based, with shared components and custom UI extensions. The app is a Progressive Web App (PWA) using `vite-plugin-pwa` with Workbox for service worker generation and asset pre-caching. A `manifest.json` in `client/public/` enables installability on desktop and mobile. An install prompt banner (`client/src/components/install-prompt-banner.tsx`) appears when the browser fires `beforeinstallprompt`.
 
 ### Backend
 
