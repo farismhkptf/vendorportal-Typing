@@ -639,7 +639,7 @@ Thank you,
             ) : medicalQueue.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Stethoscope className="h-8 w-8 mx-auto mb-2 opacity-40" />
-                <p className="text-sm">No medical appointments pending scheduling</p>
+                <p className="text-sm text-muted-foreground">No medical appointments pending scheduling</p>
                 <button
                   onClick={() => setShowManualSearch(true)}
                   className="text-xs text-primary hover:underline mt-2"
@@ -1242,7 +1242,7 @@ Thank you,
             </Button>
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight" data-testid="text-page-title">
+            <h1 className="text-xl lg:text-2xl font-bold tracking-tight" data-testid="text-page-title">
               {isFollowUp ? "Schedule Follow-Up Medical" : "Schedule Medical"}
             </h1>
             <p className="text-sm text-muted-foreground">

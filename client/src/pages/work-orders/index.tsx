@@ -256,9 +256,9 @@ function MedEidStatusRow({ icon: Icon, label, typing, appointment, hasData, summ
       <span className="text-muted-foreground w-10 shrink-0">{label}</span>
       {hasData ? (
         <div className="flex items-center gap-1.5">
-          <span className="text-muted-foreground/60 text-[9px]">T:</span>
+          <span className="text-muted-foreground/60 text-[10px]">T:</span>
           <TypingStatusPill status={typing} />
-          <span className="text-muted-foreground/60 text-[9px] ml-1">A:</span>
+          <span className="text-muted-foreground/60 text-[10px] ml-1">A:</span>
           <AppointmentStatusPill status={appointment} />
         </div>
       ) : summaryLabel ? (
@@ -787,7 +787,7 @@ export default function WorkOrdersList() {
                 <tile.icon className={`h-4 w-4 ${tile.color}`} />
               </div>
               <div>
-                <p className="text-xl font-bold text-foreground leading-none tabular-nums">{tile.value}</p>
+                <p className="text-xl lg:text-2xl font-bold text-foreground leading-none tabular-nums">{tile.value}</p>
                 <p className="text-[10px] text-muted-foreground mt-1 uppercase tracking-wider">{tile.label}</p>
               </div>
             </div>
@@ -1345,7 +1345,7 @@ export default function WorkOrdersList() {
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl font-semibold text-foreground">
+            <h1 className="text-xl lg:text-2xl font-semibold text-foreground tracking-tight">
               Work Orders
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Track and manage all applicant work orders</p>

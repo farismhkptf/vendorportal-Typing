@@ -40,7 +40,7 @@ export default function ExpiringDocuments() {
     <AppLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">Expiring Documents</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight" data-testid="text-page-title">Expiring Documents</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Documents across all work orders that are expired or expiring within 30 days
           </p>
@@ -54,8 +54,8 @@ export default function ExpiringDocuments() {
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground" data-testid="empty-state">
               <Clock className="h-12 w-12 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">No expiring documents</p>
-              <p className="text-sm">All documents are up to date.</p>
+              <p className="text-sm font-medium text-muted-foreground">No expiring documents</p>
+              <p className="text-sm text-muted-foreground">All documents are up to date.</p>
             </CardContent>
           </Card>
         ) : (

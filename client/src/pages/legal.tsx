@@ -40,7 +40,7 @@ export default function LegalPage({ type }: LegalPageProps) {
           <div className="flex items-center gap-3">
             <img src={proLogo} alt="Logo" className="h-8 w-8 rounded-lg object-contain" />
             <div>
-              <h1 className="text-xl font-bold text-foreground tracking-tight" data-testid="text-legal-title">{title}</h1>
+              <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight" data-testid="text-legal-title">{title}</h1>
               <p className="text-sm text-muted-foreground"><CompanyName /></p>
             </div>
           </div>

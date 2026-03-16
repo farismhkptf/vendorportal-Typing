@@ -215,6 +215,17 @@ export function AppLayout({ children }: AppLayoutProps) {
             </Button>
             <div className="flex-1" />
             <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sm:hidden rounded-xl text-muted-foreground"
+                onClick={() => {
+                  document.dispatchEvent(new KeyboardEvent("keydown", { key: " ", ctrlKey: true }));
+                }}
+                data-testid="button-search-mobile"
+              >
+                <Search className="h-4 w-4" />
+              </Button>
               <button
                 onClick={() => {
                   document.dispatchEvent(new KeyboardEvent("keydown", { key: " ", ctrlKey: true }));

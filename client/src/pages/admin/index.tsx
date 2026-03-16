@@ -285,7 +285,7 @@ function MonthlySheetSection() {
           <CalendarDays className="h-5 w-5 text-green-600 dark:text-green-400" />
         </div>
         <div>
-          <h3 className="font-medium text-foreground">Monthly Sheet Import — 2026</h3>
+          <h3 className="text-base font-semibold text-foreground">Monthly Sheet Import — 2026</h3>
           <p className="text-sm text-muted-foreground">Each month links to a Google Sheet. Refresh to pick up new entries. Close a month to lock it permanently.</p>
         </div>
       </div>
@@ -613,7 +613,7 @@ function ImportExportSection() {
               <Download className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-medium text-foreground" data-testid="text-download-title">Download Template</h3>
+              <h3 className="text-base font-semibold text-foreground" data-testid="text-download-title">Download Template</h3>
               <p className="text-sm text-muted-foreground">Get a pre-formatted Excel file to fill in your data</p>
             </div>
           </div>
@@ -632,7 +632,7 @@ function ImportExportSection() {
               <Upload className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-medium text-foreground" data-testid="text-upload-title">Import Data</h3>
+              <h3 className="text-base font-semibold text-foreground" data-testid="text-upload-title">Import Data</h3>
               <p className="text-sm text-muted-foreground">Upload a filled Excel file to bulk-load records</p>
             </div>
           </div>
@@ -666,7 +666,7 @@ function ImportExportSection() {
               <FileSpreadsheet className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h3 className="font-medium text-foreground" data-testid="text-export-title">Export All Data</h3>
+              <h3 className="text-base font-semibold text-foreground" data-testid="text-export-title">Export All Data</h3>
               <p className="text-sm text-muted-foreground">Download all reference data as an Excel file</p>
             </div>
           </div>
@@ -686,7 +686,7 @@ function ImportExportSection() {
         <div className="p-6 rounded-xl bg-muted/30 border border-border/30 space-y-4">
           <div className="flex items-center gap-3 mb-2">
             <FileSpreadsheet className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-medium text-foreground" data-testid="text-import-results-title">Import Results</h3>
+            <h3 className="text-base font-semibold text-foreground" data-testid="text-import-results-title">Import Results</h3>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap">
@@ -1610,7 +1610,7 @@ export default function AdminPage() {
             </Button>
           )}
           <div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">
+            <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">
               {activeSection === "organization" ? "Organization" :
                activeSection === "vendor" ? "Vendor Management" :
                activeSection === "admin" ? "Administration" :
@@ -1653,7 +1653,7 @@ export default function AdminPage() {
                     <section.icon className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-medium text-foreground">{section.title}</h3>
+                    <h3 className="text-base font-semibold text-foreground">{section.title}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{section.desc}</p>
                   </div>
                 </div>
@@ -1664,7 +1664,7 @@ export default function AdminPage() {
           <div className="premium-card overflow-hidden p-6">
             <div className="space-y-6">
               <div>
-                <h3 className="font-medium text-foreground mb-4">Email Configuration</h3>
+                <h3 className="text-base font-semibold text-foreground mb-4">Email Configuration</h3>
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
                     <div className="flex items-center justify-between gap-2">
@@ -1729,7 +1729,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div>
-                <h3 className="font-medium text-foreground mb-4">System Status</h3>
+                <h3 className="text-base font-semibold text-foreground mb-4">System Status</h3>
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
                     <div className="flex items-center justify-between gap-2">
@@ -1816,7 +1816,7 @@ export default function AdminPage() {
                 </div>
               </div>
               <div>
-                <h3 className="font-medium text-foreground mb-4">Legal Pages</h3>
+                <h3 className="text-base font-semibold text-foreground mb-4">Legal Pages</h3>
                 <div className="space-y-4">
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
                     <div className="flex items-center justify-between gap-2">
@@ -3191,7 +3191,7 @@ export default function AdminPage() {
             <TabsContent value="staff" className="p-6">
               <div className="flex items-center justify-between gap-2 mb-6">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-medium text-foreground">Staff Members</h3>
+                  <h3 className="text-base font-semibold text-foreground">Staff Members</h3>
                   {selectedStaff.length > 0 && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -3943,7 +3943,7 @@ export default function AdminPage() {
             <TabsContent value="services" className="p-6">
               <div className="flex items-center justify-between gap-2 mb-6">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-medium text-foreground">Service Types</h3>
+                  <h3 className="text-base font-semibold text-foreground">Service Types</h3>
                   {selectedServices.length > 0 && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -4394,7 +4394,7 @@ export default function AdminPage() {
             <TabsContent value="jobtypes" className="p-6">
               <div className="flex items-center justify-between gap-2 mb-6">
                 <div className="flex items-center gap-3">
-                  <h3 className="font-medium text-foreground">Vendor Jobs & Pricing</h3>
+                  <h3 className="text-base font-semibold text-foreground">Vendor Jobs & Pricing</h3>
                   {selectedJobTypes.length > 0 && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
@@ -4696,7 +4696,7 @@ export default function AdminPage() {
             {/* Vendors Tab */}
             <TabsContent value="vendors" className="p-4">
               <div className="flex items-center justify-between gap-2 mb-4">
-                <h3 className="font-medium text-foreground">Typing Vendors</h3>
+                <h3 className="text-base font-semibold text-foreground">Typing Vendors</h3>
                 <Dialog open={vendorDialogOpen} onOpenChange={setVendorDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-1.5" data-testid="button-add-vendor">
@@ -5025,7 +5025,7 @@ export default function AdminPage() {
             {/* User Accounts Tab */}
             <TabsContent value="accounts" className="p-4">
               <div className="flex items-center justify-between gap-2 mb-4">
-                <h3 className="font-medium text-foreground" data-testid="text-user-accounts-title">User Accounts</h3>
+                <h3 className="text-base font-semibold text-foreground" data-testid="text-user-accounts-title">User Accounts</h3>
                 <Dialog open={userDialogOpen} onOpenChange={setUserDialogOpen}>
                   <DialogTrigger asChild>
                     <Button size="sm" className="gap-1.5" data-testid="button-create-user">
@@ -5474,7 +5474,7 @@ function LoginAuditTab() {
 
   return (
     <div className="space-y-3">
-      <h3 className="font-medium text-foreground" data-testid="text-login-audit-title">Login Audit Log</h3>
+      <h3 className="text-base font-semibold text-foreground" data-testid="text-login-audit-title">Login Audit Log</h3>
       {logs && logs.length > 0 ? (
         <div className="space-y-2">
           {logs.map((log: any) => (
@@ -5527,7 +5527,7 @@ function PasswordResetRequestsTab() {
 
   return (
     <div className="space-y-3">
-      <h3 className="font-medium text-foreground" data-testid="text-reset-requests-title">Password Reset Requests</h3>
+      <h3 className="text-base font-semibold text-foreground" data-testid="text-reset-requests-title">Password Reset Requests</h3>
       {requests && requests.length > 0 ? (
         <div className="space-y-2">
           {requests.map((req: any) => (
@@ -5608,7 +5608,7 @@ function ChangeLogTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="font-medium text-foreground mb-3">Pending Changes ({pending.length})</h3>
+        <h3 className="text-base font-semibold text-foreground mb-3">Pending Changes ({pending.length})</h3>
         {pending.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">No pending changes to review</p>
         ) : (
@@ -5665,7 +5665,7 @@ function ChangeLogTab() {
 
       {reviewed.length > 0 && (
         <div>
-          <h3 className="font-medium text-foreground mb-3">Reviewed ({reviewed.length})</h3>
+          <h3 className="text-base font-semibold text-foreground mb-3">Reviewed ({reviewed.length})</h3>
           <div className="space-y-2">
             {reviewed.slice(0, 20).map((n: any) => (
               <div key={n.id} className="p-3 rounded-xl bg-muted/20 border border-border/20 flex items-center justify-between gap-2 flex-wrap">

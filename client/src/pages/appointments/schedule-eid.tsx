@@ -671,7 +671,7 @@ Thank you,
       ) : (
         <div className="text-center py-6 text-muted-foreground" data-testid="eid-queue-empty">
           <Shield className="h-8 w-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">No EID appointments to schedule right now</p>
+          <p className="text-sm text-muted-foreground">No EID appointments to schedule right now</p>
           <p className="text-xs mt-1">Only WOs with biometrics required appear here</p>
         </div>
       )}
@@ -1246,7 +1246,7 @@ Thank you,
             </Button>
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight">Schedule Emirates ID</h1>
+            <h1 className="text-xl lg:text-2xl font-bold tracking-tight">Schedule Emirates ID</h1>
             <p className="text-sm text-muted-foreground">Create an Emirates ID appointment and notify the client</p>
           </div>
         </div>

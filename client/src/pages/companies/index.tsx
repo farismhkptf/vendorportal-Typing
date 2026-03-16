@@ -404,7 +404,7 @@ export default function CompaniesList() {
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl font-bold text-foreground tracking-tight">
+            <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">
               Companies
             </h1>
             <p className="text-sm text-muted-foreground mt-1">Manage client companies and their preferences</p>
