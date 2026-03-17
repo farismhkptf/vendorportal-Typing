@@ -1379,6 +1379,43 @@ export default function AdminPage() {
     },
   });
 
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadLogoMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await fetch("/api/settings/logo", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to upload logo");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Company logo updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const removeLogoMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", "/api/settings/logo");
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Company logo removed" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to remove logo", description: error.message, variant: "destructive" });
+    },
+  });
+
   const deleteCenterMutation = useMutation({
     mutationFn: async (id: string) => {
       return apiRequest("DELETE", `/api/centers/${id}`);
@@ -1666,6 +1703,74 @@ export default function AdminPage() {
               <div>
                 <h3 className="text-base font-semibold text-foreground mb-4">Email Configuration</h3>
                 <div className="space-y-4">
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        {settings?.logoUrl ? (
+                          <img
+                            src={settings.logoUrl}
+                            alt="Company logo"
+                            className="w-10 h-10 rounded-lg object-contain border border-border/50"
+                            data-testid="img-company-email-logo"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-foreground text-background flex items-center justify-center text-sm font-semibold" data-testid="placeholder-company-email-logo">
+                            K
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-medium text-foreground">Company Email Logo</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {settings?.logoUrl ? "Logo configured" : "Using default placeholder"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <input
+                          ref={logoFileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            const file = e.target.files?.[0];
+                            if (file) uploadLogoMutation.mutate(file);
+                            e.target.value = "";
+                          }}
+                          data-testid="input-upload-email-logo"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-xl"
+                          onClick={() => logoFileInputRef.current?.click()}
+                          disabled={uploadLogoMutation.isPending}
+                          data-testid="button-upload-email-logo"
+                        >
+                          {uploadLogoMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Upload className="h-4 w-4" />
+                          )}
+                        </Button>
+                        {settings?.logoUrl && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-xl text-destructive hover:text-destructive"
+                            onClick={() => removeLogoMutation.mutate()}
+                            disabled={removeLogoMutation.isPending}
+                            data-testid="button-remove-email-logo"
+                          >
+                            {removeLogoMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
                     <div className="flex items-center justify-between gap-2">
                       <div>

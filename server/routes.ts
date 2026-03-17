@@ -3422,6 +3422,48 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/settings/logo", requireRole("Admin"), upload.single('logo'), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      const ext = (req.file.originalname.split('.').pop() || 'png').toLowerCase();
+      const objectStorageService = new ObjectStorageService();
+      const logoUrl = await objectStorageService.uploadObjectEntityFile(
+        `company-logo/email-logo.${ext}`,
+        req.file.buffer,
+        req.file.mimetype
+      );
+      await storage.updateAppSettings({ logoUrl });
+      res.json({ logoUrl });
+    } catch (error) {
+      console.error("Company logo upload error:", error);
+      res.status(500).json({ message: "Failed to upload logo" });
+    }
+  });
+
+  app.delete("/api/settings/logo", requireRole("Admin"), async (req, res) => {
+    try {
+      const settings = await storage.getAppSettings();
+      if (settings?.logoUrl) {
+        const objectStorageService = new ObjectStorageService();
+        const storagePath = settings.logoUrl.replace(/^\/objects\//, '');
+        if (storagePath) {
+          try {
+            await objectStorageService.deleteObjectEntityFile(storagePath);
+          } catch (e) {
+            console.warn("Could not delete logo from storage:", e);
+          }
+        }
+      }
+      await storage.updateAppSettings({ logoUrl: null });
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Remove company logo error:", error);
+      res.status(500).json({ message: "Failed to remove logo" });
+    }
+  });
+
   // ========== Seed Real Companies (Development Only) ==========
   app.post("/api/admin/seed-companies", requireRole("Admin"), async (req, res) => {
     try {

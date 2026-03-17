@@ -237,6 +237,20 @@ export class ObjectStorageService {
     return `/objects/${entityPath}`;
   }
 
+  async deleteObjectEntityFile(entityPath: string): Promise<void> {
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) entityDir += "/";
+    const fullPath = `${entityDir}${entityPath}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    try {
+      await file.delete();
+    } catch (err: any) {
+      if (err?.code !== 404) throw err;
+    }
+  }
+
   // Checks if the user can access the object entity.
   async canAccessObjectEntity({
     userId,
