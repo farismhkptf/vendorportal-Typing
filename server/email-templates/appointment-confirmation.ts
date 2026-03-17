@@ -48,6 +48,12 @@ function formatDateTimeParts(dt: Date): { dateStr: string; timeStr: string } {
   };
 }
 
+const calendarGoogleSvg = `<img src="data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='4' width='18' height='17' rx='2' fill='white' stroke='%23dadce0'/%3E%3Crect x='3' y='4' width='18' height='5' rx='2' fill='%234285F4'/%3E%3Crect x='3' y='7' width='18' height='2' fill='%234285F4'/%3E%3Crect x='7' y='2' width='2' height='4' rx='1' fill='%234285F4'/%3E%3Crect x='15' y='2' width='2' height='4' rx='1' fill='%234285F4'/%3E%3Cpath d='M10 14.5L11.5 16L14.5 13' stroke='%2334A853' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" width="22" height="22" alt="Google Calendar" style="display:block;opacity:0.65;" />`;
+
+const calendarAppleSvg = `<img src="data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='4' width='18' height='17' rx='2.5' fill='white' stroke='%23d1d1d6' stroke-width='1'/%3E%3Crect x='3' y='4' width='18' height='6' rx='2.5' fill='%23ff3b30'/%3E%3Crect x='3' y='8' width='18' height='2' fill='%23ff3b30'/%3E%3Crect x='7.5' y='2.5' width='1.5' height='3.5' rx='0.75' fill='%235e5e6a'/%3E%3Crect x='15' y='2.5' width='1.5' height='3.5' rx='0.75' fill='%235e5e6a'/%3E%3C/svg%3E" width="22" height="22" alt="Apple Calendar" style="display:block;opacity:0.65;" />`;
+
+const calendarOutlookSvg = `<img src="data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='9' y='3' width='13' height='13' rx='1.5' fill='%230078D4'/%3E%3Crect x='9' y='3' width='13' height='4' rx='1.5' fill='%23005fa3'/%3E%3Crect x='9' y='5' width='13' height='2' fill='%23005fa3'/%3E%3Crect x='12' y='2' width='1.5' height='3' rx='0.75' fill='%230078D4'/%3E%3Crect x='18' y='2' width='1.5' height='3' rx='0.75' fill='%230078D4'/%3E%3Crect x='2' y='8' width='11' height='13' rx='1.5' fill='%231d1d1f'/%3E%3C/svg%3E" width="22" height="22" alt="Outlook Calendar" style="display:block;opacity:0.65;" />`;
+
 export function buildAppointmentEmail(data: AppointmentEmailData): string {
   const {
     workOrder,
@@ -64,7 +70,6 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
   const applicantName = workOrder?.applicantName ?? "—";
   const companyName = company?.name ?? "—";
   const appointmentType = appointment.type ?? "Medical";
-  const emailTitle = `Your ${appointmentType} Test Appointment – Keystone Business Solutions`;
 
   const dt = new Date(appointment.datetime);
   const isValidDate = !isNaN(dt.getTime());
@@ -86,79 +91,75 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
   const rmPhone = rmStaff?.phone ?? "";
   const rmEmail = rmUserEmail ?? rmStaff?.email ?? "";
   const hasRmContact = !!(rmName || rmPhone || rmEmail);
-  const rmInitials = rmName ? getInitials(rmName) : (rmEmail ? getInitials(rmEmail.split("@")[0]) : "RM");
   const rmDisplayName = rmName || "Your Relationship Manager";
 
+  const guideDescText = guideName
+    ? `${escapeHtml(guideName.split(" ")[0])} will meet your employee at the main entrance, bring all required documents, handle registration, and manage the queue. They simply need to be present.`
+    : "";
+
   const logoBlock = appLogoUrl
-    ? `<img src="${escapeHtml(appLogoUrl)}" alt="Logo" width="32" height="32" style="width:32px;height:32px;border-radius:7px;display:block;" />`
-    : `<div class="logo-mark" style="width:32px;height:32px;border-radius:7px;text-align:center;line-height:32px;font-size:14px;font-weight:600;letter-spacing:-0.02em;">K</div>`;
+    ? `<img src="${escapeHtml(appLogoUrl)}" alt="Logo" width="36" height="36" style="width:36px;height:36px;border-radius:8px;display:block;" />`
+    : `<div class="logo-mark" style="width:36px;height:36px;border-radius:8px;text-align:center;line-height:36px;font-size:17px;font-weight:600;letter-spacing:-0.02em;">K</div>`;
 
   const avatarBlock = applicantPhotoUrl
-    ? `<img src="${escapeHtml(applicantPhotoUrl)}" alt="${escapeHtml(applicantName)}" width="56" height="56" style="width:56px;height:56px;border-radius:50%;display:block;object-fit:cover;" class="avatar-photo" />`
-    : `<div class="avatar-applicant" style="width:56px;height:56px;border-radius:50%;text-align:center;line-height:52px;font-size:17px;font-weight:700;letter-spacing:-0.02em;">${escapeHtml(initials)}</div>`;
+    ? `<img src="${escapeHtml(applicantPhotoUrl)}" alt="${escapeHtml(applicantName)}" width="72" height="72" style="width:72px;height:72px;border-radius:50%;display:block;object-fit:cover;border:2px solid #ffffff;box-shadow:0 4px 14px rgba(0,0,0,0.07);" class="avatar-photo" />`
+    : `<div class="avatar-applicant" style="width:72px;height:72px;border-radius:50%;text-align:center;line-height:68px;font-size:22px;font-weight:600;letter-spacing:-0.02em;box-shadow:0 4px 14px rgba(0,0,0,0.07);">${escapeHtml(initials)}</div>`;
+
+  const applicantMetaParts = ["Applicant"];
+  if (appointmentType) applicantMetaParts.push(escapeHtml(appointmentType));
+  if (applicationNumber) applicantMetaParts.push(escapeHtml(applicationNumber));
+  const dotSpan = `<span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin:0 6px;"></span>`;
+  const applicantMetaHtml = applicantMetaParts.join(` ${dotSpan} `);
 
   const applicationNumberBlock = applicationNumber
     ? `<tr><td class="card-divider" style="height:1px;font-size:0;line-height:0;" colspan="2">&nbsp;</td></tr>
        <tr>
-         <td class="text-label" style="padding:12px 20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;">${escapeHtml(appointmentType)} Application</td>
-         <td class="text-secondary" style="padding:12px 20px;font-size:12px;font-weight:500;letter-spacing:0.04em;text-align:right;">${escapeHtml(applicationNumber)}</td>
+         <td class="text-label" style="padding:14px 22px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;">Medical Application</td>
+         <td class="text-secondary" style="padding:14px 22px;font-size:13px;font-weight:500;letter-spacing:0.02em;text-align:right;">${escapeHtml(applicationNumber)}</td>
        </tr>`
     : "";
 
-  const phoneIconSvg = `<img src="data:image/svg+xml,%3Csvg width='11' height='11' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z' fill='%235e5e6a'/%3E%3C/svg%3E" width="11" height="11" style="vertical-align:middle;margin-right:4px;opacity:0.6;" alt="" />`;
+  const phoneIconSvg = `<img src="data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z' fill='%235e5e6a'/%3E%3C/svg%3E" width="12" height="12" style="vertical-align:middle;margin-right:4px;opacity:0.5;" alt="" />`;
 
-  const emailIconSvg = `<img src="data:image/svg+xml,%3Csvg width='11' height='11' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z' fill='%235e5e6a'/%3E%3C/svg%3E" width="11" height="11" style="vertical-align:middle;margin-right:4px;opacity:0.6;" alt="" />`;
+  const emailIconSvg = `<img src="data:image/svg+xml,%3Csvg width='11' height='11' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z' fill='%235e5e6a'/%3E%3C/svg%3E" width="11" height="11" style="vertical-align:middle;margin-right:3px;opacity:0.45;" alt="" />`;
 
   const guideSection = guideName
-    ? `<tr><td style="padding-top:32px;padding-bottom:0;" colspan="2">
-        <table width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">
-          <tr><td class="text-label" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:14px;">Your On-Site Guide</td></tr>
-          <tr><td>
-            <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">
-              <tr>
-                <td style="vertical-align:top;width:44px;padding-right:13px;">
-                  <div class="avatar-guide" style="width:44px;height:44px;border-radius:50%;text-align:center;line-height:40px;font-size:13px;font-weight:700;letter-spacing:-0.02em;">${escapeHtml(guideInitials)}</div>
-                </td>
-                <td style="vertical-align:top;">
-                  <div class="text-primary" style="font-size:15px;font-weight:500;letter-spacing:-0.01em;line-height:1.3;padding-bottom:4px;">${escapeHtml(guideName)} <span class="text-label" style="font-size:12px;font-weight:400;">&middot; On-Site Support</span></div>
-                  ${guidePhone ? `<div class="text-secondary" style="font-size:13px;padding-bottom:9px;">${phoneIconSvg}<a href="tel:${escapeHtml(guidePhone)}" class="text-secondary" style="text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(guidePhone)}</a></div>` : ""}
-                  <div class="text-secondary" style="font-size:13px;font-weight:400;line-height:1.65;">On-site to assist you throughout.</div>
-                </td>
-              </tr>
-            </table>
-          </td></tr>
-        </table>
-      </td></tr>`
-    : "";
-
-  const crmContactSection = (() => {
-    if (!guideName || !hasRmContact) return "";
-    const contactLines: string[] = [];
-    if (rmPhone) {
-      contactLines.push(`<div class="text-secondary" style="font-size:13px;padding-bottom:9px;">${phoneIconSvg}<a href="tel:${escapeHtml(rmPhone)}" class="text-secondary" style="text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(rmPhone)}</a></div>`);
-    }
-    if (rmEmail) {
-      contactLines.push(`<div class="text-secondary" style="font-size:13px;padding-bottom:9px;">${emailIconSvg}<a href="mailto:${escapeHtml(rmEmail)}" class="text-secondary" style="text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(rmEmail)}</a></div>`);
-    }
-    return `<tr><td style="padding-top:16px;" colspan="2">
+    ? `<tr><td style="padding-top:36px;" colspan="2">
+        <div class="text-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding-bottom:14px;">Your On-Site Guide</div>
         <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">
           <tr>
-            <td style="vertical-align:top;width:44px;padding-right:13px;">
-              <div class="avatar-crm" style="width:44px;height:44px;border-radius:50%;text-align:center;line-height:40px;font-size:13px;font-weight:700;letter-spacing:-0.02em;">${escapeHtml(rmInitials)}</div>
+            <td style="vertical-align:top;width:52px;padding-right:14px;">
+              <div class="avatar-guide" style="width:52px;height:52px;border-radius:50%;text-align:center;line-height:48px;font-size:17px;font-weight:600;letter-spacing:-0.02em;box-shadow:0 2px 8px rgba(0,0,0,0.05);">${escapeHtml(guideInitials)}</div>
             </td>
             <td style="vertical-align:top;">
-              <div class="text-primary" style="font-size:15px;font-weight:500;letter-spacing:-0.01em;line-height:1.3;padding-bottom:4px;">${escapeHtml(rmDisplayName)} <span class="text-label" style="font-size:12px;font-weight:400;">&middot; Relationship Manager</span></div>
-              ${contactLines.join("\n              ")}
+              <div class="text-primary" style="font-size:18px;font-weight:500;letter-spacing:-0.01em;line-height:1.3;padding-bottom:1px;">${escapeHtml(guideName)} <span class="text-label" style="font-size:13px;font-weight:400;letter-spacing:0.01em;">· On-Site Support</span></div>
+              ${guidePhone ? `<div style="font-size:15px;padding-bottom:10px;">${phoneIconSvg}<a href="tel:${escapeHtml(guidePhone)}" class="text-secondary link-underline" style="text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(guidePhone)}</a></div>` : ""}
             </td>
           </tr>
         </table>
-      </td></tr>`;
-  })();
+        ${guideDescText ? `<div class="text-secondary" style="font-size:14px;font-weight:400;line-height:1.6;padding-top:10px;">${guideDescText}</div>` : ""}
+      </td></tr>`
+    : "";
 
   const notesBlock = appointment.notes
-    ? `<tr><td colspan="2" style="padding-top:32px;">
-        <div class="text-label" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:14px;">Notes</div>
-        <div class="text-secondary" style="font-size:13px;font-weight:400;line-height:1.65;">${escapeHtml(appointment.notes)}</div>
+    ? `<tr><td colspan="2" style="padding-top:36px;">
+        <div class="text-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding-bottom:14px;">Notes</div>
+        <div class="text-secondary" style="font-size:14px;font-weight:400;line-height:1.6;">${escapeHtml(appointment.notes)}</div>
+      </td></tr>`
+    : "";
+
+  const rescheduleBox = hasRmContact
+    ? `<tr><td colspan="2" style="padding-top:36px;">
+        <table role="presentation" class="card-bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:20px;">
+          <tr><td style="padding:18px 22px;">
+            <div class="text-secondary" style="font-size:14px;line-height:1.6;"><span class="text-primary" style="font-weight:500;">Need to reschedule?</span> Contact your Relationship Manager and we'll arrange a new slot at no cost.</div>
+            <div style="padding-top:10px;">
+              <span class="text-primary" style="font-size:13px;font-weight:500;">${escapeHtml(rmDisplayName)}</span>
+              ${rmPhone ? `${dotSpan}${phoneIconSvg}<a href="tel:${escapeHtml(rmPhone)}" class="text-secondary link-underline" style="font-size:13px;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:1px;">${escapeHtml(rmPhone)}</a>` : ""}
+              ${rmEmail ? `${dotSpan}${emailIconSvg}<a href="mailto:${escapeHtml(rmEmail)}" class="text-secondary link-underline" style="font-size:13px;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:1px;">${escapeHtml(rmEmail)}</a>` : ""}
+            </div>
+          </td></tr>
+        </table>
       </td></tr>`
     : "";
 
@@ -168,7 +169,7 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>${escapeHtml(emailTitle)}</title>
+    <title>Medical Test Appointment – Keystone Business Solutions</title>
     <!--[if mso]>
     <noscript>
     <xml>
@@ -182,7 +183,6 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
     .logo-mark { background:#1d1d1f; color:#ffffff; }
     .avatar-applicant { background:#dbeafe; color:#1d4ed8; border:2px solid #ffffff; }
     .avatar-guide { background:#dcfce7; color:#15803d; border:2px solid #ffffff; }
-    .avatar-crm { background:#dbeafe; color:#1d4ed8; border:2px solid #ffffff; }
     .avatar-photo { border:2px solid #ffffff; }
     .text-primary { color:#1d1d1f; }
     .text-secondary { color:#5e5e6a; }
@@ -190,14 +190,15 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
     .card-bg { background:#f8f8fc; border-color:#e8e8ed; }
     .card-divider { background:#e8e8ed; }
     .link-primary { color:#1d1d1f; border-color:#e8e8ed; }
+    .link-underline { border-bottom-color:#e8e8ed; }
     .notice-icon-light { display:inline !important; }
     .notice-icon-dark { display:none !important; }
-    @media only screen and (max-width: 520px) {
+    @media only screen and (max-width: 600px) {
         .email-container { width: 100% !important; }
-        .email-content { padding: 32px 24px 36px !important; }
-        .company-name { font-size: 22px !important; }
-        .applicant-name { font-size: 19px !important; }
-        .appt-datetime { font-size: 17px !important; }
+        .email-content { padding: 36px 24px !important; }
+        .company-name { font-size: 26px !important; }
+        .applicant-name { font-size: 22px !important; }
+        .appt-datetime { font-size: 16px !important; }
     }
     @media (prefers-color-scheme: dark) {
         .email-body { background: #000000 !important; }
@@ -210,41 +211,40 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
         .card-bg { background: #2c2c2e !important; border-color: #3a3a3c !important; }
         .card-divider { background: #3a3a3c !important; }
         .link-primary { color: #f5f5f7 !important; border-color: #3a3a3c !important; }
+        .link-underline { border-bottom-color: #3a3a3c !important; }
         .avatar-applicant { background: #1e3a8a !important; color: #93c5fd !important; border-color: #1c1c1e !important; }
         .avatar-guide { background: #14532d !important; color: #86efac !important; border-color: #1c1c1e !important; }
-        .avatar-crm { background: #1e3a8a !important; color: #93c5fd !important; border-color: #1c1c1e !important; }
         .avatar-photo { border-color: #1c1c1e !important; }
         .footer-divider-line { background: #2c2c2e !important; }
-        .hr-note-text { color: #636366 !important; }
         .notice-text { color: #f5f5f7 !important; }
         .notice-icon-light { display: none !important; }
         .notice-icon-dark { display: inline !important; }
     }
     </style>
 </head>
-<body class="email-body" style="margin:0;padding:0;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1d1d1f;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+<body class="email-body" style="margin:0;padding:0;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5;color:#1d1d1f;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
   <tr>
-    <td style="padding:32px 20px;" align="center">
-      <table role="presentation" class="email-container" width="580" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;max-width:580px;width:100%;">
+    <td style="padding:30px 20px;" align="center">
+      <table role="presentation" class="email-container" width="720" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;max-width:720px;width:100%;">
         <tr>
-          <td class="email-shell" style="background:#ffffff;border-radius:24px;overflow:hidden;">
+          <td class="email-shell" style="background:#ffffff;border-radius:28px;overflow:hidden;box-shadow:0 25px 50px -12px rgba(0,0,0,0.08);">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
               <tr>
-                <td class="email-content" style="padding:44px 40px 44px;">
+                <td class="email-content" style="padding:56px 48px;">
                   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
 
                     <!-- HEADER -->
                     <tr>
-                      <td class="border-subtle" style="padding-bottom:20px;border-bottom:1px solid #e8e8ed;" colspan="2">
+                      <td class="border-subtle" style="padding-bottom:16px;border-bottom:1px solid #e8e8ed;" colspan="2">
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                           <tr>
-                            <td style="vertical-align:middle;width:43px;padding-right:11px;">
+                            <td style="vertical-align:middle;width:48px;padding-right:12px;">
                               ${logoBlock}
                             </td>
                             <td style="vertical-align:middle;">
-                              <div class="text-primary" style="font-size:13px;font-weight:500;letter-spacing:-0.01em;line-height:1.35;">Keystone Business Solutions</div>
-                              <div class="text-label" style="font-size:11px;font-weight:400;letter-spacing:0.04em;margin-top:2px;">Everything. In Order.</div>
+                              <div class="text-primary" style="font-size:17px;font-weight:500;letter-spacing:-0.01em;line-height:1.3;">Keystone Business Solutions</div>
+                              <div class="text-label" style="font-size:11px;font-weight:400;letter-spacing:0.02em;margin-top:1px;">Everything. In Order.</div>
                             </td>
                           </tr>
                         </table>
@@ -256,47 +256,62 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
                     <!-- HERO -->
                     <tr>
                       <td colspan="2">
-                        <div class="company-name text-primary" style="font-size:26px;font-weight:600;letter-spacing:-0.03em;line-height:1.15;padding-bottom:6px;">${escapeHtml(companyName)}</div>
-                        <div class="text-label" style="font-size:13px;font-weight:400;letter-spacing:0.02em;padding-bottom:24px;">Your ${escapeHtml(appointmentType)} Test Appointment</div>
+                        <div class="company-name text-primary" style="font-size:30px;font-weight:500;letter-spacing:-0.015em;line-height:1.2;padding-bottom:6px;">${escapeHtml(companyName)}</div>
+                        <div class="text-label" style="font-size:15px;font-weight:400;letter-spacing:0.02em;padding-bottom:28px;">Medical Test Appointment</div>
                       </td>
                     </tr>
 
                     <!-- APPLICANT -->
                     <tr>
-                      <td class="border-subtle" style="padding-bottom:24px;border-bottom:1px solid #e8e8ed;" colspan="2">
+                      <td class="border-subtle" style="padding-bottom:28px;border-bottom:1px solid #e8e8ed;" colspan="2">
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                           <tr>
-                            <td style="vertical-align:middle;width:72px;padding-right:16px;">
+                            <td style="vertical-align:middle;width:92px;padding-right:20px;">
                               ${avatarBlock}
                             </td>
                             <td style="vertical-align:middle;">
-                              <div class="applicant-name text-primary" style="font-size:22px;font-weight:500;letter-spacing:-0.02em;line-height:1.2;padding-bottom:5px;">${escapeHtml(applicantName)}</div>
-                              <div class="text-label" style="font-size:12px;font-weight:400;letter-spacing:0.01em;">Applicant</div>
+                              <div class="applicant-name text-primary" style="font-size:26px;font-weight:500;letter-spacing:-0.01em;line-height:1.2;padding-bottom:3px;">${escapeHtml(applicantName)}</div>
+                              <div class="text-label" style="font-size:13px;font-weight:400;">${applicantMetaHtml}</div>
                             </td>
                           </tr>
                         </table>
                       </td>
                     </tr>
 
-                    <tr><td style="height:24px;font-size:0;line-height:0;" colspan="2">&nbsp;</td></tr>
+                    <tr><td style="height:16px;font-size:0;line-height:0;" colspan="2">&nbsp;</td></tr>
 
                     <!-- APPOINTMENT CARD -->
                     <tr>
                       <td colspan="2">
-                        <table role="presentation" class="card-bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;overflow:hidden;">
+                        <table role="presentation" class="card-bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:20px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.06);">
                           <tr>
-                            <td style="padding:16px 20px;" colspan="2">
-                              <div class="text-label" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:5px;">Date &amp; Time</div>
-                              <div class="appt-datetime text-primary" style="font-size:20px;font-weight:600;letter-spacing:-0.025em;line-height:1.2;">${escapeHtml(dateStr)} &nbsp;&middot;&nbsp; ${escapeHtml(timeStr)}</div>
+                            <td style="padding:18px 22px;" colspan="2">
+                              <div class="text-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding-bottom:4px;">Date &amp; Time</div>
+                              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                                <tr>
+                                  <td style="vertical-align:middle;">
+                                    <div class="appt-datetime text-primary" style="font-size:19px;font-weight:600;letter-spacing:-0.01em;line-height:1.2;">${escapeHtml(dateStr)} &middot; ${escapeHtml(timeStr)}</div>
+                                  </td>
+                                  <td style="vertical-align:middle;text-align:right;white-space:nowrap;">
+                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;display:inline-table;">
+                                      <tr>
+                                        <td style="padding-left:10px;">${calendarGoogleSvg}</td>
+                                        <td style="padding-left:10px;">${calendarAppleSvg}</td>
+                                        <td style="padding-left:10px;">${calendarOutlookSvg}</td>
+                                      </tr>
+                                    </table>
+                                  </td>
+                                </tr>
+                              </table>
                             </td>
                           </tr>
                           <tr><td class="card-divider" style="height:1px;font-size:0;line-height:0;" colspan="2">&nbsp;</td></tr>
                           <tr>
-                            <td style="padding:16px 20px;" colspan="2">
-                              <div class="text-label" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:5px;">Location</div>
-                              <div class="text-primary" style="font-size:14px;font-weight:500;letter-spacing:-0.01em;padding-bottom:3px;">${escapeHtml(centerName)}</div>
-                              ${centerAddress ? `<div class="text-secondary" style="font-size:13px;line-height:1.5;padding-bottom:8px;">${escapeHtml(centerAddress)}</div>` : ""}
-                              <a href="${escapeHtml(mapsUrl)}" class="link-primary" style="display:inline-block;font-size:12px;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:1px;">View on Google Maps &#8599;</a>
+                            <td style="padding:18px 22px;" colspan="2">
+                              <div class="text-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding-bottom:4px;">Location</div>
+                              <div class="text-primary" style="font-size:15px;font-weight:500;letter-spacing:-0.01em;padding-bottom:2px;">${escapeHtml(centerName)}</div>
+                              ${centerAddress ? `<div class="text-secondary" style="font-size:13px;line-height:1.6;padding-bottom:4px;">${escapeHtml(centerAddress)}</div>` : ""}
+                              <a href="${escapeHtml(mapsUrl)}" class="link-primary" style="display:inline-block;font-size:13px;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:2px;margin-top:4px;">View on Google Maps &#8599;</a>
                             </td>
                           </tr>
                           ${applicationNumberBlock}
@@ -306,31 +321,29 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
 
                     ${guideSection}
 
-                    ${crmContactSection}
-
                     <!-- BEFORE YOU GO -->
                     <tr>
-                      <td style="padding-top:32px;" colspan="2">
-                        <div class="text-label" style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:14px;">Before You Go</div>
-                        <table role="presentation" class="card-bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;">
+                      <td style="padding-top:36px;" colspan="2">
+                        <div class="text-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding-bottom:14px;">Before You Go</div>
+                        <table role="presentation" class="card-bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:20px;">
                           <tr>
-                            <td style="padding:16px 20px;">
+                            <td style="padding:20px 22px;">
                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                                 <tr>
-                                  <td style="width:28px;vertical-align:top;padding-right:11px;padding-bottom:12px;">
-                                    <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='17' height='17' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M12 7v5.5l3 2' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="17" height="17" alt="" style="display:inline;opacity:0.4;margin-top:2px;" />
-                                    <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='17' height='17' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M12 7v5.5l3 2' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="17" height="17" alt="" style="display:none;opacity:0.4;margin-top:2px;" />
+                                  <td style="width:32px;vertical-align:top;padding-right:12px;padding-bottom:10px;">
+                                    <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M12 7v5.5l3 2' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:inline;opacity:0.5;margin-top:1px;" />
+                                    <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M12 7v5.5l3 2' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:none;opacity:0.5;margin-top:1px;" />
                                   </td>
-                                  <td class="notice-text text-primary" style="vertical-align:top;font-size:13px;font-weight:500;line-height:1.55;padding-bottom:12px;">
+                                  <td class="notice-text text-primary" style="vertical-align:top;font-size:15px;font-weight:500;line-height:1.5;padding-bottom:10px;">
                                     Arrive at least 10 minutes before your appointment time.
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td style="width:28px;vertical-align:top;padding-right:11px;">
-                                    <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='17' height='17' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="17" height="17" alt="" style="display:inline;opacity:0.4;margin-top:2px;" />
-                                    <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='17' height='17' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="17" height="17" alt="" style="display:none;opacity:0.4;margin-top:2px;" />
+                                  <td style="width:32px;vertical-align:top;padding-right:12px;">
+                                    <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:inline;opacity:0.5;margin-top:1px;" />
+                                    <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:none;opacity:0.5;margin-top:1px;" />
                                   </td>
-                                  <td class="notice-text text-primary" style="vertical-align:top;font-size:13px;font-weight:500;line-height:1.55;">
+                                  <td class="notice-text text-primary" style="vertical-align:top;font-size:15px;font-weight:500;line-height:1.5;">
                                     Bring your original passport. No copies or digital versions accepted.
                                   </td>
                                 </tr>
@@ -343,25 +356,28 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
 
                     ${notesBlock}
 
-                    <!-- HR NOTE -->
+                    <!-- AFTER THE APPOINTMENT -->
                     <tr>
-                      <td colspan="2" style="padding-top:32px;">
-                        <div class="hr-note-text" style="font-size:13px;font-weight:400;color:#8e8e98;line-height:1.6;text-align:center;">For any questions, please contact your HR team.</div>
+                      <td colspan="2" style="padding-top:36px;">
+                        <div class="text-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding-bottom:14px;">After the Appointment</div>
+                        <div class="text-secondary" style="font-size:14px;font-weight:400;line-height:1.6;">Results are shared within 24 hours. We handle everything that follows &mdash; no action needed on your end.</div>
                       </td>
                     </tr>
 
+                    ${rescheduleBox}
+
                     <!-- FOOTER -->
                     <tr>
-                      <td class="border-subtle" colspan="2" style="padding-top:32px;">
+                      <td class="border-subtle" colspan="2" style="padding-top:28px;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-top:1px solid #e8e8ed;">
                           <tr><td style="height:20px;font-size:0;line-height:0;">&nbsp;</td></tr>
                           <tr>
                             <td style="text-align:center;">
-                              <div class="text-primary" style="font-size:12px;font-weight:500;letter-spacing:-0.01em;">
+                              <div class="text-primary" style="font-size:13px;font-weight:500;letter-spacing:-0.005em;">
                                 <a href="https://www.procompany.ae" class="link-primary" style="text-decoration:none;">Keystone Business Solutions</a>
                               </div>
-                              <div class="footer-divider-line" style="width:24px;height:1px;background:#e8e8ed;margin:7px auto;"></div>
-                              <div class="text-secondary" style="font-size:10px;margin-bottom:3px;">
+                              <div class="footer-divider-line" style="width:32px;height:1px;background:#e8e8ed;margin:6px auto;"></div>
+                              <div class="text-secondary" style="font-size:11px;margin-bottom:4px;">
                                 Powered by <a href="https://www.procompany.ae" class="text-secondary" style="text-decoration:none;">Keystone Business Solutions</a>
                               </div>
                               <div class="text-secondary" style="font-size:10px;letter-spacing:0.01em;">&copy; ${new Date().getFullYear()} Keystone Business Solutions. All rights reserved.</div>
