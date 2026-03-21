@@ -5,6 +5,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageTransition } from "@/components/ui/page-transition";
+import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import NotFound from "@/pages/not-found";
 import AccessDenied from "@/pages/access-denied";
 import { CommandPalette } from "@/components/command-palette";
@@ -229,7 +230,7 @@ function VendorLayout() {
             <VendorSidebar />
             <div className="flex flex-col flex-1 min-w-0">
               <VendorTopBar />
-              <main className="flex-1 overflow-y-auto">
+              <main className="flex-1 overflow-y-auto" data-scroll-container>
                 <PageTransition>
                   <Switch>
                     <Route path="/" component={VendorDashboard} />
@@ -295,6 +296,7 @@ function Router() {
 
   return (
     <AuthGuard>
+      <ScrollToTop />
       {isV2Portal ? <AppRoutes /> : <PageTransition><AppRoutes /></PageTransition>}
     </AuthGuard>
   );

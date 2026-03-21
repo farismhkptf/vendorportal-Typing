@@ -238,7 +238,7 @@ export function V2Layout({ children }: V2LayoutProps) {
           </div>
         )}
 
-        <main className="flex-1 overflow-y-auto px-4 pb-24 lg:px-8 lg:pb-8">
+        <main className="flex-1 overflow-y-auto px-4 pb-24 lg:px-8 lg:pb-8" data-scroll-container>
           {children}
         </main>
 
