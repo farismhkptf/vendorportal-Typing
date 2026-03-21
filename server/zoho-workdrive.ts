@@ -8,10 +8,10 @@ async function getAccessToken(): Promise<string> {
     return cachedAccessToken;
   }
 
-  const clientId = process.env.ZOHO_CLIENT_ID;
-  const clientSecret = process.env.ZOHO_CLIENT_SECRET;
-  const refreshToken = process.env.ZOHO_REFRESH_TOKEN;
-  const accountDomain = process.env.ZOHO_ACCOUNT_DOMAIN || "https://accounts.zoho.com";
+  const clientId = process.env.ZOHO_WORKDRIVE_CLIENT_ID;
+  const clientSecret = process.env.ZOHO_WORKDRIVE_CLIENT_SECRET;
+  const refreshToken = process.env.ZOHO_WORKDRIVE_REFRESH_TOKEN;
+  const accountDomain = process.env.ZOHO_WORKDRIVE_ACCOUNT_DOMAIN || "https://accounts.zoho.com";
 
   if (!clientId || !clientSecret || !refreshToken) {
     throw new Error("Zoho WorkDrive credentials not configured");
@@ -45,7 +45,7 @@ async function workdriveRequest(
   body?: any,
 ): Promise<any> {
   const token = await getAccessToken();
-  const apiDomain = process.env.ZOHO_API_DOMAIN || "https://www.zohoapis.com";
+  const apiDomain = process.env.ZOHO_WORKDRIVE_API_DOMAIN || "https://www.zohoapis.com";
   const url = `${apiDomain}/workdrive/api/v1${endpoint}`;
 
   const headers: Record<string, string> = {
@@ -160,7 +160,7 @@ export async function uploadFileToWorkDrive(
   fileName: string,
 ): Promise<{ fileId: string; permalink: string }> {
   const token = await getAccessToken();
-  const apiDomain = process.env.ZOHO_API_DOMAIN || "https://www.zohoapis.com";
+  const apiDomain = process.env.ZOHO_WORKDRIVE_API_DOMAIN || "https://www.zohoapis.com";
 
   const boundary = `----FormBoundary${Date.now()}`;
   const crlf = "\r\n";
@@ -235,9 +235,9 @@ export async function syncFileToWorkDrive(
 
 export function isWorkDriveConfigured(): boolean {
   return !!(
-    process.env.ZOHO_CLIENT_ID &&
-    process.env.ZOHO_CLIENT_SECRET &&
-    process.env.ZOHO_REFRESH_TOKEN &&
+    process.env.ZOHO_WORKDRIVE_CLIENT_ID &&
+    process.env.ZOHO_WORKDRIVE_CLIENT_SECRET &&
+    process.env.ZOHO_WORKDRIVE_REFRESH_TOKEN &&
     process.env.ZOHO_WORKDRIVE_PARENT_FOLDER_ID
   );
 }
