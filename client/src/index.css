@@ -516,6 +516,301 @@
   --shadow-2xl: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   THEME: APPLE (California Design)
+   Apple blue accent, clean neutrals, system font, native feel
+   ═══════════════════════════════════════════════════════════════ */
+.theme-apple {
+  --button-outline: rgba(0,0,0,0.08);
+  --badge-outline: rgba(0,0,0,0.04);
+  --opaque-button-border-intensity: -8;
+  --elevate-1: rgba(0,0,0,0.025);
+  --elevate-2: rgba(0,0,0,0.06);
+
+  --background: 0 0% 96%;
+  --foreground: 0 0% 7%;
+  --border: 0 0% 88%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 7%;
+  --card-border: 0 0% 88%;
+  --sidebar: 0 0% 92%;
+  --sidebar-foreground: 0 0% 7%;
+  --sidebar-border: 0 0% 85%;
+  --sidebar-primary: 211 100% 50%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 211 30% 92%;
+  --sidebar-accent-foreground: 0 0% 7%;
+  --sidebar-ring: 211 100% 50%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 7%;
+  --popover-border: 0 0% 88%;
+  --primary: 211 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 92%;
+  --secondary-foreground: 0 0% 20%;
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 42%;
+  --accent: 211 60% 94%;
+  --accent-foreground: 211 100% 40%;
+  --destructive: 2 100% 61%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 0 0% 88%;
+  --ring: 211 100% 50%;
+  --chart-1: 211 100% 50%;
+  --chart-2: 142 63% 50%;
+  --chart-3: 48 100% 51%;
+  --chart-4: 2 100% 61%;
+  --chart-5: 271 60% 62%;
+
+  --radius: 0.5rem;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
+
+  --apple-fill-primary: #454545;
+  --apple-fill-secondary: #3C3C3E;
+  --apple-fill-tertiary: #2C2C2E;
+  --apple-separator: #E1E1E1;
+  --apple-radius-small: 6px;
+  --apple-radius-medium: 8px;
+  --apple-radius-large: 10px;
+  --apple-radius-pill: 20px;
+  --apple-shadow-subtle: 0 2px 4px rgba(0,0,0,0.12);
+  --apple-shadow-medium: 0 4px 12px rgba(0,0,0,0.18);
+  --apple-shadow-heavy: 0 20px 30px rgba(0,0,0,0.22);
+  --apple-accent-hover: #005BBB;
+  --apple-accent-active: #004999;
+  --apple-font-size-caption: 0.75rem;
+  --apple-font-size-body: 0.9375rem;
+  --apple-font-size-headline: 1.0625rem;
+  --apple-font-size-title3: 1.25rem;
+  --apple-font-size-title2: 1.375rem;
+  --apple-font-size-title1: 1.75rem;
+  --apple-font-size-large-title: 2.125rem;
+}
+
+.theme-apple.dark {
+  --button-outline: rgba(255,255,255,0.08);
+  --badge-outline: rgba(255,255,255,0.04);
+  --opaque-button-border-intensity: 8;
+  --elevate-1: rgba(255,255,255,0.03);
+  --elevate-2: rgba(255,255,255,0.07);
+
+  --background: 240 2% 11%;
+  --foreground: 0 0% 100%;
+  --border: 240 2% 22%;
+  --card: 240 2% 17%;
+  --card-foreground: 0 0% 100%;
+  --card-border: 240 2% 22%;
+  --sidebar: 240 2% 17%;
+  --sidebar-foreground: 0 0% 100%;
+  --sidebar-border: 240 2% 22%;
+  --sidebar-primary: 211 100% 50%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 2% 23%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-ring: 211 100% 50%;
+  --popover: 240 2% 23%;
+  --popover-foreground: 0 0% 100%;
+  --popover-border: 240 2% 22%;
+  --primary: 211 100% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 2% 23%;
+  --secondary-foreground: 240 2% 92%;
+  --muted: 240 2% 23%;
+  --muted-foreground: 240 5% 65%;
+  --accent: 211 40% 20%;
+  --accent-foreground: 211 100% 70%;
+  --destructive: 2 100% 61%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 240 2% 23%;
+  --ring: 211 100% 50%;
+  --chart-1: 211 100% 50%;
+  --chart-2: 142 63% 50%;
+  --chart-3: 48 100% 51%;
+  --chart-4: 2 100% 61%;
+  --chart-5: 271 60% 62%;
+
+  --shadow-2xs: 0 1px 2px 0 rgba(0,0,0,0.35);
+  --shadow-xs: 0 1px 3px 0 rgba(0,0,0,0.4);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.35), 0 2px 4px rgba(0,0,0,0.3);
+  --shadow: 0 2px 4px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.35);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 20px rgba(0,0,0,0.45), 0 12px 28px rgba(0,0,0,0.35);
+  --shadow-xl: 0 20px 30px rgba(0,0,0,0.5);
+  --shadow-2xl: 0 24px 48px rgba(0,0,0,0.6);
+
+  --apple-fill-primary: #454545;
+  --apple-fill-secondary: #3C3C3E;
+  --apple-fill-tertiary: #2C2C2E;
+  --apple-separator: #38383A;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   APPLE THEME — Scoped component & interaction overrides
+   ═══════════════════════════════════════════════════════════════ */
+
+.theme-apple body {
+  font-size: var(--apple-font-size-body);
+}
+
+.theme-apple button,
+.theme-apple a,
+.theme-apple input,
+.theme-apple [role="button"] {
+  transition-timing-function: cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition-duration: 0.2s;
+}
+
+.theme-apple button:active,
+.theme-apple [role="button"]:active {
+  transform: scale(0.98);
+}
+
+.theme-apple [data-variant="default"],
+.theme-apple .btn-primary,
+.theme-apple button.bg-primary,
+.theme-apple a.bg-primary {
+  border-radius: var(--apple-radius-pill) !important;
+  border: none !important;
+}
+
+.theme-apple button.bg-primary:hover,
+.theme-apple a.bg-primary:hover {
+  background-color: #005BBB !important;
+}
+
+.theme-apple button.bg-primary:active,
+.theme-apple a.bg-primary:active {
+  background-color: #004999 !important;
+}
+
+.theme-apple .premium-card,
+.theme-apple [class*="card"] {
+  border-color: transparent;
+  box-shadow: var(--apple-shadow-subtle);
+  border-radius: var(--apple-radius-medium);
+}
+
+.theme-apple input,
+.theme-apple textarea,
+.theme-apple select {
+  background: hsl(var(--secondary));
+  border: 1px solid var(--apple-separator);
+  border-radius: var(--apple-radius-medium);
+}
+
+.theme-apple input:focus,
+.theme-apple textarea:focus {
+  border-color: #007AFF;
+  box-shadow: 0 0 0 3px rgba(0,122,255,0.3);
+  outline: none;
+}
+
+.theme-apple [data-state="unchecked"][role="switch"] {
+  background-color: var(--apple-fill-primary);
+}
+
+.theme-apple [data-state="checked"][role="switch"] {
+  background-color: #007AFF;
+}
+
+.theme-apple [role="switch"] > span {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+.theme-apple * {
+  -webkit-overflow-scrolling: touch;
+}
+
+@keyframes apple-sheet-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes apple-sheet-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+.theme-apple [role="dialog"],
+.theme-apple [data-radix-popper-content-wrapper] {
+  animation: apple-sheet-in 0.22s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+
+.theme-apple.dark .glass,
+.theme-apple.dark [data-radix-popper-content-wrapper] {
+  background: rgba(44,44,46,0.82);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.theme-apple .glass {
+  background: rgba(255,255,255,0.78);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255,255,255,0.5);
+}
+
+.theme-apple [role="separator"],
+.theme-apple hr {
+  background-color: var(--apple-separator);
+  opacity: 1;
+}
+
+.theme-apple [aria-selected="true"],
+.theme-apple [data-selected="true"] {
+  background-color: hsl(var(--secondary));
+  border-radius: var(--apple-radius-medium);
+}
+
+.theme-apple a {
+  color: #007AFF;
+}
+
+.theme-apple a:hover {
+  color: var(--apple-accent-hover);
+}
+
+.theme-apple a:active {
+  color: var(--apple-accent-active);
+}
+
+@layer utilities {
+  .apple-caption {
+    font-size: var(--apple-font-size-caption);
+  }
+  .apple-body {
+    font-size: var(--apple-font-size-body);
+  }
+  .apple-headline {
+    font-size: var(--apple-font-size-headline);
+  }
+  .apple-title3 {
+    font-size: var(--apple-font-size-title3);
+  }
+  .apple-title2 {
+    font-size: var(--apple-font-size-title2);
+  }
+  .apple-title1 {
+    font-size: var(--apple-font-size-title1);
+  }
+  .apple-large-title {
+    font-size: var(--apple-font-size-large-title);
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

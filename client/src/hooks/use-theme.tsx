@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
-export type ThemeName = "default" | "cyber" | "desert" | "ocean";
+export type ThemeName = "default" | "cyber" | "desert" | "ocean" | "apple";
 export type ThemeMode = "light" | "dark";
 export type BackgroundName = "none" | "aurora" | "silk" | "ember" | "midnight" | "prism" | "dusk" | "moss" | "arctic";
 
@@ -23,7 +23,7 @@ const BG_KEY = "pro-app-background";
 function applyThemeToDOM(theme: ThemeName, mode: ThemeMode) {
   const root = document.documentElement;
 
-  root.classList.remove("theme-cyber", "theme-desert", "theme-ocean");
+  root.classList.remove("theme-cyber", "theme-desert", "theme-ocean", "theme-apple");
   if (theme !== "default") {
     root.classList.add(`theme-${theme}`);
   }

@@ -1,5 +1,5 @@
 import { useTheme, type ThemeName, type BackgroundName } from "@/hooks/use-theme";
-import { Sun, Moon, Zap, Mountain, Waves, Palette, Image, X } from "lucide-react";
+import { Sun, Moon, Zap, Mountain, Waves, Palette, Image, X, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +25,7 @@ const themes: { id: ThemeName; label: string; icon: typeof Zap; colors: [string,
   { id: "cyber", label: "Neon Cyber", icon: Zap, colors: ["#00b8d4", "#06d6a0"] },
   { id: "desert", label: "Desert Sand", icon: Mountain, colors: ["#d2691e", "#e8a54b"] },
   { id: "ocean", label: "Ocean Breeze", icon: Waves, colors: ["#2e8b82", "#5ec4b6"] },
+  { id: "apple", label: "Apple", icon: Monitor, colors: ["#007AFF", "#1C1C1E"] },
 ];
 
 export const backgrounds: { id: BackgroundName; label: string; src: string | null }[] = [
