@@ -2004,7 +2004,7 @@ export async function registerRoutes(
       const result = await sendEmail({
         to: wo.applicantEmail,
         cc: ccRecipients.length > 0 ? ccRecipients : undefined,
-        subject: `${apptTypeLabel} Appointment – ${applicantName} at ${centerName} on ${dateStr}`,
+        subject: `${apptTypeLabel} Appointment - ${applicantName}. ${wo.woNumber}`,
         html,
       });
 
