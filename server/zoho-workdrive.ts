@@ -76,12 +76,14 @@ async function workdriveRequest(
 }
 
 async function listSubfolders(parentFolderId: string): Promise<Array<{ id: string; name: string }>> {
-  const data = await workdriveRequest("GET", `/files/${parentFolderId}/files?filter[type]=folder`);
+  const data = await workdriveRequest("GET", `/files/${parentFolderId}/files`);
   if (!data?.data) return [];
-  return data.data.map((item: any) => ({
-    id: item.id,
-    name: item.attributes?.name || "",
-  }));
+  return data.data
+    .filter((item: any) => item.attributes?.type === "folder" || item.type === "folder" || item.attributes?.is_folder)
+    .map((item: any) => ({
+      id: item.id,
+      name: item.attributes?.name || "",
+    }));
 }
 
 async function createFolder(parentFolderId: string, folderName: string): Promise<string> {
