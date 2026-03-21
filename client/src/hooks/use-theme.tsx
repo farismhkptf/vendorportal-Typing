@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 
 export type ThemeName = "default" | "cyber" | "desert" | "ocean" | "apple";
 export type ThemeMode = "light" | "dark";
@@ -19,6 +19,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 const THEME_KEY = "pro-app-theme";
 const MODE_KEY = "pro-app-mode";
 const BG_KEY = "pro-app-background";
+const PRE_APPLE_MODE_KEY = "pro-app-pre-apple-mode";
 
 function applyThemeToDOM(theme: ThemeName, mode: ThemeMode) {
   const root = document.documentElement;
@@ -52,8 +53,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     return (saved as BackgroundName) || "none";
   });
 
+  const prevThemeRef = useRef<ThemeName>(theme);
+
   useEffect(() => {
-    applyThemeToDOM(theme, mode);
+    const effectiveMode = theme === "apple" ? "dark" : mode;
+    applyThemeToDOM(theme, effectiveMode);
   }, [theme, mode]);
 
   useEffect(() => {
@@ -66,30 +70,48 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, [background]);
 
   const setTheme = useCallback((t: ThemeName) => {
+    const prev = prevThemeRef.current;
+    prevThemeRef.current = t;
+
+    if (t === "apple") {
+      const currentMode = localStorage.getItem(MODE_KEY) || "light";
+      localStorage.setItem(PRE_APPLE_MODE_KEY, currentMode);
+    } else if (prev === "apple") {
+      const savedPreApple = localStorage.getItem(PRE_APPLE_MODE_KEY);
+      if (savedPreApple === "dark" || savedPreApple === "light") {
+        setModeState(savedPreApple);
+        localStorage.setItem(MODE_KEY, savedPreApple);
+      }
+    }
+
     setThemeState(t);
     localStorage.setItem(THEME_KEY, t);
   }, []);
 
   const setMode = useCallback((m: ThemeMode) => {
+    if (theme === "apple") return;
     setModeState(m);
     localStorage.setItem(MODE_KEY, m);
-  }, []);
+  }, [theme]);
 
   const toggleMode = useCallback(() => {
+    if (theme === "apple") return;
     setModeState((prev) => {
       const next = prev === "light" ? "dark" : "light";
       localStorage.setItem(MODE_KEY, next);
       return next;
     });
-  }, []);
+  }, [theme]);
 
   const setBackground = useCallback((bg: BackgroundName) => {
     setBackgroundState(bg);
     localStorage.setItem(BG_KEY, bg);
   }, []);
 
+  const effectiveMode: ThemeMode = theme === "apple" ? "dark" : mode;
+
   return (
-    <ThemeContext.Provider value={{ theme, mode, background, setTheme, setMode, toggleMode, setBackground }}>
+    <ThemeContext.Provider value={{ theme, mode: effectiveMode, background, setTheme, setMode, toggleMode, setBackground }}>
       {children}
     </ThemeContext.Provider>
   );

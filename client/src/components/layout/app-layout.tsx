@@ -202,7 +202,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </aside>
 
       <div className="lg:pl-[280px] relative z-[1]">
-        <header ref={mainRef} className={cn("sticky top-0 z-30 h-[72px] bg-background/80 backdrop-blur-xl border-b border-border/40 transition-shadow duration-300", scrolled && "header-scrolled")}>
+        <header ref={mainRef} data-sticky-header className={cn("sticky top-0 z-30 h-[72px] bg-background/80 backdrop-blur-xl border-b border-border/40 transition-shadow duration-300", scrolled && "header-scrolled")}>
           <div className="flex h-full items-center gap-4 px-6 lg:px-10">
             <Button
               variant="ghost"
