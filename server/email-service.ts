@@ -6,6 +6,7 @@ interface SendEmailOptions {
   subject: string;
   html: string;
   replyTo?: string;
+  from?: string;
 }
 
 interface EmailResult {
@@ -38,8 +39,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
 
   try {
     const transporter = createTransporter();
+    const fromAddress = options.from || user;
     const info = await transporter.sendMail({
-      from: `"The P.R.O. Company" <${user}>`,
+      from: `"The P.R.O. Company" <${fromAddress}>`,
       to: Array.isArray(options.to) ? options.to.join(", ") : options.to,
       cc: options.cc ? (Array.isArray(options.cc) ? options.cc.join(", ") : options.cc) : undefined,
       replyTo: options.replyTo || user,

@@ -2001,6 +2001,7 @@ export async function registerRoutes(
         cc: ccRecipients.length > 0 ? ccRecipients : undefined,
         subject: `${apptTypeLabel} Appointment - ${applicantName}. ${wo.woNumber}`,
         html,
+        from: settings?.fromEmail || undefined,
       });
 
       if (!result.success) {

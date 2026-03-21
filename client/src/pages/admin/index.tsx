@@ -119,6 +119,10 @@ const jobTypeSchema = z.object({
   cost: z.coerce.number().int("Cost must be a whole number").min(0, "Cost must be positive"),
 });
 
+const senderEmailSchema = z.object({
+  fromEmail: z.string().email("Must be a valid email address"),
+});
+
 const ccRecipientsSchema = z.object({
   alwaysCc: z.string(),
 });
@@ -774,6 +778,7 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<any>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [editSenderEmailDialogOpen, setEditSenderEmailDialogOpen] = useState(false);
   const [editCcDialogOpen, setEditCcDialogOpen] = useState(false);
   const [editThresholdDialogOpen, setEditThresholdDialogOpen] = useState(false);
   const [editDelayThresholdDialogOpen, setEditDelayThresholdDialogOpen] = useState(false);
@@ -989,6 +994,13 @@ export default function AdminPage() {
       name: "",
       category: "Medical",
       cost: 0,
+    },
+  });
+
+  const senderEmailForm = useForm({
+    resolver: zodResolver(senderEmailSchema),
+    defaultValues: {
+      fromEmail: "",
     },
   });
 
@@ -1594,6 +1606,18 @@ export default function AdminPage() {
     setEditJobTypeDialogOpen(true);
   };
 
+  const handleEditSenderEmail = () => {
+    senderEmailForm.reset({
+      fromEmail: settings?.fromEmail || "",
+    });
+    setEditSenderEmailDialogOpen(true);
+  };
+
+  const handleSubmitSenderEmail = (data: z.infer<typeof senderEmailSchema>) => {
+    updateSettingsMutation.mutate({ fromEmail: data.fromEmail });
+    setEditSenderEmailDialogOpen(false);
+  };
+
   const handleEditCc = () => {
     ccForm.reset({
       alwaysCc: settings?.alwaysCc?.join(", ") || "",
@@ -1769,6 +1793,26 @@ export default function AdminPage() {
                           </Button>
                         )}
                       </div>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-medium text-foreground">Sender Email Address</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {settings?.fromEmail || "Not configured"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Appointment confirmation emails are sent from this address</p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-xl"
+                        onClick={handleEditSenderEmail}
+                        data-testid="button-edit-sender-email"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                   <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
@@ -1972,6 +2016,46 @@ export default function AdminPage() {
                 </div>
               </div>
             </div>
+
+            <Dialog open={editSenderEmailDialogOpen} onOpenChange={setEditSenderEmailDialogOpen}>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Sender Email Address</DialogTitle>
+                </DialogHeader>
+                <Form {...senderEmailForm}>
+                  <form onSubmit={senderEmailForm.handleSubmit(handleSubmitSenderEmail)} className="space-y-4">
+                    <FormField
+                      control={senderEmailForm.control}
+                      name="fromEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email Address</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type="email"
+                              placeholder="appointments@procompany.ae"
+                              className="rounded-xl"
+                              data-testid="input-sender-email"
+                            />
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">Appointment confirmation emails will be sent from this address</p>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex justify-end gap-3 pt-4">
+                      <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditSenderEmailDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="submit" className="rounded-xl" disabled={updateSettingsMutation.isPending}>
+                        {updateSettingsMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
 
             <Dialog open={editCcDialogOpen} onOpenChange={setEditCcDialogOpen}>
               <DialogContent className="rounded-2xl">
