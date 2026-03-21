@@ -145,6 +145,42 @@ export default function VendorDashboard() {
   const hasStaleAlerts = staleAlerts && staleAlerts.unacceptedJobs > 0;
   const unreadNotifications = (notifications || []).filter(n => !n.isRead).slice(0, 5);
 
+  const awaitingAcceptanceWOs = woGrouped.filter(wo =>
+    wo.jobs.some(j => j.status === "SubmittedToVendor")
+  );
+  const activeJobWOs = woGrouped.filter(wo =>
+    wo.jobs.some(j => j.status === "InProcess")
+  );
+  const otherWOs = woGrouped.filter(wo =>
+    !wo.jobs.some(j => j.status === "SubmittedToVendor") &&
+    !wo.jobs.some(j => j.status === "InProcess")
+  );
+
+  function getSlaLabel(sentAt: string | null): { label: string; className: string } {
+    if (!sentAt) return { label: "–", className: "text-muted-foreground" };
+    const elapsedHours = (Date.now() - new Date(sentAt).getTime()) / 3600000;
+    const remainingHours = 12 - elapsedHours;
+    if (elapsedHours >= 12) {
+      const lateBy = Math.round(elapsedHours - 12);
+      return {
+        label: lateBy > 0 ? `Late by ${lateBy}h` : "Late",
+        className: "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30",
+      };
+    }
+    if (elapsedHours >= 8) {
+      const hoursLeft = Math.ceil(remainingHours);
+      return {
+        label: `Due soon · ${hoursLeft}h left`,
+        className: "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30",
+      };
+    }
+    const hoursLeft = Math.ceil(remainingHours);
+    return {
+      label: `${hoursLeft}h left`,
+      className: "text-muted-foreground",
+    };
+  }
+
   const pipelineTotal = (stats?.pending || 0) + (stats?.inProgress || 0) + (stats?.completed || 0);
   const pipelineStages = [
     { key: "pending", label: "Pending", count: stats?.pending || 0, color: "bg-amber-500", dotColor: "bg-amber-400" },
@@ -178,33 +214,95 @@ export default function VendorDashboard() {
         <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground" data-testid="text-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0] || "there"}
         </h1>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
           {user?.vendorName && <span className="font-medium">{user.vendorName}</span>}
           {user?.vendorName && " · "}
           {(stats?.pending || 0) > 0
             ? `${stats?.pending} ${stats?.pending === 1 ? "job" : "jobs"} awaiting acceptance`
             : "You're all caught up"}
+          {(stats?.pending || 0) > 0 && (
+            <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-[11px] font-bold bg-amber-500 text-white" data-testid="badge-awaiting-count">
+              {stats?.pending}
+            </span>
+          )}
         </p>
       </div>
 
-      {hasStaleAlerts && (
-        <div className="mb-6 flex flex-col sm:flex-row gap-2">
-          {staleAlerts.unacceptedJobs > 0 && (
-            <Link href="/eid" className="flex-1">
-              <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-800/40 cursor-pointer hover:shadow-md transition-shadow duration-200" data-testid="alert-unaccepted">
-                <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
-                  <Inbox className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {staleAlerts.unacceptedJobs} {staleAlerts.unacceptedJobs === 1 ? "job" : "jobs"} awaiting acceptance
-                  </p>
-                  <p className="text-xs text-muted-foreground">Pending over 12 hours</p>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-              </div>
-            </Link>
-          )}
+      {awaitingAcceptanceWOs.length > 0 && (
+        <div className="mb-6" data-testid="section-awaiting-acceptance">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-7 w-7 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center">
+              <Inbox className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            </div>
+            <h2 className="text-sm font-semibold text-foreground tracking-tight">Awaiting Acceptance</h2>
+            <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
+              {awaitingAcceptanceWOs.length}
+            </span>
+          </div>
+          <div className="space-y-3">
+            {awaitingAcceptanceWOs.map((wo) => {
+              const hasUrgent = wo.jobs.some(j => j.priority === "urgent");
+              return (
+                <Card
+                  key={wo.woId}
+                  className={`border-0 shadow-sm overflow-hidden ${hasUrgent ? "ring-1 ring-red-200 dark:ring-red-800/40" : "ring-1 ring-amber-200/60 dark:ring-amber-700/30"}`}
+                  data-testid={`awaiting-wo-${wo.woId}`}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm font-semibold text-foreground">{wo.woNumber}</span>
+                      {hasUrgent && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Urgent</Badge>}
+                      <span className="text-xs text-muted-foreground ml-auto">{wo.applicantName}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {wo.jobs.filter(j => j.status === "SubmittedToVendor").map((job) => {
+                        const isEid = job.category === "EID";
+                        const isAccepting = acceptMutation.isPending && acceptMutation.variables === job.id;
+                        const age = formatJobAge(job.sentAt);
+                        const sla = getSlaLabel(job.sentAt);
+                        return (
+                          <div
+                            key={job.id}
+                            className="flex items-center gap-3 p-3 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-800/20"
+                            data-testid={`awaiting-job-${job.id}`}
+                          >
+                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${isEid ? "bg-amber-100 dark:bg-amber-900/40" : "bg-blue-100 dark:bg-blue-900/40"}`}>
+                              {isEid
+                                ? <Shield className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                                : <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-medium text-foreground">{job.category}</span>
+                                <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${sla.className}`} data-testid={`sla-label-${job.id}`}>
+                                  {sla.label}
+                                </span>
+                              </div>
+                              {age && (
+                                <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <Clock className="h-3 w-3" />{age}
+                                </span>
+                              )}
+                            </div>
+                            <Button
+                              size="sm"
+                              className="text-xs gap-1.5 shrink-0"
+                              onClick={() => acceptMutation.mutate(job.id)}
+                              disabled={isAccepting}
+                              data-testid={`button-accept-${job.id}`}
+                            >
+                              {isAccepting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
+                              Accept
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -318,13 +416,13 @@ export default function VendorDashboard() {
           <section>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-foreground tracking-tight" data-testid="heading-action-queue">Active Work Orders</h2>
-              {woGrouped.length > 0 && (
-                <span className="text-xs text-muted-foreground">{woGrouped.length} {woGrouped.length === 1 ? "order" : "orders"}</span>
+              {(activeJobWOs.length + otherWOs.length) > 0 && (
+                <span className="text-xs text-muted-foreground">{activeJobWOs.length + otherWOs.length} {(activeJobWOs.length + otherWOs.length) === 1 ? "order" : "orders"}</span>
               )}
             </div>
-            {woGrouped.length > 0 ? (
+            {(activeJobWOs.length + otherWOs.length) > 0 ? (
               <div className="space-y-3">
-                {woGrouped.map((wo) => {
+                {[...activeJobWOs, ...otherWOs].map((wo) => {
                   const hasUrgent = wo.jobs.some(j => j.priority === "urgent");
                   return (
                     <Card
@@ -344,6 +442,9 @@ export default function VendorDashboard() {
                             const detailUrl = isEid ? `/eid/${job.id}` : `/medical/${job.id}`;
                             const isAccepting = acceptMutation.isPending && acceptMutation.variables === job.id;
                             const age = formatJobAge(job.sentAt);
+                            const sla = (job.status === "SubmittedToVendor" || job.status === "InProcess")
+                              ? getSlaLabel(job.sentAt)
+                              : undefined;
                             return (
                               <Link key={job.id} href={detailUrl}>
                                 <div
@@ -356,9 +457,14 @@ export default function VendorDashboard() {
                                       : <Stethoscope className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
                                   </div>
                                   <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
                                       <span className="text-sm font-medium text-foreground">{job.category}</span>
                                       <StatusBadge status={job.status as any} vendorContext />
+                                      {sla && (
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${sla.className}`} data-testid={`sla-label-${job.id}`}>
+                                          {sla.label}
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-3 mt-0.5">
                                       {age && (
@@ -374,18 +480,6 @@ export default function VendorDashboard() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0">
-                                    {job.status === "SubmittedToVendor" && (
-                                      <Button
-                                        size="sm"
-                                        className="text-xs gap-1.5"
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); acceptMutation.mutate(job.id); }}
-                                        disabled={isAccepting}
-                                        data-testid={`button-accept-${job.id}`}
-                                      >
-                                        {isAccepting ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                                        Accept
-                                      </Button>
-                                    )}
                                     <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                                   </div>
                                 </div>
@@ -398,7 +492,7 @@ export default function VendorDashboard() {
                   );
                 })}
               </div>
-            ) : (
+            ) : woGrouped.length === 0 ? (
               <Card className="border-0 shadow-sm">
                 <CardContent className="py-12 text-center">
                   <div className="h-12 w-12 rounded-2xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mx-auto mb-4">
@@ -408,7 +502,7 @@ export default function VendorDashboard() {
                   <p className="text-xs text-muted-foreground mt-1">New jobs will appear here when assigned</p>
                 </CardContent>
               </Card>
-            )}
+            ) : null}
           </section>
 
           <section>

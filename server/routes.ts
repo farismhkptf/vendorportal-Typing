@@ -1093,10 +1093,12 @@ export async function registerRoutes(
   app.get("/api/dashboard/typing-jobs-summary", requireAuth, async (req, res) => {
     try {
       const now = Date.now();
-      const [sentToVendorJobs, inProgressJobs, readyToScheduleJobs, allJobTypes, allVendors] = await Promise.all([
+      const [sentToVendorJobs, inProgressJobs, readyToScheduleJobs, returnedJobs, rejectedJobs, allJobTypes, allVendors] = await Promise.all([
         storage.getTypingJobs("SubmittedToVendor"),
         storage.getTypingJobs("InProcess"),
         storage.getTypingJobs("ReadyForScheduling"),
+        storage.getTypingJobs("Returned"),
+        storage.getTypingJobs("Rejected"),
         storage.getJobTypes(),
         storage.getVendors(),
       ]);
@@ -1160,14 +1162,36 @@ export async function registerRoutes(
           completedAt: job.returnedAt || job.createdAt,
         }));
 
+      const returnedAndRejectedJobs = [...returnedJobs, ...rejectedJobs];
+      const returned = (await Promise.all(returnedAndRejectedJobs.map(enrichJob)))
+        .map(({ wo, vendor, job, category }) => ({
+          id: job.id,
+          jobCode: job.jobCode || "",
+          woId: wo?.id || "",
+          woNumber: wo?.woNumber || "N/A",
+          applicantName: wo?.applicantName || "N/A",
+          vendorName: vendor?.name || "Unassigned",
+          type: category as "Medical" | "EID",
+          returnedAt: job.returnedAt,
+          status: job.status,
+          urgent: job.urgent || false,
+        }))
+        .sort((a, b) => {
+          const aTime = a.returnedAt ? new Date(a.returnedAt).getTime() : 0;
+          const bTime = b.returnedAt ? new Date(b.returnedAt).getTime() : 0;
+          return bTime - aTime;
+        });
+
       res.json({
         unaccepted,
         inProgress,
         readyToSchedule,
+        returned,
         counts: {
           unaccepted: unaccepted.length,
           inProgress: inProgress.length,
           readyToSchedule: readyToSchedule.length,
+          returned: returned.length,
         },
       });
     } catch (error) {
@@ -1201,6 +1225,7 @@ export async function registerRoutes(
         applicantName: wo?.applicantName || "N/A",
         type: apt.type,
         time: new Date(apt.datetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+        datetime: apt.datetime,
         center: center?.name || "TBD",
         status: apt.status,
       }));
@@ -1336,6 +1361,7 @@ export async function registerRoutes(
           notes: result?.vendorNotes || null,
           returnedAt: job.returnedAt || null,
           completedAt: job.returnedAt || null,
+          readyAt: job.returnedAt || job.createdAt || null,
         };
 
         if (apptType === "Medical") {
@@ -2180,11 +2206,13 @@ export async function registerRoutes(
         ].filter(Boolean) as string[])
       ));
 
-      const [workOrderCounts, allStaff, allCenters, allEmails] = await Promise.all([
+      const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 3600 * 1000);
+      const [workOrderCounts, allStaff, allCenters, allEmails, expiringDocCompanyIds] = await Promise.all([
         storage.getWorkOrderCountsByCompany(),
         storage.getStaffByIds(staffIds),
         storage.getCentersByIds(centerIds),
         storage.getAllCompanyEmails(),
+        storage.getCompanyIdsWithExpiringDocs(thirtyDaysFromNow),
       ]);
 
       const staffMap = new Map(allStaff.map(s => [s.id, s]));
@@ -2206,6 +2234,7 @@ export async function registerRoutes(
         preferredBiometricsCenter: company.preferredBiometricsCenterId ? centerMap.get(company.preferredBiometricsCenterId) || null : null,
         preferredBiometricsCenterVip: company.preferredBiometricsCenterVipId ? centerMap.get(company.preferredBiometricsCenterVipId) || null : null,
         workOrderCount: workOrderCounts[company.id] || 0,
+        hasExpiringDocs: expiringDocCompanyIds.has(company.id),
       }));
 
       res.json(result);

@@ -179,6 +179,7 @@ export interface IStorage {
   getWoDocuments(woId: string): Promise<WoDocument[]>;
   getAllWoDocuments(): Promise<WoDocument[]>;
   getExpiringWoDocuments(thresholdDate: Date): Promise<WoDocument[]>;
+  getCompanyIdsWithExpiringDocs(thresholdDate: Date): Promise<Set<string>>;
   getWoPhotoMap(): Promise<Record<string, string>>;
   getUnsyncedWoDocuments(): Promise<WoDocument[]>;
   getWoDocumentById(id: string): Promise<WoDocument | undefined>;
@@ -1535,6 +1536,22 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(woDocuments)
       .where(and(isNotNull(woDocuments.expiresAt), lte(woDocuments.expiresAt, thresholdDate)))
       .orderBy(woDocuments.expiresAt);
+  }
+
+  async getCompanyIdsWithExpiringDocs(thresholdDate: Date): Promise<Set<string>> {
+    const now = new Date();
+    const rows = await db
+      .select({ companyId: workOrders.companyId })
+      .from(woDocuments)
+      .innerJoin(workOrders, eq(woDocuments.woId, workOrders.id))
+      .where(
+        and(
+          isNotNull(woDocuments.expiresAt),
+          gte(woDocuments.expiresAt, now),
+          lte(woDocuments.expiresAt, thresholdDate)
+        )
+      );
+    return new Set(rows.map(r => r.companyId).filter(Boolean) as string[]);
   }
 
   async getWoPhotoMap(): Promise<Record<string, string>> {

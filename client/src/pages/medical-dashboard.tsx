@@ -164,12 +164,35 @@ export default function MedicalDashboard() {
 
   const schedulingQueue = useMemo(() => {
     if (!rawSchedulingQueue) return undefined;
-    if (isAdmin) return rawSchedulingQueue;
+
+    const sortOldestFirst = (items: any[]) =>
+      [...items].sort((a, b) => {
+        const aTime = a.readyAt || a.returnedAt || a.completedAt;
+        const bTime = b.readyAt || b.returnedAt || b.completedAt;
+        if (!aTime && !bTime) return 0;
+        if (!aTime) return 1;
+        if (!bTime) return -1;
+        return new Date(aTime).getTime() - new Date(bTime).getTime();
+      });
+
+    if (isAdmin) {
+      return {
+        medical: sortOldestFirst(rawSchedulingQueue.medical),
+        eid: sortOldestFirst(rawSchedulingQueue.eid),
+      };
+    }
     return {
-      medical: rawSchedulingQueue.medical.filter((item: any) => item.companyId && myCompanyIds.has(item.companyId)),
-      eid: rawSchedulingQueue.eid.filter((item: any) => item.companyId && myCompanyIds.has(item.companyId)),
+      medical: sortOldestFirst(rawSchedulingQueue.medical.filter((item: any) => item.companyId && myCompanyIds.has(item.companyId))),
+      eid: sortOldestFirst(rawSchedulingQueue.eid.filter((item: any) => item.companyId && myCompanyIds.has(item.companyId))),
     };
   }, [rawSchedulingQueue, myCompanyIds, isAdmin]);
+
+  function getWaitingDays(item: any): number {
+    const ts = item.readyAt || item.returnedAt || item.completedAt;
+    if (!ts) return 0;
+    const days = Math.floor((Date.now() - new Date(ts).getTime()) / 86400000);
+    return Math.max(0, days);
+  }
 
   const myAppointments = useMemo(() => {
     if (!allAppointments) return [];
@@ -310,72 +333,100 @@ export default function MedicalDashboard() {
               </div>
             </div>
             <div className="space-y-2">
-              {schedulingQueue?.medical?.map((item: any, i: number) => (
-                <Link key={`med-${item.woId}`} href={`/appointments/schedule-medical?wo=${item.woId}`}>
-                  <div
-                    className="opacity-0 animate-fade-in"
-                    style={{ animationDelay: `${i * 60 + 200}ms` }}
-                  >
-                    <DataTableRow>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-rose-50 dark:bg-rose-950/40">
-                            <Stethoscope className="h-4 w-4 text-rose-500 dark:text-rose-400" />
-                          </div>
-                          <div className="space-y-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium text-foreground" data-testid={`text-queue-wo-${item.woNumber}`}>
-                                {item.woNumber}
-                              </span>
-                              <StatusBadge status="Medical" />
+              {schedulingQueue?.medical?.map((item: any, i: number) => {
+                const waitDays = getWaitingDays(item);
+                return (
+                  <Link key={`med-${item.woId}`} href={`/appointments/schedule-medical?wo=${item.woId}`}>
+                    <div
+                      className="opacity-0 animate-fade-in"
+                      style={{ animationDelay: `${i * 60 + 200}ms` }}
+                    >
+                      <DataTableRow>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-rose-50 dark:bg-rose-950/40">
+                              <Stethoscope className="h-4 w-4 text-rose-500 dark:text-rose-400" />
                             </div>
-                            <p className="text-sm text-muted-foreground truncate" data-testid={`text-queue-applicant-${item.woNumber}`}>
-                              {toProperCase(item.applicantName)}
-                            </p>
-                          </div>
-                        </div>
-                        <Button size="sm" variant="outline" className="gap-1.5 shrink-0" data-testid={`button-schedule-med-${item.woNumber}`}>
-                          Schedule
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </DataTableRow>
-                  </div>
-                </Link>
-              ))}
-              {schedulingQueue?.eid?.map((item: any, i: number) => (
-                <Link key={`eid-${item.woId}`} href={`/appointments/schedule-eid?wo=${item.woId}`}>
-                  <div
-                    className="opacity-0 animate-fade-in"
-                    style={{ animationDelay: `${(i + (schedulingQueue?.medical?.length || 0)) * 60 + 200}ms` }}
-                  >
-                    <DataTableRow>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-cyan-50 dark:bg-cyan-950/40">
-                            <CreditCard className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
-                          </div>
-                          <div className="space-y-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium text-foreground" data-testid={`text-queue-wo-${item.woNumber}`}>
-                                {item.woNumber}
-                              </span>
-                              <StatusBadge status="EID" />
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-foreground" data-testid={`text-queue-wo-${item.woNumber}`}>
+                                  {item.woNumber}
+                                </span>
+                                <StatusBadge status="Medical" />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm text-muted-foreground truncate" data-testid={`text-queue-applicant-${item.woNumber}`}>
+                                  {toProperCase(item.applicantName)}
+                                </p>
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-medium shrink-0",
+                                    waitDays >= 3 ? "text-red-600 dark:text-red-400" : waitDays >= 1 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                                  )}
+                                  data-testid={`text-queue-wait-${item.woNumber}`}
+                                >
+                                  {waitDays === 0 ? "today" : `waiting ${waitDays}d`}
+                                </span>
+                              </div>
                             </div>
-                            <p className="text-sm text-muted-foreground truncate" data-testid={`text-queue-applicant-${item.woNumber}`}>
-                              {toProperCase(item.applicantName)}
-                            </p>
                           </div>
+                          <Button size="sm" variant="outline" className="gap-1.5 shrink-0" data-testid={`button-schedule-med-${item.woNumber}`}>
+                            Schedule
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
-                        <Button size="sm" variant="outline" className="gap-1.5 shrink-0" data-testid={`button-schedule-eid-${item.woNumber}`}>
-                          Schedule
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </DataTableRow>
-                  </div>
-                </Link>
-              ))}
+                      </DataTableRow>
+                    </div>
+                  </Link>
+                );
+              })}
+              {schedulingQueue?.eid?.map((item: any, i: number) => {
+                const waitDays = getWaitingDays(item);
+                return (
+                  <Link key={`eid-${item.woId}`} href={`/appointments/schedule-eid?wo=${item.woId}`}>
+                    <div
+                      className="opacity-0 animate-fade-in"
+                      style={{ animationDelay: `${(i + (schedulingQueue?.medical?.length || 0)) * 60 + 200}ms` }}
+                    >
+                      <DataTableRow>
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-cyan-50 dark:bg-cyan-950/40">
+                              <CreditCard className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+                            </div>
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-medium text-foreground" data-testid={`text-queue-wo-${item.woNumber}`}>
+                                  {item.woNumber}
+                                </span>
+                                <StatusBadge status="EID" />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm text-muted-foreground truncate" data-testid={`text-queue-applicant-${item.woNumber}`}>
+                                  {toProperCase(item.applicantName)}
+                                </p>
+                                <span
+                                  className={cn(
+                                    "text-[10px] font-medium shrink-0",
+                                    waitDays >= 3 ? "text-red-600 dark:text-red-400" : waitDays >= 1 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
+                                  )}
+                                  data-testid={`text-queue-wait-${item.woNumber}`}
+                                >
+                                  {waitDays === 0 ? "today" : `waiting ${waitDays}d`}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <Button size="sm" variant="outline" className="gap-1.5 shrink-0" data-testid={`button-schedule-eid-${item.woNumber}`}>
+                            Schedule
+                            <ArrowRight className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </DataTableRow>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}

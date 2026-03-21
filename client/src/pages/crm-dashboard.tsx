@@ -24,7 +24,24 @@ import { toProperCase } from "@/lib/proper-case";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardSwitcher } from "@/components/dashboard-switcher";
+import { getPipelineInfo } from "@/lib/pipeline-stage";
 import type { Company, WorkOrder, Appointment } from "@shared/schema";
+
+interface TypingJobSummary {
+  id: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+interface WorkOrderEnriched extends WorkOrder {
+  typingJobs: TypingJobSummary[];
+  appointments: Appointment[];
+  company?: Company;
+}
+
+interface CompanyEnriched extends Company {
+  hasExpiringDocs: boolean;
+}
 
 interface AppointmentWithDetails extends Appointment {
   workOrder?: {
@@ -55,12 +72,12 @@ export default function CrmDashboard() {
   const { user } = useAuth();
   const isAdmin = user?.role === "Admin";
 
-  const { data: companies, isLoading: companiesLoading } = useQuery<Company[]>({
+  const { data: companies, isLoading: companiesLoading } = useQuery<CompanyEnriched[]>({
     queryKey: ["/api/companies"],
     enabled: isAdmin || !!user?.staffId,
   });
 
-  const { data: workOrders, isLoading: workOrdersLoading } = useQuery<WorkOrder[]>({
+  const { data: workOrders, isLoading: workOrdersLoading } = useQuery<WorkOrderEnriched[]>({
     queryKey: ["/api/work-orders"],
     enabled: isAdmin || !!user?.staffId,
   });
@@ -120,6 +137,58 @@ export default function CrmDashboard() {
     });
     return map;
   }, [myCompanies]);
+
+  const companyUrgencyMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    if (!myWorkOrders) return map;
+
+    for (const wo of myWorkOrders) {
+      if (!wo.companyId) continue;
+      if (map[wo.companyId]) continue;
+
+      const hasReturnedJob = wo.typingJobs.some(
+        (j) => j.status === "Returned" || j.status === "Rejected"
+      );
+
+      const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+      const isStalled = pipeline.overall === "needs_attention";
+
+      if (hasReturnedJob || isStalled) {
+        map[wo.companyId] = true;
+      }
+    }
+
+    for (const company of (myCompanies || [])) {
+      if (map[company.id]) continue;
+      if (company.hasExpiringDocs) {
+        map[company.id] = true;
+      }
+    }
+
+    return map;
+  }, [myWorkOrders, myCompanies]);
+
+  const sortedCompanies = useMemo(() => {
+    return [...myCompanies].sort((a, b) => {
+      const aUrgent = companyUrgencyMap[a.id] ? 1 : 0;
+      const bUrgent = companyUrgencyMap[b.id] ? 1 : 0;
+      return bUrgent - aUrgent;
+    });
+  }, [myCompanies, companyUrgencyMap]);
+
+  const prioritizedWorkOrders = useMemo(() => {
+    const priority = (wo: WorkOrderEnriched) => {
+      const pipeline = getPipelineInfo(wo.typingJobs, wo.appointments);
+      const hasReturned = wo.typingJobs.some(
+        (j) => j.status === "Returned" || j.status === "Rejected"
+      );
+      if (hasReturned || pipeline.overall === "needs_attention") return 0;
+      if (pipeline.overall === "at_vendor" || pipeline.overall === "ready_to_schedule" || pipeline.overall === "scheduled") return 1;
+      if (pipeline.overall === "complete") return 2;
+      return 3;
+    };
+    return [...myWorkOrders].sort((a, b) => priority(a) - priority(b));
+  }, [myWorkOrders]);
 
   if (!isAdmin && !user?.staffId) {
     return (
@@ -230,32 +299,51 @@ export default function CrmDashboard() {
               <Skeleton className="h-20 rounded-xl" />
               <Skeleton className="h-20 rounded-xl" />
             </div>
-          ) : myCompanies.length > 0 ? (
+          ) : sortedCompanies.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {myCompanies.map((company, i) => (
-                <Link key={company.id} href={`/companies/${company.id}`}>
-                  <div
-                    className="premium-card p-4 cursor-pointer hover-elevate opacity-0 animate-fade-in"
-                    style={{ animationDelay: `${i * 60 + 200}ms` }}
-                    data-testid={`card-company-${company.id}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate" data-testid={`text-company-name-${company.id}`}>
-                          {toProperCase(company.name)}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <FileText className="h-3 w-3 text-muted-foreground/60" />
-                          <span className="text-xs text-muted-foreground">
-                            {companyWoCounts[company.id] || 0} work order{(companyWoCounts[company.id] || 0) !== 1 ? "s" : ""}
-                          </span>
+              {sortedCompanies.map((company, i) => {
+                const isUrgent = companyUrgencyMap[company.id];
+                return (
+                  <Link key={company.id} href={`/companies/${company.id}`}>
+                    <div
+                      className={cn(
+                        "premium-card p-4 cursor-pointer hover-elevate opacity-0 animate-fade-in",
+                        isUrgent && "border-red-200/60 dark:border-red-800/30"
+                      )}
+                      style={{ animationDelay: `${i * 60 + 200}ms` }}
+                      data-testid={`card-company-${company.id}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            {isUrgent && (
+                              <span
+                                className="h-2 w-2 rounded-full bg-red-500 shrink-0"
+                                data-testid={`indicator-urgent-${company.id}`}
+                              />
+                            )}
+                            <p className="text-sm font-medium text-foreground truncate" data-testid={`text-company-name-${company.id}`}>
+                              {toProperCase(company.name)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <FileText className="h-3 w-3 text-muted-foreground/60" />
+                            <span className="text-xs text-muted-foreground">
+                              {companyWoCounts[company.id] || 0} work order{(companyWoCounts[company.id] || 0) !== 1 ? "s" : ""}
+                            </span>
+                            {isUrgent && (
+                              <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded-full ml-1">
+                                Action needed
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                       </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           ) : (
             <EmptyState
@@ -360,45 +448,55 @@ export default function CrmDashboard() {
                   <Skeleton className="h-20 rounded-2xl" />
                   <Skeleton className="h-20 rounded-2xl" />
                 </>
-              ) : myWorkOrders.length > 0 ? (
-                myWorkOrders.slice(0, 8).map((wo, i) => (
-                  <Link key={wo.id} href={`/work-orders/${wo.id}`}>
-                    <div
-                      className="opacity-0 animate-fade-in"
-                      style={{ animationDelay: `${i * 60 + 250}ms` }}
-                    >
-                      <DataTableRow>
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="space-y-1.5 min-w-0">
-                            <div className="flex items-center gap-2.5 flex-wrap">
-                              <span className="font-medium text-foreground" data-testid={`text-wo-number-${wo.id}`}>
-                                {wo.woNumber}
-                              </span>
-                              <StatusBadge status={wo.status} />
+              ) : prioritizedWorkOrders.length > 0 ? (
+                prioritizedWorkOrders.slice(0, 8).map((wo, i) => {
+                  const hasIssue = wo.typingJobs.some(
+                    (j) => j.status === "Returned" || j.status === "Rejected"
+                  ) || getPipelineInfo(wo.typingJobs, wo.appointments).overall === "needs_attention";
+                  return (
+                    <Link key={wo.id} href={`/work-orders/${wo.id}`}>
+                      <div
+                        className="opacity-0 animate-fade-in"
+                        style={{ animationDelay: `${i * 60 + 250}ms` }}
+                      >
+                        <DataTableRow>
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="space-y-1.5 min-w-0 flex-1">
+                              <div className="flex items-center gap-2.5 flex-wrap">
+                                <span className="font-medium text-foreground" data-testid={`text-wo-number-${wo.id}`}>
+                                  {wo.woNumber}
+                                </span>
+                                <StatusBadge status={wo.status} />
+                                {hasIssue && (
+                                  <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded-full">
+                                    Action needed
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="truncate" data-testid={`text-wo-applicant-${wo.id}`}>
+                                  {toProperCase(wo.applicantName)}
+                                </span>
+                                {companyNameMap[wo.companyId] && (
+                                  <>
+                                    <span className="text-muted-foreground/40">|</span>
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <Building2 className="h-3 w-3 text-muted-foreground/60" />
+                                      <span className="truncate max-w-[120px]">
+                                        {toProperCase(companyNameMap[wo.companyId])}
+                                      </span>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span className="truncate" data-testid={`text-wo-applicant-${wo.id}`}>
-                                {toProperCase(wo.applicantName)}
-                              </span>
-                              {companyNameMap[wo.companyId] && (
-                                <>
-                                  <span className="text-muted-foreground/40">|</span>
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <Building2 className="h-3 w-3 text-muted-foreground/60" />
-                                    <span className="truncate max-w-[120px]">
-                                      {toProperCase(companyNameMap[wo.companyId])}
-                                    </span>
-                                  </div>
-                                </>
-                              )}
-                            </div>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                           </div>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                        </div>
-                      </DataTableRow>
-                    </div>
-                  </Link>
-                ))
+                        </DataTableRow>
+                      </div>
+                    </Link>
+                  );
+                })
               ) : (
                 <EmptyState
                   icon={<FileText className="h-6 w-6" />}
