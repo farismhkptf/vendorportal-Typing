@@ -70,6 +70,9 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
   const applicantName = workOrder?.applicantName ?? "—";
   const companyName = company?.name ?? "—";
   const appointmentType = appointment.type ?? "Medical";
+  const appointmentLabel = appointmentType === "EID"
+    ? "Emirates ID Biometrics Appointment"
+    : "Medical Fitness Appointment";
 
   const dt = new Date(appointment.datetime);
   const isValidDate = !isNaN(dt.getTime());
@@ -169,7 +172,7 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Medical Test Appointment – Keystone Business Solutions</title>
+    <title>${appointmentLabel} – ${escapeHtml(companyName)}</title>
     <!--[if mso]>
     <noscript>
     <xml>
@@ -257,7 +260,7 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
                     <tr>
                       <td colspan="2">
                         <div class="company-name text-primary" style="font-size:30px;font-weight:500;letter-spacing:-0.015em;line-height:1.2;padding-bottom:6px;">${escapeHtml(companyName)}</div>
-                        <div class="text-label" style="font-size:15px;font-weight:400;letter-spacing:0.02em;padding-bottom:28px;">Medical Test Appointment</div>
+                        <div class="text-label" style="font-size:15px;font-weight:400;letter-spacing:0.02em;padding-bottom:28px;">${appointmentLabel}</div>
                       </td>
                     </tr>
 

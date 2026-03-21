@@ -116,6 +116,9 @@ export default function ScheduleEid() {
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [urlWoProcessed, setUrlWoProcessed] = useState(false);
+  const [scheduledApptId, setScheduledApptId] = useState<string | null>(null);
+  const [emailSendStatus, setEmailSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
 
   const { data: schedulingQueue, isLoading: queueLoading } = useQuery<SchedulingQueueResponse>({
     queryKey: ["/api/appointments/scheduling-queue"],
@@ -353,7 +356,7 @@ export default function ScheduleEid() {
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: AppointmentForm) => {
       const datetime = new Date(`${data.appointmentDate}T${data.appointmentTime}:00`);
-      return apiRequest("POST", "/api/appointments", {
+      const res = await apiRequest("POST", "/api/appointments", {
         woId: data.woId,
         type: "EID",
         isVip: data.isVip,
@@ -364,22 +367,73 @@ export default function ScheduleEid() {
         notes: data.notes,
         status: "Scheduled",
       });
+      return res.json() as Promise<Appointment>;
     },
-    onSuccess: async () => {
+    onSuccess: async (appointment) => {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/scheduling-queue"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/appointments-summary"] });
-      toast({
-        title: "Appointment scheduled",
-        description: "Emirates ID appointment has been scheduled successfully.",
-        variant: "success",
-      });
+      setScheduledApptId(appointment.id);
+
+      // Auto-send email notification to client
+      const applicantEmail = selectedQueueItem?.applicantEmail;
+      if (applicantEmail && appointment.id) {
+        setEmailSendStatus("sending");
+        try {
+          const emailRes = await apiRequest("POST", `/api/appointments/${appointment.id}/send-email`);
+          const emailData = await emailRes.json();
+          setEmailSendStatus("sent");
+          setEmailSentTo(emailData.sentTo || applicantEmail);
+          toast({
+            title: "Appointment scheduled",
+            description: `Confirmation email sent to ${emailData.sentTo || applicantEmail}.`,
+            variant: "success",
+          });
+        } catch {
+          setEmailSendStatus("failed");
+          toast({
+            title: "Appointment scheduled",
+            description: "Email notification could not be sent — use Copy Email as a backup.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        toast({
+          title: "Appointment scheduled",
+          description: applicantEmail ? "Appointment created." : "No applicant email on file — notification not sent.",
+          variant: "success",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to schedule appointment",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sendEmailMutation = useMutation({
+    mutationFn: async (apptId: string) => {
+      const res = await apiRequest("POST", `/api/appointments/${apptId}/send-email`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setEmailSendStatus("sent");
+      setEmailSentTo(data.sentTo);
+      toast({
+        title: "Email sent",
+        description: `Confirmation sent to ${data.sentTo}.`,
+        variant: "success",
+      });
+    },
+    onError: (error: Error) => {
+      setEmailSendStatus("failed");
+      toast({
+        title: "Email failed",
+        description: error.message || "Could not send email.",
         variant: "destructive",
       });
     },
@@ -1170,6 +1224,37 @@ Thank you,
         </TabsList>
         <TabsContent value="email">
           <div className="space-y-3">
+            {/* Recipient info */}
+            {selectedQueueItem?.applicantEmail ? (
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
+                emailSendStatus === "sent"
+                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                  : emailSendStatus === "failed"
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-muted/40 text-muted-foreground"
+              }`} data-testid="text-eid-email-recipient">
+                {emailSendStatus === "sent" ? (
+                  <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                ) : (
+                  <Mail className="h-3.5 w-3.5 shrink-0" />
+                )}
+                <span>
+                  {emailSendStatus === "sent"
+                    ? `Sent to ${emailSentTo}`
+                    : emailSendStatus === "failed"
+                    ? `Failed — will retry to ${selectedQueueItem.applicantEmail}`
+                    : emailSendStatus === "sending"
+                    ? `Sending to ${selectedQueueItem.applicantEmail}…`
+                    : `Will send to ${selectedQueueItem.applicantEmail}`}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400" data-testid="text-eid-email-no-address">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                <span>No email on file — copy the email manually after scheduling</span>
+              </div>
+            )}
+
             <div className="relative max-h-[500px] overflow-auto rounded-lg border">
               <Button
                 size="icon"
@@ -1194,18 +1279,41 @@ Thank you,
                 </div>
               )}
             </div>
-            <Button 
-              variant="default"
-              className="w-full"
-              onClick={() => handleCopyMessage("email")}
-              data-testid="eid-button-copy-email"
-            >
-              {messageCopied === "email" ? (
-                <><Check className="h-4 w-4 mr-2" />Copied to Clipboard!</>
-              ) : (
-                <><Copy className="h-4 w-4 mr-2" />Copy Email to Clipboard</>
+
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleCopyMessage("email")}
+                data-testid="eid-button-copy-email"
+              >
+                {messageCopied === "email" ? (
+                  <><Check className="h-4 w-4 mr-2" />Copied!</>
+                ) : (
+                  <><Copy className="h-4 w-4 mr-2" />Copy</>
+                )}
+              </Button>
+              {scheduledApptId && selectedQueueItem?.applicantEmail && (
+                <Button
+                  variant={emailSendStatus === "sent" ? "outline" : "default"}
+                  className={`flex-1 ${emailSendStatus === "sent" ? "text-emerald-600 border-emerald-300" : ""}`}
+                  onClick={() => {
+                    setEmailSendStatus("sending");
+                    sendEmailMutation.mutate(scheduledApptId);
+                  }}
+                  disabled={sendEmailMutation.isPending || emailSendStatus === "sending"}
+                  data-testid="eid-button-send-email"
+                >
+                  {emailSendStatus === "sending" || sendEmailMutation.isPending ? (
+                    <><Mail className="h-4 w-4 mr-2 animate-pulse" />Sending…</>
+                  ) : emailSendStatus === "sent" ? (
+                    <><Check className="h-4 w-4 mr-2" />Resend</>
+                  ) : (
+                    <><Mail className="h-4 w-4 mr-2" />Send Email</>
+                  )}
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
         </TabsContent>
         <TabsContent value="whatsapp">
@@ -1283,14 +1391,16 @@ Thank you,
               ) : (
                 <Button
                   onClick={handleSaveAndSend}
-                  disabled={createAppointmentMutation.isPending}
+                  disabled={createAppointmentMutation.isPending || emailSendStatus === "sending"}
                   className="bg-emerald-600 text-white"
                   data-testid="eid-button-schedule"
                 >
-                  {createAppointmentMutation.isPending ? "Scheduling..." : (
+                  {createAppointmentMutation.isPending ? "Scheduling…" : emailSendStatus === "sending" ? (
+                    <><Mail className="h-4 w-4 mr-2 animate-pulse" />Sending Email…</>
+                  ) : (
                     <>
                       <Check className="h-4 w-4 mr-2" />
-                      Schedule Appointment
+                      {selectedQueueItem?.applicantEmail ? "Schedule & Notify Client" : "Schedule Appointment"}
                     </>
                   )}
                 </Button>
