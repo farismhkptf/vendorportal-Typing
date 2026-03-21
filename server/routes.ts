@@ -23,6 +23,7 @@ import { registerExternalRoutes, hashApiKey } from "./external-routes";
 import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "./zoho-workdrive";
 import { ObjectStorageService } from "./replit_integrations/object_storage/objectStorage";
 import { buildAppointmentEmail } from "./email-templates/appointment-confirmation";
+import { sendEmail, isEmailConfigured } from "./email-service";
 import UAParser from "ua-parser-js";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -1932,6 +1933,99 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Email preview generate error:", error);
       res.status(500).json({ message: "Failed to generate email preview" });
+    }
+  });
+
+  // Check if email sending is configured
+  app.get("/api/appointments/email-status", requireAuth, async (_req, res) => {
+    res.json({ configured: isEmailConfigured(), sender: process.env.ZOHO_SMTP_USER || null });
+  });
+
+  // Send appointment confirmation email
+  app.post("/api/appointments/:id/send-email", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const appointment = await storage.getAppointmentById(id);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+      const wo = await storage.getWorkOrderById(appointment.woId).catch(() => undefined);
+      if (!wo) return res.status(404).json({ message: "Work order not found" });
+      if (!wo.applicantEmail) return res.status(400).json({ message: "Applicant has no email address on record." });
+
+      const company = wo.companyId ? await storage.getCompanyById(wo.companyId).catch(() => undefined) : undefined;
+      const serviceType = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId).catch(() => undefined) : undefined;
+      const center = appointment.centerId ? await storage.getCenterById(appointment.centerId).catch(() => undefined) : undefined;
+      const assignedStaff = appointment.assignedStaffId ? await storage.getStaffById(appointment.assignedStaffId).catch(() => undefined) : undefined;
+
+      let rmStaff: Staff | undefined;
+      let rmUserEmail: string | undefined;
+      if (company?.rmStaffId) {
+        rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => undefined);
+        rmUserEmail = rmStaff?.email || undefined;
+      }
+
+      let applicantPhotoUrl: string | undefined;
+      try {
+        const docs = await storage.getWoDocuments(wo.id);
+        const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
+        if (photo) applicantPhotoUrl = photo.fileUrl;
+      } catch {}
+
+      let appLogoUrl: string | undefined;
+      const settings = await storage.getAppSettings().catch(() => undefined);
+      if (settings?.logoUrl) appLogoUrl = settings.logoUrl;
+
+      const html = buildAppointmentEmail({
+        workOrder: wo,
+        company,
+        serviceType,
+        appointment,
+        center,
+        assignedStaff,
+        rmStaff,
+        rmUserEmail,
+        applicantPhotoUrl,
+        appLogoUrl,
+      });
+
+      const ccRecipients: string[] = [];
+      if (settings?.alwaysCc && Array.isArray(settings.alwaysCc)) {
+        ccRecipients.push(...settings.alwaysCc.filter((e: string) => e && e !== wo.applicantEmail));
+      }
+
+      const applicantName = toProperCase(wo.applicantName || "Applicant");
+      const centerName = center?.name || "the medical center";
+      const dateStr = new Date(appointment.datetime).toLocaleDateString("en-GB", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric"
+      });
+
+      const result = await sendEmail({
+        to: wo.applicantEmail,
+        cc: ccRecipients.length > 0 ? ccRecipients : undefined,
+        subject: `Medical Appointment Confirmation – ${applicantName} at ${centerName} on ${dateStr}`,
+        html,
+      });
+
+      if (!result.success) {
+        return res.status(500).json({ message: result.error || "Failed to send email" });
+      }
+
+      const user = (req as any).user;
+      await storage.updateAppointment(id, {
+        messageSentAt: new Date(),
+        messageSentBy: user?.name || user?.email || "Staff",
+        emailDraft: html,
+      });
+
+      res.json({
+        success: true,
+        sentTo: wo.applicantEmail,
+        cc: ccRecipients,
+        messageId: result.messageId,
+      });
+    } catch (error: any) {
+      console.error("Send appointment email error:", error);
+      res.status(500).json({ message: error.message || "Failed to send email" });
     }
   });
 
