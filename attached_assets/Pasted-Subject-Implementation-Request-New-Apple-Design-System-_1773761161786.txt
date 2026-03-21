@@ -1,0 +1,108 @@
+Subject: Implementation Request: New "Apple Design System" Theme Addition
+
+Objective:
+To integrate a new theme into our existing web application that fully embodies the Apple design language (also known as "California Design"). This theme must go beyond a simple color change and must implement the core philosophies of Deference, Clarity, and Depth. The result should make the web app feel less like a traditional website and more like a native, intuitive, and responsive tool.
+
+This request is broken down into three distinct groups for implementation: 1. Design Tokens (The Variables), 2. Component Styling (The Visuals), and 3. Interaction & Motion (The Feel).
+
+---
+
+Group 1: Design Tokens (The Foundation)
+
+Please define a new set of CSS variables (or SCSS variables, or theme tokens in our chosen framework) for the "apple" theme. These values form the base palette.
+
+· Color Palette:
+  · Background Primary (--bg-primary): A clean, deep, and slightly warm black. #1C1C1E (This is the true "off-black" background seen in macOS dark mode).
+  · Background Secondary (--bg-secondary): A subtle lighter layer for sidebars or cards that sit above the primary background. #2C2C2E.
+  · Background Tertiary (--bg-tertiary): For elements that need to stand out further, like selected list items or hover states. #3A3A3C.
+  · Grouped Background (--bg-grouped): For the root background of "inset" or grouped lists. Slightly different from primary, often used in settings panels. #0D0D0F.
+  · Fill (for UI elements):
+    · Primary Fill (--fill-primary): For opaque UI elements. #454545.
+    · Secondary Fill (--fill-secondary): For subtle UI elements. #3C3C3E.
+    · Tertiary Fill (--fill-tertiary): Even more subtle. #2C2C2E.
+    · Quaternary Fill (--fill-quaternary): The most subtle. #262628.
+  · Primary Accent (--accent-primary): The signature blue for interactive elements. #007AFF.
+  · Accent Hover (--accent-hover): A slightly darker variant for hover states. #005BBB.
+  · Accent Active (--accent-active): For pressed states. #004999.
+  · Primary Label (--label-primary): Primary text color. #FFFFFF (with a high opacity).
+  · Secondary Label (--label-secondary): For captions, helper text, and subtitles. #EBEBF5 (at 60% opacity).
+  · Tertiary Label (--label-tertiary): For placeholder text and disabled states. #EBEBF5 (at 30% opacity).
+  · Quaternary Label (--label-quaternary): For very faint, non-essential text/decorations. #EBEBF5 (at 18% opacity).
+  · Separator / Border (--separator): For non-emphasized dividers. #38383A.
+  · System Colors (for feedback):
+    · Red: #FF453A
+    · Green: #30D158
+    · Yellow: #FFD60A
+· Typography:
+  · Font Family (--font-family): -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif. This stack prioritizes Apple's San Francisco font on Apple devices and uses high-quality system fonts elsewhere.
+  · Font Weights: Use the full range of system weights. --font-weight-regular: 400;, --font-weight-medium: 500;, --font-weight-semibold: 600;, --font-weight-bold: 700;.
+  · Dynamic Type Scale: Use rem units based on a 16px root.
+    · --font-size-caption: 0.75rem; (12px)
+    · --font-size-body: 0.9375rem; (15px) - Apple's standard body text size.
+    · --font-size-headline: 1.0625rem; (17px) - Slightly larger for emphasis.
+    · --font-size-title3: 1.25rem; (20px)
+    · --font-size-title2: 1.375rem; (22px)
+    · --font-size-title1: 1.75rem; (28px)
+    · --font-size-large-title: 2.125rem; (34px)
+· Spacing & Grid:
+  · Base Unit (--spacing-unit): 8px. All margins and paddings must be multiples of this (e.g., 8px, 16px, 24px, 32px).
+  · Border Radius:
+    · --radius-small: 6px; (For small UI elements like checkboxes).
+    · --radius-medium: 8px; (For cards, buttons).
+    · --radius-large: 10px; (For modals, panels).
+    · --radius-pill: 20px; (For pill-shaped buttons and tags).
+    · --radius-circular: 9999px; (For circular icons).
+· Shadows & Depth:
+  · Shadow Subtle (--shadow-subtle): 0 2px 4px rgba(0, 0, 0, 0.3); (For small cards and hover states).
+  · Shadow Medium (--shadow-medium): 0 4px 12px rgba(0, 0, 0, 0.4); (For dropdowns, popovers).
+  · Shadow Heavy (--shadow-heavy): 0 20px 30px rgba(0, 0, 0, 0.5); (For modals and sheets).
+
+---
+
+Group 2: Component Styling (The Visual Application)
+
+Apply the design tokens to our existing component library. The goal is for every UI element to feel quiet, clear, and precise.
+
+· General UI & Layout:
+  · The main app background should use --bg-primary.
+  · Sidebars or secondary panels should use --bg-secondary.
+  · All modals, popovers, and sheets should use --bg-tertiary to establish depth and layering.
+  · Implement the "vibrancy" effect where possible: use a backdrop-filter: blur(20px); on elements that need to float over content (e.g., a sticky header or a context menu) while setting their background color to a very low opacity of --fill-tertiary (e.g., rgba(44, 44, 46, 0.8)). This creates the iconic frosted glass look.
+· Buttons:
+  · Primary Buttons: Background --accent-primary, text --label-primary, --radius-pill. Hover state transitions to --accent-hover. Active state to --accent-active. No borders.
+  · Secondary Buttons: No background. Text color --accent-primary. Border 1px solid --separator. Hover state has a subtle background of --fill-secondary.
+  · Tertiary Buttons: No background or border. Text color --accent-primary. Hover state underlines text or has a subtle background of --fill-tertiary.
+· Cards & Lists:
+  · Cards should have no visible border. They should be separated from the background using --bg-secondary (if on --bg-primary) or with a --shadow-subtle. Corners use --radius-medium.
+  · Lists should have minimal separators (--separator) that are full-bleed or inset as needed. Selected list items should have a background of --fill-secondary with --radius-medium.
+· Forms & Inputs:
+  · Text inputs should have a background of --fill-secondary and a border of --separator when idle. On focus, the border becomes --accent-primary and a subtle inner glow (box-shadow) of 0 0 0 3px rgba(0, 122, 255, 0.3) is added.
+  · Toggles (switches) should be styled to mimic iOS: a background of --fill-primary when off, --accent-primary when on. The circular handle should have a subtle shadow.
+  · Sliders should use --accent-primary for the progress fill and a circular thumb with a --shadow-medium.
+
+---
+
+Group 3: Interaction & Motion (The Behavioral Layer)
+
+The theme is incomplete without the correct interactive behavior. These CSS transitions and JavaScript behaviors must be applied.
+
+· Transitions & Easing:
+  · All interactive elements (buttons, cards, links) must have a transition property for all (or specific properties like background/color) with a duration of 0.2s and a cubic-bezier(0.25, 0.1, 0.25, 1) easing curve (standard Apple easing).
+  · For elements that enter or leave the screen (modals, drawers), use a combination of opacity and transform (translate/scale). The easing for these should be cubic-bezier(0.4, 0.0, 0.2, 1) for a more dramatic, physical feel.
+· Scrolling Behavior:
+  · On any scrollable container, apply -webkit-overflow-scrolling: touch; to ensure momentum scrolling on iOS.
+  · Where possible, use scroll-behavior: smooth; for anchor links.
+· Contextual Feedback:
+  · Hover States: All interactive elements must have a distinct hover state defined by the tokens above (e.g., background change, subtle shadow increase).
+  · Active/Press States: Elements should visually depress or darken slightly on click/tap (e.g., using transform: scale(0.98); on a button combined with a background color change).
+  · "Rubber-banding" / Bounce: For scroll containers, preserve the native browser bounce effect at the edges (do not disable it with CSS overscroll-behavior unless absolutely necessary). This mimics the physical feel of Apple's UI.
+· Spatial Awareness (Advanced):
+  · If modals or detail views are opened by clicking an item (e.g., clicking a task to see details), the new view should appear to "zoom out" or "slide from" the location of the clicked item, rather than just fading in. This maintains spatial context.
+
+Acceptance Criteria:
+The new "Apple" theme is successfully applied when:
+
+1. The UI feels calm, airy, and content-focused, with generous spacing.
+2. All text is ultra-legible, and interactive elements are instantly recognizable by their use of the --accent-primary color.
+3. The interface feels responsive and physical, with smooth, easing-based animations and satisfying micro-interactions.
+4. It passes the "squint test": if you squint your eyes, the interface should look like a harmonious, balanced composition, not a chaotic mess of boxes and lines.
