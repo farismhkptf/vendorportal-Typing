@@ -1994,11 +1994,6 @@ export async function registerRoutes(
       }
 
       const applicantName = toProperCase(wo.applicantName || "Applicant");
-      const centerName = center?.name || "the medical center";
-      const dateStr = new Date(appointment.datetime).toLocaleDateString("en-GB", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric"
-      });
-
       const apptTypeLabel = appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness";
 
       const result = await sendEmail({
