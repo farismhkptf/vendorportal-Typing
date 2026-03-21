@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 npm install
-npx drizzle-kit push --force --accept-data-loss
+yes | npm run db:push --force
