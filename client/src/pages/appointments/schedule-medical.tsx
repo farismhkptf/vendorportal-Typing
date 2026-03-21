@@ -117,6 +117,7 @@ export default function ScheduleMedical() {
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [urlWoProcessed, setUrlWoProcessed] = useState(false);
   const [scheduledApptId, setScheduledApptId] = useState<string | null>(null);
+  const [confirmEmailDialogOpen, setConfirmEmailDialogOpen] = useState(false);
   const [emailSendStatus, setEmailSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
 
@@ -1291,10 +1292,7 @@ Thank you,
                   <Button
                     variant={emailSendStatus === "sent" ? "outline" : "default"}
                     className={`flex-1 ${emailSendStatus === "sent" ? "text-emerald-600 border-emerald-300" : ""}`}
-                    onClick={() => {
-                      setEmailSendStatus("sending");
-                      sendEmailMutation.mutate(scheduledApptId);
-                    }}
+                    onClick={() => setConfirmEmailDialogOpen(true)}
                     disabled={sendEmailMutation.isPending || emailSendStatus === "sending"}
                     data-testid="button-send-email"
                   >
@@ -1465,6 +1463,70 @@ Thank you,
               setCurrentStep(2);
             }} data-testid="button-center-warning-set-default">
               Set as Default & Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmEmailDialogOpen} onOpenChange={setConfirmEmailDialogOpen}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              Confirm Email Send
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <p className="text-sm text-muted-foreground">Please review the details before sending the confirmation email.</p>
+            <div className="rounded-xl border border-border/50 bg-muted/30 divide-y divide-border/40">
+              <div className="flex gap-3 px-4 py-3">
+                <span className="text-xs font-medium text-muted-foreground w-16 shrink-0 pt-0.5">To</span>
+                <span className="text-sm font-medium text-foreground break-all">{selectedQueueItem?.applicantEmail}</span>
+              </div>
+              <div className="flex gap-3 px-4 py-3">
+                <span className="text-xs font-medium text-muted-foreground w-16 shrink-0 pt-0.5">Subject</span>
+                <span className="text-sm text-foreground">
+                  Medical Fitness Appointment — {toProperCase(selectedQueueItem?.applicantName || "")}. {selectedQueueItem?.woNumber}
+                </span>
+              </div>
+              <div className="flex gap-3 px-4 py-3">
+                <span className="text-xs font-medium text-muted-foreground w-16 shrink-0 pt-0.5">Date</span>
+                <span className="text-sm text-foreground">
+                  {form.getValues("appointmentDate")
+                    ? new Date(form.getValues("appointmentDate")).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+                    : "—"}
+                  {form.getValues("appointmentTime") ? ` at ${form.getValues("appointmentTime")}` : ""}
+                </span>
+              </div>
+              <div className="flex gap-3 px-4 py-3">
+                <span className="text-xs font-medium text-muted-foreground w-16 shrink-0 pt-0.5">Center</span>
+                <span className="text-sm text-foreground">
+                  {centers?.find(c => c.id === form.getValues("centerId"))?.name || "—"}
+                </span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 pt-2">
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => setConfirmEmailDialogOpen(false)}
+              data-testid="button-cancel-send-email"
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-xl"
+              onClick={() => {
+                setConfirmEmailDialogOpen(false);
+                setEmailSendStatus("sending");
+                if (scheduledApptId) sendEmailMutation.mutate(scheduledApptId);
+              }}
+              disabled={sendEmailMutation.isPending}
+              data-testid="button-confirm-send-email"
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Confirm & Send
             </Button>
           </DialogFooter>
         </DialogContent>
