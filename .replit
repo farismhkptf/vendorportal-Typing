@@ -51,6 +51,7 @@ ZOHO_CLIENT_SECRET = "02890cfbbb621dd37a5c9cdcba232feaf63806e612"
 ZOHO_ACCOUNT_DOMAIN = "https://accounts.zoho.com"
 ZOHO_API_DOMAIN = "https://www.zohoapis.com"
 ZOHO_WORKDRIVE_PARENT_FOLDER_ID = "6w86nb32221cc39204b94bfed5893c750049b"
+ZOHO_SMTP_USER = "appointments@procompany.ae"
 
 [postMerge]
 path = "scripts/post-merge.sh"
