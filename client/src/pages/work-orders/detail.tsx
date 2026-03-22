@@ -982,17 +982,21 @@ export default function WorkOrderDetail() {
 
   const { data: woDocuments = [] } = useQuery<WoDocument[]>({
     queryKey: ["/api/work-orders", id, "documents"],
-    queryFn: () => fetch(`/api/work-orders/${id}/documents`).then(r => r.json()),
+    queryFn: async () => {
+      const r = await fetch(`/api/work-orders/${id}/documents`);
+      if (!r.ok) throw new Error("Failed to fetch documents");
+      return r.json();
+    },
     enabled: !!id,
   });
 
-  const expiringOrExpiredDocs = woDocuments.filter((d) => {
+  const expiringOrExpiredDocs = Array.isArray(woDocuments) ? woDocuments.filter((d) => {
     if (!d.expiresAt) return false;
     const now = new Date();
     const expiryDate = new Date(d.expiresAt);
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     return expiryDate <= thirtyDaysFromNow;
-  });
+  }) : [];
 
   const medicalJobType = jobTypes?.find(jt => jt.category === "Medical") || null;
   const eidJobType = jobTypes?.find(jt => jt.category === "EID") || null;

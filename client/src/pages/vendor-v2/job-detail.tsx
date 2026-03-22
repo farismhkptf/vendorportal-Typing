@@ -870,7 +870,7 @@ export default function V2JobDetail() {
           <div className="space-y-4">
             <div className="space-y-2">
               <p className="text-sm font-medium">Which documents need to be changed?</p>
-              {job.woDocuments && job.woDocuments.length > 0 ? (
+              {Array.isArray(job.woDocuments) && job.woDocuments.length > 0 ? (
                 job.woDocuments.map((doc) => {
                   const label = DOCUMENT_TYPE_LABELS[doc.documentType] || doc.documentType;
                   const isImage = doc.mimeType?.startsWith("image/");
