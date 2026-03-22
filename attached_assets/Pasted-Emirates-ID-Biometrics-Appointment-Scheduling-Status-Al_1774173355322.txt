@@ -1,0 +1,643 @@
+Emirates ID Biometrics Appointment Scheduling Status Algorithm
+
+Programmer-Facing Final Handoff Document
+
+⸻
+
+1. Document Purpose
+
+This specification defines the final status logic for the Emirates ID Biometrics Appointment Scheduling layer inside the app.
+
+It is intended for the programmer designing and building the web app so the biometrics scheduling flow behaves consistently in the UI, backend, automation rules, and reporting.
+
+This document defines:
+	•	the visible statuses
+	•	how each status is triggered
+	•	who owns each action
+	•	timer-based automation rules
+	•	no-show and reschedule cycle logic
+	•	recommended technical structure for implementation
+
+⸻
+
+2. Scope
+
+This specification applies only to the Emirates ID Biometrics appointment scheduling flow.
+
+Included
+	•	appointment creation
+	•	PRO-linked scheduling
+	•	applicant-PRO meeting confirmation
+	•	appointment completion
+	•	no-show handling
+	•	reschedule handling
+	•	admin force close
+	•	optional proof upload after completion
+
+Excluded
+	•	Typing Job statuses
+	•	Medical appointment statuses
+	•	visa workflow statuses outside biometrics scheduling
+	•	payment/accounting statuses
+	•	client communication content
+
+⸻
+
+3. Core Design Decisions
+
+These are fixed design decisions for this version.
+
+3.1 Separate module, same app
+
+Biometrics scheduling is a separate layer/module inside the same app as Medical, but it must remain logically separate from Medical scheduling rules.
+
+3.2 Same scheduling philosophy as Medical
+
+This module should follow the same broad architecture as Medical:
+	•	minimal visible statuses
+	•	automation-first where practical
+	•	cycle-based history
+	•	event timeline
+	•	auditability
+
+3.3 Simpler than Medical
+
+Biometrics does not need the same result-monitoring layer as Medical.
+
+There is no equivalent of:
+	•	Result Issued
+	•	Result Delayed
+	•	Retest Required
+	•	Medical Failed
+
+3.4 Assignment exists, but not as a main visible status
+
+The appointment may already include the assigned PRO, but assignment should exist as structured data and timeline event, not as a primary visible status.
+
+3.5 QR-based meeting confirmation remains the preferred method
+
+Meeting confirmation should follow the same approach as Medical:
+	•	primary = QR scan
+	•	fallback = manual confirmation by PRO
+
+3.6 Completion is primarily operational
+
+Once the appointment is successfully done, the visible status becomes Completed.
+
+3.7 Proof upload is optional
+
+The system may allow the PRO to upload a stamped physical copy or other image proof after completion, but this must not be mandatory.
+
+3.8 Unusual failed operational completion should become reschedule, not a new result tree
+
+If biometrics is attempted but another appointment is still required due to center/system issue or other operational issue, the system should preserve that fact in notes/events and move into Reschedule Required, not create a complex result layer.
+
+3.9 No-show creates a new cycle, not overwritten history
+
+If the applicant does not attend, the old appointment cycle remains preserved and a new cycle may be created.
+
+3.10 Every manual change must be auditable
+
+Any manual action, hold, override, fallback, or special decision must be logged.
+
+⸻
+
+4. Final Visible Status List
+
+The final approved visible statuses are:
+	1.	Scheduled
+	2.	In Process
+	3.	Completed
+	4.	Awaiting Meeting
+	5.	No Show
+	6.	Reschedule Required
+	7.	Closed (Admin Override)
+
+⸻
+
+5. Status Master Table
+
+Status	Meaning	Trigger	Owner / Who Can Set	Type	Entry Condition	Next Allowed Statuses	Visibility	Notes
+Scheduled	Appointment has been created and PRO is linked in scheduling context	Auto on booking creation	System	Automatic	Valid appointment created successfully	In Process, Awaiting Meeting, Closed (Admin Override)	Internal, PRO	Assignment exists as data/event, not visible status
+In Process	PRO has physically met the applicant at the center and biometrics assistance has started	QR scan by PRO	PRO	Assisted / semi-automatic	Scheduled appointment exists and meeting is confirmed	Completed, Reschedule Required, Closed (Admin Override)	Internal, PRO	Manual fallback allowed if QR unavailable
+Completed	Biometrics appointment is done	PRO marks completed	PRO	Manual	Appointment has already reached In Process	Closed (Admin Override), Reschedule Required	Internal, PRO	Optional proof image upload allowed but not required
+Awaiting Meeting	Appointment time has passed and meeting is still not confirmed	Auto timer	System	Automatic	Appointment is still Scheduled at time + 5 minutes	In Process, No Show, Closed (Admin Override)	Internal, PRO	Real-time operational alert
+No Show	Applicant did not attend in time	Auto after unresolved Awaiting Meeting period	System, with CRM intervention capability	Automatic with manual hold capability	Appointment remained unresolved after Awaiting Meeting threshold	New Scheduled cycle, Closed (Admin Override)	Internal	Old cycle remains preserved
+Reschedule Required	Another biometrics appointment must be created due to operational or center-side issue	Manual decision	CRM or Admin, optionally PRO if approved later	Manual	Usually after In Process or Completed, based on review	New Scheduled cycle, Closed (Admin Override)	Internal	Simpler replacement for any failed re-attempt logic
+Closed (Admin Override)	Flow forcefully closed by admin	Manual override	Admin	Manual	Allowed from approved active states	Final state	Internal	Requires mandatory override reason
+
+
+⸻
+
+6. Trigger & Timer Rules
+
+6.1 Scheduled
+
+Selected logic: same as Medical booking creation.
+
+The system automatically sets status to Scheduled when a new biometrics appointment booking is created.
+
+The scheduling action should also store:
+	•	assigned PRO
+	•	appointment time
+	•	center
+	•	case relation
+	•	cycle type
+
+⸻
+
+6.2 In Process
+
+Selected logic: same as Medical.
+
+Primary trigger:
+	•	PRO scans the applicant QR code at the center
+
+Manual fallback
+If QR is unavailable, the system may allow the PRO to manually confirm the meeting.
+
+This fallback must log:
+	•	fallback used = true
+	•	actor
+	•	timestamp
+	•	optional note/reason
+
+⸻
+
+6.3 Completed
+
+Selected logic: same as Medical completion action.
+
+The PRO manually marks the appointment as Completed after the biometrics process is done.
+
+Optional:
+	•	allow upload of stamped paper / image proof
+	•	proof upload is not mandatory
+	•	proof upload should be stored as attachment/event
+
+⸻
+
+6.4 Awaiting Meeting
+
+Selected logic: same as Medical.
+
+If the appointment has not reached In Process by 5 minutes after the appointment time, the system automatically changes the status to Awaiting Meeting.
+
+⸻
+
+6.5 No Show
+
+Selected logic: same as Medical.
+
+If the appointment remains in Awaiting Meeting for 30 minutes, the system automatically changes the status to No Show.
+
+CRM/Admin intervention rule
+CRM or Admin may intervene before the 30-minute threshold if they are in contact with the parties and know the applicant is still coming.
+
+This should prevent the automatic no-show action until the hold is cleared or expires.
+
+⸻
+
+6.6 Reschedule Required
+
+Selected logic: manual operational/business decision.
+
+CRM or Admin manually sets Reschedule Required when the appointment did not successfully complete in a usable way and another appointment must be created.
+
+Typical examples:
+	•	center/system issue
+	•	applicant attended but process could not complete
+	•	biometrics attempt occurred but reappointment is still required
+	•	operational exception leading to rebooking
+
+This should be a manual decision, not an automatic timer/parser state.
+
+⸻
+
+6.7 Closed (Admin Override)
+
+Selected logic: admin-only override.
+
+Admin manually closes the biometrics appointment flow using override permission.
+
+This action must require:
+	•	override reason
+	•	actor
+	•	timestamp
+
+⸻
+
+7. Ownership Matrix
+
+Action / Status	System	PRO	CRM	Admin	Automation Parser
+Create Scheduled	Yes	No	No	No	No
+Confirm In Process	No	Yes	No	No	No
+Mark Completed	No	Yes	No	No	No
+Set Awaiting Meeting	Yes	No	No	No	No
+Auto-set No Show	Yes	No	No	No	No
+Hold / prevent auto No Show	No	No	Yes	Yes	No
+Set Reschedule Required	No	No	Yes	Yes	No
+Set Closed (Admin Override)	No	No	No	Yes	No
+
+Note
+
+Automation Parser is not a main actor in this module in V1 because biometrics does not rely on a result-email layer like Medical.
+
+⸻
+
+8. Transition Rules
+
+Allowed transitions
+	•	Scheduled → In Process
+	•	Scheduled → Awaiting Meeting
+	•	Scheduled → Closed (Admin Override)
+	•	Awaiting Meeting → In Process
+	•	Awaiting Meeting → No Show
+	•	Awaiting Meeting → Closed (Admin Override)
+	•	In Process → Completed
+	•	In Process → Reschedule Required
+	•	In Process → Closed (Admin Override)
+	•	Completed → Reschedule Required
+	•	Completed → Closed (Admin Override)
+	•	No Show → Scheduled
+for a new cycle under the same case
+	•	Reschedule Required → Scheduled
+for a new cycle under the same case
+
+Disallowed direct transitions
+	•	Scheduled → Completed
+	•	Scheduled → No Show directly
+	•	Scheduled → Reschedule Required directly
+	•	Awaiting Meeting → Completed
+	•	Awaiting Meeting → Reschedule Required directly unless explicitly allowed later
+	•	No Show → Completed
+	•	No Show → In Process within the same closed cycle
+	•	Completed → In Process
+	•	Completed → Awaiting Meeting
+
+Final states for a cycle
+
+These should be treated as final states for a cycle:
+	•	Completed
+	•	No Show
+	•	Closed (Admin Override)
+
+Special note about Reschedule Required
+
+Reschedule Required is best treated as a decision state, not the final business end of the case.
+
+Operationally, it should usually lead to a new cycle.
+
+⸻
+
+9. Exception Handling Rules
+
+9.1 Awaiting Meeting
+
+This is an operational alert state.
+
+It exists when:
+	•	appointment time passed by 5 minutes
+	•	meeting still not confirmed
+
+It should push attention to the case.
+
+⸻
+
+9.2 No Show
+
+No Show is used when the appointment remained unresolved after the defined waiting period.
+
+It should:
+	•	remain historically visible for that cycle
+	•	not destroy the case
+	•	not overwrite the old cycle
+
+⸻
+
+9.3 Reschedule Required
+
+This is used when the appointment did not cleanly finish in a way that allows the biometrics matter to be considered operationally done.
+
+Examples:
+	•	center issue
+	•	system issue
+	•	applicant attended but process did not finish properly
+	•	reappointment needed despite attendance
+
+This state should be supported by:
+	•	event log
+	•	optional note
+	•	optional proof upload
+
+It should not create a separate result-analysis status tree.
+
+⸻
+
+9.4 Closed (Admin Override)
+
+This exists for exceptional closure cases.
+
+Examples may include:
+	•	duplicate record
+	•	administrative cancellation
+	•	business closure decision
+	•	incorrect/invalid cycle
+
+Override reason must be mandatory.
+
+⸻
+
+10. Retest Logic
+
+There is no retest logic in this biometrics module equivalent to Medical.
+
+Instead, use Reschedule Required.
+
+Fixed rules
+	•	do not create a separate retest family
+	•	use Reschedule Required when another appointment is needed
+	•	preserve previous cycle
+	•	new cycle re-enters from Scheduled
+
+⸻
+
+11. Reschedule / No-Show Cycle Logic
+
+Both No Show and Reschedule Required should create a new cycle under the same overall case when a new appointment is booked.
+
+Required behavior
+	•	old appointment cycle remains preserved
+	•	case remains open
+	•	new cycle may be created
+	•	new cycle starts from Scheduled
+	•	all cycles remain linked to the same case
+
+Same principle applies to exceptional re-appointment
+
+If biometrics was attempted and a physical stamp/proof exists but another appointment is still required, do not overwrite the old cycle. Preserve it and create a new cycle.
+
+⸻
+
+12. Visibility Rules
+
+Internal users
+
+Internal operations, CRM, and Admin may see the full internal biometrics status list depending on permissions.
+
+PRO visibility
+
+Recommended PRO-visible statuses:
+	•	Scheduled
+	•	Awaiting Meeting
+	•	In Process
+	•	Completed
+
+PRO does not need to see every internal administrative control in V1 unless needed.
+
+Client-facing visibility
+
+Client-facing visibility should be handled separately later if needed.
+
+Do not directly expose the full internal status list to clients in V1 unless a simplified client-facing status layer is designed.
+
+⸻
+
+13. Recommended Data Model
+
+This is the recommended structure for implementation.
+
+13.1 Biometrics Case
+
+Represents the overall biometrics matter for one applicant within the broader business context.
+
+Example fields:
+	•	case_id
+	•	applicant_id
+	•	work_order_id
+	•	company_id
+	•	overall_case_status
+	•	created_at
+
+⸻
+
+13.2 Appointment Cycle
+
+Represents one specific attempt or cycle within the case.
+
+This can be:
+	•	initial booking
+	•	rescheduled booking
+	•	further re-attempt
+
+Example fields:
+	•	appointment_cycle_id
+	•	case_id
+	•	cycle_number
+	•	cycle_type (initial, reschedule)
+	•	appointment_time
+	•	assigned_pro_id
+	•	center_id
+	•	current_status
+	•	final_outcome
+	•	created_at
+
+⸻
+
+13.3 Current Status
+
+Each appointment cycle should have exactly one current visible status at a time.
+
+This is the status shown in operational UI.
+
+⸻
+
+13.4 Event Timeline
+
+This is important.
+
+Not everything should become a visible status. Some items are better stored as events.
+
+Recommended events:
+	•	appointment created
+	•	PRO assigned
+	•	PRO changed
+	•	QR scanned
+	•	manual fallback used
+	•	completed marked
+	•	stamped proof uploaded
+	•	CRM no-show hold placed
+	•	CRM no-show hold removed
+	•	reschedule required decision entered
+	•	new reschedule cycle created
+	•	admin override executed
+
+⸻
+
+13.5 Outcome Fields
+
+Status and outcome should not be treated as the same thing internally.
+
+Recommended outcome examples:
+	•	COMPLETED
+	•	NO_SHOW
+	•	RESCHEDULE_REQUIRED
+	•	OVERRIDDEN
+	•	PENDING
+
+This gives stronger reporting and cleaner analytics later.
+
+⸻
+
+14. Required System Fields
+
+Recommended fields for implementation:
+	•	case_id
+	•	appointment_cycle_id
+	•	cycle_number
+	•	cycle_type
+	•	status
+	•	final_outcome
+	•	status_updated_at
+	•	status_updated_by
+	•	status_update_source
+	•	appointment_time
+	•	assigned_pro_id
+	•	assigned_at
+	•	assignment_source
+	•	meeting_confirmed_at
+	•	meeting_confirmation_method (qr, manual)
+	•	awaiting_meeting_started_at
+	•	completed_at
+	•	proof_upload_count
+	•	proof_last_uploaded_at
+	•	crm_hold_no_show
+	•	crm_hold_reason
+	•	crm_hold_set_by
+	•	crm_hold_set_at
+	•	override_reason
+	•	override_by
+	•	override_at
+	•	created_at
+	•	updated_at
+
+Optional helpful field for the unusual case
+	•	reappointment_needed_after_attempt (boolean)
+
+This is useful when biometrics was effectively attempted/done but another appointment is still required due to external/system issue.
+
+⸻
+
+15. Audit Log Requirements
+
+The system must log all meaningful state changes and protected actions.
+
+Minimum log requirements
+	•	old status
+	•	new status
+	•	actor
+	•	source
+	•	timestamp
+
+Mandatory-reason actions
+
+The following actions must require a reason or note:
+	•	manual fallback instead of QR
+	•	CRM no-show hold
+	•	Reschedule Required
+	•	Closed (Admin Override)
+
+Recommended audit extras
+	•	related cycle id
+	•	related case id
+	•	uploaded proof reference
+	•	previous value and new value for protected fields
+
+⸻
+
+16. Automation / Integration Notes
+
+QR integration
+
+QR should be the primary meeting confirmation method.
+
+Manual fallback
+
+Manual fallback must exist but be separately logged.
+
+Optional proof upload
+
+The system should allow the PRO to upload an image of stamped paper or similar proof after completion.
+
+This is optional and should not block completion.
+
+Timers / jobs
+
+Background jobs should handle:
+	•	Awaiting Meeting check
+	•	No Show auto-escalation
+
+Assignment handling
+
+PRO assignment should still be stored as structured data and timeline event even though it is not a visible status.
+
+Parser/integration note
+
+Unlike Medical, there is no required result-email automation layer in V1.
+
+⸻
+
+17. Final Locked Flow
+
+Standard successful path
+
+Scheduled → In Process → Completed
+
+Real-time delay path
+
+Scheduled → Awaiting Meeting → In Process → Completed
+
+No-show path
+
+Scheduled → Awaiting Meeting → No Show
+then optionally create a new cycle:
+No Show → Scheduled (new cycle)
+
+Reschedule-required path
+
+In Process → Reschedule Required
+or
+Completed → Reschedule Required
+then create a new cycle:
+Reschedule Required → Scheduled (new cycle)
+
+Admin path
+
+Any permitted active state → Closed (Admin Override)
+
+⸻
+
+18. Build Notes / Implementation Notes
+	1.	Do not add extra visible statuses unless approved later.
+	2.	Do not clone the Medical result layer into Biometrics.
+	3.	Keep PRO assignment as structured data and timeline event, not a primary visible status.
+	4.	Model this with Biometrics Case + Appointment Cycle + Current Status + Event Timeline.
+	5.	Do not overwrite old appointment attempts during no-show or reschedule.
+	6.	Preserve historical cycles for analytics, audit, and operational review.
+	7.	Keep status logic and outcome logic distinct internally even if the UI wording is simplified.
+	8.	Require audit trails for every manual exception path.
+	9.	Allow optional proof upload after completion, but do not make it mandatory.
+	10.	Build the system so a future client-facing simplified status layer can be added later without changing the internal logic.
+
+⸻
+
+Recommendation
+
+This is the right final direction because it keeps:
+	•	the same architecture as Medical
+	•	the same operating philosophy
+	•	but avoids unnecessary complexity
+
+The two modules will feel consistent to your team, while still respecting the fact that biometrics is operationally simpler.
+
+Next action: I can turn this into a Replit-ready implementation prompt exactly like I did for Medical.

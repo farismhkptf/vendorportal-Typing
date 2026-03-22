@@ -1,0 +1,543 @@
+Replit-Ready Implementation Prompt
+
+Emirates ID Biometrics Appointment Scheduling Status Algorithm
+
+Build Specification for Programmer
+
+Use this as the implementation instruction for the Biometrics Scheduling layer.
+
+⸻
+
+Prompt
+
+Build the Emirates ID Biometrics Appointment Scheduling Status System for the app using the following fixed rules.
+
+This biometrics scheduling status system is:
+	•	a separate module inside the same app as Medical
+	•	separate from the Typing Job status system
+	•	similar in architecture to Medical
+	•	simpler in status logic than Medical
+
+The goal is to create a clean, automation-first scheduling layer with:
+	•	minimal visible statuses
+	•	strong auditability
+	•	timer-based automation
+	•	QR-based meeting confirmation
+	•	cycle-based history preservation
+	•	rescheduling handled as new cycles, not overwritten records
+
+⸻
+
+1. Core Architecture
+
+Build this using the following structure:
+
+A. Biometrics Case
+
+Represents the overall biometrics matter for one applicant.
+
+B. Appointment Cycle
+
+Represents each appointment attempt under the same case.
+
+A cycle can be:
+	•	initial
+	•	reschedule
+
+C. Current Visible Status
+
+Each appointment cycle must have exactly one current visible status.
+
+D. Event Timeline
+
+Store operational events separately from statuses.
+
+Examples of events:
+	•	appointment created
+	•	PRO assigned
+	•	PRO changed
+	•	QR scanned
+	•	manual fallback used
+	•	completed marked
+	•	stamped proof uploaded
+	•	CRM no-show hold set
+	•	CRM no-show hold removed
+	•	reschedule required decision entered
+	•	admin override executed
+
+Important rule
+
+Do not model this as one flat mutable appointment row only.
+Use case + cycle + status + event timeline.
+
+⸻
+
+2. Fixed Visible Status List
+
+The only approved visible statuses for this version are:
+	1.	SCHEDULED
+	2.	IN_PROCESS
+	3.	COMPLETED
+	4.	AWAITING_MEETING
+	5.	NO_SHOW
+	6.	RESCHEDULE_REQUIRED
+	7.	CLOSED_ADMIN_OVERRIDE
+
+Do not add more visible statuses unless explicitly approved later.
+
+⸻
+
+3. Hidden Logic / Non-Status Data
+
+The following should exist as data fields and/or events, not as visible statuses:
+	•	PRO assignment
+	•	assignment updates
+	•	driving to center
+	•	QR scan event
+	•	manual fallback verification
+	•	CRM no-show intervention
+	•	stamped proof upload event
+
+In particular:
+	•	Assigned exists as event/data
+	•	it is not a main visible status chip
+
+⸻
+
+4. Fixed Trigger Rules
+
+Implement these exact triggers.
+
+4.1 SCHEDULED
+
+Trigger logic:
+	•	auto when booking is successfully created
+
+Set SCHEDULED automatically when a booking is created.
+
+Also store:
+	•	assigned PRO
+	•	appointment time
+	•	center
+	•	case relation
+	•	cycle type
+
+⸻
+
+4.2 IN_PROCESS
+
+Trigger logic:
+	•	primary: PRO scans applicant QR code at the center
+
+Fallback:
+	•	allow manual fallback if QR is unavailable
+	•	fallback must be separately audit-logged
+
+Store:
+	•	meeting confirmed at
+	•	meeting confirmation method = qr or manual
+
+⸻
+
+4.3 COMPLETED
+
+Trigger logic:
+	•	PRO manually marks the appointment as completed after biometrics is done
+
+Optional:
+	•	allow image upload of stamped paper or proof
+	•	not mandatory
+	•	proof upload should not block completion
+
+Store:
+	•	completed at
+	•	completed by
+
+⸻
+
+4.4 AWAITING_MEETING
+
+Trigger logic:
+	•	if the cycle is still SCHEDULED at appointment time + 5 minutes
+	•	automatically set status to AWAITING_MEETING
+
+⸻
+
+4.5 NO_SHOW
+
+Trigger logic:
+	•	if the cycle remains in AWAITING_MEETING for 30 minutes
+	•	automatically set status to NO_SHOW
+
+Exception:
+	•	if CRM/Admin has placed a no-show hold/intervention, do not auto-mark no-show during the hold
+
+⸻
+
+4.6 RESCHEDULE_REQUIRED
+
+Trigger logic:
+	•	manual by CRM or Admin
+
+Use RESCHEDULE_REQUIRED when the appointment did not successfully finish in a usable way and another appointment must be created.
+
+Examples:
+	•	center/system issue
+	•	applicant attended but process could not complete
+	•	biometrics attempt happened but another appointment is still required
+	•	operational issue requiring rebooking
+
+Optional helpful field:
+	•	reappointment_needed_after_attempt = true
+
+Do not turn this into a result-analysis workflow.
+
+⸻
+
+4.7 CLOSED_ADMIN_OVERRIDE
+
+Trigger logic:
+	•	manual by Admin only
+
+This must require:
+	•	reason
+	•	actor
+	•	timestamp
+
+⸻
+
+5. Transition Rules
+
+Only allow these transitions.
+
+Allowed
+	•	SCHEDULED -> IN_PROCESS
+	•	SCHEDULED -> AWAITING_MEETING
+	•	SCHEDULED -> CLOSED_ADMIN_OVERRIDE
+	•	AWAITING_MEETING -> IN_PROCESS
+	•	AWAITING_MEETING -> NO_SHOW
+	•	AWAITING_MEETING -> CLOSED_ADMIN_OVERRIDE
+	•	IN_PROCESS -> COMPLETED
+	•	IN_PROCESS -> RESCHEDULE_REQUIRED
+	•	IN_PROCESS -> CLOSED_ADMIN_OVERRIDE
+	•	COMPLETED -> RESCHEDULE_REQUIRED
+	•	COMPLETED -> CLOSED_ADMIN_OVERRIDE
+	•	NO_SHOW -> SCHEDULED
+only through creation of a new reschedule cycle
+	•	RESCHEDULE_REQUIRED -> SCHEDULED
+only through creation of a new reschedule cycle
+
+Disallow
+
+Do not allow invalid direct jumps like:
+	•	SCHEDULED -> COMPLETED
+	•	SCHEDULED -> NO_SHOW directly
+	•	SCHEDULED -> RESCHEDULE_REQUIRED
+	•	AWAITING_MEETING -> COMPLETED
+	•	NO_SHOW -> COMPLETED
+	•	COMPLETED -> IN_PROCESS
+
+⸻
+
+6. Final-State Rules
+
+Treat these as final for a cycle:
+	•	COMPLETED
+	•	NO_SHOW
+	•	CLOSED_ADMIN_OVERRIDE
+
+Important:
+	•	NO_SHOW is final for that cycle only
+	•	the case remains open and a new cycle may be created
+
+Special note
+
+RESCHEDULE_REQUIRED is a decision state, not a final end-state for the overall case.
+
+⸻
+
+7. Reschedule Logic
+
+7.1 No Show
+
+When a cycle reaches NO_SHOW:
+	•	preserve that cycle as historical
+	•	do not overwrite it
+	•	allow creation of a new cycle under the same case
+	•	new cycle type = reschedule
+	•	new cycle starts at SCHEDULED
+
+7.2 Reschedule Required
+
+When a cycle reaches RESCHEDULE_REQUIRED:
+	•	preserve old cycle
+	•	create a new cycle under the same case
+	•	new cycle type = reschedule
+	•	new cycle starts at SCHEDULED
+
+7.3 Same Flow Reuse
+
+The same visible status flow must be reused for:
+	•	initial cycle
+	•	reschedule cycle
+
+Do not create a separate visible reattempt family.
+
+⸻
+
+8. Required Fields
+
+Create at least the following fields.
+
+Biometrics Case
+	•	case_id
+	•	applicant_id
+	•	work_order_id
+	•	company_id
+	•	created_at
+	•	updated_at
+
+Appointment Cycle
+	•	appointment_cycle_id
+	•	case_id
+	•	cycle_number
+	•	cycle_type (initial, reschedule)
+	•	appointment_time
+	•	center_id
+	•	assigned_pro_id
+	•	assigned_at
+	•	assignment_source
+	•	status
+	•	final_outcome
+	•	meeting_confirmed_at
+	•	meeting_confirmation_method
+	•	awaiting_meeting_started_at
+	•	completed_at
+	•	proof_upload_count
+	•	proof_last_uploaded_at
+	•	crm_hold_no_show
+	•	crm_hold_reason
+	•	crm_hold_set_by
+	•	crm_hold_set_at
+	•	override_reason
+	•	override_by
+	•	override_at
+	•	reappointment_needed_after_attempt
+	•	status_updated_at
+	•	status_updated_by
+	•	status_update_source
+	•	created_at
+	•	updated_at
+
+Event Timeline
+	•	event_id
+	•	case_id
+	•	appointment_cycle_id
+	•	event_type
+	•	event_data
+	•	actor_id
+	•	source
+	•	created_at
+
+⸻
+
+9. Required Outcome Values
+
+Keep status and final_outcome separate internally.
+
+Suggested final_outcome values:
+	•	COMPLETED
+	•	NO_SHOW
+	•	RESCHEDULE_REQUIRED
+	•	OVERRIDDEN
+	•	PENDING
+
+Examples:
+	•	if status = COMPLETED, outcome = COMPLETED
+	•	if status = NO_SHOW, outcome = NO_SHOW
+	•	if status = RESCHEDULE_REQUIRED, outcome may remain PENDING until next cycle is created
+
+⸻
+
+10. Ownership / Permissions
+
+System
+
+Can set:
+	•	SCHEDULED
+	•	AWAITING_MEETING
+	•	NO_SHOW
+
+PRO
+
+Can set:
+	•	IN_PROCESS
+	•	COMPLETED
+
+CRM
+
+Can:
+	•	place/remove no-show hold
+	•	set RESCHEDULE_REQUIRED
+
+Admin
+
+Can:
+	•	place/remove no-show hold
+	•	set RESCHEDULE_REQUIRED
+	•	set CLOSED_ADMIN_OVERRIDE
+
+Automation Parser
+
+No major role in V1 for biometrics scheduling status.
+
+⸻
+
+11. Background Jobs / Timers
+
+Implement the following background automation jobs.
+
+Meeting Delay Job
+
+At appointment_time + 5 minutes:
+	•	if current status = SCHEDULED
+	•	set status = AWAITING_MEETING
+
+No Show Job
+
+At awaiting_meeting_started_at + 30 minutes:
+	•	if current status = AWAITING_MEETING
+	•	and crm_hold_no_show = false
+	•	set status = NO_SHOW
+
+All background jobs must be safe to re-run.
+
+⸻
+
+12. Audit Rules
+
+Audit every status change and protected action.
+
+Each audit entry should store:
+	•	old value
+	•	new value
+	•	actor
+	•	source
+	•	timestamp
+
+Mandatory-reason actions:
+	•	manual fallback instead of QR
+	•	CRM no-show hold
+	•	RESCHEDULE_REQUIRED
+	•	CLOSED_ADMIN_OVERRIDE
+
+Also log:
+	•	proof upload event
+	•	reappointment-needed flag if used
+
+⸻
+
+13. UI Rules
+
+Main appointment status chip
+
+Show only the approved visible status.
+
+Do not show these as main statuses
+	•	Assigned
+	•	Driving To
+	•	QR Scanned
+	•	Hold Placed
+	•	Proof Uploaded
+
+These belong in the timeline/events area.
+
+Recommended PRO-facing UI
+
+PRO mainly sees:
+	•	Scheduled
+	•	Awaiting Meeting
+	•	In Process
+	•	Completed
+
+Recommended internal admin/CRM UI
+
+Admin/CRM can see:
+	•	full visible status
+	•	timers
+	•	hold state
+	•	event timeline
+	•	cycle history
+	•	optional proof upload
+
+⸻
+
+14. Implementation Constraints
+	•	Do not overwrite old cycles
+	•	Do not flatten reschedules into the same mutable row
+	•	Do not mix Typing Job status with biometrics scheduling status
+	•	Do not create hidden state changes without timeline logging
+	•	Do not expose extra visible statuses without approval
+	•	Do not clone medical result-layer logic into biometrics
+
+⸻
+
+15. Expected Final Flow
+
+Standard success
+
+SCHEDULED -> IN_PROCESS -> COMPLETED
+
+Meeting delay
+
+SCHEDULED -> AWAITING_MEETING -> IN_PROCESS -> COMPLETED
+
+No-show
+
+SCHEDULED -> AWAITING_MEETING -> NO_SHOW
+then new cycle:
+SCHEDULED
+
+Reschedule-required path
+
+IN_PROCESS -> RESCHEDULE_REQUIRED
+or
+COMPLETED -> RESCHEDULE_REQUIRED
+then new cycle:
+SCHEDULED
+
+Admin path
+
+active state -> CLOSED_ADMIN_OVERRIDE
+
+⸻
+
+16. Deliverables to Build
+
+Build the following:
+
+Backend
+	•	data model for case, cycle, timeline
+	•	state transition guard logic
+	•	timer jobs
+	•	audit logging
+	•	permission rules
+
+Frontend
+	•	appointment status display
+	•	timeline/event log
+	•	cycle history view
+	•	CRM hold control
+	•	PRO QR check-in flow
+	•	PRO manual fallback flow
+	•	optional proof upload flow
+	•	admin override modal with reason
+	•	reschedule cycle creation actions
+
+⸻
+
+Recommendation
+
+Use this prompt as the build instruction for the Biometrics module.
+
+The Medical and Biometrics modules should feel like part of the same system, but Biometrics should remain intentionally simpler.
