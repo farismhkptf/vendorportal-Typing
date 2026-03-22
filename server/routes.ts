@@ -7109,5 +7109,597 @@ export async function registerRoutes(
     }
   });
 
+  // ========== Medical Scheduling ==========
+
+  const FINAL_STATUSES = ["RESULT_ISSUED", "MEDICAL_FAILED", "CLOSED_ADMIN_OVERRIDE", "NO_SHOW", "RETEST_REQUIRED"];
+
+  // Valid transitions map
+  const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+    SCHEDULED: ["AWAITING_MEETING"],
+    AWAITING_MEETING: ["IN_PROCESS", "NO_SHOW"],
+    IN_PROCESS: ["COMPLETED"],
+    COMPLETED: ["RESULT_DELAYED", "RESULT_ISSUED", "MEDICAL_FAILED", "RETEST_REQUIRED"],
+    RESULT_DELAYED: ["RESULT_ISSUED", "MEDICAL_FAILED", "RETEST_REQUIRED"],
+    RETEST_REQUIRED: [], // terminal — new cycle must be created
+    RESULT_ISSUED: [],
+    MEDICAL_FAILED: [],
+    NO_SHOW: [],
+    CLOSED_ADMIN_OVERRIDE: [],
+  };
+
+  function canTransition(from: string, to: string): boolean {
+    return (ALLOWED_TRANSITIONS[from] || []).includes(to);
+  }
+
+  // GET /api/medical-cases/:woId — get or create medical case for WO
+  app.get("/api/medical-cases/:woId", requireAuth, async (req, res) => {
+    try {
+      const { woId } = req.params;
+      let medCase = await storage.getMedicalCaseByWoId(woId);
+      res.json(medCase || null);
+    } catch (error) {
+      console.error("Medical case get error:", error);
+      res.status(500).json({ message: "Failed to get medical case" });
+    }
+  });
+
+  // POST /api/medical-cases/:woId — create medical case if not exists
+  app.post("/api/medical-cases/:woId", requireAuth, async (req, res) => {
+    try {
+      const { woId } = req.params;
+      let medCase = await storage.getMedicalCaseByWoId(woId);
+      if (!medCase) {
+        const typingJobs = await storage.getTypingJobsByWoId(woId);
+        const allJobTypes = await storage.getJobTypes();
+        const medicalJob = typingJobs.find(j => {
+          const jt = allJobTypes.find(t => t.id === j.jobTypeId);
+          return jt?.category === "Medical" && (j.status === "ReadyForScheduling" || j.status === "Returned");
+        });
+        if (!medicalJob) {
+          return res.status(400).json({ message: "Medical typing job must be completed before opening a scheduling case" });
+        }
+        medCase = await storage.createMedicalCase({ woId, isOpen: true });
+      }
+      res.json(medCase);
+    } catch (error) {
+      console.error("Medical case create error:", error);
+      res.status(500).json({ message: "Failed to create medical case" });
+    }
+  });
+
+  // GET /api/medical-cases/:caseId/cycles — get cycles for case
+  app.get("/api/medical-cases/:caseId/cycles", requireAuth, async (req, res) => {
+    try {
+      const { caseId } = req.params;
+      const cycles = await storage.getCyclesByCase(caseId);
+      // Enrich with events
+      const enriched = await Promise.all(cycles.map(async (cycle) => {
+        const events = await storage.getEventsByCycle(cycle.id);
+        return { ...cycle, events };
+      }));
+      res.json(enriched);
+    } catch (error) {
+      console.error("Get cycles error:", error);
+      res.status(500).json({ message: "Failed to get cycles" });
+    }
+  });
+
+  // POST /api/medical-cases/:caseId/cycles — create a new cycle
+  app.post("/api/medical-cases/:caseId/cycles", requireAuth, async (req, res) => {
+    try {
+      const { caseId } = req.params;
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const medCase = await storage.getMedicalCaseById(caseId);
+      if (!medCase) return res.status(404).json({ message: "Medical case not found" });
+      if (!medCase.isOpen) return res.status(400).json({ message: "Medical case is closed" });
+
+      // Check no active cycle exists
+      const existingCycles = await storage.getCyclesByCase(caseId);
+      const activeCycle = existingCycles.find(c => !FINAL_STATUSES.includes(c.status));
+      if (activeCycle) {
+        return res.status(400).json({ message: "An active cycle already exists. Close it first." });
+      }
+
+      const bodySchema = z.object({
+        appointmentTime: z.string(),
+        centerId: z.string().optional(),
+        assignedProId: z.string().optional(),
+        cycleType: z.enum(["Initial", "Reschedule", "Retest"]).optional(),
+      });
+      const parsed = bodySchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
+
+      const cycleNumber = existingCycles.length + 1;
+      const cycleType = parsed.data.cycleType || (cycleNumber === 1 ? "Initial" : "Reschedule");
+
+      const cycle = await storage.createCycle({
+        caseId,
+        cycleNumber,
+        cycleType,
+        status: "SCHEDULED",
+        appointmentTime: new Date(parsed.data.appointmentTime),
+        centerId: parsed.data.centerId || null,
+        assignedProId: parsed.data.assignedProId || null,
+        createdBy: user.id,
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "CYCLE_CREATED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { cycleType, appointmentTime: parsed.data.appointmentTime, centerId: parsed.data.centerId },
+      });
+
+      res.json(cycle);
+    } catch (error) {
+      console.error("Create cycle error:", error);
+      res.status(500).json({ message: "Failed to create cycle" });
+    }
+  });
+
+  // GET /api/appointment-cycles/:cycleId — get a specific cycle with events
+  app.get("/api/appointment-cycles/:cycleId", requireAuth, async (req, res) => {
+    try {
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      const events = await storage.getEventsByCycle(cycle.id);
+      res.json({ ...cycle, events });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get cycle" });
+    }
+  });
+
+  // Roles allowed to perform PRO field actions (confirm meeting attendance, mark completed)
+  // CRM users schedule appointments but do NOT confirm or complete meetings
+  const PRO_ACTION_ROLES = ["Medical Support", "Medical Support - Temporary", "Admin"];
+
+  // POST /api/appointment-cycles/:cycleId/confirm-qr — QR confirmation (PRO field action)
+  app.post("/api/appointment-cycles/:cycleId/confirm-qr", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      if (!PRO_ACTION_ROLES.includes(user.role)) {
+        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+      }
+
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      if (!canTransition(cycle.status, "IN_PROCESS")) {
+        return res.status(400).json({ message: `Cannot transition from ${cycle.status} to IN_PROCESS` });
+      }
+
+      const updated = await storage.updateCycle(cycle.id, {
+        status: "IN_PROCESS",
+        confirmedAt: new Date(),
+        confirmedBy: user.id,
+        confirmMethod: "qr",
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "QR_CONFIRMED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { method: "qr" },
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "STATUS_CHANGED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { from: cycle.status, to: "IN_PROCESS" },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("QR confirm error:", error);
+      res.status(500).json({ message: "Failed to confirm via QR" });
+    }
+  });
+
+  // POST /api/appointment-cycles/:cycleId/confirm-manual — manual confirmation fallback (PRO field action)
+  app.post("/api/appointment-cycles/:cycleId/confirm-manual", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      if (!PRO_ACTION_ROLES.includes(user.role)) {
+        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+      }
+
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      if (!canTransition(cycle.status, "IN_PROCESS")) {
+        return res.status(400).json({ message: `Cannot transition from ${cycle.status} to IN_PROCESS` });
+      }
+
+      const updated = await storage.updateCycle(cycle.id, {
+        status: "IN_PROCESS",
+        confirmedAt: new Date(),
+        confirmedBy: user.id,
+        confirmMethod: "manual",
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "MANUAL_CONFIRMED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { method: "manual", note: req.body.note || null },
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "STATUS_CHANGED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { from: cycle.status, to: "IN_PROCESS" },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Manual confirm error:", error);
+      res.status(500).json({ message: "Failed to confirm manually" });
+    }
+  });
+
+  // POST /api/appointment-cycles/:cycleId/complete — PRO marks COMPLETED
+  app.post("/api/appointment-cycles/:cycleId/complete", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      if (!PRO_ACTION_ROLES.includes(user.role)) {
+        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+      }
+
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      if (!canTransition(cycle.status, "COMPLETED")) {
+        return res.status(400).json({ message: `Cannot transition from ${cycle.status} to COMPLETED` });
+      }
+
+      const now = new Date();
+      const updated = await storage.updateCycle(cycle.id, {
+        status: "COMPLETED",
+        completedAt: now,
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "COMPLETED_MARKED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { completedAt: now.toISOString() },
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "STATUS_CHANGED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { from: cycle.status, to: "COMPLETED" },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Complete cycle error:", error);
+      res.status(500).json({ message: "Failed to complete cycle" });
+    }
+  });
+
+  // POST /api/appointment-cycles/:cycleId/crm-hold — CRM/Admin set or remove hold
+  app.post("/api/appointment-cycles/:cycleId/crm-hold", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      if (!["SCHEDULED", "AWAITING_MEETING"].includes(cycle.status)) {
+        return res.status(400).json({ message: "CRM hold can only be set on SCHEDULED or AWAITING_MEETING cycles" });
+      }
+
+      const { active } = req.body;
+      const now = new Date();
+
+      const updated = await storage.updateCycle(cycle.id, {
+        crmHoldActive: !!active,
+        crmHoldSetBy: active ? user.id : cycle.crmHoldSetBy,
+        crmHoldSetAt: active ? now : cycle.crmHoldSetAt,
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: active ? "CRM_HOLD_SET" : "CRM_HOLD_REMOVED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { active: !!active },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("CRM hold error:", error);
+      res.status(500).json({ message: "Failed to set CRM hold" });
+    }
+  });
+
+  // POST /api/appointment-cycles/:cycleId/retest-required — CRM/Admin set RETEST_REQUIRED
+  app.post("/api/appointment-cycles/:cycleId/retest-required", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      if (!canTransition(cycle.status, "RETEST_REQUIRED")) {
+        return res.status(400).json({ message: `Cannot transition from ${cycle.status} to RETEST_REQUIRED` });
+      }
+
+      const updated = await storage.updateCycle(cycle.id, { status: "RETEST_REQUIRED" });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "RETEST_REQUIRED_SET",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { note: req.body.note || null },
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "STATUS_CHANGED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { from: cycle.status, to: "RETEST_REQUIRED" },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Retest required error:", error);
+      res.status(500).json({ message: "Failed to set retest required" });
+    }
+  });
+
+  // POST /api/appointment-cycles/:cycleId/admin-override — Admin force-close
+  app.post("/api/appointment-cycles/:cycleId/admin-override", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      if (user.role !== "Admin") {
+        return res.status(403).json({ message: "Access denied: Admin only" });
+      }
+
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      if (FINAL_STATUSES.includes(cycle.status)) {
+        return res.status(400).json({ message: "Cycle is already in a final state" });
+      }
+
+      const { reason } = req.body;
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({ message: "Override reason is required" });
+      }
+
+      const now = new Date();
+      const updated = await storage.updateCycle(cycle.id, {
+        status: "CLOSED_ADMIN_OVERRIDE",
+        overrideReason: reason,
+        overrideBy: user.id,
+        overrideAt: now,
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "ADMIN_OVERRIDE",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { reason, fromStatus: cycle.status },
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "STATUS_CHANGED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { from: cycle.status, to: "CLOSED_ADMIN_OVERRIDE" },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Admin override error:", error);
+      res.status(500).json({ message: "Failed to apply admin override" });
+    }
+  });
+
+  // POST /api/appointment-cycles/:cycleId/result-issued — Admin or automation-caller endpoint
+  app.post("/api/appointment-cycles/:cycleId/result-issued", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      if (user.role !== "Admin") {
+        return res.status(403).json({ message: "Access denied: Admin only" });
+      }
+
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      if (cycle.status === "RESULT_ISSUED") return res.json({ message: "Already issued", idempotent: true });
+      if (!canTransition(cycle.status, "RESULT_ISSUED")) {
+        return res.status(400).json({ message: `Cannot transition from ${cycle.status} to RESULT_ISSUED` });
+      }
+
+      const now = new Date();
+      const updated = await storage.updateCycle(cycle.id, {
+        status: "RESULT_ISSUED",
+        resultIssuedAt: now,
+        outcome: "Passed",
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "RESULT_ISSUED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { issuedAt: now.toISOString(), ...req.body },
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "STATUS_CHANGED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { from: cycle.status, to: "RESULT_ISSUED" },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Result issued error:", error);
+      res.status(500).json({ message: "Failed to set result issued" });
+    }
+  });
+
+  // POST /api/appointment-cycles/:cycleId/medical-failed — Admin or automation-caller endpoint
+  app.post("/api/appointment-cycles/:cycleId/medical-failed", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      if (user.role !== "Admin") {
+        return res.status(403).json({ message: "Access denied: Admin only" });
+      }
+
+      const cycle = await storage.getCycleById(req.params.cycleId);
+      if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+      if (cycle.status === "MEDICAL_FAILED") return res.json({ message: "Already marked failed", idempotent: true });
+      if (!canTransition(cycle.status, "MEDICAL_FAILED")) {
+        return res.status(400).json({ message: `Cannot transition from ${cycle.status} to MEDICAL_FAILED` });
+      }
+
+      const updated = await storage.updateCycle(cycle.id, {
+        status: "MEDICAL_FAILED",
+        outcome: "Failed",
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "MEDICAL_FAILED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: req.body || {},
+      });
+
+      await storage.logMedicalEvent({
+        cycleId: cycle.id,
+        eventType: "STATUS_CHANGED",
+        actorId: user.id,
+        actorRole: user.role,
+        details: { from: cycle.status, to: "MEDICAL_FAILED" },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Medical failed error:", error);
+      res.status(500).json({ message: "Failed to set medical failed" });
+    }
+  });
+
+  // Timer jobs for medical scheduling
+  async function runMedicalTimerJobs() {
+    try {
+      const now = new Date();
+
+      // (a) SCHEDULED → AWAITING_MEETING (5 min past appointment_time)
+      const awaitingDue = await storage.getCyclesDueForAwaitingMeeting();
+      for (const cycle of awaitingDue) {
+        await storage.updateCycle(cycle.id, {
+          status: "AWAITING_MEETING",
+          awaitingMeetingAt: now,
+        });
+        await storage.logMedicalEvent({
+          cycleId: cycle.id,
+          eventType: "TIMER_AWAITING_MEETING",
+          actorId: null,
+          actorRole: "system",
+          details: { triggeredAt: now.toISOString() },
+        });
+        await storage.logMedicalEvent({
+          cycleId: cycle.id,
+          eventType: "STATUS_CHANGED",
+          actorId: null,
+          actorRole: "system",
+          details: { from: "SCHEDULED", to: "AWAITING_MEETING" },
+        });
+      }
+
+      // (b) AWAITING_MEETING → NO_SHOW (30 min, no hold)
+      const noShowDue = await storage.getCyclesDueForNoShow();
+      for (const cycle of noShowDue) {
+        await storage.updateCycle(cycle.id, {
+          status: "NO_SHOW",
+          noShowAt: now,
+        });
+        await storage.logMedicalEvent({
+          cycleId: cycle.id,
+          eventType: "TIMER_NO_SHOW",
+          actorId: null,
+          actorRole: "system",
+          details: { triggeredAt: now.toISOString() },
+        });
+        await storage.logMedicalEvent({
+          cycleId: cycle.id,
+          eventType: "STATUS_CHANGED",
+          actorId: null,
+          actorRole: "system",
+          details: { from: "AWAITING_MEETING", to: "NO_SHOW" },
+        });
+      }
+
+      // (c) COMPLETED → RESULT_DELAYED (30 hours, no result)
+      const resultDelayedDue = await storage.getCyclesDueForResultDelayed();
+      for (const cycle of resultDelayedDue) {
+        await storage.updateCycle(cycle.id, {
+          status: "RESULT_DELAYED",
+          resultDelayedAt: now,
+        });
+        await storage.logMedicalEvent({
+          cycleId: cycle.id,
+          eventType: "TIMER_RESULT_DELAYED",
+          actorId: null,
+          actorRole: "system",
+          details: { triggeredAt: now.toISOString() },
+        });
+        await storage.logMedicalEvent({
+          cycleId: cycle.id,
+          eventType: "STATUS_CHANGED",
+          actorId: null,
+          actorRole: "system",
+          details: { from: "COMPLETED", to: "RESULT_DELAYED" },
+        });
+      }
+
+      const total = awaitingDue.length + noShowDue.length + resultDelayedDue.length;
+      if (total > 0) {
+        console.log(`[medical-timer] Processed ${awaitingDue.length} AWAITING_MEETING, ${noShowDue.length} NO_SHOW, ${resultDelayedDue.length} RESULT_DELAYED`);
+      }
+    } catch (err) {
+      console.error("[medical-timer] Error:", err);
+    }
+  }
+
+  setInterval(() => {
+    runMedicalTimerJobs().catch(err => console.error("[medical-timer] Interval error:", err));
+  }, 60 * 1000);
+
+  setTimeout(() => {
+    runMedicalTimerJobs().catch(err => console.error("[medical-timer] Initial error:", err));
+  }, 8000);
+
   return httpServer;
 }

@@ -5,6 +5,7 @@ import {
   vendorWalletLedger, vendorStatements, vendorInvoices, vendorApprovals, vendorNotifications, staffNotifications, appSettings, auditLog,
   woDocuments, documentRequirements, changeNotifications, loginAuditLog, passwordResetRequests,
   sheetMonths, apiKeys,
+  medicalCases, appointmentCycles, medicalAppointmentEvents,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -23,7 +24,10 @@ import {
   type LoginAuditLog, type InsertLoginAuditLog,
   type PasswordResetRequest, type InsertPasswordResetRequest,
   type SheetMonth,
-  type ApiKey, type InsertApiKey
+  type ApiKey, type InsertApiKey,
+  type MedicalCase, type InsertMedicalCase,
+  type AppointmentCycle, type InsertAppointmentCycle,
+  type MedicalEvent, type InsertMedicalEvent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
@@ -258,6 +262,21 @@ export interface IStorage {
   updateApiKey(id: string, data: Partial<InsertApiKey>): Promise<ApiKey | undefined>;
   deleteApiKey(id: string): Promise<boolean>;
   touchApiKeyLastUsed(id: string): Promise<void>;
+
+  // Medical Scheduling
+  getMedicalCaseByWoId(woId: string): Promise<MedicalCase | undefined>;
+  getMedicalCaseById(id: string): Promise<MedicalCase | undefined>;
+  createMedicalCase(data: InsertMedicalCase): Promise<MedicalCase>;
+  updateMedicalCase(id: string, data: Partial<InsertMedicalCase>): Promise<MedicalCase | undefined>;
+  getCyclesByCase(caseId: string): Promise<AppointmentCycle[]>;
+  getCycleById(id: string): Promise<AppointmentCycle | undefined>;
+  createCycle(data: InsertAppointmentCycle): Promise<AppointmentCycle>;
+  updateCycle(id: string, data: Partial<AppointmentCycle>): Promise<AppointmentCycle | undefined>;
+  logMedicalEvent(data: InsertMedicalEvent): Promise<MedicalEvent>;
+  getEventsByCycle(cycleId: string): Promise<MedicalEvent[]>;
+  getCyclesDueForAwaitingMeeting(): Promise<AppointmentCycle[]>;
+  getCyclesDueForNoShow(): Promise<AppointmentCycle[]>;
+  getCyclesDueForResultDelayed(): Promise<AppointmentCycle[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1863,6 +1882,90 @@ export class DatabaseStorage implements IStorage {
 
   async touchApiKeyLastUsed(id: string): Promise<void> {
     await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, id));
+  }
+
+  // Medical Scheduling
+  async getMedicalCaseByWoId(woId: string): Promise<MedicalCase | undefined> {
+    const [row] = await db.select().from(medicalCases).where(eq(medicalCases.woId, woId));
+    return row || undefined;
+  }
+
+  async getMedicalCaseById(id: string): Promise<MedicalCase | undefined> {
+    const [row] = await db.select().from(medicalCases).where(eq(medicalCases.id, id));
+    return row || undefined;
+  }
+
+  async createMedicalCase(data: InsertMedicalCase): Promise<MedicalCase> {
+    const [row] = await db.insert(medicalCases).values(data).returning();
+    return row;
+  }
+
+  async updateMedicalCase(id: string, data: Partial<InsertMedicalCase>): Promise<MedicalCase | undefined> {
+    const [row] = await db.update(medicalCases).set(data).where(eq(medicalCases.id, id)).returning();
+    return row || undefined;
+  }
+
+  async getCyclesByCase(caseId: string): Promise<AppointmentCycle[]> {
+    return db.select().from(appointmentCycles)
+      .where(eq(appointmentCycles.caseId, caseId))
+      .orderBy(desc(appointmentCycles.cycleNumber));
+  }
+
+  async getCycleById(id: string): Promise<AppointmentCycle | undefined> {
+    const [row] = await db.select().from(appointmentCycles).where(eq(appointmentCycles.id, id));
+    return row || undefined;
+  }
+
+  async createCycle(data: InsertAppointmentCycle): Promise<AppointmentCycle> {
+    const [row] = await db.insert(appointmentCycles).values(data).returning();
+    return row;
+  }
+
+  async updateCycle(id: string, data: Partial<AppointmentCycle>): Promise<AppointmentCycle | undefined> {
+    const [row] = await db.update(appointmentCycles).set(data).where(eq(appointmentCycles.id, id)).returning();
+    return row || undefined;
+  }
+
+  async logMedicalEvent(data: InsertMedicalEvent): Promise<MedicalEvent> {
+    const [row] = await db.insert(medicalAppointmentEvents).values(data).returning();
+    return row;
+  }
+
+  async getEventsByCycle(cycleId: string): Promise<MedicalEvent[]> {
+    return db.select().from(medicalAppointmentEvents)
+      .where(eq(medicalAppointmentEvents.cycleId, cycleId))
+      .orderBy(medicalAppointmentEvents.createdAt);
+  }
+
+  async getCyclesDueForAwaitingMeeting(): Promise<AppointmentCycle[]> {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    return db.select().from(appointmentCycles).where(
+      and(
+        eq(appointmentCycles.status, "SCHEDULED"),
+        lte(appointmentCycles.appointmentTime, fiveMinAgo)
+      )
+    );
+  }
+
+  async getCyclesDueForNoShow(): Promise<AppointmentCycle[]> {
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+    return db.select().from(appointmentCycles).where(
+      and(
+        eq(appointmentCycles.status, "AWAITING_MEETING"),
+        lte(appointmentCycles.awaitingMeetingAt, thirtyMinAgo),
+        eq(appointmentCycles.crmHoldActive, false)
+      )
+    );
+  }
+
+  async getCyclesDueForResultDelayed(): Promise<AppointmentCycle[]> {
+    const thirtyHoursAgo = new Date(Date.now() - 30 * 60 * 60 * 1000);
+    return db.select().from(appointmentCycles).where(
+      and(
+        eq(appointmentCycles.status, "COMPLETED"),
+        lte(appointmentCycles.completedAt, thirtyHoursAgo)
+      )
+    );
   }
 }
 

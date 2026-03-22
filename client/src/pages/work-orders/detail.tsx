@@ -67,6 +67,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType, WoNote, Vendor, WoDocument } from "@shared/schema";
 import { DocumentPanel } from "@/components/documents/document-panel";
+import { MedicalSchedulingTab } from "@/components/medical-scheduling/MedicalSchedulingTab";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { CopyableText } from "@/components/ui/copy-button";
 import { Badge } from "@/components/ui/badge";
@@ -1774,6 +1775,14 @@ export default function WorkOrderDetail() {
                 <FileText className="h-4 w-4 mr-1 sm:mr-2" />
                 Docs
               </TabsTrigger>
+              <TabsTrigger 
+                value="medical-scheduling" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 sm:px-6 py-3 text-xs sm:text-sm"
+                data-testid="tab-medical-scheduling"
+              >
+                <Stethoscope className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Medical </span>Sched
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="appointments" className="p-3 sm:p-6">
@@ -1976,6 +1985,15 @@ export default function WorkOrderDetail() {
                 woId={id || ""}
                 serviceCategory={serviceTypes?.find(st => st.id === workOrder.serviceTypeId)?.category as ServiceCategory | undefined}
                 title="Work Order Documents"
+              />
+            </TabsContent>
+
+            <TabsContent value="medical-scheduling" className="p-3 sm:p-6">
+              <MedicalSchedulingTab
+                woId={id || ""}
+                centers={allCenters}
+                staffList={allStaff}
+                typingReady={!!(existingMedicalJob && (existingMedicalJob.status === "ReadyForScheduling" || existingMedicalJob.status === "Returned"))}
               />
             </TabsContent>
 

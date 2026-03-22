@@ -91,6 +91,98 @@ export const approvalStatusEnum = pgEnum("approval_status", ["Pending", "Approve
 export const changeNotificationStatusEnum = pgEnum("change_notification_status", ["pending", "reviewed", "dismissed"]);
 export const passwordResetStatusEnum = pgEnum("password_reset_status", ["pending", "approved", "rejected"]);
 
+// Medical Appointment Scheduling enums
+export const medicalApptStatusEnum = pgEnum("medical_appt_status", [
+  "SCHEDULED",
+  "AWAITING_MEETING",
+  "IN_PROCESS",
+  "COMPLETED",
+  "RESULT_DELAYED",
+  "RESULT_ISSUED",
+  "MEDICAL_FAILED",
+  "NO_SHOW",
+  "RETEST_REQUIRED",
+  "CLOSED_ADMIN_OVERRIDE",
+]);
+
+export const cycleTypeEnum = pgEnum("cycle_type", ["Initial", "Reschedule", "Retest"]);
+export const cycleOutcomeEnum = pgEnum("cycle_outcome", ["Passed", "Failed", "Pending"]);
+export const medicalEventTypeEnum = pgEnum("medical_event_type", [
+  "CYCLE_CREATED",
+  "STATUS_CHANGED",
+  "QR_CONFIRMED",
+  "MANUAL_CONFIRMED",
+  "CRM_HOLD_SET",
+  "CRM_HOLD_REMOVED",
+  "COMPLETED_MARKED",
+  "RETEST_REQUIRED_SET",
+  "ADMIN_OVERRIDE",
+  "RESULT_ISSUED",
+  "MEDICAL_FAILED",
+  "TIMER_AWAITING_MEETING",
+  "TIMER_NO_SHOW",
+  "TIMER_RESULT_DELAYED",
+]);
+
+// Medical Cases table — links a work order to the medical scheduling scope
+export const medicalCases = pgTable("medical_cases", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  woId: varchar("wo_id").notNull().unique(),
+  isOpen: boolean("is_open").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_medical_cases_wo_id").on(table.woId),
+]);
+
+// Appointment Cycles table — each scheduling attempt under a medical case
+export const appointmentCycles = pgTable("appointment_cycles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: varchar("case_id").notNull(),
+  cycleNumber: integer("cycle_number").notNull().default(1),
+  cycleType: cycleTypeEnum("cycle_type").notNull().default("Initial"),
+  status: medicalApptStatusEnum("status").notNull().default("SCHEDULED"),
+  appointmentTime: timestamp("appointment_time").notNull(),
+  centerId: varchar("center_id"),
+  assignedProId: varchar("assigned_pro_id"),
+  outcome: cycleOutcomeEnum("outcome"),
+  // Timer fields
+  awaitingMeetingAt: timestamp("awaiting_meeting_at"),
+  noShowAt: timestamp("no_show_at"),
+  completedAt: timestamp("completed_at"),
+  resultDelayedAt: timestamp("result_delayed_at"),
+  resultIssuedAt: timestamp("result_issued_at"),
+  // CRM hold
+  crmHoldActive: boolean("crm_hold_active").notNull().default(false),
+  crmHoldSetBy: varchar("crm_hold_set_by"),
+  crmHoldSetAt: timestamp("crm_hold_set_at"),
+  // QR / confirmation
+  confirmedAt: timestamp("confirmed_at"),
+  confirmedBy: varchar("confirmed_by"),
+  confirmMethod: text("confirm_method"),
+  // Admin override
+  overrideReason: text("override_reason"),
+  overrideBy: varchar("override_by"),
+  overrideAt: timestamp("override_at"),
+  // Creation
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_appointment_cycles_case_id").on(table.caseId),
+]);
+
+// Medical Appointment Events table — event log per cycle
+export const medicalAppointmentEvents = pgTable("medical_appointment_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  cycleId: varchar("cycle_id").notNull(),
+  eventType: medicalEventTypeEnum("event_type").notNull(),
+  actorId: varchar("actor_id"),
+  actorRole: text("actor_role"),
+  details: json("details"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_medical_events_cycle_id").on(table.cycleId),
+]);
+
 // Client contact type for companies
 export type ClientContact = {
   name: string;
@@ -702,3 +794,19 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
+
+// Medical Scheduling insert schemas and types
+export const insertMedicalCaseSchema = createInsertSchema(medicalCases).omit({ id: true, createdAt: true });
+export type InsertMedicalCase = z.infer<typeof insertMedicalCaseSchema>;
+export type MedicalCase = typeof medicalCases.$inferSelect;
+
+export const insertAppointmentCycleSchema = createInsertSchema(appointmentCycles).omit({ id: true, createdAt: true });
+export type InsertAppointmentCycle = z.infer<typeof insertAppointmentCycleSchema>;
+export type AppointmentCycle = typeof appointmentCycles.$inferSelect;
+
+export const insertMedicalEventSchema = createInsertSchema(medicalAppointmentEvents).omit({ id: true, createdAt: true });
+export type InsertMedicalEvent = z.infer<typeof insertMedicalEventSchema>;
+export type MedicalEvent = typeof medicalAppointmentEvents.$inferSelect;
+
+export const FINAL_CYCLE_STATUSES = ["RESULT_ISSUED", "MEDICAL_FAILED", "CLOSED_ADMIN_OVERRIDE", "NO_SHOW"] as const;
+export type MedicalApptStatus = "SCHEDULED" | "AWAITING_MEETING" | "IN_PROCESS" | "COMPLETED" | "RESULT_DELAYED" | "RESULT_ISSUED" | "MEDICAL_FAILED" | "NO_SHOW" | "RETEST_REQUIRED" | "CLOSED_ADMIN_OVERRIDE";
