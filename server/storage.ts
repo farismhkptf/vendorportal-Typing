@@ -6,6 +6,7 @@ import {
   woDocuments, documentRequirements, changeNotifications, loginAuditLog, passwordResetRequests,
   sheetMonths, apiKeys,
   medicalCases, appointmentCycles, medicalAppointmentEvents,
+  biometricsCases, biometricsAppointmentCycles, biometricsAppointmentEvents,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -28,6 +29,9 @@ import {
   type MedicalCase, type InsertMedicalCase,
   type AppointmentCycle, type InsertAppointmentCycle,
   type MedicalEvent, type InsertMedicalEvent,
+  type BiometricsCase, type InsertBiometricsCase,
+  type BiometricsCycle, type InsertBiometricsCycle,
+  type BiometricsEvent, type InsertBiometricsEvent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
@@ -277,6 +281,20 @@ export interface IStorage {
   getCyclesDueForAwaitingMeeting(): Promise<AppointmentCycle[]>;
   getCyclesDueForNoShow(): Promise<AppointmentCycle[]>;
   getCyclesDueForResultDelayed(): Promise<AppointmentCycle[]>;
+
+  // EID Biometrics Scheduling
+  getBiometricsCaseByWoId(woId: string): Promise<BiometricsCase | undefined>;
+  getBiometricsCaseById(id: string): Promise<BiometricsCase | undefined>;
+  createBiometricsCase(data: InsertBiometricsCase): Promise<BiometricsCase>;
+  updateBiometricsCase(id: string, data: Partial<InsertBiometricsCase>): Promise<BiometricsCase | undefined>;
+  getBiometricsCyclesByCase(caseId: string): Promise<BiometricsCycle[]>;
+  getBiometricsCycleById(id: string): Promise<BiometricsCycle | undefined>;
+  createBiometricsCycle(data: InsertBiometricsCycle): Promise<BiometricsCycle>;
+  updateBiometricsCycle(id: string, data: Partial<BiometricsCycle>): Promise<BiometricsCycle | undefined>;
+  logBiometricsEvent(data: InsertBiometricsEvent): Promise<BiometricsEvent>;
+  getBiometricsEventsByCycle(cycleId: string): Promise<BiometricsEvent[]>;
+  getBiometricsCyclesDueForAwaitingMeeting(): Promise<BiometricsCycle[]>;
+  getBiometricsCyclesDueForNoShow(): Promise<BiometricsCycle[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1964,6 +1982,80 @@ export class DatabaseStorage implements IStorage {
       and(
         eq(appointmentCycles.status, "COMPLETED"),
         lte(appointmentCycles.completedAt, thirtyHoursAgo)
+      )
+    );
+  }
+
+  // EID Biometrics Scheduling
+  async getBiometricsCaseByWoId(woId: string): Promise<BiometricsCase | undefined> {
+    const [row] = await db.select().from(biometricsCases).where(eq(biometricsCases.woId, woId));
+    return row || undefined;
+  }
+
+  async getBiometricsCaseById(id: string): Promise<BiometricsCase | undefined> {
+    const [row] = await db.select().from(biometricsCases).where(eq(biometricsCases.id, id));
+    return row || undefined;
+  }
+
+  async createBiometricsCase(data: InsertBiometricsCase): Promise<BiometricsCase> {
+    const [row] = await db.insert(biometricsCases).values(data).returning();
+    return row;
+  }
+
+  async updateBiometricsCase(id: string, data: Partial<InsertBiometricsCase>): Promise<BiometricsCase | undefined> {
+    const [row] = await db.update(biometricsCases).set(data).where(eq(biometricsCases.id, id)).returning();
+    return row || undefined;
+  }
+
+  async getBiometricsCyclesByCase(caseId: string): Promise<BiometricsCycle[]> {
+    return db.select().from(biometricsAppointmentCycles)
+      .where(eq(biometricsAppointmentCycles.caseId, caseId))
+      .orderBy(desc(biometricsAppointmentCycles.cycleNumber));
+  }
+
+  async getBiometricsCycleById(id: string): Promise<BiometricsCycle | undefined> {
+    const [row] = await db.select().from(biometricsAppointmentCycles).where(eq(biometricsAppointmentCycles.id, id));
+    return row || undefined;
+  }
+
+  async createBiometricsCycle(data: InsertBiometricsCycle): Promise<BiometricsCycle> {
+    const [row] = await db.insert(biometricsAppointmentCycles).values(data).returning();
+    return row;
+  }
+
+  async updateBiometricsCycle(id: string, data: Partial<BiometricsCycle>): Promise<BiometricsCycle | undefined> {
+    const [row] = await db.update(biometricsAppointmentCycles).set(data).where(eq(biometricsAppointmentCycles.id, id)).returning();
+    return row || undefined;
+  }
+
+  async logBiometricsEvent(data: InsertBiometricsEvent): Promise<BiometricsEvent> {
+    const [row] = await db.insert(biometricsAppointmentEvents).values(data).returning();
+    return row;
+  }
+
+  async getBiometricsEventsByCycle(cycleId: string): Promise<BiometricsEvent[]> {
+    return db.select().from(biometricsAppointmentEvents)
+      .where(eq(biometricsAppointmentEvents.cycleId, cycleId))
+      .orderBy(biometricsAppointmentEvents.createdAt);
+  }
+
+  async getBiometricsCyclesDueForAwaitingMeeting(): Promise<BiometricsCycle[]> {
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+    return db.select().from(biometricsAppointmentCycles).where(
+      and(
+        eq(biometricsAppointmentCycles.status, "SCHEDULED"),
+        lte(biometricsAppointmentCycles.appointmentTime, fiveMinAgo)
+      )
+    );
+  }
+
+  async getBiometricsCyclesDueForNoShow(): Promise<BiometricsCycle[]> {
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+    return db.select().from(biometricsAppointmentCycles).where(
+      and(
+        eq(biometricsAppointmentCycles.status, "AWAITING_MEETING"),
+        lte(biometricsAppointmentCycles.awaitingMeetingAt, thirtyMinAgo),
+        eq(biometricsAppointmentCycles.crmHoldActive, false)
       )
     );
   }

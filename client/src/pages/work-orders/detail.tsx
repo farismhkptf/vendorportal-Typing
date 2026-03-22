@@ -68,6 +68,7 @@ import { Label } from "@/components/ui/label";
 import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType, WoNote, Vendor, WoDocument } from "@shared/schema";
 import { DocumentPanel } from "@/components/documents/document-panel";
 import { MedicalSchedulingTab } from "@/components/medical-scheduling/MedicalSchedulingTab";
+import { BiometricsSchedulingTab } from "@/components/biometrics-scheduling/BiometricsSchedulingTab";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { CopyableText } from "@/components/ui/copy-button";
 import { Badge } from "@/components/ui/badge";
@@ -1783,6 +1784,14 @@ export default function WorkOrderDetail() {
                 <Stethoscope className="h-4 w-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Medical </span>Sched
               </TabsTrigger>
+              <TabsTrigger 
+                value="biometrics-scheduling" 
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 sm:px-6 py-3 text-xs sm:text-sm"
+                data-testid="tab-biometrics-scheduling"
+              >
+                <CreditCard className="h-4 w-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">EID </span>Biometrics
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="appointments" className="p-3 sm:p-6">
@@ -1994,6 +2003,14 @@ export default function WorkOrderDetail() {
                 centers={allCenters}
                 staffList={allStaff}
                 typingReady={!!(existingMedicalJob && (existingMedicalJob.status === "ReadyForScheduling" || existingMedicalJob.status === "Returned"))}
+              />
+            </TabsContent>
+
+            <TabsContent value="biometrics-scheduling" className="p-3 sm:p-6">
+              <BiometricsSchedulingTab
+                woId={id || ""}
+                centers={allCenters}
+                staffList={allStaff}
               />
             </TabsContent>
 
