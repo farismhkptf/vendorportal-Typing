@@ -1,0 +1,118 @@
+I want you to act as a senior product architect, workflow designer, UX strategist, and web app systems auditor.
+
+Your task is to perform a deep audit of this app — not just how it looks, but how it is fundamentally set up.
+
+This is not a request to simply review code or UI. I want you to evaluate whether this app has been designed and structured in the best possible way to achieve its purpose.
+
+## What I want you to audit
+
+### 1) Purpose and Process Logic
+First, understand the real purpose of this app.
+Then evaluate:
+- what the app is trying to achieve
+- what each major page, section, module, button, status, and action is supposed to do
+- whether the process flow makes sense from start to finish
+- whether the sequence of actions is correct
+- whether anything important is missing in the workflow
+- whether there are any gaps, dead ends, duplicated effort, unnecessary steps, or weak connections between steps
+- whether any part of the user journey is confusing, fragile, manual, or dependent on memory instead of system logic
+
+### 2) Workflow Connections and Missing Links
+Check how everything connects together.
+Identify:
+- missing workflow links
+- missing triggers
+- missing statuses
+- missing approvals
+- missing validations
+- missing feedback loops
+- missing handoff points
+- areas where the user does something but the system does not properly respond
+- places where a next step should exist but does not
+- places where data should flow to another part of the app but currently does not
+
+### 3) App Setup / System Configuration
+Evaluate whether this app has been set up in the best way structurally.
+Challenge the current setup.
+Ask:
+- is this app configured in the simplest and smartest way?
+- is the same result being achieved through a structure that is more complex than necessary?
+- could the app have been designed in a cleaner, more scalable, or more maintainable way?
+- could a different setup have created additional benefits such as easier usage, better reporting, fewer clicks, less confusion, stronger automation, better future expansion, or lower maintenance?
+
+I want you to identify where the current setup may be:
+- overcomplicated
+- under-structured
+- too manual
+- too dependent on the user remembering things
+- too page-heavy
+- too status-heavy
+- too fragmented
+- not modular enough
+- not future-proof enough
+
+### 4) Modern Product / UX / Web App Standards
+Think like a top modern SaaS product team.
+Review whether the app is missing any newer or better patterns used in strong modern web apps.
+
+Consider things like:
+- smarter workflows
+- better information hierarchy
+- fewer clicks to achieve the same goal
+- more intuitive actions
+- clearer visibility of status and next step
+- auto-suggestions
+- better onboarding into tasks
+- progressive disclosure
+- better dashboards
+- cleaner action grouping
+- contextual actions instead of scattered buttons
+- stronger empty states
+- better exception handling
+- more useful activity timelines
+- role-based simplification
+- automation opportunities
+- better use of notifications, reminders, warnings, confirmations, and system guidance
+- modern UX patterns that reduce mental load
+- patterns that improve confidence, speed, accuracy, and clarity
+
+Do not limit yourself to old/traditional app structures. Think about the best modern way this app could be handled today.
+
+### 5) Alternative Ways the App Could Have Been Designed
+I want you to actively challenge the current design.
+For the same business purpose, tell me:
+- whether there is a better structural approach
+- whether the app should have been organized differently
+- whether some modules should be merged, split, simplified, or rethought
+- whether certain workflows should be wizard-based, timeline-based, inbox-based, dashboard-based, card-based, queue-based, or detail-page based
+- whether the system should rely more on automation and less on manual movement
+- whether there are stronger ways to handle the same process
+
+If there are multiple valid approaches, compare them and recommend the best one.
+
+### 6) Practical Output Format
+Give me the audit in the following structure:
+
+1. App Purpose as You Understand It
+2. Current Flow as You Understand It
+3. What Is Working Well
+4. Problems / Weaknesses Found
+5. Missing Workflow Connections
+6. Areas That Are Overcomplicated or Harder Than Necessary
+7. Better Structural Alternatives
+8. Modern Product / UX Improvements That Should Be Considered
+9. What Should Be Changed Immediately
+10. What Can Be Improved Later
+11. Final Recommendation: Is the app fundamentally set up in the right way or should it be restructured?
+
+## Important instructions
+- Do not give generic advice.
+- Do not focus mainly on colors, fonts, or surface-level design unless it affects usability.
+- Focus primarily on process logic, app structure, system flow, usability, efficiency, and modern product thinking.
+- Be critical, honest, and direct.
+- If something is weak, say it clearly.
+- If something is good, say why.
+- If a better way exists, explain it clearly.
+- Think like someone trying to make this app the best possible version of itself, not just an acceptable one.
+
+Now audit this app properly.
