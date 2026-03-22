@@ -2001,6 +2001,8 @@ export async function registerRoutes(
       const settings = await storage.getAppSettings().catch(() => undefined);
       if (settings?.logoUrl) appLogoUrl = settings.logoUrl;
 
+      const appBaseUrl = process.env.APP_BASE_URL || "";
+
       const html = buildAppointmentEmail({
         workOrder: wo,
         company,
@@ -2012,6 +2014,7 @@ export async function registerRoutes(
         rmUserEmail,
         applicantPhotoUrl,
         appLogoUrl,
+        appBaseUrl,
       });
 
       const ccRecipients: string[] = [];
@@ -5943,6 +5946,106 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Update service type categories error:", error);
       res.status(500).json({ message: "Failed to update service type categories" });
+    }
+  });
+
+  // ========== Appointment Card (public) ==========
+  app.get("/api/card/:token", async (req, res) => {
+    try {
+      const appointment = await storage.getAppointmentByToken(req.params.token);
+      if (!appointment) {
+        return res.status(404).json({ message: "Invalid or expired card link" });
+      }
+
+      const wo = await storage.getWorkOrderById(appointment.woId);
+      const center = appointment.centerId ? await storage.getCenterById(appointment.centerId) : null;
+      const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+      const assignedStaff = appointment.assignedStaffId ? await storage.getStaffById(appointment.assignedStaffId) : null;
+
+      let rmStaff: import("@shared/schema").Staff | null = null;
+      if (company?.rmStaffId) {
+        rmStaff = await storage.getStaffById(company.rmStaffId) || null;
+      }
+
+      let applicantPhotoUrl: string | null = null;
+      if (wo) {
+        const docs = await storage.getWoDocuments(wo.id);
+        const photoDoc = docs.find(d => d.documentType === "Photo" && d.status === "Uploaded");
+        if (photoDoc) applicantPhotoUrl = photoDoc.fileUrl;
+      }
+
+      res.json({
+        appointment,
+        workOrder: wo || null,
+        company: company || null,
+        center: center || null,
+        assignedStaff: assignedStaff || null,
+        rmStaff: rmStaff || null,
+        applicantPhotoUrl,
+      });
+    } catch (error) {
+      console.error("Card fetch error:", error);
+      res.status(500).json({ message: "Failed to fetch card data" });
+    }
+  });
+
+  app.get("/api/card/:token/wallet", async (req, res) => {
+    const certBase64 = process.env.APPLE_PASS_CERT;
+    const keyBase64 = process.env.APPLE_PASS_KEY;
+    const wwdrBase64 = process.env.APPLE_PASS_WWDR;
+    const passphrase = process.env.APPLE_PASS_PASSPHRASE;
+
+    if (!certBase64 || !keyBase64 || !wwdrBase64 || !passphrase) {
+      return res.status(503).json({ message: "Apple Wallet not configured" });
+    }
+
+    try {
+      const appointment = await storage.getAppointmentByToken(req.params.token);
+      if (!appointment) {
+        return res.status(404).json({ message: "Invalid or expired card link" });
+      }
+
+      const wo = await storage.getWorkOrderById(appointment.woId);
+      const center = appointment.centerId ? await storage.getCenterById(appointment.centerId) : null;
+
+      const { PKPass } = await import("passkit-generator");
+
+      const dt = new Date(appointment.datetime);
+      const dateStr = dt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+      const timeStr = dt.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
+
+      const pass = new PKPass({}, {
+        signerCert: Buffer.from(certBase64, "base64"),
+        signerKey: Buffer.from(keyBase64, "base64"),
+        wwdr: Buffer.from(wwdrBase64, "base64"),
+        signerKeyPassphrase: passphrase,
+      }, {
+        serialNumber: appointment.id,
+        description: "Medical Appointment",
+        organizationName: "The P.R.O. Company",
+        passTypeIdentifier: "pass.ae.procompany.appointment",
+        teamIdentifier: process.env.APPLE_TEAM_ID || "XXXXXXXXXX",
+        foregroundColor: "rgb(255,255,255)",
+        backgroundColor: "rgb(74,144,217)",
+        labelColor: "rgb(210,230,255)",
+      });
+
+      pass.type = "generic";
+      pass.primaryFields.push({ key: "applicant", label: "Applicant", value: wo?.applicantName || "—" });
+      pass.secondaryFields.push({ key: "date", label: "Date", value: dateStr });
+      pass.secondaryFields.push({ key: "time", label: "Time", value: timeStr });
+      pass.auxiliaryFields.push({ key: "center", label: "Center", value: center?.name || "—" });
+      pass.backFields.push({ key: "ref", label: "Reference", value: wo?.woNumber || "—" });
+
+      const buf = await pass.getAsBuffer();
+      res.set({
+        "Content-Type": "application/vnd.apple.pkpass",
+        "Content-Disposition": `attachment; filename="appointment.pkpass"`,
+      });
+      res.send(buf);
+    } catch (error) {
+      console.error("Wallet pass error:", error);
+      res.status(500).json({ message: "Failed to generate wallet pass" });
     }
   });
 

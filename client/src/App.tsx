@@ -103,6 +103,7 @@ import ReportsPage from "@/pages/reports";
 import ExpiringDocuments from "@/pages/expiring-documents";
 import AccountSecurity from "@/pages/account-security";
 import LegalPage from "@/pages/legal";
+import CardPage from "@/pages/card";
 
 function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
   return (
@@ -169,7 +170,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     location.startsWith("/vendor/") ||
     location === "/vendor-v2" ||
     location.startsWith("/vendor-v2/") ||
-    location.startsWith("/reschedule/");
+    location.startsWith("/reschedule/") ||
+    location.startsWith("/card/");
 
   if (!user && !isPublicPath) {
     return <Redirect to="/login" />;
@@ -285,6 +287,7 @@ function AppRoutes() {
       <Route path="/bots" component={BotsHub} />
       <Route path="/bots/quick-paste" component={QuickPasteBot} />
       <Route path="/bots/scheduler" component={SchedulerBot} />
+      <Route path="/card/:token" component={CardPage} />
       <Route component={NotFound} />
     </Switch>
   );

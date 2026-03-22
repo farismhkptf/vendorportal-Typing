@@ -549,6 +549,14 @@ function ExpandedAppointmentCard({
                     </Link>
                   </>
                 )}
+                {apt.rescheduleToken && (
+                  <a href={`/card/${apt.rescheduleToken}`} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-view-card-${apt.id}`}>
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      View Appointment Card
+                    </Button>
+                  </a>
+                )}
                 {apt.emailDraft && (
                   <Button
                     variant="outline"

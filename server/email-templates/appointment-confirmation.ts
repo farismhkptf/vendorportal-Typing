@@ -11,6 +11,7 @@ export interface AppointmentEmailData {
   rmUserEmail?: string;
   applicantPhotoUrl?: string;
   appLogoUrl?: string;
+  appBaseUrl?: string;
 }
 
 function escapeHtml(str: string): string {
@@ -65,6 +66,7 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
     rmUserEmail,
     applicantPhotoUrl,
     appLogoUrl,
+    appBaseUrl,
   } = data;
 
   const applicantName = workOrder?.applicantName ?? "—";
@@ -148,6 +150,22 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
     ? `<tr><td colspan="2" style="padding-top:36px;">
         <div class="text-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding-bottom:14px;">Notes</div>
         <div class="text-secondary" style="font-size:14px;font-weight:400;line-height:1.6;">${escapeHtml(appointment.notes)}</div>
+      </td></tr>`
+    : "";
+
+  const cardUrl = (appBaseUrl && appointment.rescheduleToken)
+    ? `${appBaseUrl}/card/${appointment.rescheduleToken}`
+    : null;
+
+  const cardLinkBlock = cardUrl
+    ? `<tr><td colspan="2" style="padding-top:36px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);border-radius:20px;">
+          <tr><td style="padding:24px 28px;text-align:center;">
+            <div style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.75);letter-spacing:0.03em;text-transform:uppercase;padding-bottom:8px;">Your Appointment Card</div>
+            <div style="font-size:15px;font-weight:400;color:rgba(255,255,255,0.85);line-height:1.5;padding-bottom:20px;">Open your digital appointment card on any device. Add it to Apple Wallet for quick access.</div>
+            <a href="${escapeHtml(cardUrl)}" style="display:inline-block;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.30);color:#ffffff;font-size:15px;font-weight:600;letter-spacing:-0.01em;text-decoration:none;padding:12px 28px;border-radius:12px;">View Appointment Card &#8599;</a>
+          </td></tr>
+        </table>
       </td></tr>`
     : "";
 
@@ -358,6 +376,8 @@ export function buildAppointmentEmail(data: AppointmentEmailData): string {
                     </tr>
 
                     ${notesBlock}
+
+                    ${cardLinkBlock}
 
                     <!-- AFTER THE APPOINTMENT -->
                     <tr>
