@@ -12,7 +12,7 @@ import {
   insertAppointmentSchema, insertTypingJobSchema, insertWoNoteSchema,
   insertTypingJobCommentSchema, insertFileSchema,
   type CenterTimings, type InsertVendorNotification, type InsertStaffNotification,
-  type Staff, type WoDocument, ROLE_CATEGORIES
+  type Staff, type WoDocument, type AppSettings, ROLE_CATEGORIES
 } from "@shared/schema";
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
@@ -2125,12 +2125,15 @@ export async function registerRoutes(
           }
 
           let logoUrl: string | undefined;
+          let settings: AppSettings | undefined;
           try {
-            const settings = await storage.getAppSettings();
+            settings = await storage.getAppSettings();
             if (settings?.logoUrl) {
               logoUrl = settings.logoUrl;
             }
           } catch {}
+
+          const appBaseUrl = process.env.APP_BASE_URL || "";
 
           const html = buildAppointmentEmail({
             workOrder: wo,
@@ -2143,9 +2146,52 @@ export async function registerRoutes(
             rmUserEmail: rmEmail,
             applicantPhotoUrl: photoUrl,
             appLogoUrl: logoUrl,
+            appBaseUrl,
           });
 
-          await storage.updateAppointment(appointment.id, { emailDraft: html });
+          const updateData: Parameters<typeof storage.updateAppointment>[1] = { emailDraft: html };
+
+          if (isEmailConfigured()) {
+            const primaryRecipients: string[] = [];
+            if (comp?.clientCoordinator?.email) primaryRecipients.push(comp.clientCoordinator.email);
+            if (comp?.clientManager?.email && comp.clientManager.email !== comp.clientCoordinator?.email) {
+              primaryRecipients.push(comp.clientManager.email);
+            }
+            if (primaryRecipients.length === 0 && rmEmail) {
+              primaryRecipients.push(rmEmail);
+            }
+
+            if (primaryRecipients.length > 0) {
+              try {
+                const ccRecipients: string[] = [];
+                if (settings?.alwaysCc && Array.isArray(settings.alwaysCc)) {
+                  ccRecipients.push(...settings.alwaysCc.filter((e: string) => e && !primaryRecipients.includes(e)));
+                }
+                if (rmEmail && !primaryRecipients.includes(rmEmail)) {
+                  ccRecipients.push(rmEmail);
+                }
+                const applicantName = toProperCase(wo?.applicantName || "Applicant");
+                const apptTypeLabel = appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness";
+                const emailResult = await sendEmail({
+                  to: primaryRecipients,
+                  cc: ccRecipients.length > 0 ? ccRecipients : undefined,
+                  subject: `${apptTypeLabel} Appointment - ${applicantName}. ${wo?.woNumber || ""}`,
+                  html,
+                  from: settings?.fromEmail || undefined,
+                });
+                if (emailResult.success) {
+                  updateData.messageSentAt = new Date();
+                  updateData.messageSentBy = "auto";
+                } else {
+                  console.warn("Auto-send email failed:", emailResult.error);
+                }
+              } catch (emailErr) {
+                console.error("Auto-send email error:", emailErr);
+              }
+            }
+          }
+
+          await storage.updateAppointment(appointment.id, updateData);
         } catch (err) {
           console.error("Email draft generation error:", err);
         }

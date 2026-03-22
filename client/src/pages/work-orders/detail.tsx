@@ -41,7 +41,8 @@ import {
   ExternalLink,
   MessageSquare,
   Package,
-  Clock
+  Clock,
+  Copy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -472,9 +473,20 @@ function ExpandedAppointmentCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [emailDraftOpen, setEmailDraftOpen] = useState(false);
+  const [cardLinkCopied, setCardLinkCopied] = useState(false);
 
   const center = apt.centerId ? centers.find(c => c.id === apt.centerId) : null;
   const assignedStaff = apt.assignedStaffId ? staffList.find(s => s.id === apt.assignedStaffId) : null;
+
+  const handleCopyCardLink = async () => {
+    if (!apt.rescheduleToken) return;
+    const url = `${window.location.origin}/card/${apt.rescheduleToken}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCardLinkCopied(true);
+      setTimeout(() => setCardLinkCopied(false), 2000);
+    } catch {}
+  };
 
   return (
     <>
@@ -552,12 +564,28 @@ function ExpandedAppointmentCard({
                   </>
                 )}
                 {apt.rescheduleToken && (
-                  <a href={`/card/${apt.rescheduleToken}`} target="_blank" rel="noopener noreferrer">
-                    <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-view-card-${apt.id}`}>
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      View Appointment Card
+                  <>
+                    <a href={`/card/${apt.rescheduleToken}`} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-view-card-${apt.id}`}>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        View Card
+                      </Button>
+                    </a>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={handleCopyCardLink}
+                      data-testid={`button-copy-card-link-${apt.id}`}
+                    >
+                      {cardLinkCopied ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                      {cardLinkCopied ? "Copied!" : "Copy Link"}
                     </Button>
-                  </a>
+                  </>
                 )}
                 {apt.emailDraft && (
                   <Button

@@ -1,5 +1,7 @@
 import { useRoute } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Appointment, WorkOrder, Company, Center, Staff } from "@shared/schema";
 
@@ -103,6 +105,10 @@ function AppleWalletButton({ token }: { token: string }) {
 export default function CardPage() {
   const [, params] = useRoute("/card/:token");
   const token = params?.token;
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  const cardUrl = typeof window !== "undefined" ? window.location.href : "";
 
   const { data, isLoading, error } = useQuery<CardData>({
     queryKey: ["/api/card", token],
@@ -114,6 +120,25 @@ export default function CardPage() {
     enabled: !!token,
     retry: false,
   });
+
+  useEffect(() => {
+    if (!qrCanvasRef.current || !cardUrl || !data) return;
+    QRCode.toCanvas(qrCanvasRef.current, cardUrl, {
+      width: 100,
+      margin: 1,
+      color: { dark: "#1a2030", light: "#ffffff" },
+    }).catch(() => {});
+  }, [cardUrl, data]);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(cardUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -385,6 +410,63 @@ export default function CardPage() {
 
           {/* APPLE WALLET */}
           {token && <AppleWalletButton token={token} />}
+
+          {/* QR CODE + COPY LINK */}
+          <div style={{
+            margin: "16px 24px 0",
+            padding: "14px",
+            borderRadius: "14px",
+            background: "rgba(255,255,255,0.55)",
+            border: "1px solid rgba(255,255,255,0.70)",
+            boxShadow: "0 1px 0 rgba(255,255,255,0.95) inset, 0 2px 8px rgba(60,90,140,0.06)",
+            display: "flex",
+            alignItems: "center",
+            gap: "14px",
+          }}>
+            <div style={{ flexShrink: 0, borderRadius: "8px", overflow: "hidden", background: "white", padding: "4px" }}>
+              <canvas ref={qrCanvasRef} data-testid="card-qr-code" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "12px", fontWeight: 600, color: inkColor, marginBottom: "4px" }}>Share This Card</div>
+              <div style={{ fontSize: "10px", fontWeight: 400, color: inkSoft, lineHeight: 1.5, marginBottom: "8px" }}>
+                Scan the QR code or copy the link to share this appointment card.
+              </div>
+              <button
+                onClick={handleCopyLink}
+                data-testid="button-copy-card-link"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: copied ? "#15803d" : accent,
+                  background: copied ? "rgba(21,128,61,0.08)" : "rgba(74,144,217,0.08)",
+                  border: `1px solid ${copied ? "rgba(21,128,61,0.20)" : "rgba(74,144,217,0.20)"}`,
+                  borderRadius: "8px",
+                  padding: "5px 10px",
+                  cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+              >
+                {copied ? (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                      <polyline points="20,6 9,17 4,12" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+                    </svg>
+                    Copy Link
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
           {/* FOOTER */}
           <div style={{
