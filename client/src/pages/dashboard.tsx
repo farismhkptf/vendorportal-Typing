@@ -1117,7 +1117,7 @@ export default function Dashboard() {
       </div>
 
       <div className="px-4 lg:px-6 pb-6 space-y-4">
-        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {statsLoading ? (
             <>
               <Skeleton className="h-24 rounded-xl" />

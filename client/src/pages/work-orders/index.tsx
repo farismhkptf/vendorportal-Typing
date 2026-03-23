@@ -6,7 +6,8 @@ import {
   List, LayoutGrid, Columns3, Table2, Star, Tag,
   Clock, AlertTriangle, CheckCircle2, CircleDot, 
   Stethoscope, Fingerprint, CalendarCheck, Send as SendIcon,
-  Loader2, Download, Circle, ArrowRight, ExternalLink, Copy, StarOff
+  Loader2, Download, Circle, ArrowRight, ExternalLink, Copy, StarOff,
+  MoreHorizontal
 } from "lucide-react";
 import { exportToCsv } from "@/lib/csv-export";
 import { Button } from "@/components/ui/button";
@@ -823,9 +824,42 @@ export default function WorkOrdersList() {
     const isSelected = dt.selectedIds.has(wo.id);
     const isComfortable = dt.density === "comfortable";
 
+    const mobileActionMenu = (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 lg:hidden shrink-0"
+            data-testid={`button-mobile-actions-${wo.woNumber}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuItem onClick={() => navigate(`/work-orders/${wo.id}`)}>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleCopyWoNumber(wo.woNumber)}>
+            <Copy className="h-4 w-4 mr-2" />
+            Copy WO#
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => singleStatusMutation.mutate({ id: wo.id, status: wo.status === "Completed" ? "Scheduled" : "Completed" })}>
+            <ArrowUpDown className="h-4 w-4 mr-2" />
+            {wo.status === "Completed" ? "Set Scheduled" : "Set Completed"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => toggleVipMutation.mutate({ id: wo.id, isVip: !wo.isVip })}>
+            {wo.isVip ? <><StarOff className="h-4 w-4 mr-2" />Unmark VIP</> : <><Star className="h-4 w-4 mr-2" />Mark VIP</>}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+
     return (
       <div key={wo.id} className="flex items-start gap-2">
-        <div className="pt-4 shrink-0">
+        <div className="pt-4 shrink-0 hidden lg:block">
           <Checkbox
             checked={isSelected}
             onCheckedChange={() => dt.toggleSelected(wo.id)}
@@ -934,6 +968,9 @@ export default function WorkOrdersList() {
           </div>
         </Link>
         )}
+        <div className="pt-4 lg:hidden shrink-0">
+          {mobileActionMenu}
+        </div>
       </div>
     );
   };
@@ -953,6 +990,38 @@ export default function WorkOrdersList() {
         const borderColor = getCardBorderColor(wo);
         const isSelected = dt.selectedIds.has(wo.id);
         const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+        const compactMobileMenu = (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 lg:hidden shrink-0"
+                data-testid={`button-mobile-actions-compact-${wo.woNumber}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleCopyWoNumber(wo.woNumber)}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy WO#
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => singleStatusMutation.mutate({ id: wo.id, status: wo.status === "Completed" ? "Scheduled" : "Completed" })}>
+                <ArrowUpDown className="h-4 w-4 mr-2" />
+                {wo.status === "Completed" ? "Set Scheduled" : "Set Completed"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toggleVipMutation.mutate({ id: wo.id, isVip: !wo.isVip })}>
+                {wo.isVip ? <><StarOff className="h-4 w-4 mr-2" />Unmark VIP</> : <><Star className="h-4 w-4 mr-2" />Mark VIP</>}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
         return (
           <div key={wo.id} className="flex items-center gap-2">
             <Checkbox
@@ -960,6 +1029,7 @@ export default function WorkOrdersList() {
               onCheckedChange={() => dt.toggleSelected(wo.id)}
               aria-label={`Select ${wo.woNumber}`}
               data-testid={`checkbox-wo-compact-${wo.woNumber}`}
+              className="hidden lg:flex"
             />
             {renderWoContextMenu(wo,
             <Link href={`/work-orders/${wo.id}`} className="flex-1 min-w-0">
@@ -1000,6 +1070,7 @@ export default function WorkOrdersList() {
               </div>
             </Link>
             )}
+            {compactMobileMenu}
           </div>
         );
       })}

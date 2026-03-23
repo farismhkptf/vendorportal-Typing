@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 
 export type Density = "compact" | "comfortable";
 export type SortDirection = "asc" | "desc" | null;
@@ -61,9 +61,12 @@ export function useDataTable<T>(
   const [density, setDensityState] = useState<Density>(
     () => loadFromStorage(`${storageKey}_density`, defaultDensity)
   );
-  const [viewMode, setViewModeState] = useState<string>(
-    () => loadFromStorage(`${storageKey}_viewMode`, defaultViewMode)
-  );
+  const [viewMode, setViewModeState] = useState<string>(() => {
+    const stored = loadFromStorage<string | null>(`${storageKey}_viewMode`, null);
+    if (stored !== null) return stored;
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+    return isMobile ? "cards" : defaultViewMode;
+  });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sort, setSortState] = useState<SortState>(
     () => loadFromStorage(`${storageKey}_sort`, { key: null, direction: null })

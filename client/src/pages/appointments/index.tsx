@@ -704,15 +704,15 @@ Thank you,
       <div
         className={`flex-1 min-w-0 ${isComfortable ? "p-4" : "p-2.5"} rounded-lg bg-muted/30 border border-border/30`}
       >
-      <div className="flex items-start gap-4">
-        <div className="shrink-0 w-[110px] rounded-md bg-background border border-border/40 px-3 py-2 text-center">
+      <div className="flex items-start gap-3">
+        <div className="shrink-0 w-[90px] sm:w-[110px] rounded-md bg-background border border-border/40 px-2 sm:px-3 py-2 text-center">
           {showDate && (
-            <p className="text-xs font-medium text-muted-foreground leading-tight">{formatShortDate(apt.datetime)}</p>
+            <p className="text-[10px] sm:text-xs font-medium text-muted-foreground leading-tight">{formatShortDate(apt.datetime)}</p>
           )}
-          <p className="text-lg font-bold text-foreground leading-snug tracking-tight">{formatTime(apt.datetime)}</p>
+          <p className="text-base sm:text-lg font-bold text-foreground leading-snug tracking-tight">{formatTime(apt.datetime)}</p>
         </div>
 
-        <Avatar className="h-8 w-8 shrink-0" data-testid={`avatar-apt-${apt.id}`}>
+        <Avatar className="h-8 w-8 shrink-0 hidden sm:flex" data-testid={`avatar-apt-${apt.id}`}>
           {photoMap?.[apt.woId] ? (
             <AvatarImage src={photoMap[apt.woId]} alt={apt.workOrder?.applicantName || "Applicant"} />
           ) : null}
@@ -816,7 +816,7 @@ Thank you,
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/20 justify-end flex-wrap">
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/20 justify-end flex-wrap overflow-x-auto">
         {showActions && (
           <>
             <Button

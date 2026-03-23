@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation, useSearch } from "wouter";
-import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download, CalendarCheck, CalendarX2, CalendarClock, CalendarMinus, ExternalLink, Copy } from "lucide-react";
+import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download, CalendarCheck, CalendarX2, CalendarClock, CalendarMinus, ExternalLink, Copy, MoreHorizontal } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -353,6 +353,37 @@ export default function TypingJobsList() {
     <div className="space-y-1 stagger-children">
       {items.map((job, index) => {
         const isSelected = dt.selectedIds.has(job.id);
+        const compactMobileMenu = (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 lg:hidden shrink-0"
+                data-testid={`button-mobile-actions-tj-compact-${job.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!job.jobCode} onClick={() => handleCopyJobCode(job.jobCode)}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Job Code
+              </DropdownMenuItem>
+              {job.workOrder?.id && (
+                <DropdownMenuItem onClick={() => navigate(`/work-orders/${job.workOrder!.id}`)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Work Order
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
         return (
           <div key={job.id} className="flex items-center gap-2">
             <Checkbox
@@ -360,6 +391,7 @@ export default function TypingJobsList() {
               onCheckedChange={() => dt.toggleSelected(job.id)}
               aria-label={`Select ${job.jobCode || job.id}`}
               data-testid={`checkbox-tj-compact-${job.id}`}
+              className="hidden lg:flex"
             />
             {renderTjContextMenu(job,
             <Link href={`/typing-jobs/${job.id}`} className="flex-1 min-w-0">
@@ -386,6 +418,7 @@ export default function TypingJobsList() {
               </div>
             </Link>
             )}
+            {compactMobileMenu}
           </div>
         );
       })}
@@ -394,45 +427,81 @@ export default function TypingJobsList() {
 
   const renderCards = (items: TypingJobWithRelations[]) => (
     <div className="space-y-2 stagger-children">
-      {items.map((job, index) => (
-        <div key={job.id}>
-        {renderTjContextMenu(job,
-        <Link href={`/typing-jobs/${job.id}`}>
-          <div 
-            className={`premium-card ${dt.density === "comfortable" ? "p-4" : "p-2.5"} opacity-0 animate-fade-in`}
-            style={{ animationDelay: `${index * 0.03}s` }}
-            data-testid={`typing-job-card-${job.id}`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="icon-container icon-container-sm shrink-0 !bg-violet-100 dark:!bg-violet-900/30 !text-violet-600 dark:!text-violet-400">
-                  <FileText className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
-                    <span className="font-semibold text-sm text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
-                    <StatusBadge status={job.status} />
-                    <AppointmentIndicator job={job} />
+      {items.map((job, index) => {
+        const cardMobileMenu = (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 lg:hidden shrink-0"
+                data-testid={`button-mobile-actions-tj-card-${job.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => navigate(`/typing-jobs/${job.id}`)}>
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Open
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!job.jobCode} onClick={() => handleCopyJobCode(job.jobCode)}>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Job Code
+              </DropdownMenuItem>
+              {job.workOrder?.id && (
+                <DropdownMenuItem onClick={() => navigate(`/work-orders/${job.workOrder!.id}`)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Work Order
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+        return (
+          <div key={job.id} className="flex items-start gap-2">
+          {renderTjContextMenu(job,
+          <Link href={`/typing-jobs/${job.id}`} className="flex-1 min-w-0">
+            <div 
+              className={`premium-card ${dt.density === "comfortable" ? "p-4" : "p-2.5"} opacity-0 animate-fade-in`}
+              style={{ animationDelay: `${index * 0.03}s` }}
+              data-testid={`typing-job-card-${job.id}`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="icon-container icon-container-sm shrink-0 !bg-violet-100 dark:!bg-violet-900/30 !text-violet-600 dark:!text-violet-400">
+                    <FileText className="h-4 w-4" />
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : ""}</p>
-                  {job.jobType && (
-                    <span className="text-xs text-muted-foreground">{job.jobType.name}</span>
-                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
+                      <span className="font-semibold text-sm text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
+                      <StatusBadge status={job.status} />
+                      <AppointmentIndicator job={job} />
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">{job.workOrder?.applicantName ? toProperCase(job.workOrder.applicantName) : ""}</p>
+                    {job.jobType && (
+                      <span className="text-xs text-muted-foreground">{job.jobType.name}</span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="text-right shrink-0">
-                {job.costSnapshot && (
-                  <p className="font-medium text-sm text-foreground">AED {job.costSnapshot}</p>
-                )}
-                <RelativeTime date={job.createdAt} className="text-xs" id={job.id} />
+                <div className="text-right shrink-0">
+                  {job.costSnapshot && (
+                    <p className="font-medium text-sm text-foreground">AED {job.costSnapshot}</p>
+                  )}
+                  <RelativeTime date={job.createdAt} className="text-xs" id={job.id} />
+                </div>
               </div>
             </div>
+          </Link>
+          )}
+          <div className="pt-3 lg:hidden shrink-0">
+            {cardMobileMenu}
           </div>
-        </Link>
-        )}
-        </div>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
 
