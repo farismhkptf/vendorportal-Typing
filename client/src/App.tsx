@@ -78,14 +78,7 @@ import NewTypingJob from "@/pages/typing-jobs/new";
 import TypingJobDetail from "@/pages/typing-jobs/detail";
 import VendorWallet from "@/pages/vendor-wallet";
 import AdminPage from "@/pages/admin/index";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { VendorSidebar, VendorTopBar } from "@/components/vendor-sidebar";
 import VendorLogin from "@/pages/vendor/login";
-import VendorDashboard from "@/pages/vendor/dashboard";
-import VendorEidJobs from "@/pages/vendor/eid-jobs";
-import VendorMedicalJobs from "@/pages/vendor/medical-jobs";
-import VendorJobDetail from "@/pages/vendor/job-detail";
-import VendorWalletPage from "@/pages/vendor/wallet";
 import V2Dashboard from "@/pages/vendor-v2/dashboard";
 import V2EidJobs from "@/pages/vendor-v2/eid-jobs";
 import V2MedicalJobs from "@/pages/vendor-v2/medical-jobs";
@@ -223,35 +216,11 @@ function VendorV2Layout() {
   );
 }
 
-function VendorLayout() {
-  return (
-    <VendorAuthProvider>
-      <VendorAuthGuard>
-        <SidebarProvider>
-          <div className="flex h-screen w-full">
-            <VendorSidebar />
-            <div className="flex flex-col flex-1 min-w-0">
-              <VendorTopBar />
-              <main className="flex-1 overflow-y-auto" data-scroll-container>
-                <PageTransition>
-                  <Switch>
-                    <Route path="/" component={VendorDashboard} />
-                    <Route path="/dashboard">{() => <Redirect to="/vendor" />}</Route>
-                    <Route path="/eid" component={VendorEidJobs} />
-                    <Route path="/eid/:id" component={VendorJobDetail} />
-                    <Route path="/medical" component={VendorMedicalJobs} />
-                    <Route path="/medical/:id" component={VendorJobDetail} />
-                    <Route path="/wallet" component={VendorWalletPage} />
-                    <Route component={NotFound} />
-                  </Switch>
-                </PageTransition>
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
-      </VendorAuthGuard>
-    </VendorAuthProvider>
-  );
+function VendorRedirect() {
+  const [location] = useLocation();
+  const subPath = location.replace(/^\//, "");
+  const target = subPath ? `/vendor-v2/${subPath}` : "/vendor-v2";
+  return <Redirect to={target} />;
 }
 
 function AppRoutes() {
@@ -280,7 +249,7 @@ function AppRoutes() {
       <Route path="/account/security" component={AccountSecurity} />
       <Route path="/vendor/login" component={VendorLogin} />
       <Route path="/vendor-v2" nest component={VendorV2Layout} />
-      <Route path="/vendor" nest component={VendorLayout} />
+      <Route path="/vendor" nest component={VendorRedirect} />
       <Route path="/appointments" component={AppointmentsIndex} />
       <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
       <Route path="/appointments/schedule-eid" component={ScheduleEid} />
