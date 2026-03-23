@@ -5406,6 +5406,30 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/vendor/jobs/:id/accept", requireVendorAuth, async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== req.session.vendorId) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      const result = await executeTransition({
+        action: "start_work",
+        jobId,
+        actor: "vendor",
+        actorId: req.session.vendorUserId || undefined,
+        storage,
+        notifyVendorUsers,
+        notifyStaffByRoles,
+      });
+      if (!result.success) return res.status(400).json({ message: result.error });
+      res.json(result.job);
+    } catch (error) {
+      console.error("Vendor accept job error:", error);
+      res.status(500).json({ message: "Failed to accept job" });
+    }
+  });
+
   // Vendor mark job completed (InProcess → ReadyForScheduling) + immediate wallet deduction
   app.post("/api/vendor/jobs/:id/complete", requireVendorAuth, async (req, res) => {
     try {
