@@ -61,7 +61,7 @@ type ViewMode = "compact" | "cards" | "table" | "kanban";
 type SortByOption = "newest" | "oldest" | "wo_asc" | "wo_desc" | "applicant_asc" | "applicant_desc";
 type SpecialFilter = "all" | "needs_attention" | "med_not_scheduled" | "eid_not_scheduled" | "med_typing_pending" | "eid_typing_pending" | "awaiting_typing" | "need_scheduling" | "vip" | "completed";
 
-const STATUS_ORDER = ["Delayed", "Draft", "Scheduled", "Completed", "Cancelled"] as const;
+const STATUS_ORDER = ["Draft", "AtVendor", "ReadyToSchedule", "Scheduled", "Completed", "Cancelled"] as const;
 
 type MedEidStatus = "not_started" | "typing_pending" | "typing_sent" | "typing_returned" | "typing_done" | "appt_scheduled" | "appt_done" | "complete";
 
@@ -108,7 +108,6 @@ function getEidStatus(wo: WorkOrderEnriched): { typing: string | null; appointme
 }
 
 function getScheduledDisplayStatus(wo: WorkOrderEnriched): string {
-  if (wo.status === "Delayed") return "Delayed";
   if (wo.status !== "Scheduled") return wo.status;
   const med = getMedicalStatus(wo);
   const eid = getEidStatus(wo);
@@ -153,7 +152,7 @@ function getProgressPercent(wo: WorkOrderEnriched): number {
 }
 
 function getCardBorderColor(wo: WorkOrderEnriched): string {
-  if (wo.status === "Delayed") return "border-l-red-600 dark:border-l-red-500";
+  if (wo.isDelayed) return "border-l-red-600 dark:border-l-red-500";
   if (wo.status === "Completed") return "border-l-emerald-500";
   if (wo.status === "Cancelled") return "border-l-gray-300 dark:border-l-gray-600";
   if (needsAttention(wo)) return "border-l-red-500";
@@ -163,7 +162,7 @@ function getCardBorderColor(wo: WorkOrderEnriched): string {
 }
 
 function getDelayedElapsedText(wo: WorkOrderEnriched): string | null {
-  if (wo.status !== "Delayed") return null;
+  if (!wo.isDelayed) return null;
   const jobs = (wo.typingJobs || []).filter(
     (j: any) => (j.status === "SubmittedToVendor" || j.status === "InProcess") && j.sentAt
   );
@@ -623,14 +622,21 @@ export default function WorkOrdersList() {
             Change Status
           </ContextMenuSubTrigger>
           <ContextMenuSubContent>
-            {["Draft", "Scheduled", "Completed", "Cancelled"].map(status => (
+            {[
+              { key: "Draft", label: "Draft" },
+              { key: "AtVendor", label: "At Vendor" },
+              { key: "ReadyToSchedule", label: "Ready to Schedule" },
+              { key: "Scheduled", label: "Scheduled" },
+              { key: "Completed", label: "Completed" },
+              { key: "Cancelled", label: "Cancelled" },
+            ].map(({ key, label }) => (
               <ContextMenuItem
-                key={status}
-                disabled={wo.status === status}
-                onClick={() => singleStatusMutation.mutate({ id: wo.id, status })}
-                data-testid={`ctx-status-${status.toLowerCase()}-${wo.woNumber}`}
+                key={key}
+                disabled={wo.status === key}
+                onClick={() => singleStatusMutation.mutate({ id: wo.id, status: key })}
+                data-testid={`ctx-status-${key.toLowerCase()}-${wo.woNumber}`}
               >
-                {status}
+                {label}
               </ContextMenuItem>
             ))}
           </ContextMenuSubContent>
@@ -808,7 +814,7 @@ export default function WorkOrdersList() {
     const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
     const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
     const delayedText = getDelayedElapsedText(wo);
-    const isDelayed = wo.status === "Delayed";
+    const isDelayed = !!wo.isDelayed;
 
     const st = wo.serviceType;
     const showMed = med.hasMedical || (st && (st.requiresMedicalTyping || st.requiresMedicalScheduling));
@@ -1159,7 +1165,7 @@ export default function WorkOrdersList() {
                       <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
                     </TableCell>}
                     {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                      <StatusBadge status={getScheduledDisplayStatus(wo) as any} />
+                      <StatusBadge status={getScheduledDisplayStatus(wo) as "Draft" | "AtVendor" | "ReadyToSchedule" | "Scheduled" | "Completed" | "Cancelled" | "MedScheduled" | "EIDScheduled" | "BothScheduled"} isDelayed={!!wo.isDelayed} />
                     </TableCell>}
                     {cv("medical") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                       {med.hasMedical ? (
@@ -1205,14 +1211,21 @@ export default function WorkOrdersList() {
                       Change Status
                     </ContextMenuSubTrigger>
                     <ContextMenuSubContent>
-                      {["Draft", "Scheduled", "Completed", "Cancelled"].map(status => (
+                      {[
+                        { key: "Draft", label: "Draft" },
+                        { key: "AtVendor", label: "At Vendor" },
+                        { key: "ReadyToSchedule", label: "Ready to Schedule" },
+                        { key: "Scheduled", label: "Scheduled" },
+                        { key: "Completed", label: "Completed" },
+                        { key: "Cancelled", label: "Cancelled" },
+                      ].map(({ key, label }) => (
                         <ContextMenuItem
-                          key={status}
-                          disabled={wo.status === status}
-                          onClick={() => singleStatusMutation.mutate({ id: wo.id, status })}
-                          data-testid={`ctx-table-status-${status.toLowerCase()}-${wo.woNumber}`}
+                          key={key}
+                          disabled={wo.status === key}
+                          onClick={() => singleStatusMutation.mutate({ id: wo.id, status: key })}
+                          data-testid={`ctx-table-status-${key.toLowerCase()}-${wo.woNumber}`}
                         >
-                          {status}
+                          {label}
                         </ContextMenuItem>
                       ))}
                     </ContextMenuSubContent>
@@ -1356,9 +1369,9 @@ export default function WorkOrdersList() {
         </SelectTrigger>
         <SelectContent className="rounded-xl">
           <SelectItem value="all">All Status</SelectItem>
-          <SelectItem value="Delayed">Delayed</SelectItem>
-          <SelectItem value="Inactive">Inactive</SelectItem>
           <SelectItem value="Draft">Draft</SelectItem>
+          <SelectItem value="AtVendor">At Vendor</SelectItem>
+          <SelectItem value="ReadyToSchedule">Ready to Schedule</SelectItem>
           <SelectItem value="Scheduled">Scheduled</SelectItem>
           <SelectItem value="Completed">Completed</SelectItem>
           <SelectItem value="Cancelled">Cancelled</SelectItem>
@@ -1453,9 +1466,16 @@ export default function WorkOrdersList() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  {["Draft", "Scheduled", "Completed", "Cancelled"].map(status => (
-                    <DropdownMenuItem key={status} onClick={() => bulkStatusMutation.mutate({ ids: Array.from(dt.selectedIds).map(String), status })} data-testid={`menu-bulk-status-${status.toLowerCase()}`}>
-                      {status}
+                  {[
+                    { key: "Draft", label: "Draft" },
+                    { key: "AtVendor", label: "At Vendor" },
+                    { key: "ReadyToSchedule", label: "Ready to Schedule" },
+                    { key: "Scheduled", label: "Scheduled" },
+                    { key: "Completed", label: "Completed" },
+                    { key: "Cancelled", label: "Cancelled" },
+                  ].map(({ key, label }) => (
+                    <DropdownMenuItem key={key} onClick={() => bulkStatusMutation.mutate({ ids: Array.from(dt.selectedIds).map(String), status: key })} data-testid={`menu-bulk-status-${key.toLowerCase()}`}>
+                      {label}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

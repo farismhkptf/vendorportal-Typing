@@ -378,7 +378,6 @@ function PipelineOverview({ navigate }: { navigate: (path: string) => void }) {
 
   const counts = useMemo(() => {
     const result: Record<string, number> = {
-      inactive: 0,
       new: 0,
       at_vendor: 0,
       ready_to_schedule: 0,
@@ -389,7 +388,6 @@ function PipelineOverview({ navigate }: { navigate: (path: string) => void }) {
     if (!workOrders) return result;
     for (const wo of workOrders) {
       if (wo.status === "Cancelled") continue;
-      if (wo.status === "Inactive") { result.inactive++; continue; }
       const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
       result[pipeline.overall]++;
     }
@@ -459,17 +457,6 @@ function PipelineOverview({ navigate }: { navigate: (path: string) => void }) {
             </button>
           );
         })}
-        {counts.inactive > 0 && (
-          <button
-            className="flex items-center gap-1.5 text-xs hover:underline cursor-pointer transition-colors"
-            onClick={() => navigate(`/work-orders?status=Inactive`)}
-            data-testid="pipeline-label-inactive"
-          >
-            <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600 border border-slate-400 dark:border-slate-500" />
-            <span className="text-muted-foreground">Inactive</span>
-            <span className="font-semibold text-foreground tabular-nums">{counts.inactive}</span>
-          </button>
-        )}
       </div>
     </div>
   );
@@ -1021,7 +1008,7 @@ function DelayedWorkOrdersAlert({ navigate }: { navigate: (path: string) => void
 
   const delayedCount = useMemo(() => {
     if (!workOrders) return 0;
-    return workOrders.filter((wo) => wo.status === "Delayed").length;
+    return workOrders.filter((wo) => wo.isDelayed && wo.status !== "Completed" && wo.status !== "Cancelled").length;
   }, [workOrders]);
 
   if (delayedCount === 0) return null;
@@ -1047,7 +1034,7 @@ function DelayedWorkOrdersAlert({ navigate }: { navigate: (path: string) => void
           variant="outline"
           size="sm"
           className="gap-1.5 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300"
-          onClick={() => navigate("/work-orders?status=Delayed")}
+          onClick={() => navigate("/work-orders")}
           data-testid="button-view-delayed"
         >
           View

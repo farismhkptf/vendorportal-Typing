@@ -1466,18 +1466,7 @@ export default function WorkOrderDetail() {
         ]}
         actions={
           <div className="flex items-center flex-wrap gap-2">
-            <StatusBadge status={workOrder.status as any} />
-            {workOrder.status === "Inactive" && (
-              <Button
-                size="sm"
-                className="gap-1.5 bg-primary text-primary-foreground"
-                onClick={() => setShowActivateDialog(true)}
-                data-testid="button-activate-wo"
-              >
-                <PlayCircle className="h-3.5 w-3.5" />
-                Activate
-              </Button>
-            )}
+            <StatusBadge status={workOrder.status} isDelayed={!!workOrder.isDelayed} />
             <Button 
               variant="outline" 
               size="sm" 
@@ -1544,7 +1533,7 @@ export default function WorkOrderDetail() {
       />
 
       <div className="p-4 lg:p-8 space-y-6">
-        {workOrder.status === "Delayed" && (
+        {!!workOrder.isDelayed && (
           <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-300 dark:border-red-700 animate-pulse" data-testid="delayed-banner">
             <div className="h-10 w-10 rounded-lg bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0">
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -1578,28 +1567,7 @@ export default function WorkOrderDetail() {
           </div>
         )}
 
-        {workOrder.status === "Inactive" ? (
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700" data-testid="inactive-banner">
-            <div className="h-9 w-9 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center shrink-0 mt-0.5">
-              <PauseCircle className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Work Order Inactive</p>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Activate this work order once the Entry Permit and Change Status have been approved externally. Documents can still be uploaded while inactive.
-              </p>
-            </div>
-            <Button
-              size="sm"
-              className="gap-1.5 shrink-0"
-              onClick={() => setShowActivateDialog(true)}
-              data-testid="button-activate-banner"
-            >
-              <PlayCircle className="h-3.5 w-3.5" />
-              Activate
-            </Button>
-          </div>
-        ) : pipeline && (
+        {pipeline && (
           <div className="space-y-3">
             <PipelineBar
               pipeline={pipeline}

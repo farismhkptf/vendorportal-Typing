@@ -49,7 +49,7 @@ export type UserRole = typeof ALL_ROLES[number];
 export const centerTypeEnum = pgEnum("center_type", ["Medical", "EID", "Both"]);
 export const centerAuthorityEnum = pgEnum("center_authority", ["DHA", "EHS", "ICP"]);
 export const centerTierEnum = pgEnum("center_tier", ["Normal", "VIP"]);
-export const woStatusEnum = pgEnum("wo_status", ["Inactive", "Draft", "Scheduled", "Completed", "Cancelled", "Delayed"]);
+export const woStatusEnum = pgEnum("wo_status", ["Draft", "AtVendor", "ReadyToSchedule", "Scheduled", "Completed", "Cancelled"]);
 export const appointmentTypeEnum = pgEnum("appointment_type", ["Medical", "EID"]);
 export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"]);
 export const rescheduleStatusEnum = pgEnum("reschedule_status", ["New", "Accepted", "Closed"]);
@@ -429,8 +429,9 @@ export const workOrders = pgTable("work_orders", {
   isVip: boolean("is_vip").notNull().default(false),
   companyId: varchar("company_id").notNull(),
   serviceTypeId: varchar("service_type_id"),
-  status: woStatusEnum("status").notNull().default("Inactive"),
+  status: woStatusEnum("status").notNull().default("Draft"),
   previousStatus: woStatusEnum("previous_status"),
+  isDelayed: boolean("is_delayed").notNull().default(false),
   isMinor: boolean("is_minor").notNull().default(false),
   notes: text("notes"),
   createdBy: varchar("created_by"),

@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type StatusType = 
-  | "Inactive" | "Draft" | "Scheduled" | "Completed" | "Cancelled" | "Rescheduled" | "Delayed"
+  | "Draft" | "AtVendor" | "ReadyToSchedule" | "Scheduled" | "Completed" | "Cancelled" | "Rescheduled"
   | "SubmittedToVendor" | "InProcess" | "Returned" | "ReadyForScheduling"
   | "OnHold" | "Rejected" | "Aborted"
   | "FollowUpRequired" | "FollowUpScheduled" | "FollowUpCompleted"
@@ -12,14 +12,15 @@ type StatusType =
 
 interface StatusBadgeProps {
   status: StatusType;
+  isDelayed?: boolean;
   className?: string;
   vendorContext?: boolean;
 }
 
 const statusStyles: Record<StatusType, string> = {
-  Delayed: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 border border-red-400 dark:border-red-600 animate-pulse",
-  Inactive: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-600",
   Draft: "bg-slate-100/80 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
+  AtVendor: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700",
+  ReadyToSchedule: "bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-200 dark:border-teal-700",
   Scheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
   Completed: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
   Cancelled: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
@@ -45,9 +46,9 @@ const statusStyles: Record<StatusType, string> = {
 };
 
 const statusLabels: Record<StatusType, string> = {
-  Delayed: "DELAYED",
-  Inactive: "Inactive",
   Draft: "Draft",
+  AtVendor: "At Vendor",
+  ReadyToSchedule: "Ready to Schedule",
   Scheduled: "Scheduled",
   Completed: "Completed",
   Cancelled: "Cancelled",
@@ -72,20 +73,31 @@ const statusLabels: Record<StatusType, string> = {
   BothScheduled: "Med+EID Scheduled",
 };
 
-export function StatusBadge({ status, className, vendorContext }: StatusBadgeProps) {
+export function StatusBadge({ status, isDelayed, className, vendorContext }: StatusBadgeProps) {
   const label = vendorContext && status === "ReadyForScheduling" ? "Completed" : statusLabels[status];
 
   return (
-    <Badge
-      variant="secondary"
-      className={cn(
-        "rounded-full px-2.5 py-0.5 text-[11px] font-medium border-0 tracking-wide",
-        statusStyles[status],
-        className
+    <span className="inline-flex items-center gap-1">
+      <Badge
+        variant="secondary"
+        className={cn(
+          "rounded-full px-2.5 py-0.5 text-[11px] font-medium border-0 tracking-wide",
+          statusStyles[status],
+          className
+        )}
+        data-testid={`badge-status-${status.toLowerCase()}`}
+      >
+        {label}
+      </Badge>
+      {isDelayed && (
+        <Badge
+          variant="secondary"
+          className="rounded-full px-2 py-0.5 text-[10px] font-medium bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 border border-red-300 dark:border-red-600 animate-pulse"
+          data-testid="badge-delayed"
+        >
+          DELAYED
+        </Badge>
       )}
-      data-testid={`badge-status-${status.toLowerCase()}`}
-    >
-      {label}
-    </Badge>
+    </span>
   );
 }

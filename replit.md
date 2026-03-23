@@ -22,6 +22,10 @@ The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API.
 
 The PostgreSQL database includes core entities such as Users (with 7 roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor, Client Coordinator, Client Manager), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns (woId, vendorId, typingJobId, centerId, assignedStaffId, etc.) for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records (appointments, typing jobs, results, comments, approvals, documents, notes, messages, files, reschedule requests). Deleting staff or centers nullifies dangling references in appointments and companies before deletion.
 
+#### Work Order Status Model
+
+Work orders use a rationalized status model: `Draft` → `AtVendor` → `ReadyToSchedule` → `Scheduled` → `Completed` (or `Cancelled`). The old `Inactive` and `Delayed` statuses have been removed. All new work orders start as `Draft`. Vendor delay is tracked via an `isDelayed` boolean flag on the work order (not a separate status), auto-set when typing jobs at a vendor exceed the configured threshold, and auto-cleared when they resolve. Status transitions (`AtVendor`, `ReadyToSchedule`) are triggered automatically by `checkAndAutoTransitionWorkOrder()` in server/routes.ts after typing job actions (submit to vendor, vendor completion). `Scheduled` is set when an appointment is booked for a WO in `ReadyToSchedule` or `Draft` state.
+
 ### Performance Optimizations
 
 -   **Bulk Fetches**: Dashboard routes use bulk `getWorkOrdersByIds()`, `getCenters()`, and `getCompanies()` with Map lookups instead of per-record N+1 queries.

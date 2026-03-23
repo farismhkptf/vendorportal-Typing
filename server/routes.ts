@@ -210,6 +210,66 @@ function requireRole(...roles: string[]) {
 
 const requireOpsRole = requireRole("Admin", "Client Relationship Manager");
 
+async function checkAndAutoTransitionWorkOrder(woId: string): Promise<void> {
+  try {
+    const wo = await storage.getWorkOrderById(woId);
+    if (!wo || wo.status === "Completed" || wo.status === "Cancelled") return;
+    if (!wo.serviceTypeId) return;
+
+    const serviceType = await storage.getServiceTypeById(wo.serviceTypeId);
+    if (!serviceType) return;
+
+    const jobs = await storage.getTypingJobsByWoId(woId);
+    const appts = await storage.getAppointmentsByWoId(woId);
+
+    const activeJobs = jobs.filter(j => j.status !== "Aborted");
+    const vendorStatuses = ["SubmittedToVendor", "InProcess"];
+    const terminalJobStatuses = ["ReadyForScheduling", "Returned"];
+
+    const medJobs = activeJobs.filter(j => (j.jobCode || "").startsWith("M"));
+    const eidJobs = activeJobs.filter(j => (j.jobCode || "").startsWith("E"));
+    const medAppts = appts.filter(a => a.type === "Medical" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+    const eidAppts = appts.filter(a => a.type === "EID" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+
+    const needsMedical = !wo.isMinor && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling);
+    const needsEid = serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year
+      || serviceType.requiresIdTyping10Years || serviceType.requiresIdBiometrics;
+
+    let newStatus: "AtVendor" | "ReadyToSchedule" | null = null;
+
+    const hasVendorJobs = activeJobs.some(j => vendorStatuses.includes(j.status));
+    if (hasVendorJobs && wo.status === "Draft") {
+      newStatus = "AtVendor";
+    }
+
+    const medTypingDone = !serviceType.requiresMedicalTyping || !needsMedical
+      || (medJobs.length > 0 && medJobs.every(j => terminalJobStatuses.includes(j.status)));
+    const eidTypingDone = !(serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years)
+      || (eidJobs.length > 0 && eidJobs.every(j => terminalJobStatuses.includes(j.status)));
+    const hasAnyJobs = medJobs.length > 0 || eidJobs.length > 0;
+    const allRequiredTypingDone = hasAnyJobs && medTypingDone && eidTypingDone;
+
+    if (allRequiredTypingDone && medAppts.length === 0 && eidAppts.length === 0
+        && (wo.status === "AtVendor" || wo.status === "Draft")) {
+      newStatus = "ReadyToSchedule";
+    }
+
+    if (newStatus && newStatus !== wo.status) {
+      await storage.updateWorkOrder(woId, { status: newStatus });
+      await storage.createAuditLog({
+        action: "auto_status_transition",
+        entityType: "work_order",
+        entityId: woId,
+        userId: null,
+        details: { from: wo.status, to: newStatus, applicantName: wo.applicantName, woNumber: wo.woNumber },
+      });
+      console.log(`[auto-transition] Work order ${wo.woNumber} transitioned ${wo.status} → ${newStatus}`);
+    }
+  } catch (err) {
+    console.error("[auto-transition] Error:", err);
+  }
+}
+
 async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boolean> {
   try {
     const wo = await storage.getWorkOrderById(woId);
@@ -315,7 +375,7 @@ async function checkAndMarkDelayedWorkOrders(): Promise<number> {
 
     const allWos = await storage.getWorkOrders();
     const activeWos = allWos.filter(wo =>
-      wo.status !== "Completed" && wo.status !== "Cancelled" && wo.status !== "Delayed" && wo.status !== "Inactive"
+      wo.status !== "Completed" && wo.status !== "Cancelled"
     );
 
     let markedCount = 0;
@@ -326,15 +386,12 @@ async function checkAndMarkDelayedWorkOrders(): Promise<number> {
         (j.status === "SubmittedToVendor" || j.status === "InProcess") && j.sentAt
       );
 
-      const isDelayed = vendorJobs.some(j =>
+      const shouldBeDelayed = vendorJobs.some(j =>
         (now - new Date(j.sentAt!).getTime()) > thresholdMs
       );
 
-      if (isDelayed) {
-        await storage.updateWorkOrder(wo.id, {
-          previousStatus: wo.status as any,
-          status: "Delayed",
-        });
+      if (shouldBeDelayed && !wo.isDelayed) {
+        await storage.updateWorkOrder(wo.id, { isDelayed: true });
         await storage.createAuditLog({
           action: "auto_delayed",
           entityType: "work_order",
@@ -342,17 +399,27 @@ async function checkAndMarkDelayedWorkOrders(): Promise<number> {
           userId: null,
           details: { reason: `Vendor exceeded ${thresholdHours}h threshold`, applicantName: wo.applicantName, woNumber: wo.woNumber },
         });
-        console.log(`[delay-check] Work order ${wo.woNumber} marked as Delayed`);
+        console.log(`[delay-check] Work order ${wo.woNumber} flagged as delayed`);
 
         notifyStaffByRoles(["Admin", "Client Relationship Manager"], {
           type: "wo_delayed",
           title: "Work Order Delayed",
-          message: `Work order ${wo.woNumber} (${wo.applicantName}) marked as Delayed — vendor exceeded ${thresholdHours}h threshold`,
+          message: `Work order ${wo.woNumber} (${wo.applicantName}) flagged as delayed — vendor exceeded ${thresholdHours}h threshold`,
           relatedEntityType: "work_order",
           relatedEntityId: wo.id,
         });
 
         markedCount++;
+      } else if (!shouldBeDelayed && wo.isDelayed) {
+        await storage.updateWorkOrder(wo.id, { isDelayed: false });
+        await storage.createAuditLog({
+          action: "delay_resolved",
+          entityType: "work_order",
+          entityId: wo.id,
+          userId: null,
+          details: { reason: "All vendor jobs resolved", applicantName: wo.applicantName, woNumber: wo.woNumber },
+        });
+        console.log(`[delay-check] Work order ${wo.woNumber} delay flag cleared`);
       }
     }
 
@@ -366,7 +433,7 @@ async function checkAndMarkDelayedWorkOrders(): Promise<number> {
 async function revertDelayedWorkOrder(woId: string): Promise<void> {
   try {
     const wo = await storage.getWorkOrderById(woId);
-    if (!wo || wo.status !== "Delayed") return;
+    if (!wo || !wo.isDelayed) return;
 
     const settings = await storage.getAppSettings();
     const thresholdMs = (settings?.vendorDelayThresholdHours ?? 48) * 3600000;
@@ -381,19 +448,15 @@ async function revertDelayedWorkOrder(woId: string): Promise<void> {
 
     if (stillOverdue) return;
 
-    const revertTo = wo.previousStatus || "Draft";
-    await storage.updateWorkOrder(woId, {
-      status: revertTo as any,
-      previousStatus: null,
-    });
+    await storage.updateWorkOrder(woId, { isDelayed: false });
     await storage.createAuditLog({
       action: "delay_resolved",
       entityType: "work_order",
       entityId: woId,
       userId: null,
-      details: { reason: `All vendor jobs resolved, reverted to ${revertTo}`, applicantName: wo.applicantName, woNumber: wo.woNumber },
+      details: { reason: "All vendor jobs resolved", applicantName: wo.applicantName, woNumber: wo.woNumber },
     });
-    console.log(`[delay-check] Work order ${wo.woNumber} delay resolved → ${revertTo}`);
+    console.log(`[delay-check] Work order ${wo.woNumber} delay flag cleared`);
   } catch (err) {
     console.error("[delay-check] Error reverting delayed work order:", err);
   }
@@ -1453,7 +1516,7 @@ export async function registerRoutes(
     try {
       const bulkStatusSchema = z.object({
         ids: z.array(z.string()).min(1),
-        status: z.enum(["Inactive", "Draft", "Scheduled", "Completed", "Cancelled", "Delayed"]),
+        status: z.enum(["Draft", "AtVendor", "ReadyToSchedule", "Scheduled", "Completed", "Cancelled"]),
       });
       const validation = validateBody(bulkStatusSchema, req.body);
       if ("error" in validation) {
@@ -1480,7 +1543,7 @@ export async function registerRoutes(
             details: { newStatus: status, bulkAction: true, applicantName: wo.applicantName, woNumber: wo.woNumber },
           });
 
-          if (status === "Cancelled" || status === "Delayed") {
+          if (status === "Cancelled") {
             const jobs = await storage.getTypingJobsByWoId(wo.id);
             for (const job of jobs) {
               if (job.vendorId) {
@@ -1627,7 +1690,7 @@ export async function registerRoutes(
       const wo = await storage.createWorkOrder({
         ...validation.data,
         applicantName: toProperCase(validation.data.applicantName),
-        status: "Inactive",
+        status: "Draft",
       });
       await storage.createAuditLog({
         entityType: "work_order",
@@ -1760,7 +1823,7 @@ export async function registerRoutes(
       if (!wo) {
         return res.status(404).json({ message: "Work order not found" });
       }
-      if (wo.status !== "Inactive") {
+      if (wo.status !== "Draft") {
         return res.status(400).json({ message: "Work order is already active" });
       }
       const updated = await storage.activateWorkOrder(id, validation.data.isMinor ?? false);
@@ -2106,7 +2169,32 @@ export async function registerRoutes(
       });
       
       if (appointment.woId) {
-        await storage.updateWorkOrder(appointment.woId, { status: "Scheduled" });
+        const woForAppt = await storage.getWorkOrderById(appointment.woId);
+        if (woForAppt && (woForAppt.status === "ReadyToSchedule" || woForAppt.status === "Draft" || woForAppt.status === "AtVendor")) {
+          const serviceType = woForAppt.serviceTypeId
+            ? await storage.getServiceTypeById(woForAppt.serviceTypeId)
+            : null;
+          const allAppts = await storage.getAppointmentsByWoId(appointment.woId);
+          const activeAppts = allAppts.filter(a => a.status !== "Cancelled" && a.status !== "Rescheduled");
+
+          const needsMed = serviceType
+            ? (!woForAppt.isMinor && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling))
+            : false;
+          const needsEid = serviceType
+            ? (serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years || serviceType.requiresIdBiometrics)
+            : false;
+
+          const hasMedAppt = activeAppts.some(a => a.type === "Medical");
+          const hasEidAppt = activeAppts.some(a => a.type === "EID");
+
+          const medSatisfied = !needsMed || hasMedAppt;
+          const eidSatisfied = !needsEid || hasEidAppt;
+          const anyApptBooked = hasMedAppt || hasEidAppt;
+
+          if (anyApptBooked && medSatisfied && eidSatisfied) {
+            await storage.updateWorkOrder(appointment.woId, { status: "Scheduled" });
+          }
+        }
       }
       
       res.status(201).json(appointment);
@@ -3460,6 +3548,10 @@ export async function registerRoutes(
       }
       
       res.json(result.job);
+
+      if (result.job?.woId) {
+        checkAndAutoTransitionWorkOrder(result.job.woId).catch(console.error);
+      }
     } catch (error) {
       console.error("Submit to vendor error:", error);
       res.status(500).json({ message: "Failed to submit job to vendor" });
@@ -5595,6 +5687,7 @@ export async function registerRoutes(
       }
 
       await revertDelayedWorkOrder(job.woId);
+      await checkAndAutoTransitionWorkOrder(job.woId);
       await checkAndAutoCompleteWorkOrder(job.woId);
 
       // Create a work_order-level audit entry so team notification bell picks it up
@@ -7051,7 +7144,7 @@ export async function registerRoutes(
             applicantName: toProperCase(staffName),
             companyId,
             serviceTypeId: validServiceTypeId,
-            status: "Inactive",
+            status: "Draft",
             notes: designation ? `Designation: ${designation}` : undefined,
           });
           await storage.createAuditLog({
@@ -7270,7 +7363,7 @@ export async function registerRoutes(
           const validServiceTypeId = serviceTypeId && serviceTypeIds.has(serviceTypeId) ? serviceTypeId : undefined;
           const newWo = await storage.createWorkOrder({
             woNumber, applicantName: toProperCase(staffName), companyId,
-            serviceTypeId: validServiceTypeId, status: "Inactive",
+            serviceTypeId: validServiceTypeId, status: "Draft",
             notes: designation ? `Designation: ${designation}` : undefined,
           });
           await storage.createAuditLog({
