@@ -21,6 +21,8 @@ interface WoGroupedItem {
   woId: string;
   woNumber: string;
   applicantName: string;
+  companyName: string;
+  applicantPhotoUrl: string | null;
   jobs: Array<{
     id: string;
     category: string;
@@ -250,10 +252,38 @@ export default function VendorDashboard() {
                   data-testid={`awaiting-wo-${wo.woId}`}
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-sm font-semibold text-foreground">{wo.woNumber}</span>
-                      {hasUrgent && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Urgent</Badge>}
-                      <span className="text-xs text-muted-foreground ml-auto">{wo.applicantName}</span>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="shrink-0">
+                        {wo.applicantPhotoUrl ? (
+                          <img
+                            src={wo.applicantPhotoUrl}
+                            alt={wo.applicantName}
+                            className="h-9 w-9 rounded-full object-cover ring-1 ring-border"
+                            data-testid={`avatar-photo-${wo.woId}`}
+                          />
+                        ) : (
+                          <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center ring-1 ring-border" data-testid={`avatar-initials-${wo.woId}`}>
+                            <span className="text-xs font-semibold text-muted-foreground">
+                              {wo.applicantName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">{wo.woNumber}</span>
+                          {hasUrgent && <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Urgent</Badge>}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="text-xs text-foreground/80 font-medium truncate">{wo.applicantName}</span>
+                          {wo.companyName && (
+                            <>
+                              <span className="text-xs text-muted-foreground">·</span>
+                              <span className="text-xs text-muted-foreground truncate" data-testid={`company-name-${wo.woId}`}>{wo.companyName}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       {wo.jobs.filter(j => j.status === "SubmittedToVendor").map((job) => {

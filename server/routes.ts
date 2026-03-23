@@ -5188,17 +5188,30 @@ export async function registerRoutes(
         unacceptedJobs: jobs.filter(j => j.status === "SubmittedToVendor" && j.sentAt && new Date(j.sentAt).getTime() < now12h).length,
       };
 
-      const activeJobsByWo = new Map<string, { woId: string; woNumber: string; applicantName: string; jobs: Array<{ id: string; category: string; status: string; priority: string; sentAt: string | null; costSnapshot: number | null }> }>();
+      const activeJobsByWo = new Map<string, { woId: string; woNumber: string; applicantName: string; companyName: string; applicantPhotoUrl: string | null; jobs: Array<{ id: string; category: string; status: string; priority: string; sentAt: string | null; costSnapshot: number | null }> }>();
       for (const job of activeJobs) {
         const wo = await storage.getWorkOrderById(job.woId);
         const jt = job.jobTypeId ? jobTypeMap.get(job.jobTypeId) : null;
         const priority = calcPriority(job);
         const key = job.woId;
         if (!activeJobsByWo.has(key)) {
+          let companyName = "";
+          let applicantPhotoUrl: string | null = null;
+          if (wo?.companyId) {
+            const company = await storage.getCompanyById(wo.companyId);
+            companyName = company?.name || "";
+          }
+          if (wo?.id) {
+            const docs = await storage.getWoDocuments(wo.id);
+            const photoDoc = docs.filter(d => d.documentType === "Photo").sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())[0];
+            applicantPhotoUrl = photoDoc?.fileUrl || null;
+          }
           activeJobsByWo.set(key, {
             woId: job.woId,
             woNumber: wo?.woNumber || "N/A",
             applicantName: wo?.applicantName || "Unknown",
+            companyName,
+            applicantPhotoUrl,
             jobs: [],
           });
         }

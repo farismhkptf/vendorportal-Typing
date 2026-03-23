@@ -15,6 +15,8 @@ interface WoGroupedItem {
   woId: string;
   woNumber: string;
   applicantName: string;
+  companyName: string;
+  applicantPhotoUrl: string | null;
   jobs: Array<{
     id: string;
     category: string;
@@ -296,10 +298,31 @@ export default function V2Dashboard() {
           <div className="space-y-2">
             {dashData.woGrouped.slice(0, 5).map(wo => (
               <GlassCard key={wo.woId} className="p-4" data-testid={`wo-group-${wo.woId}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-slate-400 dark:text-white/50">{wo.woNumber}</span>
-                    <span className="text-sm font-medium text-slate-900 dark:text-white truncate">{wo.applicantName}</span>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="shrink-0">
+                    {wo.applicantPhotoUrl ? (
+                      <img
+                        src={wo.applicantPhotoUrl}
+                        alt={wo.applicantName}
+                        className="h-8 w-8 rounded-full object-cover ring-1 ring-white/10"
+                        data-testid={`avatar-photo-${wo.woId}`}
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-white/10 flex items-center justify-center ring-1 ring-white/10" data-testid={`avatar-initials-${wo.woId}`}>
+                        <span className="text-[11px] font-semibold text-slate-500 dark:text-white/60">
+                          {wo.applicantName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-slate-400 dark:text-white/50">{wo.woNumber}</span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-white truncate">{wo.applicantName}</span>
+                    </div>
+                    {wo.companyName && (
+                      <span className="text-[11px] text-slate-400 dark:text-white/40 truncate block" data-testid={`company-name-${wo.woId}`}>{wo.companyName}</span>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-1.5">
