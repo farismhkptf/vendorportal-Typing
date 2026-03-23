@@ -19,6 +19,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { GlassCard, GlassSection, GlassSkeleton, GlassEmpty } from "@/components/vendor-v2/layout";
 import emiratesIdSample from "@assets/image_1771501559423.png";
+import dhaLogo from "@assets/dha-logo.svg";
 import type {
   TypingJob, WorkOrder, JobType,
   TypingJobComment, File as FileType, TypingJobResult, WoDocument, DocumentRequirement
@@ -513,11 +514,14 @@ export default function V2JobDetail() {
             </GlassCard>
           )}
 
-          {job.jobCode && (
-            <div className="flex items-center gap-2 text-sm text-slate-400 dark:text-white/40 px-1">
-              <FileText className="h-3.5 w-3.5" />
-              <span>Job Code:</span>
-              <span className="text-slate-600 dark:text-white/60 font-mono font-medium">{job.jobCode}</span>
+          {isMedical && (
+            <div className="flex items-center gap-2 px-1">
+              <img
+                src={dhaLogo}
+                alt="Dubai Health Authority"
+                className="h-7 w-auto object-contain"
+                data-testid="v2-img-dha-logo"
+              />
             </div>
           )}
         </div>

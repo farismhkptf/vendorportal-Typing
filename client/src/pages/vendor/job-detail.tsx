@@ -24,6 +24,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import emiratesIdSample from "@assets/image_1771501559423.png";
+import dhaLogo from "@assets/dha-logo.svg";
 import type { 
   TypingJob, WorkOrder, JobType, 
   TypingJobComment, File as FileType, TypingJobResult, WoDocument, DocumentRequirement
@@ -359,11 +360,14 @@ function StepOverview({ job }: { job: VendorJobDetails }) {
         </div>
       )}
 
-      {job.jobCode && (
-        <div className="flex items-center gap-2 text-sm">
-          <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-          <span className="text-muted-foreground">Job Code:</span>
-          <span className="font-mono font-medium" data-testid="text-job-code">{job.jobCode}</span>
+      {isMedical && (
+        <div className="flex items-center gap-2">
+          <img
+            src={dhaLogo}
+            alt="Dubai Health Authority"
+            className="h-7 w-auto object-contain"
+            data-testid="img-dha-logo"
+          />
         </div>
       )}
     </div>
@@ -874,7 +878,8 @@ export function JobWizardDialog({
     <>
       <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
         <DialogContent className={cn(
-          "max-w-3xl max-h-[90vh] overflow-y-auto p-0",
+          "max-w-3xl p-0 flex flex-col",
+          "max-h-[90vh] overflow-hidden",
           isVip && "border-amber-400/60 dark:border-amber-500/40"
         )}>
           {isVip && (
@@ -889,18 +894,27 @@ export function JobWizardDialog({
             </div>
           )}
 
-          <div className={cn("px-6 pt-5 pb-3", isVip && "bg-gradient-to-b from-amber-50/30 to-transparent dark:from-amber-900/10")}>
-            <div className="flex items-center justify-between mb-4">
-              <DialogTitle className="text-lg font-semibold flex items-center gap-2">
-                {isEid ? <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" /> : <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400" />}
-                Job Wizard
-                {isVip && (
-                  <Badge className="no-default-hover-elevate no-default-active-elevate bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 border-amber-400 text-[10px]">
-                    VIP
-                  </Badge>
-                )}
-              </DialogTitle>
-              <div className="flex items-center gap-2">
+          <div className={cn("px-6 pt-5 pb-3 shrink-0", isVip && "bg-gradient-to-b from-amber-50/30 to-transparent dark:from-amber-900/10")}>
+            <div className="flex items-start justify-between mb-4 gap-3">
+              <div className="flex items-start gap-2 min-w-0">
+                {isEid ? <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" /> : <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />}
+                <div className="min-w-0">
+                  <DialogTitle className="text-lg font-bold leading-tight flex items-center gap-2 flex-wrap">
+                    <span data-testid="dialog-wo-number">{job?.workOrder?.woNumber || "Job Wizard"}</span>
+                    {isVip && (
+                      <Badge className="no-default-hover-elevate no-default-active-elevate bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 border-amber-400 text-[10px]">
+                        VIP
+                      </Badge>
+                    )}
+                  </DialogTitle>
+                  {job?.workOrder?.applicantName && (
+                    <p className="text-sm text-muted-foreground mt-0.5 truncate" data-testid="dialog-applicant-name">
+                      {toProperCase(job.workOrder.applicantName)}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
                 <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowComments(!showComments)} data-testid="button-toggle-comments">
                   <MessageSquare className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">Comments</span>
@@ -923,7 +937,7 @@ export function JobWizardDialog({
           </div>
 
           {job && (
-            <div className="px-6 pb-6">
+            <div className="flex-1 overflow-y-auto px-6 pb-6 min-h-0">
               {viewStep === 1 && <StepOverview job={job} />}
               {viewStep === 2 && (
                 <StepDocuments
