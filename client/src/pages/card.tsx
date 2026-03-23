@@ -297,7 +297,7 @@ export default function CardPage() {
                   {applicantName}
                 </div>
                 <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, marginTop: "2px" }}>
-                  {appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness"}
+                  {appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness Appointment"}
                 </div>
               </div>
             </div>
@@ -354,16 +354,32 @@ export default function CardPage() {
             <div style={{ fontSize: "9px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: inkSoft, marginBottom: "10px" }}>
               What to keep in mind
             </div>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: inkColor, marginBottom: "3px" }}>
-              Please bring your original passport.
-            </div>
-            <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, marginBottom: "12px" }}>
-              Digital copies are not accepted at the center.
-            </div>
-            <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, lineHeight: 1.6 }}>
-              Dress comfortably &#8212; loose, modest clothing works best.<br />
-              Leave jewellery at home. The examination includes an X-ray.
-            </div>
+            {appointment.type === "EID" ? (
+              <>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: inkColor, marginBottom: "3px" }}>
+                  Bring your original passport and Emirates ID.
+                </div>
+                <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, marginBottom: "12px" }}>
+                  Both documents must be original — no copies accepted.
+                </div>
+                <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, lineHeight: 1.6 }}>
+                  Your guide will meet you on arrival and handle the queue and registration on your behalf.
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: inkColor, marginBottom: "3px" }}>
+                  Please bring your original passport.
+                </div>
+                <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, marginBottom: "12px" }}>
+                  Digital copies are not accepted at the center.
+                </div>
+                <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, lineHeight: 1.6 }}>
+                  Dress comfortably &#8212; loose, modest clothing works best.<br />
+                  Leave jewellery at home. The examination includes an X-ray.
+                </div>
+              </>
+            )}
           </div>
 
           {/* ON-SITE GUIDE */}

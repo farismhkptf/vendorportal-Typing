@@ -420,12 +420,21 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td style="width:32px;vertical-align:top;padding-right:12px;">
+                                  <td style="width:32px;vertical-align:top;padding-right:12px;padding-bottom:10px;">
                                     <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:inline;opacity:0.5;margin-top:1px;" />
                                     <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:none;opacity:0.5;margin-top:1px;" />
                                   </td>
+                                  <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;line-height:1.6;padding-bottom:14px;">
+                                    Bring your original passport. No copies or digital versions accepted.
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td style="width:32px;vertical-align:top;padding-right:12px;">
+                                    <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='10' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M12 8v4l2.5 2.5' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:inline;opacity:0.5;margin-top:1px;" />
+                                    <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='10' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M12 8v4l2.5 2.5' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:none;opacity:0.5;margin-top:1px;" />
+                                  </td>
                                   <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;line-height:1.6;">
-                                    Bring your original Emirates ID and any previously provided documents.
+                                    Your guide will meet you on arrival and handle the queue and registration on your behalf.
                                   </td>
                                 </tr>
                               </table>
@@ -438,14 +447,6 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                     ${notesBlock}
 
                     ${cardLinkBlock}
-
-                    <!-- AFTER THE APPOINTMENT -->
-                    <tr>
-                      <td colspan="2" style="padding-top:36px;">
-                        <div class="text-label" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;padding-bottom:14px;">After the Appointment</div>
-                        <div class="text-secondary" style="font-size:14px;font-weight:400;line-height:1.6;">Results are shared within 24 hours. We handle everything that follows &mdash; no action needed on your end.</div>
-                      </td>
-                    </tr>
 
                     ${rescheduleBox}
 
@@ -1314,11 +1315,27 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                             </td>
                           </tr>
                           <tr>
-                            <td style="width:30px;vertical-align:top;padding-right:12px;">
+                            <td style="width:30px;vertical-align:top;padding-right:12px;padding-bottom:14px;">
                               <img src="data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" class="notice-icon" width="18" height="18" alt="" style="display:block;opacity:0.4;margin-top:2px;" />
                             </td>
-                            <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;">
+                            <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:14px;">
                               Bring your original passport. No copies or digital versions accepted.
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="width:30px;vertical-align:top;padding-right:12px;padding-bottom:14px;">
+                              <img src="data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 12c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 4l2 2-6 6' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" class="notice-icon" width="18" height="18" alt="" style="display:block;opacity:0.4;margin-top:2px;" />
+                            </td>
+                            <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:14px;">
+                              Dress comfortably &mdash; loose, modest clothing works best. Shoulders and knees must be covered.
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="width:30px;vertical-align:top;padding-right:12px;">
+                              <img src="data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M12 8v4M12 16h.01' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" class="notice-icon" width="18" height="18" alt="" style="display:block;opacity:0.4;margin-top:2px;" />
+                            </td>
+                            <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;">
+                              Leave jewellery at home. The examination includes an X-ray and metal accessories must be removed.
                             </td>
                           </tr>
                         </table>

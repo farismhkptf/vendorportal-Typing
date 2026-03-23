@@ -6401,7 +6401,7 @@ export async function registerRoutes(
       const centerDisplay = centerArea ? `${centerName} — ${centerArea}` : centerName;
       pass.auxiliaryFields.push({
         key: "center",
-        label: "Medical Center",
+        label: isEID ? "Biometrics Center" : "Medical Center",
         value: centerDisplay,
       });
 
@@ -6437,32 +6437,55 @@ export async function registerRoutes(
         value: "15 – 30 minutes",
       });
 
-      pass.backFields.push({
-        key: "document",
-        label: "Required Document",
-        value: "Original passport (must be valid)",
-      });
+      if (isEID) {
+        pass.backFields.push({
+          key: "document",
+          label: "Required Documents",
+          value: "Original passport and original Emirates ID (no copies accepted)",
+        });
 
-      pass.backFields.push({
-        key: "attire",
-        label: "Attire",
-        value: "Smart casual. Shoulders and knees must be covered.",
-      });
+        const assistContact = assignedStaff
+          ? (assignedStaff.phone ? `${assignedStaff.name} — ${assignedStaff.phone}` : assignedStaff.name)
+          : "Will be assigned before your appointment";
+        pass.backFields.push({
+          key: "guide",
+          label: "On-Site Guide",
+          value: assistContact,
+        });
 
-      pass.backFields.push({
-        key: "jewellery",
-        label: "Jewellery & Accessories",
-        value: "Please remove all metal jewellery and accessories before your appointment.",
-      });
+        pass.backFields.push({
+          key: "guide_note",
+          label: "Guide Assistance",
+          value: "Your guide will meet you on arrival and handle the queue and registration on your behalf.",
+        });
+      } else {
+        pass.backFields.push({
+          key: "document",
+          label: "Required Document",
+          value: "Original passport (must be valid)",
+        });
 
-      const assistContact = assignedStaff
-        ? (assignedStaff.phone ? `${assignedStaff.name} — ${assignedStaff.phone}` : assignedStaff.name)
-        : "Will be assigned before your appointment";
-      pass.backFields.push({
-        key: "assist",
-        label: "On-Site Assist",
-        value: assistContact,
-      });
+        pass.backFields.push({
+          key: "attire",
+          label: "Attire",
+          value: "Smart casual. Shoulders and knees must be covered.",
+        });
+
+        pass.backFields.push({
+          key: "jewellery",
+          label: "Jewellery & Accessories",
+          value: "Please remove all metal jewellery and accessories before your appointment.",
+        });
+
+        const assistContact = assignedStaff
+          ? (assignedStaff.phone ? `${assignedStaff.name} — ${assignedStaff.phone}` : assignedStaff.name)
+          : "Will be assigned before your appointment";
+        pass.backFields.push({
+          key: "assist",
+          label: "On-Site Assist",
+          value: assistContact,
+        });
+      }
 
       const buf = await pass.getAsBuffer();
       res.set({
