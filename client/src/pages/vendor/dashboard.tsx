@@ -134,6 +134,7 @@ export default function VendorDashboard() {
       toast({ title: "Job accepted" });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
+      navigate("/vendor/jobs");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });

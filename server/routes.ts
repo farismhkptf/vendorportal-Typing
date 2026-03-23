@@ -2057,12 +2057,15 @@ export async function registerRoutes(
   app.post("/api/appointments/:id/send-email", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
+      const { overrideEmail } = req.body || {};
       const appointment = await storage.getAppointmentById(id);
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
       const wo = await storage.getWorkOrderById(appointment.woId).catch(() => undefined);
       if (!wo) return res.status(404).json({ message: "Work order not found" });
-      if (!wo.applicantEmail) return res.status(400).json({ message: "Applicant has no email address on record." });
+
+      const recipientEmail = (overrideEmail && overrideEmail.trim()) ? overrideEmail.trim() : wo.applicantEmail;
+      if (!recipientEmail) return res.status(400).json({ message: "Applicant has no email address on record." });
 
       const company = wo.companyId ? await storage.getCompanyById(wo.companyId).catch(() => undefined) : undefined;
       const serviceType = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId).catch(() => undefined) : undefined;
@@ -2106,14 +2109,14 @@ export async function registerRoutes(
       const testRedirect = settings?.testEmailRedirect?.trim() || null;
       const ccRecipients: string[] = [];
       if (!testRedirect && settings?.alwaysCc && Array.isArray(settings.alwaysCc)) {
-        ccRecipients.push(...settings.alwaysCc.filter((e: string) => e && e !== wo.applicantEmail));
+        ccRecipients.push(...settings.alwaysCc.filter((e: string) => e && e !== recipientEmail));
       }
 
       const applicantName = toProperCase(wo.applicantName || "Applicant");
       const apptTypeLabel = appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness";
 
       const result = await sendEmail({
-        to: testRedirect || wo.applicantEmail,
+        to: testRedirect || recipientEmail,
         cc: testRedirect ? undefined : (ccRecipients.length > 0 ? ccRecipients : undefined),
         subject: `${apptTypeLabel} Appointment - ${applicantName}. ${wo.woNumber}`,
         html,
@@ -2133,7 +2136,7 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        sentTo: testRedirect || wo.applicantEmail,
+        sentTo: testRedirect || recipientEmail,
         cc: testRedirect ? [] : ccRecipients,
         messageId: result.messageId,
         testRedirectActive: !!testRedirect,

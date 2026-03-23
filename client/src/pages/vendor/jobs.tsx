@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Link, useSearch } from "wouter";
+import { Link, useSearch, useLocation } from "wouter";
 import { Search, FileText, Filter, Calendar, Upload, MessageSquare, AlertTriangle, Zap, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 import { VendorHeader } from "@/components/vendor-header";
 import { formatDate } from "@/lib/format-date";
@@ -27,6 +27,7 @@ interface VendorJob extends TypingJob {
 
 export default function VendorJobs() {
   const searchString = useSearch();
+  const [, setLocation] = useLocation();
   const urlParams = new URLSearchParams(searchString);
   const initialStatus = urlParams.get("status") || "all";
   const [search, setSearch] = useState("");
@@ -72,6 +73,7 @@ export default function VendorJobs() {
     onSuccess: () => {
       toast({ title: "Job completed", description: "Job has been marked as done" });
       invalidateJobs();
+      setLocation("/vendor/jobs");
     },
     onError: (err: Error) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });

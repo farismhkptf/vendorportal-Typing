@@ -7,8 +7,10 @@ import {
   ArrowLeft, ArrowRight, Check, Building2, User, Calendar, Clock, MapPin, 
   Phone, Mail, Star, Copy, Send, AlertTriangle,
   CreditCard, FileText, UserCheck, MessageSquare, CheckCircle2, Pencil,
-  Maximize2, X, Home, Shield, Activity, Stethoscope, Search, ExternalLink
+  Maximize2, X, Home, Shield, Activity, Stethoscope, Search, ExternalLink,
+  Plus
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,6 +122,9 @@ export default function ScheduleEid() {
   const [confirmEmailDialogOpen, setConfirmEmailDialogOpen] = useState(false);
   const [emailSendStatus, setEmailSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
+  const [overrideEmail, setOverrideEmail] = useState<string | null>(null);
+  const [customEmailInput, setCustomEmailInput] = useState("");
+  const [emailPopoverOpen, setEmailPopoverOpen] = useState(false);
 
   const { data: schedulingQueue, isLoading: queueLoading } = useQuery<SchedulingQueueResponse>({
     queryKey: ["/api/appointments/scheduling-queue"],
@@ -154,6 +159,17 @@ export default function ScheduleEid() {
   const { data: photoMap } = useQuery<Record<string, string>>({
     queryKey: ["/api/work-orders/photos"],
     staleTime: 60000,
+  });
+
+  const { data: companyEmailsList } = useQuery<Array<{ id: string; label: string; email: string }>>({
+    queryKey: ["/api/companies", selectedQueueItem?.companyId, "emails"],
+    queryFn: async () => {
+      if (!selectedQueueItem?.companyId) return [];
+      const res = await fetch(`/api/companies/${selectedQueueItem.companyId}/emails`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!selectedQueueItem?.companyId,
   });
 
   const eidQueue = useMemo(() => {
@@ -194,6 +210,13 @@ export default function ScheduleEid() {
       wo.applicantName.toLowerCase().includes(q)
     ).slice(0, 10);
   }, [workOrders, searchQuery]);
+
+  useEffect(() => {
+    setOverrideEmail(null);
+    setCustomEmailInput("");
+    setEmailSendStatus("idle");
+    setEmailSentTo(null);
+  }, [selectedQueueItem?.woId]);
 
   const form = useForm<AppointmentForm>({
     resolver: zodResolver(appointmentSchema),
@@ -376,18 +399,17 @@ export default function ScheduleEid() {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/appointments-summary"] });
       setScheduledApptId(appointment.id);
 
-      // Auto-send email notification to client
-      const applicantEmail = selectedQueueItem?.applicantEmail;
-      if (applicantEmail && appointment.id) {
+      const recipientEmail = overrideEmail || selectedQueueItem?.applicantEmail;
+      if (recipientEmail && appointment.id) {
         setEmailSendStatus("sending");
         try {
-          const emailRes = await apiRequest("POST", `/api/appointments/${appointment.id}/send-email`);
+          const emailRes = await apiRequest("POST", `/api/appointments/${appointment.id}/send-email`, overrideEmail ? { overrideEmail } : undefined);
           const emailData = await emailRes.json();
           setEmailSendStatus("sent");
-          setEmailSentTo(emailData.sentTo || applicantEmail);
+          setEmailSentTo(emailData.sentTo || recipientEmail);
           toast({
             title: "Appointment scheduled",
-            description: `Confirmation email sent to ${emailData.sentTo || applicantEmail}.`,
+            description: `Confirmation email sent to ${emailData.sentTo || recipientEmail}.`,
             variant: "success",
           });
         } catch {
@@ -401,10 +423,11 @@ export default function ScheduleEid() {
       } else {
         toast({
           title: "Appointment scheduled",
-          description: applicantEmail ? "Appointment created." : "No applicant email on file — notification not sent.",
+          description: recipientEmail ? "Appointment created." : "No applicant email on file — notification not sent.",
           variant: "success",
         });
       }
+      setLocation("/appointments");
     },
     onError: (error: Error) => {
       toast({
@@ -417,7 +440,7 @@ export default function ScheduleEid() {
 
   const sendEmailMutation = useMutation({
     mutationFn: async (apptId: string) => {
-      const res = await apiRequest("POST", `/api/appointments/${apptId}/send-email`);
+      const res = await apiRequest("POST", `/api/appointments/${apptId}/send-email`, overrideEmail ? { overrideEmail } : undefined);
       return res.json();
     },
     onSuccess: (data) => {
@@ -1200,14 +1223,6 @@ Thank you,
         </CardContent>
       </Card>
 
-      {selectedCompany?.clientCoordinator?.email && (
-        <div className="flex items-center gap-2 text-sm bg-muted/50 p-3 rounded-lg mb-4">
-          <Mail className="h-4 w-4 text-muted-foreground" />
-          <span className="text-muted-foreground">Recipient:</span>
-          <span>{selectedCompany.clientCoordinator.email}</span>
-        </div>
-      )}
-
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="email" data-testid="eid-tab-email">
@@ -1221,35 +1236,123 @@ Thank you,
         </TabsList>
         <TabsContent value="email">
           <div className="space-y-3">
-            {/* Recipient info */}
-            {selectedQueueItem?.applicantEmail ? (
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${
-                emailSendStatus === "sent"
-                  ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                  : emailSendStatus === "failed"
-                  ? "bg-destructive/10 text-destructive"
-                  : "bg-muted/40 text-muted-foreground"
-              }`} data-testid="text-eid-email-recipient">
-                {emailSendStatus === "sent" ? (
-                  <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
-                ) : (
-                  <Mail className="h-3.5 w-3.5 shrink-0" />
-                )}
-                <span>
-                  {emailSendStatus === "sent"
-                    ? `Sent to ${emailSentTo}`
-                    : emailSendStatus === "failed"
-                    ? `Failed — will retry to ${selectedQueueItem.applicantEmail}`
-                    : emailSendStatus === "sending"
-                    ? `Sending to ${selectedQueueItem.applicantEmail}…`
-                    : `Will send to ${selectedQueueItem.applicantEmail}`}
-                </span>
+            {/* Recipient info - interactive popover */}
+            {emailSendStatus === "sent" ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" data-testid="text-eid-email-recipient">
+                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                <span>Sent to {emailSentTo}</span>
+              </div>
+            ) : emailSendStatus === "failed" ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-destructive/10 text-destructive" data-testid="text-eid-email-recipient">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                <span>Failed — will retry to {overrideEmail || selectedQueueItem?.applicantEmail}</span>
+              </div>
+            ) : emailSendStatus === "sending" ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-muted/40 text-muted-foreground" data-testid="text-eid-email-recipient">
+                <Mail className="h-3.5 w-3.5 shrink-0" />
+                <span>Sending to {overrideEmail || selectedQueueItem?.applicantEmail}…</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400" data-testid="text-eid-email-no-address">
-                <Mail className="h-3.5 w-3.5 shrink-0" />
-                <span>No email on file — copy the email manually after scheduling</span>
-              </div>
+              <Popover open={emailPopoverOpen} onOpenChange={setEmailPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs bg-muted/40 text-muted-foreground hover:bg-muted/70 transition-colors cursor-pointer text-left"
+                    data-testid="button-eid-email-recipient"
+                  >
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <span className="flex-1">
+                      {overrideEmail
+                        ? <><span className="text-foreground font-medium">{overrideEmail}</span> <span className="text-muted-foreground/70">(overridden)</span></>
+                        : selectedQueueItem?.applicantEmail
+                        ? <>Will send to <span className="text-foreground font-medium">{selectedQueueItem.applicantEmail}</span></>
+                        : "No email on file — tap to set recipient"}
+                    </span>
+                    <Plus className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-3" align="start" data-testid="popover-eid-email-recipient">
+                  <div className="space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground">Select or enter email recipient</p>
+                    {/* Applicant email */}
+                    {selectedQueueItem?.applicantEmail && (
+                      <button
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs border transition-colors text-left ${(!overrideEmail || overrideEmail === selectedQueueItem.applicantEmail) ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/40"}`}
+                        onClick={() => { setOverrideEmail(null); setEmailPopoverOpen(false); }}
+                        data-testid="button-eid-recipient-applicant"
+                      >
+                        <User className="h-3.5 w-3.5 shrink-0" />
+                        <div>
+                          <div className="font-medium">Applicant</div>
+                          <div className="text-muted-foreground">{selectedQueueItem.applicantEmail}</div>
+                        </div>
+                      </button>
+                    )}
+                    {/* Company coordinator email */}
+                    {selectedCompany?.clientCoordinator?.email && selectedCompany.clientCoordinator.email !== selectedQueueItem?.applicantEmail && (
+                      <button
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs border transition-colors text-left ${overrideEmail === selectedCompany.clientCoordinator.email ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/40"}`}
+                        onClick={() => { setOverrideEmail(selectedCompany!.clientCoordinator!.email!); setEmailPopoverOpen(false); }}
+                        data-testid="button-eid-recipient-coordinator"
+                      >
+                        <User className="h-3.5 w-3.5 shrink-0" />
+                        <div>
+                          <div className="font-medium">Coordinator — {selectedCompany.clientCoordinator.name}</div>
+                          <div className="text-muted-foreground">{selectedCompany.clientCoordinator.email}</div>
+                        </div>
+                      </button>
+                    )}
+                    {/* Company manager email */}
+                    {selectedCompany?.clientManager?.email && selectedCompany.clientManager.email !== selectedQueueItem?.applicantEmail && (
+                      <button
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs border transition-colors text-left ${overrideEmail === selectedCompany.clientManager.email ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/40"}`}
+                        onClick={() => { setOverrideEmail(selectedCompany!.clientManager!.email!); setEmailPopoverOpen(false); }}
+                        data-testid="button-eid-recipient-manager"
+                      >
+                        <User className="h-3.5 w-3.5 shrink-0" />
+                        <div>
+                          <div className="font-medium">Manager — {selectedCompany.clientManager.name}</div>
+                          <div className="text-muted-foreground">{selectedCompany.clientManager.email}</div>
+                        </div>
+                      </button>
+                    )}
+                    {/* Company emails from table */}
+                    {companyEmailsList?.map((ce) => (
+                      <button
+                        key={ce.id}
+                        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs border transition-colors text-left ${overrideEmail === ce.email ? "border-primary bg-primary/5 text-primary" : "border-border hover:bg-muted/40"}`}
+                        onClick={() => { setOverrideEmail(ce.email); setEmailPopoverOpen(false); }}
+                        data-testid={`button-eid-recipient-company-email-${ce.id}`}
+                      >
+                        <Building2 className="h-3.5 w-3.5 shrink-0" />
+                        <div>
+                          <div className="font-medium">{ce.label}</div>
+                          <div className="text-muted-foreground">{ce.email}</div>
+                        </div>
+                      </button>
+                    ))}
+                    {/* Custom email input */}
+                    <div className="flex gap-1.5 pt-1 border-t">
+                      <Input
+                        type="email"
+                        placeholder="Custom email address..."
+                        className="h-7 text-xs"
+                        value={customEmailInput}
+                        onChange={(e) => setCustomEmailInput(e.target.value)}
+                        data-testid="input-eid-custom-recipient-email"
+                      />
+                      <Button
+                        size="sm"
+                        className="h-7 px-2 shrink-0"
+                        disabled={!customEmailInput || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customEmailInput)}
+                        onClick={() => { setOverrideEmail(customEmailInput); setCustomEmailInput(""); setEmailPopoverOpen(false); }}
+                        data-testid="button-eid-set-custom-email"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             )}
 
             <div className="relative max-h-[500px] overflow-auto rounded-lg border">
@@ -1290,7 +1393,7 @@ Thank you,
                   <><Copy className="h-4 w-4 mr-2" />Copy</>
                 )}
               </Button>
-              {scheduledApptId && selectedQueueItem?.applicantEmail && (
+              {scheduledApptId && (overrideEmail || selectedQueueItem?.applicantEmail) && (
                 <Button
                   variant={emailSendStatus === "sent" ? "outline" : "default"}
                   className={`flex-1 ${emailSendStatus === "sent" ? "text-emerald-600 border-emerald-300" : ""}`}
@@ -1394,7 +1497,7 @@ Thank you,
                   ) : (
                     <>
                       <Check className="h-4 w-4 mr-2" />
-                      {selectedQueueItem?.applicantEmail ? "Schedule & Notify Client" : "Schedule Appointment"}
+                      {(overrideEmail || selectedQueueItem?.applicantEmail) ? "Schedule & Notify Client" : "Schedule Appointment"}
                     </>
                   )}
                 </Button>
@@ -1470,7 +1573,7 @@ Thank you,
             <div className="rounded-xl border border-border/50 bg-muted/30 divide-y divide-border/40">
               <div className="flex gap-3 px-4 py-3">
                 <span className="text-xs font-medium text-muted-foreground w-16 shrink-0 pt-0.5">To</span>
-                <span className="text-sm font-medium text-foreground break-all">{selectedQueueItem?.applicantEmail}</span>
+                <span className="text-sm font-medium text-foreground break-all">{overrideEmail || selectedQueueItem?.applicantEmail}</span>
               </div>
               <div className="flex gap-3 px-4 py-3">
                 <span className="text-xs font-medium text-muted-foreground w-16 shrink-0 pt-0.5">Subject</span>

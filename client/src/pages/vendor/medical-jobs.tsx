@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useSearch } from "wouter";
+import { useSearch, useLocation } from "wouter";
 import { JobWizardDialog } from "./job-detail";
 import {
   Search, Stethoscope, Upload, MessageSquare,
@@ -29,6 +29,7 @@ interface VendorJob extends TypingJob {
 
 export default function MedicalJobs() {
   const searchString = useSearch();
+  const [, setLocation] = useLocation();
   const urlParams = new URLSearchParams(searchString);
   const initialStatus = urlParams.get("status") || "all";
   const [search, setSearch] = useState("");
@@ -62,6 +63,7 @@ export default function MedicalJobs() {
     onSuccess: () => {
       toast({ title: "Job accepted", description: "Job has been moved to In Progress" });
       invalidateJobs();
+      setLocation("/vendor/jobs");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
     onSettled: () => setPendingAction(null),
@@ -75,6 +77,7 @@ export default function MedicalJobs() {
     onSuccess: () => {
       toast({ title: "Job completed" });
       invalidateJobs();
+      setLocation("/vendor/jobs");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
     onSettled: () => setPendingAction(null),

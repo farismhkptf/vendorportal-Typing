@@ -1373,6 +1373,7 @@ export default function AdminPage() {
       setEditCcDialogOpen(false);
       setEditThresholdDialogOpen(false);
       setEditDelayThresholdDialogOpen(false);
+      setEditSenderEmailDialogOpen(false);
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
