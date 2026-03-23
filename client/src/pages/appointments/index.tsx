@@ -851,19 +851,7 @@ Thank you,
             </Button>
           </>
         )}
-        {apt.status === "Scheduled" && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            onClick={() => { setViewMessagesApt(apt); setMessageCopied(null); }}
-            data-testid={`button-view-messages-${apt.id}`}
-          >
-            <Mail className="h-3.5 w-3.5" />
-            Messages
-          </Button>
-        )}
-        {apt.status !== "Scheduled" && apt.emailDraft && (
+        {apt.emailDraft && (
           <Button
             variant="outline"
             size="sm"
@@ -875,7 +863,7 @@ Thank you,
             View Email
           </Button>
         )}
-        {apt.status !== "Scheduled" && !apt.emailDraft && (
+        {!apt.emailDraft && (
           <Button
             variant="outline"
             size="sm"

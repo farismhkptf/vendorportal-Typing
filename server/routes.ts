@@ -6364,6 +6364,27 @@ export async function registerRoutes(
     }
   });
 
+  app.head("/api/card/:token/wallet", async (_req, res) => {
+    const certBase64 = process.env.APPLE_PASS_CERT;
+    const keyBase64 = process.env.APPLE_PASS_KEY;
+    const wwdrBase64 = process.env.APPLE_PASS_WWDR;
+    const passphrase = process.env.APPLE_PASS_PASSPHRASE;
+    const teamId = process.env.APPLE_TEAM_ID;
+
+    if (!certBase64 || !keyBase64 || !wwdrBase64 || !passphrase || !teamId) {
+      const missing = [
+        !certBase64 && "APPLE_PASS_CERT",
+        !keyBase64 && "APPLE_PASS_KEY",
+        !wwdrBase64 && "APPLE_PASS_WWDR",
+        !passphrase && "APPLE_PASS_PASSPHRASE",
+        !teamId && "APPLE_TEAM_ID",
+      ].filter(Boolean).join(", ");
+      console.log(`[apple-wallet] Wallet pass not available — missing env vars: ${missing}`);
+      return res.status(503).end();
+    }
+    return res.status(200).end();
+  });
+
   app.get("/api/card/:token/wallet", async (req, res) => {
     const certBase64 = process.env.APPLE_PASS_CERT;
     const keyBase64 = process.env.APPLE_PASS_KEY;
@@ -6373,6 +6394,14 @@ export async function registerRoutes(
     const teamId = process.env.APPLE_TEAM_ID;
 
     if (!certBase64 || !keyBase64 || !wwdrBase64 || !passphrase || !teamId) {
+      const missing = [
+        !certBase64 && "APPLE_PASS_CERT",
+        !keyBase64 && "APPLE_PASS_KEY",
+        !wwdrBase64 && "APPLE_PASS_WWDR",
+        !passphrase && "APPLE_PASS_PASSPHRASE",
+        !teamId && "APPLE_TEAM_ID",
+      ].filter(Boolean).join(", ");
+      console.log(`[apple-wallet] Wallet pass generation skipped — missing env vars: ${missing}`);
       return res.status(503).json({ message: "Apple Wallet not configured" });
     }
 
