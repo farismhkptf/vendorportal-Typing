@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation, useSearch } from "wouter";
-import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download, CalendarCheck, CalendarX2, CalendarClock, CalendarMinus, ExternalLink, Copy, MoreHorizontal } from "lucide-react";
+import { FileText, Filter, ArrowUpDown, List, LayoutGrid, Table2, Columns3, Plus, Clock, CheckCircle2, AlertTriangle, Send, Stethoscope, CreditCard, Loader2, Download, CalendarCheck, CalendarX2, CalendarClock, CalendarMinus, ExternalLink, Copy, MoreHorizontal, TriangleAlert } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -112,15 +112,27 @@ export default function TypingJobsList() {
   }, [appointmentsByWoId]);
 
   const stats = useMemo(() => {
-    if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0, medical: 0, eid: 0 };
+    if (!typingJobs) return { pending: 0, inProgress: 0, completed: 0, issues: 0, medical: 0, eid: 0, returned: 0 };
     return {
       pending: typingJobs.filter(j => j.status === "Draft" || j.status === "SubmittedToVendor").length,
       inProgress: typingJobs.filter(j => j.status === "InProcess").length,
-      completed: typingJobs.filter(j => j.status === "ReadyForScheduling" || j.status === "Returned").length,
+      completed: typingJobs.filter(j => j.status === "ReadyForScheduling").length,
       issues: typingJobs.filter(j => j.status === "Aborted" || j.status === "Rejected" || j.status === "OnHold").length,
       medical: typingJobs.filter(j => j.jobType?.category === "Medical").length,
       eid: typingJobs.filter(j => j.jobType?.category === "EID").length,
+      returned: typingJobs.filter(j => j.status === "Returned").length,
     };
+  }, [typingJobs]);
+
+  const returnedJobs = useMemo(() => {
+    if (!typingJobs) return [];
+    return typingJobs
+      .filter(j => j.status === "Returned")
+      .sort((a, b) => {
+        const aTime = a.returnedAt ? new Date(a.returnedAt).getTime() : new Date(a.createdAt).getTime();
+        const bTime = b.returnedAt ? new Date(b.returnedAt).getTime() : new Date(b.createdAt).getTime();
+        return aTime - bTime;
+      });
   }, [typingJobs]);
 
   const filteredAndSortedJobs = useMemo(() => {
@@ -131,7 +143,7 @@ export default function TypingJobsList() {
         job.jobCode?.toLowerCase().includes(search.toLowerCase());
       const pendingStatuses = ["Draft", "SubmittedToVendor"];
       const inProgressStatuses = ["InProcess"];
-      const completedStatuses = ["ReadyForScheduling", "Returned"];
+      const completedStatuses = ["ReadyForScheduling"];
       const issueStatuses = ["Aborted", "Rejected", "OnHold"];
       const matchesStatus = statusFilter === "all" || job.status === statusFilter
         || (statusFilter === "_pending" && pendingStatuses.includes(job.status))
@@ -744,6 +756,49 @@ export default function TypingJobsList() {
       </div>
 
       <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
+
+        {/* Returned — Needs Action section */}
+        {!isLoading && returnedJobs.length > 0 && (
+          <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4 space-y-3" data-testid="section-returned-jobs">
+            <div className="flex items-center gap-2">
+              <TriangleAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                Returned — Needs Action ({returnedJobs.length})
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-auto text-amber-700 dark:text-amber-300 h-7 text-xs gap-1"
+                onClick={() => setStatusFilter("Returned")}
+                data-testid="button-view-all-returned"
+              >
+                View all
+              </Button>
+            </div>
+            <div className="space-y-1.5">
+              {returnedJobs.slice(0, 5).map((job) => (
+                <Link key={job.id} href={`/typing-jobs/${job.id}`}>
+                  <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-white dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-colors cursor-pointer" data-testid={`returned-job-row-${job.id}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="font-mono text-xs text-foreground">{job.jobCode || "-"}</span>
+                      <span className="font-mono text-sm font-medium text-foreground">{job.workOrder?.woNumber || "N/A"}</span>
+                      <span className="text-sm text-muted-foreground truncate hidden sm:block">{job.workOrder?.applicantName || ""}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <RelativeTime date={job.returnedAt || job.createdAt} className="text-xs text-amber-700 dark:text-amber-300" id={`returned-${job.id}`} />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              {returnedJobs.length > 5 && (
+                <p className="text-xs text-amber-700 dark:text-amber-300 px-1">
+                  +{returnedJobs.length - 5} more returned jobs
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard
             title="Pending"

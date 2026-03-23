@@ -22,13 +22,14 @@ export interface TransitionDef {
 export type SideEffect =
   | { type: "audit"; action: string }
   | { type: "notify_vendor"; notificationType: string; title: string; messageFn: (ctx: TransitionContext) => string }
-  | { type: "notify_staff"; roles: string[]; notificationType: string; title: string; messageFn: (ctx: TransitionContext) => string; entityType: string }
+  | { type: "notify_staff"; roles: string[]; notificationType: string; title: string; messageFn: (ctx: TransitionContext) => string; entityType: string; useAssignedUserIfAvailable?: boolean }
   | { type: "comment"; messageFn: (ctx: TransitionContext) => string };
 
 export interface TransitionContext {
   jobId: string;
   jobCode?: string | null;
   vendorId?: string | null;
+  assignedToUserId?: string | null;
   previousStatus: TypingJobStatus;
   newStatus: TypingJobStatus;
   actor: Actor;
@@ -80,7 +81,7 @@ const TRANSITIONS: Record<string, TransitionDef> = {
     sideEffects: [
       { type: "audit", action: "vendor_returned" },
       { type: "comment", messageFn: (ctx) => `Vendor returned job${ctx.reason ? `: ${ctx.reason}` : " due to incorrect documents"}` },
-      { type: "notify_staff", roles: ["Admin", "Medical Support", "Medical Support - Temporary"], notificationType: "job_returned_from_vendor", title: "Typing Job Returned by Vendor", messageFn: (ctx) => `Job ${ctx.jobCode || ""} returned by vendor${ctx.reason ? `: ${ctx.reason}` : ""}`, entityType: "typing_job" },
+      { type: "notify_staff", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"], notificationType: "job_returned_from_vendor", title: "Typing Job Returned by Vendor", messageFn: (ctx) => `Job ${ctx.jobCode || ""} returned by vendor${ctx.reason ? `: ${ctx.reason}` : ""}`, entityType: "typing_job", useAssignedUserIfAvailable: true },
     ],
   },
 
@@ -192,6 +193,7 @@ export interface ExecuteTransitionParams {
   storage: IStorage;
   notifyVendorUsers: (vendorId: string, notification: any) => Promise<void>;
   notifyStaffByRoles?: (roles: string[], notification: any) => Promise<void>;
+  notifySingleUser?: (userId: string, notification: any) => Promise<void>;
   updateFields?: Record<string, unknown>;
   reason?: string;
 }
@@ -202,7 +204,7 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
   job?: any;
   context?: TransitionContext;
 }> {
-  const { action, jobId, actor, actorId, storage, notifyVendorUsers, notifyStaffByRoles, updateFields, reason } = params;
+  const { action, jobId, actor, actorId, storage, notifyVendorUsers, notifyStaffByRoles, notifySingleUser, updateFields, reason } = params;
 
   const job = await storage.getTypingJobById(jobId);
   if (!job) {
@@ -230,7 +232,7 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
   if (action === "resume") {
     baseUpdate.previousStatus = null;
   }
-  if (action === "complete") {
+  if (action === "return_job") {
     baseUpdate.returnedAt = new Date();
   }
   if (action === "submit_to_vendor") {
@@ -251,6 +253,7 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
     jobId,
     jobCode: job.jobCode,
     vendorId: updatedJob?.vendorId || job.vendorId,
+    assignedToUserId: updatedJob?.assignedToUserId || job.assignedToUserId || null,
     previousStatus: currentStatus,
     newStatus: targetStatus,
     actor,
@@ -292,7 +295,15 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
             break;
 
           case "notify_staff":
-            if (notifyStaffByRoles) {
+            if (effect.useAssignedUserIfAvailable && ctx.assignedToUserId && notifySingleUser) {
+              await notifySingleUser(ctx.assignedToUserId, {
+                type: effect.notificationType,
+                title: effect.title,
+                message: effect.messageFn(ctx),
+                relatedEntityType: effect.entityType,
+                relatedEntityId: jobId,
+              });
+            } else if (notifyStaffByRoles) {
               await notifyStaffByRoles(effect.roles, {
                 type: effect.notificationType,
                 title: effect.title,

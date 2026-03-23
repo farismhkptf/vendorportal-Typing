@@ -42,7 +42,8 @@ import {
   MessageSquare,
   Package,
   Clock,
-  Copy
+  Copy,
+  TriangleAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,8 +269,21 @@ function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: strin
   const files = jobDetail?.files || [];
   const comments = jobDetail?.comments || [];
 
+  const isReturned = job.status === "Returned";
+
   return (
-    <Card className="border border-border/50" data-testid={`typing-job-card-${job.id}`}>
+    <Card className={cn("border", isReturned ? "border-amber-300 dark:border-amber-700" : "border-border/50")} data-testid={`typing-job-card-${job.id}`}>
+      {isReturned && (
+        <div className="flex items-center gap-2 px-4 pt-3 pb-1">
+          <TriangleAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+          <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Returned by Vendor — Action Required</p>
+          <Link href={`/typing-jobs/${job.id}`}>
+            <Button variant="link" size="sm" className="h-auto p-0 text-xs text-amber-700 dark:text-amber-300 underline ml-auto" data-testid={`button-view-returned-job-${job.id}`}>
+              View Job
+            </Button>
+          </Link>
+        </div>
+      )}
       <Collapsible open={expanded} onOpenChange={setExpanded}>
         <div className="p-4">
           <div className="flex items-center justify-between gap-2">

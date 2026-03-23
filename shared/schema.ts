@@ -499,6 +499,7 @@ export const typingJobs = pgTable("typing_jobs", {
   woId: varchar("wo_id").notNull(),
   vendorId: varchar("vendor_id"),
   jobTypeId: varchar("job_type_id").notNull(),
+  assignedToUserId: varchar("assigned_to_user_id").references(() => users.id, { onDelete: "set null" }),
   status: typingJobStatusEnum("status").notNull().default("Draft"),
   costSnapshot: integer("cost_snapshot"),
   sentAt: timestamp("sent_at"),

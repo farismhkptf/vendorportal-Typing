@@ -298,6 +298,14 @@ async function notifyStaffByRoles(roles: string[], notification: Omit<InsertStaf
   }
 }
 
+async function notifySingleUser(userId: string, notification: Omit<InsertStaffNotification, 'userId'>) {
+  try {
+    await storage.createStaffNotification({ ...notification, userId });
+  } catch (error) {
+    console.error("Failed to create single-user staff notification:", error);
+  }
+}
+
 async function checkAndMarkDelayedWorkOrders(): Promise<number> {
   try {
     const settings = await storage.getAppSettings();
@@ -3175,6 +3183,7 @@ export async function registerRoutes(
             storage,
             notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
             updateFields: { vendorId, costSnapshot: cost },
           });
 
@@ -3248,6 +3257,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
         updateFields: { vendorId },
       });
       if (!result.success) return res.status(400).json({ message: result.error });
@@ -3255,6 +3265,52 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Reassign error:", error);
       res.status(500).json({ message: "Failed to reassign job" });
+    }
+  });
+
+  app.patch("/api/typing-jobs/:id/assign-staff", requireOpsRole, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { assignedToUserId } = req.body;
+      const job = await storage.getTypingJobById(id);
+      if (!job) return res.status(404).json({ message: "Typing job not found" });
+
+      if (assignedToUserId) {
+        const assignee = await storage.getUser(assignedToUserId);
+        if (!assignee) return res.status(400).json({ message: "User not found" });
+        if (!assignee.active) return res.status(400).json({ message: "Cannot assign to an inactive user" });
+        const staffRoles = ROLE_CATEGORIES["Our Team"] as readonly string[];
+        if (!staffRoles.includes(assignee.role)) {
+          return res.status(400).json({ message: "User is not a staff member" });
+        }
+      }
+
+      const updated = await storage.updateTypingJob(id, { assignedToUserId: assignedToUserId || null });
+      if (!updated) return res.status(404).json({ message: "Typing job not found" });
+
+      await storage.createAuditLog({
+        entityType: "typing_job",
+        entityId: id,
+        action: "assigned_to_staff",
+        userId: req.session?.userId,
+        details: { assignedToUserId: assignedToUserId || null },
+      });
+
+      if (assignedToUserId) {
+        await storage.createStaffNotification({
+          userId: assignedToUserId,
+          type: "typing_job_assigned",
+          title: "Typing Job Assigned",
+          message: `Job ${job.jobCode || id} has been assigned to you.`,
+          relatedEntityType: "typing_job",
+          relatedEntityId: id,
+        });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Assign staff error:", error);
+      res.status(500).json({ message: "Failed to assign staff member" });
     }
   });
 
@@ -3394,6 +3450,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
         updateFields: { vendorId, costSnapshot: cost },
         reason: undefined,
       });
@@ -3419,6 +3476,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
         reason: req.body.reason,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
@@ -3439,6 +3497,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
       res.json(result.job);
@@ -3458,6 +3517,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
         reason: req.body.reason,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
@@ -3478,6 +3538,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
       res.json(result.job);
@@ -4436,6 +4497,27 @@ export async function registerRoutes(
   });
 
   // ========== User Management (Admin) ==========
+  // Ops role can fetch the staff-only subset needed for assignment
+  app.get("/api/staff-users", requireOpsRole, async (req, res) => {
+    try {
+      const allUsers = await storage.getUsers();
+      const staffRoles = ROLE_CATEGORIES["Our Team"] as readonly string[];
+      const staffUsers = allUsers
+        .filter(u => staffRoles.includes(u.role))
+        .map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          active: u.active,
+        }));
+      res.json(staffUsers);
+    } catch (error) {
+      console.error("Get staff users error:", error);
+      res.status(500).json({ message: "Failed to fetch staff users" });
+    }
+  });
+
   app.get("/api/users", requireRole("Admin"), async (req, res) => {
     try {
       const allUsers = await storage.getUsers();
@@ -5443,6 +5525,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
       res.json(result.job);
@@ -5467,6 +5550,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
         notifyStaffByRoles,
+        notifySingleUser,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
       res.json(result.job);
@@ -5496,6 +5580,7 @@ export async function registerRoutes(
         storage,
         notifyVendorUsers,
           notifyStaffByRoles,
+          notifySingleUser,
       });
       if (!result.success) return res.status(400).json({ message: result.error });
 
@@ -5543,6 +5628,38 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Vendor complete error:", error);
       res.status(500).json({ message: "Failed to complete job" });
+    }
+  });
+
+  // Vendor return job (InProcess → Returned)
+  app.post("/api/vendor/jobs/:id/return", requireVendorAuth, async (req, res) => {
+    try {
+      const jobId = req.params.id;
+      const job = await storage.getTypingJobById(jobId);
+      if (!job || job.vendorId !== req.session.vendorId) {
+        return res.status(404).json({ message: "Job not found" });
+      }
+      const returnBodyValidation = validateBody(z.object({ reason: z.string().min(1, "Reason is required") }), req.body);
+      if ('error' in returnBodyValidation) {
+        return res.status(400).json({ message: returnBodyValidation.error });
+      }
+      const { reason } = returnBodyValidation.data;
+      const result = await executeTransition({
+        action: "return_job",
+        jobId,
+        actor: "vendor",
+        actorId: req.session.vendorUserId || undefined,
+        storage,
+        notifyVendorUsers,
+        notifyStaffByRoles,
+        notifySingleUser,
+        reason,
+      });
+      if (!result.success) return res.status(400).json({ message: result.error });
+      res.json(result.job);
+    } catch (error) {
+      console.error("Vendor return job error:", error);
+      res.status(500).json({ message: "Failed to return job" });
     }
   });
 

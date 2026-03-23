@@ -5,7 +5,8 @@ import {
   ArrowLeft, FileText, Building2, User, Clock, Calendar, 
   Upload, Download, MessageSquare, Send, ChevronRight, 
   AlertCircle, CheckCircle2, Briefcase, MapPin, History,
-  UserPlus, RotateCcw, Package, Loader2, Home, XCircle
+  UserPlus, RotateCcw, Package, Loader2, Home, XCircle,
+  AlertTriangle, UserCog
 } from "lucide-react";
 import { DOCUMENT_TYPE_LABELS } from "@/components/documents/document-types";
 
@@ -53,7 +54,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { 
   TypingJob, WorkOrder, Company, JobType, Vendor, 
-  TypingJobResult, TypingJobComment, File as FileType 
+  TypingJobResult, TypingJobComment, File as FileType, User as SchemaUser
 } from "@shared/schema";
 
 interface TypingJobWithDetails extends TypingJob {
@@ -88,6 +89,8 @@ export default function TypingJobDetail() {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [showOnHoldDialog, setShowOnHoldDialog] = useState(false);
   const [showAbortDialog, setShowAbortDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [selectedAssignUserId, setSelectedAssignUserId] = useState<string>("");
   
   // Submit to vendor form
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
@@ -111,6 +114,10 @@ export default function TypingJobDetail() {
   const { data: activities = [] } = useQuery<ActivityItem[]>({
     queryKey: ["/api/audit-logs", "typing_job", id],
     enabled: !!id,
+  });
+
+  const { data: staffUsers = [] } = useQuery<Pick<SchemaUser, "id" | "name" | "email" | "role" | "active">[]>({
+    queryKey: ["/api/staff-users"],
   });
 
   const { data: photoMap } = useQuery<Record<string, string>>({
@@ -248,6 +255,21 @@ export default function TypingJobDetail() {
       toast({ title: "Failed to reassign", description: error.message, variant: "destructive" });
     },
     onSettled: () => invalidateTypingJobQueries(),
+  });
+
+  const assignStaffMutation = useMutation({
+    mutationFn: async (assignedToUserId: string | null) => {
+      return apiRequest("PATCH", `/api/typing-jobs/${id}/assign-staff`, { assignedToUserId });
+    },
+    onSuccess: () => {
+      setShowAssignDialog(false);
+      setSelectedAssignUserId("");
+      toast({ title: "Staff member assigned" });
+      invalidateTypingJobQueries();
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to assign", description: error.message, variant: "destructive" });
+    },
   });
 
   const saveFileMutation = useMutation({
@@ -403,6 +425,32 @@ export default function TypingJobDetail() {
             </Link>
           </div>
         </div>
+
+        {/* Returned alert banner */}
+        {job.status === "Returned" && (
+          <Card className="border border-amber-300 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700" data-testid="alert-job-returned">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Job Returned by Vendor — Action Required</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                    This job was returned by the vendor. Review the documents and comments, then resolve or re-assign the job.
+                  </p>
+                  {job.rejectedReason && (
+                    <p className="text-xs text-amber-800 dark:text-amber-200 mt-1 font-medium">Reason: {job.rejectedReason}</p>
+                  )}
+                  {job.assignedToUserId && (() => {
+                    const assigned = staffUsers.find(u => u.id === job.assignedToUserId);
+                    return assigned ? (
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">Assigned to: <span className="font-medium">{assigned.name}</span></p>
+                    ) : null;
+                  })()}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Missing documents pre-check warning */}
         {missingDocumentTypes.length > 0 && job.status === "Draft" && (
@@ -575,6 +623,28 @@ export default function TypingJobDetail() {
               <div>
                 <p className="text-xs text-muted-foreground">Vendor</p>
                 <p className="text-sm font-medium">{job.vendor?.name || "Not assigned"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Assigned To</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium" data-testid="text-assigned-to">
+                    {job.assignedToUserId
+                      ? staffUsers.find(u => u.id === job.assignedToUserId)?.name || "Unknown"
+                      : "Unassigned"}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => {
+                      setSelectedAssignUserId(job.assignedToUserId || "");
+                      setShowAssignDialog(true);
+                    }}
+                    data-testid="button-assign-staff"
+                  >
+                    <UserCog className="h-3.5 w-3.5 text-muted-foreground" />
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 gap-4 pt-2 border-t border-border/50">
@@ -1042,6 +1112,51 @@ export default function TypingJobDetail() {
               ) : (
                 "Abort Job"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Staff Dialog */}
+      <Dialog open={showAssignDialog} onOpenChange={(open) => {
+        setShowAssignDialog(open);
+        if (!open) setSelectedAssignUserId("");
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Staff Member</DialogTitle>
+            <DialogDescription>
+              Select a staff member to be responsible for this typing job. They will be notified when the job is returned by a vendor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Staff Member</Label>
+              <Select value={selectedAssignUserId} onValueChange={setSelectedAssignUserId}>
+                <SelectTrigger data-testid="select-assign-user">
+                  <SelectValue placeholder="Unassigned" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Unassigned</SelectItem>
+                  {staffUsers
+                    .filter(u => u.active && ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"].includes(u.role))
+                    .map(u => (
+                      <SelectItem key={u.id} value={u.id}>{u.name} <span className="text-muted-foreground text-xs">({u.role})</span></SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignDialog(false)}>Cancel</Button>
+            <Button
+              onClick={() => assignStaffMutation.mutate(selectedAssignUserId === "__none__" ? null : selectedAssignUserId || null)}
+              disabled={assignStaffMutation.isPending}
+              data-testid="button-confirm-assign"
+            >
+              {assignStaffMutation.isPending ? (
+                <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving...</>
+              ) : "Save Assignment"}
             </Button>
           </DialogFooter>
         </DialogContent>
