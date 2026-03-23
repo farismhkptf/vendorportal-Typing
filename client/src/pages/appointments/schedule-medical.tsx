@@ -116,6 +116,7 @@ export default function ScheduleMedical() {
   const [messageCopied, setMessageCopied] = useState<"email" | "whatsapp" | null>(null);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [urlWoProcessed, setUrlWoProcessed] = useState(false);
+  const [appNumberAutoFilled, setAppNumberAutoFilled] = useState(false);
   const [scheduledApptId, setScheduledApptId] = useState<string | null>(null);
   const [confirmEmailDialogOpen, setConfirmEmailDialogOpen] = useState(false);
   const [emailSendStatus, setEmailSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
@@ -228,6 +229,10 @@ export default function ScheduleMedical() {
 
     if (item.applicationRefNo) {
       form.setValue("applicationNumber", item.applicationRefNo);
+      setAppNumberAutoFilled(true);
+    } else {
+      form.setValue("applicationNumber", "");
+      setAppNumberAutoFilled(false);
     }
 
     const preferredCenter = item.isVip
@@ -279,6 +284,8 @@ export default function ScheduleMedical() {
     setSelectedQueueItem(queueItem);
     form.setValue("woId", wo.id);
     form.setValue("isVip", wo.isVip || false);
+    form.setValue("applicationNumber", "");
+    setAppNumberAutoFilled(false);
 
     if (company) {
       const preferredCenter = wo.isVip
@@ -302,6 +309,7 @@ export default function ScheduleMedical() {
           );
           if (medicalJob?.result?.applicationRefNo) {
             form.setValue("applicationNumber", medicalJob.result.applicationRefNo);
+            setAppNumberAutoFilled(true);
             setSelectedQueueItem(prev => prev ? { ...prev, applicationRefNo: medicalJob.result.applicationRefNo } : prev);
           }
         }
@@ -981,10 +989,20 @@ Thank you,
                     <FormControl>
                       <Input 
                         placeholder="Enter application number" 
-                        {...field} 
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setAppNumberAutoFilled(false);
+                        }}
                         data-testid="input-application-number"
                       />
                     </FormControl>
+                    {appNumberAutoFilled && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1" data-testid="text-app-number-autofilled">
+                        <CheckCircle2 className="h-3 w-3 text-green-500" />
+                        Auto-filled from vendor submission
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
