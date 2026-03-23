@@ -17,6 +17,7 @@ export interface MedicalAppointmentEmailProps {
   notes?: string;
   applicantPhotoUrl?: string;
   appLogoUrl?: string;
+  cardUrl?: string;
 }
 
 function getInitials(name: string): string {
@@ -62,6 +63,7 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
     notes = "",
     applicantPhotoUrl,
     appLogoUrl,
+    cardUrl = "",
   } = props;
 
   const initials = getInitials(applicantName);
@@ -132,6 +134,18 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
               ${rmPhone ? `<span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin:0 6px;"></span>${phoneIconImg}<a href="tel:${escapeHtml(rmPhone)}" class="text-secondary link-underline" style="font-size:13px;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:1px;">${escapeHtml(rmPhone)}</a>` : ""}
               ${rmEmail ? `<span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin:0 6px;"></span>${emailIconImg}<a href="mailto:${escapeHtml(rmEmail)}" class="text-secondary link-underline" style="font-size:13px;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:1px;">${escapeHtml(rmEmail)}</a>` : ""}
             </div>
+          </td></tr>
+        </table>
+      </td></tr>`
+    : "";
+
+  const cardLinkBlock = cardUrl
+    ? `<tr><td colspan="2" style="padding-top:36px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);border-radius:20px;">
+          <tr><td style="padding:24px 28px;text-align:center;">
+            <div style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.75);letter-spacing:0.03em;text-transform:uppercase;padding-bottom:8px;">Your Appointment Card</div>
+            <div style="font-size:15px;font-weight:400;color:rgba(255,255,255,0.85);line-height:1.5;padding-bottom:20px;">Open your digital appointment card on any device. Add it to Apple Wallet for quick access.</div>
+            <a href="${escapeHtml(cardUrl)}" style="display:inline-block;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.30);color:#ffffff;font-size:15px;font-weight:600;letter-spacing:-0.01em;text-decoration:none;padding:12px 28px;border-radius:12px;">View Appointment Card &#8599;</a>
           </td></tr>
         </table>
       </td></tr>`
@@ -317,6 +331,8 @@ export function generateMedicalAppointmentEmailHtml(props: MedicalAppointmentEma
 
                     ${rescheduleBox}
 
+                    ${cardLinkBlock}
+
                     <tr>
                       <td class="border-subtle" colspan="2" style="padding-top:28px;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border-top:1px solid #e8e8ed;">
@@ -473,6 +489,7 @@ export function MedicalAppointmentEmail(props: MedicalAppointmentEmailProps) {
     notes = "",
     applicantPhotoUrl,
     appLogoUrl,
+    cardUrl = "",
   } = props;
 
   const isDark = usePrefersDark();
@@ -633,6 +650,14 @@ export function MedicalAppointmentEmail(props: MedicalAppointmentEmailProps) {
                   </>
                 )}
               </div>
+            </div>
+          )}
+
+          {cardUrl && (
+            <div style={{ background: "linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%)", borderRadius: 20, padding: "24px 28px", marginTop: 36, textAlign: "center" as const }} data-testid="card-link-block">
+              <div style={{ fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.75)", letterSpacing: "0.03em", textTransform: "uppercase" as const, marginBottom: 8 }}>Your Appointment Card</div>
+              <div style={{ fontSize: 15, fontWeight: 400, color: "rgba(255,255,255,0.85)", lineHeight: 1.5, marginBottom: 20 }}>Open your digital appointment card on any device. Add it to Apple Wallet for quick access.</div>
+              <a href={cardUrl} style={{ display: "inline-block", background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.30)", color: "#ffffff", fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", textDecoration: "none", padding: "12px 28px", borderRadius: 12 }} data-testid="link-view-card">View Appointment Card ↗</a>
             </div>
           )}
 

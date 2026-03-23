@@ -44,15 +44,6 @@ function formatDateParts(dt: Date): { weekday: string; date: string; time: strin
   };
 }
 
-function isIOSSafari(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  const isIOS = /iPhone|iPad|iPod/.test(ua) && !("MSStream" in window);
-  if (!isIOS) return false;
-  const isSafari = /Safari\//.test(ua) && !/CriOS\//.test(ua) && !/FxiOS\//.test(ua) && !/OPiOS\//.test(ua) && !/EdgiOS\//.test(ua);
-  return isSafari;
-}
-
 function AppleWalletButton({ token }: { token: string }) {
   const { data, isLoading } = useQuery<{ configured: boolean }>({
     queryKey: ["/api/card", token, "wallet-check"],
@@ -66,10 +57,9 @@ function AppleWalletButton({ token }: { token: string }) {
   });
 
   if (isLoading || !data?.configured) return null;
-  if (!isIOSSafari()) return null;
 
   return (
-    <div style={{ textAlign: "center", padding: "16px 24px 0" }}>
+    <div style={{ textAlign: "center", padding: "20px 32px 0" }}>
       <a
         href={`/api/card/${token}/wallet`}
         data-testid="link-add-to-wallet"
@@ -108,7 +98,10 @@ export default function CardPage() {
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
 
-  const cardUrl = typeof window !== "undefined" ? window.location.href : "";
+  const appBaseUrl = import.meta.env.VITE_APP_BASE_URL;
+  const cardUrl = appBaseUrl && token
+    ? `${appBaseUrl}/card/${token}`
+    : (typeof window !== "undefined" ? window.location.href : "");
 
   const { data, isLoading, error } = useQuery<CardData>({
     queryKey: ["/api/card", token],
@@ -151,8 +144,8 @@ export default function CardPage() {
         padding: "40px 16px 64px",
         background: "radial-gradient(ellipse at 30% 20%, rgba(190,210,245,0.70) 0%, transparent 55%), radial-gradient(ellipse at 80% 80%, rgba(210,225,250,0.50) 0%, transparent 50%), #edf2f9",
       }}>
-        <div style={{ width: "100%", maxWidth: "390px" }}>
-          <div style={{ background: "rgba(255,255,255,0.72)", borderRadius: "26px", padding: "20px 24px 22px", border: "1px solid rgba(255,255,255,0.65)" }}>
+        <div style={{ width: "100%", maxWidth: "500px" }}>
+          <div style={{ background: "rgba(255,255,255,0.72)", borderRadius: "26px", padding: "24px 32px 28px", border: "1px solid rgba(255,255,255,0.65)" }}>
             <Skeleton className="h-6 w-24 mb-4" />
             <Skeleton className="h-8 w-48 mb-3" />
             <Skeleton className="h-4 w-full mb-2" />
@@ -175,8 +168,8 @@ export default function CardPage() {
         background: "radial-gradient(ellipse at 30% 20%, rgba(190,210,245,0.70) 0%, transparent 55%), radial-gradient(ellipse at 80% 80%, rgba(210,225,250,0.50) 0%, transparent 50%), #edf2f9",
       }}>
         <div style={{
-          width: "100%", maxWidth: "390px", textAlign: "center",
-          background: "rgba(255,255,255,0.72)", borderRadius: "26px", padding: "40px 24px",
+          width: "100%", maxWidth: "500px", textAlign: "center",
+          background: "rgba(255,255,255,0.72)", borderRadius: "26px", padding: "40px 32px",
           border: "1px solid rgba(255,255,255,0.65)",
         }}>
           <div style={{ fontSize: "32px", marginBottom: "12px" }}>🔍</div>
@@ -199,7 +192,7 @@ export default function CardPage() {
   const dt = new Date(appointment.datetime);
   const { date: dateStr, hour, ampm } = formatDateParts(dt);
   const initials = getInitials(applicantName);
-  const woNumber = workOrder?.woNumber ?? "";
+  const applicationNumber = appointment.applicationNumber ?? "";
 
   const guideInitials = assignedStaff?.name ? getInitials(assignedStaff.name) : "";
   const guidePhone = assignedStaff?.phone ?? "";
@@ -225,7 +218,7 @@ export default function CardPage() {
         data-testid="appointment-card"
         style={{
           width: "100%",
-          maxWidth: "390px",
+          maxWidth: "500px",
           borderRadius: "26px",
           overflow: "hidden",
           position: "relative",
@@ -251,7 +244,7 @@ export default function CardPage() {
 
         <div style={{ position: "relative", zIndex: 1 }}>
           {/* TOP BAR */}
-          <div style={{ padding: "20px 24px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ padding: "24px 32px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <div style={{
                 width: "7px", height: "7px", borderRadius: "50%",
@@ -269,7 +262,7 @@ export default function CardPage() {
           </div>
 
           {/* IDENTITY */}
-          <div style={{ padding: "20px 24px 0" }}>
+          <div style={{ padding: "24px 32px 0" }}>
             <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15, color: inkColor, marginBottom: "10px" }}
               data-testid="text-company-name">
               {companyName}
@@ -304,10 +297,10 @@ export default function CardPage() {
           </div>
 
           {/* RULE */}
-          <div style={{ margin: "20px 24px 0", height: "1px", background: "linear-gradient(90deg, rgba(74,144,217,0.20), rgba(74,144,217,0.06) 70%, transparent)" }} />
+          <div style={{ margin: "24px 32px 0", height: "1px", background: "linear-gradient(90deg, rgba(74,144,217,0.20), rgba(74,144,217,0.06) 70%, transparent)" }} />
 
           {/* APPOINTMENT DATETIME */}
-          <div style={{ padding: "18px 24px 0" }}>
+          <div style={{ padding: "22px 32px 0" }}>
             <div style={{ fontSize: "15px", fontWeight: 600, color: inkColor, letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: "4px" }}
               data-testid="text-appointment-date">
               {dateStr}
@@ -338,19 +331,19 @@ export default function CardPage() {
               </svg>
               <span data-testid="text-center-name">{centerName}</span>
             </a>
-            {woNumber && (
+            {applicationNumber && (
               <div style={{ fontSize: "10px", fontWeight: 500, color: inkMute, marginTop: "10px", letterSpacing: "0.04em" }}
                 data-testid="text-reference-number">
-                {woNumber}
+                {applicationNumber}
               </div>
             )}
           </div>
 
           {/* RULE */}
-          <div style={{ margin: "18px 24px 0", height: "1px", background: "linear-gradient(90deg, rgba(74,144,217,0.20), rgba(74,144,217,0.06) 70%, transparent)" }} />
+          <div style={{ margin: "22px 32px 0", height: "1px", background: "linear-gradient(90deg, rgba(74,144,217,0.20), rgba(74,144,217,0.06) 70%, transparent)" }} />
 
           {/* WHAT TO KEEP IN MIND */}
-          <div style={{ padding: "18px 24px 0" }}>
+          <div style={{ padding: "22px 32px 0" }}>
             <div style={{ fontSize: "9px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: inkSoft, marginBottom: "10px" }}>
               What to keep in mind
             </div>
@@ -388,7 +381,7 @@ export default function CardPage() {
               href={guidePhone ? `tel:${guidePhone}` : undefined}
               data-testid="link-guide-phone"
               style={{
-                margin: "18px 24px 0",
+                margin: "22px 32px 0",
                 padding: "12px 14px",
                 borderRadius: "12px",
                 background: "rgba(255,255,255,0.55)",
@@ -429,7 +422,7 @@ export default function CardPage() {
 
           {/* QR CODE + COPY LINK */}
           <div style={{
-            margin: "16px 24px 0",
+            margin: "20px 32px 0",
             padding: "14px",
             borderRadius: "14px",
             background: "rgba(255,255,255,0.55)",
@@ -486,8 +479,8 @@ export default function CardPage() {
 
           {/* FOOTER */}
           <div style={{
-            margin: "16px 24px 0",
-            padding: "12px 0 22px",
+            margin: "20px 32px 0",
+            padding: "16px 0 28px",
             borderTop: "1px solid rgba(74,144,217,0.10)",
             display: "flex", alignItems: "center", justifyContent: "space-between",
           }}>
