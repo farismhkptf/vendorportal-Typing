@@ -25,6 +25,7 @@ import { ObjectStorageService } from "./replit_integrations/object_storage/objec
 import { buildAppointmentEmail } from "./email-templates/appointment-confirmation";
 import { sendEmail, isEmailConfigured } from "./email-service";
 import UAParser from "ua-parser-js";
+import { generateAppointmentPass } from "./apple-pass";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -8236,6 +8237,52 @@ export async function registerRoutes(
   setTimeout(() => {
     runBiometricsTimerJobs().catch(err => console.error("[biometrics-timer] Initial error:", err));
   }, 9000);
+
+  // ─── Apple Wallet Pass ──────────────────────────────────────────────────────
+  app.get("/api/pass", async (req, res) => {
+    const passTypeIdentifier = process.env.APPLE_PASS_TYPE_IDENTIFIER;
+    const teamIdentifier = process.env.APPLE_TEAM_ID;
+
+    if (!passTypeIdentifier) {
+      return res.status(500).json({ message: "APPLE_PASS_TYPE_IDENTIFIER environment variable is not set" });
+    }
+    if (!teamIdentifier) {
+      return res.status(500).json({ message: "APPLE_TEAM_ID environment variable is not set" });
+    }
+
+    try {
+      const buffer = await generateAppointmentPass({
+        passTypeIdentifier,
+        teamIdentifier,
+        serialNumber: randomUUID(),
+        description: "Appointment Pass",
+        organizationName: "The P.R.O. Company",
+        backgroundColor: "rgb(0,0,0)",
+        foregroundColor: "rgb(255,255,255)",
+        labelColor: "rgb(255,255,255)",
+        qrMessage: "TEST123",
+        fields: {
+          primary: [{ key: "name", label: "NAME", value: "Appointment" }],
+          secondary: [
+            { key: "org", label: "ORGANIZATION", value: "The P.R.O. Company" },
+          ],
+          back: [
+            { key: "info", label: "Information", value: "This pass is issued by The P.R.O. Company." },
+          ],
+        },
+      });
+
+      res.set({
+        "Content-Type": "application/vnd.apple.pkpass",
+        "Content-Disposition": `attachment; filename="appointment.pkpass"`,
+        "Content-Length": buffer.length,
+      });
+      res.send(buffer);
+    } catch (err: any) {
+      console.error("[apple-pass] Error generating pass:", err);
+      res.status(500).json({ message: err.message ?? "Failed to generate pass" });
+    }
+  });
 
   return httpServer;
 }
