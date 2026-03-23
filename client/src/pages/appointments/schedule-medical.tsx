@@ -358,12 +358,11 @@ export default function ScheduleMedical() {
 
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: AppointmentForm) => {
-      const datetime = new Date(`${data.appointmentDate}T${data.appointmentTime}:00`);
       const res = await apiRequest("POST", "/api/appointments", {
         woId: data.woId,
         type: "Medical",
         isVip: data.isVip,
-        datetime: datetime.toISOString(),
+        datetime: `${data.appointmentDate}T${data.appointmentTime}:00`,
         centerId: data.centerId,
         assignedStaffId: data.assignedStaffId,
         applicationNumber: data.applicationNumber,
@@ -535,10 +534,7 @@ Thank you,
     const previewTime = form.getValues("appointmentTime");
     let datetimeIso: string | undefined;
     if (previewDate && previewTime) {
-      const [h, m] = previewTime.split(":").map(Number);
-      const dt = new Date(previewDate);
-      dt.setHours(h, m, 0, 0);
-      datetimeIso = dt.toISOString();
+      datetimeIso = `${previewDate}T${previewTime}:00`;
     }
 
     fetch("/api/appointments/email-preview", {

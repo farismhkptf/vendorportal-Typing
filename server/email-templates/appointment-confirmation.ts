@@ -36,11 +36,11 @@ function formatDateTimeParts(dt: Date): { dateStr: string; timeStr: string } {
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December",
   ];
-  const day = dt.getDate();
-  const month = months[dt.getMonth()];
-  const year = dt.getFullYear();
-  let hours = dt.getHours();
-  const mins = dt.getMinutes().toString().padStart(2, "0");
+  const day = dt.getUTCDate();
+  const month = months[dt.getUTCMonth()];
+  const year = dt.getUTCFullYear();
+  let hours = dt.getUTCHours();
+  const mins = dt.getUTCMinutes().toString().padStart(2, "0");
   const ampm = hours >= 12 ? "PM" : "AM";
   hours = hours % 12 || 12;
   return {

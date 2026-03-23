@@ -356,12 +356,11 @@ export default function ScheduleEid() {
 
   const createAppointmentMutation = useMutation({
     mutationFn: async (data: AppointmentForm) => {
-      const datetime = new Date(`${data.appointmentDate}T${data.appointmentTime}:00`);
       const res = await apiRequest("POST", "/api/appointments", {
         woId: data.woId,
         type: "EID",
         isVip: data.isVip,
-        datetime: datetime.toISOString(),
+        datetime: `${data.appointmentDate}T${data.appointmentTime}:00`,
         centerId: data.centerId,
         assignedStaffId: data.assignedStaffId,
         applicationNumber: data.applicationNumber,
@@ -538,10 +537,7 @@ Thank you,
     const time2 = form.getValues("appointmentTime");
     let datetimeIso: string | undefined;
     if (date2 && time2) {
-      const [h, m] = time2.split(":").map(Number);
-      const dt = new Date(date2);
-      dt.setHours(h, m, 0, 0);
-      datetimeIso = dt.toISOString();
+      datetimeIso = `${date2}T${time2}:00`;
     }
 
     fetch("/api/appointments/email-preview", {
