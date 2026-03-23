@@ -1999,7 +1999,10 @@ export async function registerRoutes(
         try {
           const docs = await storage.getWoDocuments(workOrder.id);
           const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
-          if (photo) applicantPhotoUrl = photo.fileUrl;
+          if (photo?.fileUrl) {
+            const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+            applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
+          }
         } catch {}
       }
 
@@ -2027,6 +2030,8 @@ export async function registerRoutes(
         createdAt: new Date(),
       };
 
+      const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+
       const html = buildAppointmentEmail({
         workOrder,
         company,
@@ -2038,6 +2043,7 @@ export async function registerRoutes(
         rmUserEmail,
         applicantPhotoUrl,
         appLogoUrl,
+        appBaseUrl,
       });
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -2083,14 +2089,17 @@ export async function registerRoutes(
       try {
         const docs = await storage.getWoDocuments(wo.id);
         const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
-        if (photo) applicantPhotoUrl = photo.fileUrl;
+        if (photo?.fileUrl) {
+          const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+          applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
+        }
       } catch {}
 
       let appLogoUrl: string | undefined;
       const settings = await storage.getAppSettings().catch(() => undefined);
       if (settings?.logoUrl) appLogoUrl = settings.logoUrl;
 
-      const appBaseUrl = process.env.APP_BASE_URL || "";
+      const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
 
       const html = buildAppointmentEmail({
         workOrder: wo,
@@ -2236,7 +2245,10 @@ export async function registerRoutes(
             try {
               const docs = await storage.getWoDocuments(wo.id);
               const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
-              if (photo) photoUrl = photo.fileUrl;
+              if (photo?.fileUrl) {
+                const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+                photoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
+              }
             } catch {}
           }
 
@@ -2249,7 +2261,7 @@ export async function registerRoutes(
             }
           } catch {}
 
-          const appBaseUrl = process.env.APP_BASE_URL || "";
+          const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
 
           const html = buildAppointmentEmail({
             workOrder: wo,
@@ -3981,7 +3993,10 @@ export async function registerRoutes(
         try {
           const docs = await storage.getWoDocuments(workOrder.id);
           const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
-          if (photo) applicantPhotoUrl = photo.fileUrl;
+          if (photo?.fileUrl) {
+            const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+            applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
+          }
         } catch {}
       }
 
@@ -3992,6 +4007,8 @@ export async function registerRoutes(
           appLogoUrl = settings.logoUrl;
         }
       } catch {}
+
+      const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
 
       const html = buildAppointmentEmail({
         workOrder,
@@ -4004,6 +4021,7 @@ export async function registerRoutes(
         rmUserEmail,
         applicantPhotoUrl,
         appLogoUrl,
+        appBaseUrl,
       });
 
       res.setHeader("Content-Type", "text/html; charset=utf-8");

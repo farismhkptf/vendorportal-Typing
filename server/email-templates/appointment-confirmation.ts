@@ -96,11 +96,11 @@ function buildAppleCalendarIcsUrl(title: string, dt: Date, location: string): st
   return `data:text/calendar;charset=utf8,${encodeURIComponent(ics)}`;
 }
 
-const calendarGoogleSvgImg = `<img src="data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='4' width='18' height='17' rx='2' fill='white' stroke='%23dadce0'/%3E%3Crect x='3' y='4' width='18' height='5' rx='2' fill='%234285F4'/%3E%3Crect x='3' y='7' width='18' height='2' fill='%234285F4'/%3E%3Crect x='7' y='2' width='2' height='4' rx='1' fill='%234285F4'/%3E%3Crect x='15' y='2' width='2' height='4' rx='1' fill='%234285F4'/%3E%3Cpath d='M10 14.5L11.5 16L14.5 13' stroke='%2334A853' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" width="22" height="22" alt="Google Calendar" style="display:block;opacity:0.65;" />`;
+const calendarGoogleSvgImg = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="display:block;"><rect x="3" y="4" width="18" height="17" rx="2" fill="white" stroke="#dadce0"/><rect x="3" y="4" width="18" height="5" rx="2" fill="#4285F4"/><rect x="3" y="7" width="18" height="2" fill="#4285F4"/><rect x="7" y="2" width="2" height="4" rx="1" fill="#4285F4"/><rect x="15" y="2" width="2" height="4" rx="1" fill="#4285F4"/><path d="M10 14.5L11.5 16L14.5 13" stroke="#34A853" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
-const calendarAppleSvgImg = `<img src="data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='3' y='4' width='18' height='17' rx='2.5' fill='white' stroke='%23d1d1d6' stroke-width='1'/%3E%3Crect x='3' y='4' width='18' height='6' rx='2.5' fill='%23ff3b30'/%3E%3Crect x='3' y='8' width='18' height='2' fill='%23ff3b30'/%3E%3Crect x='7.5' y='2.5' width='1.5' height='3.5' rx='0.75' fill='%235e5e6a'/%3E%3Crect x='15' y='2.5' width='1.5' height='3.5' rx='0.75' fill='%235e5e6a'/%3E%3C/svg%3E" width="22" height="22" alt="Apple Calendar" style="display:block;opacity:0.65;" />`;
+const calendarAppleSvgImg = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="display:block;"><rect x="3" y="4" width="18" height="17" rx="2.5" fill="white" stroke="#d1d1d6" stroke-width="1"/><rect x="3" y="4" width="18" height="6" rx="2.5" fill="#ff3b30"/><rect x="3" y="8" width="18" height="2" fill="#ff3b30"/><rect x="7.5" y="2.5" width="1.5" height="3.5" rx="0.75" fill="#5e5e6a"/><rect x="15" y="2.5" width="1.5" height="3.5" rx="0.75" fill="#5e5e6a"/></svg>`;
 
-const calendarOutlookSvgImg = `<img src="data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='9' y='3' width='13' height='13' rx='1.5' fill='%230078D4'/%3E%3Crect x='9' y='3' width='13' height='4' rx='1.5' fill='%23005fa3'/%3E%3Crect x='9' y='5' width='13' height='2' fill='%23005fa3'/%3E%3Crect x='12' y='2' width='1.5' height='3' rx='0.75' fill='%230078D4'/%3E%3Crect x='18' y='2' width='1.5' height='3' rx='0.75' fill='%230078D4'/%3E%3Crect x='2' y='8' width='11' height='13' rx='1.5' fill='%231d1d1f'/%3E%3C/svg%3E" width="22" height="22" alt="Outlook Calendar" style="display:block;opacity:0.65;" />`;
+const calendarOutlookSvgImg = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="display:block;"><rect x="9" y="3" width="13" height="13" rx="1.5" fill="#0078D4"/><rect x="9" y="3" width="13" height="4" rx="1.5" fill="#005fa3"/><rect x="9" y="5" width="13" height="2" fill="#005fa3"/><rect x="12" y="2" width="1.5" height="3" rx="0.75" fill="#0078D4"/><rect x="18" y="2" width="1.5" height="3" rx="0.75" fill="#0078D4"/><rect x="2" y="8" width="11" height="13" rx="1.5" fill="#1d1d1f"/></svg>`;
 
 export function buildAppointmentEmail(data: AppointmentEmailData): string {
   const appointmentType = data.appointment.type ?? "Medical";
@@ -171,8 +171,8 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
   if (applicationNumber) applicantMetaParts.push(escapeHtml(applicationNumber));
   const applicantMetaHtml = applicantMetaParts.join(` ${dotSpan} `);
 
-  const phoneIconSvg = `<img src="data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z' fill='%235e5e6a'/%3E%3C/svg%3E" width="12" height="12" style="vertical-align:middle;margin-right:4px;opacity:0.5;" alt="" />`;
-  const emailIconSvg = `<img src="data:image/svg+xml,%3Csvg width='11' height='11' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z' fill='%235e5e6a'/%3E%3C/svg%3E" width="11" height="11" style="vertical-align:middle;margin-right:3px;opacity:0.45;" alt="" />`;
+  const phoneIconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle;margin-right:4px;opacity:0.5;"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z" fill="#5e5e6a"/></svg>`;
+  const emailIconSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle;margin-right:3px;opacity:0.45;"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#5e5e6a"/></svg>`;
 
   const cardUrl = (appBaseUrl && appointment.rescheduleToken)
     ? `${appBaseUrl}/card/${appointment.rescheduleToken}`
@@ -324,7 +324,7 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                               ${logoBlock}
                             </td>
                             <td style="vertical-align:middle;">
-                              <div class="text-primary" style="font-size:13px;font-weight:500;letter-spacing:-0.01em;line-height:1.35;">Keystone Business Solutions</div>
+                              <div class="text-primary" style="font-size:13px;font-weight:500;letter-spacing:-0.01em;line-height:1.35;">The P.R.O. Company</div>
                               <div class="text-label" style="font-size:11px;font-weight:400;letter-spacing:0.04em;margin-top:2px;">Everything. In Order.</div>
                             </td>
                           </tr>
@@ -412,17 +412,15 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                                 <tr>
                                   <td style="width:32px;vertical-align:top;padding-right:12px;padding-bottom:10px;">
-                                    <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M12 7v5.5l3 2' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:inline;opacity:0.5;margin-top:1px;" />
-                                    <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M12 7v5.5l3 2' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:none;opacity:0.5;margin-top:1px;" />
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.5;margin-top:1px;"><circle cx="12" cy="12" r="9" stroke="#1d1d1f" stroke-width="1.5"/><path d="M12 7v5.5l3 2" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
                                   </td>
                                   <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;line-height:1.6;padding-bottom:14px;">
                                     Arrive at least 10 minutes before your appointment time.
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td style="width:32px;vertical-align:top;padding-right:12px;padding-bottom:10px;">
-                                    <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:inline;opacity:0.5;margin-top:1px;" />
-                                    <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:none;opacity:0.5;margin-top:1px;" />
+                                  <td style="width:32px;vertical-align:top;padding-right:12px;">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.5;margin-top:1px;"><rect x="4" y="3" width="12" height="16" rx="2" stroke="#1d1d1f" stroke-width="1.5"/><path d="M8 8h6M8 12h4" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/><path d="M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
                                   </td>
                                   <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;line-height:1.6;padding-bottom:14px;">
                                     Bring your original passport. No copies or digital versions accepted.
@@ -430,8 +428,7 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                                 </tr>
                                 <tr>
                                   <td style="width:32px;vertical-align:top;padding-right:12px;">
-                                    <img class="notice-icon-light" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='10' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M12 8v4l2.5 2.5' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:inline;opacity:0.5;margin-top:1px;" />
-                                    <img class="notice-icon-dark" src="data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='10' stroke='%23f5f5f7' stroke-width='1.5'/%3E%3Cpath d='M12 8v4l2.5 2.5' stroke='%23f5f5f7' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" width="20" height="20" alt="" style="display:none;opacity:0.5;margin-top:1px;" />
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.5;margin-top:1px;"><circle cx="12" cy="12" r="10" stroke="#1d1d1f" stroke-width="1.5"/><path d="M12 8v4l2.5 2.5" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
                                   </td>
                                   <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;line-height:1.6;">
                                     Your guide will meet you on arrival and handle the queue and registration on your behalf.
@@ -458,13 +455,13 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                           <tr>
                             <td style="text-align:center;">
                               <div class="text-primary" style="font-size:13px;font-weight:500;letter-spacing:-0.005em;">
-                                <a href="https://www.procompany.ae" class="link-primary" style="text-decoration:none;">Keystone Business Solutions</a>
+                                <a href="https://www.procompany.ae" class="link-primary" style="text-decoration:none;">The P.R.O. Company&#8482;</a>
                               </div>
                               <div class="footer-divider-line" style="width:32px;height:1px;background:#e8e8ed;margin:6px auto;"></div>
                               <div class="text-secondary" style="font-size:11px;margin-bottom:4px;">
-                                Powered by <a href="https://www.procompany.ae" class="text-secondary" style="text-decoration:none;">Keystone Business Solutions</a>
+                                Powered by <a href="https://www.procompany.ae" class="text-secondary" style="text-decoration:none;">The P.R.O. Company</a>
                               </div>
-                              <div class="text-secondary" style="font-size:10px;letter-spacing:0.01em;">&copy; ${new Date().getFullYear()} Keystone Business Solutions. All rights reserved.</div>
+                              <div class="text-secondary" style="font-size:10px;letter-spacing:0.01em;">&copy; ${new Date().getFullYear()} The P.R.O. Company&#8482;. All rights reserved.</div>
                             </td>
                           </tr>
                         </table>
@@ -566,9 +563,9 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
        </tr>`
     : "";
 
-  const phoneIconSvg = `<img src="data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z' fill='%235e5e6a'/%3E%3C/svg%3E" width="12" height="12" style="vertical-align:middle;margin-right:4px;opacity:0.5;" alt="" />`;
+  const phoneIconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle;margin-right:4px;opacity:0.5;"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z" fill="#5e5e6a"/></svg>`;
 
-  const emailIconSvg = `<img src="data:image/svg+xml,%3Csvg width='11' height='11' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z' fill='%235e5e6a'/%3E%3C/svg%3E" width="11" height="11" style="vertical-align:middle;margin-right:3px;opacity:0.45;" alt="" />`;
+  const emailIconSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle;margin-right:3px;opacity:0.45;"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#5e5e6a"/></svg>`;
 
   const guideSection = guideName
     ? `<tr><td style="padding-top:40px;" colspan="2">
@@ -624,6 +621,32 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
       </td></tr>`
     : "";
 
+  const dhaBadgeBlock = `<tr>
+    <td colspan="2" style="padding-top:36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f0f7ff;border:1px solid #c2daf0;border-radius:16px;">
+        <tr>
+          <td style="padding:18px 22px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;">
+              <tr>
+                <td style="vertical-align:middle;padding-right:16px;width:44px;">
+                  <svg width="40" height="40" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                    <circle cx="30" cy="30" r="30" fill="#006994"/>
+                    <path d="M18 22h24v3H18v-3zm0 6h24v3H18v-3zm0 6h16v3H18v-3z" fill="#ffffff" opacity="0.9"/>
+                    <path d="M30 14l2.5 7.5H40l-6 4.5 2.5 7.5L30 29l-6.5 4.5 2.5-7.5-6-4.5h7.5L30 14z" fill="#f5c518"/>
+                  </svg>
+                </td>
+                <td style="vertical-align:middle;">
+                  <div style="font-size:12px;font-weight:700;color:#004a6e;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px;">Dubai Health Authority</div>
+                  <div style="font-size:11px;font-weight:400;color:#336a8a;letter-spacing:0.01em;line-height:1.4;">This medical fitness examination is conducted under DHA regulations and standards.</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>`;
+
   return buildEmailHtmlTemplate({
     appointmentLabel,
     companyName,
@@ -644,6 +667,7 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
     outlookUrl,
     cardLinkBlock,
     rescheduleBox,
+    dhaBadgeBlock,
   });
 }
 
@@ -667,6 +691,7 @@ interface EmailTemplateParams {
   outlookUrl: string;
   cardLinkBlock: string;
   rescheduleBox: string;
+  dhaBadgeBlock?: string;
 }
 
 function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
@@ -675,7 +700,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
     applicantName, applicantMetaHtml, dateStr, timeStr,
     centerName, centerAddress, mapsUrl, applicationNumberBlock,
     guideSection, notesBlock, googleUrl, appleUrl, outlookUrl,
-    cardLinkBlock, rescheduleBox,
+    cardLinkBlock, rescheduleBox, dhaBadgeBlock,
   } = p;
   return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -1220,7 +1245,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                         ${logoBlock}
                       </td>
                       <td style="vertical-align:middle;">
-                        <div class="brand-name" style="font-size:14px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.35;">Keystone Business Solutions</div>
+                        <div class="brand-name" style="font-size:14px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.35;">The P.R.O. Company</div>
                         <div class="brand-tagline" style="font-size:11px;font-weight:400;color:#8e8e98;letter-spacing:0.04em;margin-top:2px;">Everything. In Order.</div>
                       </td>
                     </tr>
@@ -1298,6 +1323,8 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
 
               ${guideSection}
 
+              ${dhaBadgeBlock ?? ""}
+
               <!-- BEFORE YOU GO -->
               <tr>
                 <td style="padding-top:40px;" colspan="2">
@@ -1308,15 +1335,15 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                           <tr>
                             <td style="width:30px;vertical-align:top;padding-right:12px;padding-bottom:14px;">
-                              <img src="data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M12 7v5.5l3 2' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" class="notice-icon" width="18" height="18" alt="" style="display:block;opacity:0.4;margin-top:2px;" />
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.4;margin-top:2px;"><circle cx="12" cy="12" r="9" stroke="#1d1d1f" stroke-width="1.5"/><path d="M12 7v5.5l3 2" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
                             </td>
                             <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:14px;">
                               Arrive at least 10 minutes before your appointment time.
                             </td>
                           </tr>
                           <tr>
-                            <td style="width:30px;vertical-align:top;padding-right:12px;padding-bottom:14px;">
-                              <img src="data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='4' y='3' width='12' height='16' rx='2' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M8 8h6M8 12h4' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" class="notice-icon" width="18" height="18" alt="" style="display:block;opacity:0.4;margin-top:2px;" />
+                            <td style="width:30px;vertical-align:top;padding-right:12px;">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.4;margin-top:2px;"><rect x="4" y="3" width="12" height="16" rx="2" stroke="#1d1d1f" stroke-width="1.5"/><path d="M8 8h6M8 12h4" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/><path d="M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
                             </td>
                             <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:14px;">
                               Bring your original passport. No copies or digital versions accepted.
@@ -1324,7 +1351,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                           </tr>
                           <tr>
                             <td style="width:30px;vertical-align:top;padding-right:12px;padding-bottom:14px;">
-                              <img src="data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 12c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3Cpath d='M16 4l2 2-6 6' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" class="notice-icon" width="18" height="18" alt="" style="display:block;opacity:0.4;margin-top:2px;" />
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.4;margin-top:2px;"><path d="M20 12c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/><path d="M16 4l2 2-6 6" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </td>
                             <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:14px;">
                               Dress comfortably &mdash; loose, modest clothing works best. Shoulders and knees must be covered.
@@ -1332,7 +1359,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                           </tr>
                           <tr>
                             <td style="width:30px;vertical-align:top;padding-right:12px;">
-                              <img src="data:image/svg+xml,%3Csvg width='18' height='18' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='9' stroke='%231d1d1f' stroke-width='1.5'/%3E%3Cpath d='M12 8v4M12 16h.01' stroke='%231d1d1f' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E" class="notice-icon" width="18" height="18" alt="" style="display:block;opacity:0.4;margin-top:2px;" />
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.4;margin-top:2px;"><circle cx="12" cy="12" r="9" stroke="#1d1d1f" stroke-width="1.5"/><path d="M12 8v4M12 16h.01" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
                             </td>
                             <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;">
                               Leave jewellery at home. The examination includes an X-ray and metal accessories must be removed.
@@ -1367,7 +1394,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                   </div>
                   <div class="footer-divider" style="width:24px;height:1px;background:#e8e8ed;margin:8px auto;"></div>
                   <div class="footer-powered" style="font-size:11px;font-weight:400;color:#a1a1a8;letter-spacing:0.01em;margin-bottom:4px;">
-                    Powered by <a href="https://www.procompany.ae" style="color:#a1a1a8;text-decoration:none;">Keystone Business Solutions</a>
+                    Powered by <a href="https://www.procompany.ae" style="color:#a1a1a8;text-decoration:none;">The P.R.O. Company</a>
                   </div>
                   <div class="footer-legal" style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;">&copy; ${new Date().getFullYear()} The P.R.O. Company&#8482;. All rights reserved.</div>
                 </td>
