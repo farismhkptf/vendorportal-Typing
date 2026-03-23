@@ -669,6 +669,7 @@ export const appSettings = pgTable("app_settings", {
   fromName: text("from_name").notNull().default("The P.R.O. Company"),
   replyToEmail: text("reply_to_email").notNull().default("operations@procompany.ae"),
   alwaysCc: json("always_cc").$type<string[]>().default(["faris@procompany.ae", "yasin@procompany.ae"]),
+  testEmailRedirect: text("test_email_redirect"),
   lowBalanceThreshold: integer("low_balance_threshold").notNull().default(1000),
   masterPassword: text("master_password"),
   defaultVendorId: varchar("default_vendor_id"),

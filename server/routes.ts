@@ -2018,8 +2018,9 @@ export async function registerRoutes(
         appBaseUrl,
       });
 
+      const testRedirect = settings?.testEmailRedirect?.trim() || null;
       const ccRecipients: string[] = [];
-      if (settings?.alwaysCc && Array.isArray(settings.alwaysCc)) {
+      if (!testRedirect && settings?.alwaysCc && Array.isArray(settings.alwaysCc)) {
         ccRecipients.push(...settings.alwaysCc.filter((e: string) => e && e !== wo.applicantEmail));
       }
 
@@ -2027,8 +2028,8 @@ export async function registerRoutes(
       const apptTypeLabel = appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness";
 
       const result = await sendEmail({
-        to: wo.applicantEmail,
-        cc: ccRecipients.length > 0 ? ccRecipients : undefined,
+        to: testRedirect || wo.applicantEmail,
+        cc: testRedirect ? undefined : (ccRecipients.length > 0 ? ccRecipients : undefined),
         subject: `${apptTypeLabel} Appointment - ${applicantName}. ${wo.woNumber}`,
         html,
         from: settings?.fromEmail || undefined,
@@ -2047,9 +2048,10 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        sentTo: wo.applicantEmail,
-        cc: ccRecipients,
+        sentTo: testRedirect || wo.applicantEmail,
+        cc: testRedirect ? [] : ccRecipients,
         messageId: result.messageId,
+        testRedirectActive: !!testRedirect,
       });
     } catch (error: any) {
       console.error("Send appointment email error:", error);
@@ -2164,18 +2166,21 @@ export async function registerRoutes(
 
             if (primaryRecipients.length > 0) {
               try {
+                const testRedirectAuto = settings?.testEmailRedirect?.trim() || null;
                 const ccRecipients: string[] = [];
-                if (settings?.alwaysCc && Array.isArray(settings.alwaysCc)) {
-                  ccRecipients.push(...settings.alwaysCc.filter((e: string) => e && !primaryRecipients.includes(e)));
-                }
-                if (rmEmail && !primaryRecipients.includes(rmEmail)) {
-                  ccRecipients.push(rmEmail);
+                if (!testRedirectAuto) {
+                  if (settings?.alwaysCc && Array.isArray(settings.alwaysCc)) {
+                    ccRecipients.push(...settings.alwaysCc.filter((e: string) => e && !primaryRecipients.includes(e)));
+                  }
+                  if (rmEmail && !primaryRecipients.includes(rmEmail)) {
+                    ccRecipients.push(rmEmail);
+                  }
                 }
                 const applicantName = toProperCase(wo?.applicantName || "Applicant");
                 const apptTypeLabel = appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness";
                 const emailResult = await sendEmail({
-                  to: primaryRecipients,
-                  cc: ccRecipients.length > 0 ? ccRecipients : undefined,
+                  to: testRedirectAuto || primaryRecipients,
+                  cc: testRedirectAuto ? undefined : (ccRecipients.length > 0 ? ccRecipients : undefined),
                   subject: `${apptTypeLabel} Appointment - ${applicantName}. ${wo?.woNumber || ""}`,
                   html,
                   from: settings?.fromEmail || undefined,

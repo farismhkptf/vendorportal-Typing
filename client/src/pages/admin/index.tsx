@@ -780,6 +780,8 @@ export default function AdminPage() {
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [editSenderEmailDialogOpen, setEditSenderEmailDialogOpen] = useState(false);
   const [editCcDialogOpen, setEditCcDialogOpen] = useState(false);
+  const [editTestRedirectOpen, setEditTestRedirectOpen] = useState(false);
+  const [testRedirectValue, setTestRedirectValue] = useState("");
   const [editThresholdDialogOpen, setEditThresholdDialogOpen] = useState(false);
   const [editDelayThresholdDialogOpen, setEditDelayThresholdDialogOpen] = useState(false);
   const [editMaintenanceMsgOpen, setEditMaintenanceMsgOpen] = useState(false);
@@ -1625,6 +1627,21 @@ export default function AdminPage() {
     setEditCcDialogOpen(true);
   };
 
+  const handleEditTestRedirect = () => {
+    setTestRedirectValue(settings?.testEmailRedirect || "");
+    setEditTestRedirectOpen(true);
+  };
+
+  const handleSaveTestRedirect = () => {
+    updateSettingsMutation.mutate({ testEmailRedirect: testRedirectValue.trim() || null });
+    setEditTestRedirectOpen(false);
+  };
+
+  const handleClearTestRedirect = () => {
+    updateSettingsMutation.mutate({ testEmailRedirect: null });
+    setEditTestRedirectOpen(false);
+  };
+
   const handleEditThreshold = () => {
     thresholdForm.reset({
       lowBalanceThreshold: settings?.lowBalanceThreshold || 1000,
@@ -1829,6 +1846,31 @@ export default function AdminPage() {
                         className="rounded-xl"
                         onClick={handleEditCc}
                         data-testid="button-edit-cc"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className={`p-4 rounded-xl border ${settings?.testEmailRedirect ? "bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-700" : "bg-muted/30 border-border/30"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">Test Email Redirect</p>
+                          {settings?.testEmailRedirect && (
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200">ACTIVE</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1 truncate">
+                          {settings?.testEmailRedirect || "Not set — emails go to actual recipients"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">When set, all appointment emails are redirected to this address only</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="rounded-xl shrink-0"
+                        onClick={handleEditTestRedirect}
+                        data-testid="button-edit-test-redirect"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -2093,6 +2135,55 @@ export default function AdminPage() {
                     </div>
                   </form>
                 </Form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={editTestRedirectOpen} onOpenChange={setEditTestRedirectOpen}>
+              <DialogContent className="rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle>Test Email Redirect</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    When set, <strong>all</strong> appointment emails (Medical & EID) will be sent only to this address — no real clients or CC recipients will receive anything. Leave blank to send normally.
+                  </p>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Redirect To (your test email)</label>
+                    <Input
+                      value={testRedirectValue}
+                      onChange={(e) => setTestRedirectValue(e.target.value)}
+                      placeholder="yourname@procompany.ae"
+                      className="h-11 rounded-xl"
+                      type="email"
+                      data-testid="input-test-redirect-email"
+                    />
+                  </div>
+                  {settings?.testEmailRedirect && (
+                    <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 text-sm text-amber-800 dark:text-amber-200">
+                      Currently active — emails redirecting to <strong>{settings.testEmailRedirect}</strong>
+                    </div>
+                  )}
+                  <div className="flex justify-between gap-3 pt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-xl text-destructive border-destructive/30"
+                      onClick={handleClearTestRedirect}
+                      disabled={!settings?.testEmailRedirect || updateSettingsMutation.isPending}
+                      data-testid="button-clear-test-redirect"
+                    >
+                      Clear Redirect
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditTestRedirectOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button type="button" className="rounded-xl" onClick={handleSaveTestRedirect} disabled={updateSettingsMutation.isPending}>
+                        {updateSettingsMutation.isPending ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </DialogContent>
             </Dialog>
 
