@@ -13,6 +13,7 @@ interface CardData {
   assignedStaff: Staff | null;
   rmStaff: Staff | null;
   applicantPhotoUrl: string | null;
+  serviceTypeName: string | null;
 }
 
 function getInitials(name: string): string {
@@ -182,7 +183,7 @@ export default function CardPage() {
     );
   }
 
-  const { appointment, workOrder, company, center, assignedStaff } = data;
+  const { appointment, workOrder, company, center, assignedStaff, serviceTypeName } = data;
 
   const applicantName = workOrder?.applicantName ?? "—";
   const companyName = company?.name ?? "—";
@@ -192,8 +193,6 @@ export default function CardPage() {
   const dt = new Date(appointment.datetime);
   const { date: dateStr, hour, ampm } = formatDateParts(dt);
   const initials = getInitials(applicantName);
-  const applicationNumber = appointment.applicationNumber ?? "";
-
   const guideInitials = assignedStaff?.name ? getInitials(assignedStaff.name) : "";
   const guidePhone = assignedStaff?.phone ?? "";
 
@@ -289,9 +288,11 @@ export default function CardPage() {
                   data-testid="text-applicant-name">
                   {applicantName}
                 </div>
-                <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, marginTop: "2px" }}>
-                  {appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness Appointment"}
-                </div>
+                {serviceTypeName && (
+                  <div style={{ fontSize: "11px", fontWeight: 400, color: inkSoft, marginTop: "2px" }}>
+                    {serviceTypeName}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -331,16 +332,29 @@ export default function CardPage() {
               </svg>
               <span data-testid="text-center-name">{centerName}</span>
             </a>
-            {applicationNumber && (
-              <div style={{ fontSize: "10px", fontWeight: 500, color: inkMute, marginTop: "10px", letterSpacing: "0.04em" }}
-                data-testid="text-reference-number">
-                {applicationNumber}
-              </div>
-            )}
           </div>
 
           {/* RULE */}
           <div style={{ margin: "22px 32px 0", height: "1px", background: "linear-gradient(90deg, rgba(74,144,217,0.20), rgba(74,144,217,0.06) 70%, transparent)" }} />
+
+          {/* MEDICAL APPLICATION NO. */}
+          {appointment.applicationNumber?.trim() && (
+            <div style={{
+              margin: "18px 24px 0",
+              padding: "14px 16px",
+              borderRadius: "12px",
+              border: "1px solid rgba(74,144,217,0.18)",
+              background: "rgba(74,144,217,0.04)",
+            }} data-testid="section-application-number">
+              <div style={{ fontSize: "9px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: inkSoft, marginBottom: "6px" }}>
+                Medical Application No.
+              </div>
+              <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.02em", color: inkColor, lineHeight: 1 }}
+                data-testid="text-application-number">
+                {appointment.applicationNumber}
+              </div>
+            </div>
+          )}
 
           {/* WHAT TO KEEP IN MIND */}
           <div style={{ padding: "22px 32px 0" }}>
@@ -404,7 +418,7 @@ export default function CardPage() {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: "12px", fontWeight: 600, color: inkColor }}>{assignedStaff.name}</div>
-                <div style={{ fontSize: "10px", fontWeight: 400, color: inkSoft, marginTop: "1px", lineHeight: 1.3 }}>On-Site Support &middot; P.R.O. Company™</div>
+                <div style={{ fontSize: "10px", fontWeight: 400, color: inkSoft, marginTop: "1px", lineHeight: 1.3 }}>{assignedStaff.roleTitle || "On-Site Support"}</div>
               </div>
               {guidePhone && (
                 <div style={{ fontSize: "12px", fontWeight: 600, color: accent, flexShrink: 0 }}>{guidePhone}</div>

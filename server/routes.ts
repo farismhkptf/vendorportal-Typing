@@ -6349,6 +6349,12 @@ export async function registerRoutes(
         if (photoDoc) applicantPhotoUrl = photoDoc.fileUrl;
       }
 
+      let serviceTypeName: string | null = null;
+      if (wo?.serviceTypeId) {
+        const serviceType = await storage.getServiceTypeById(wo.serviceTypeId);
+        serviceTypeName = serviceType?.name ?? null;
+      }
+
       res.json({
         appointment,
         workOrder: wo || null,
@@ -6357,6 +6363,7 @@ export async function registerRoutes(
         assignedStaff: assignedStaff || null,
         rmStaff: rmStaff || null,
         applicantPhotoUrl,
+        serviceTypeName,
       });
     } catch (error) {
       console.error("Card fetch error:", error);
