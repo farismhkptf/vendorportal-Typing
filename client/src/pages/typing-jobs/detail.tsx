@@ -5,8 +5,15 @@ import {
   ArrowLeft, FileText, Building2, User, Clock, Calendar, 
   Upload, Download, MessageSquare, Send, ChevronRight, 
   AlertCircle, CheckCircle2, Briefcase, MapPin, History,
-  UserPlus, RotateCcw, Package, Loader2, Home
+  UserPlus, RotateCcw, Package, Loader2, Home, XCircle
 } from "lucide-react";
+import { DOCUMENT_TYPE_LABELS } from "@/components/documents/document-types";
+
+interface SubmitToVendorError extends Error {
+  missingDocumentTypes?: string[];
+  status?: number;
+}
+
 import { PageBreadcrumb } from "@/components/ui/page-breadcrumb";
 import { formatDateWithWeekday, formatDateTime } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
@@ -84,6 +91,7 @@ export default function TypingJobDetail() {
   
   // Submit to vendor form
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
+  const [missingDocumentTypes, setMissingDocumentTypes] = useState<string[]>([]);
   
   const [onHoldReason, setOnHoldReason] = useState("");
   const [abortReason, setAbortReason] = useState("");
@@ -139,19 +147,39 @@ export default function TypingJobDetail() {
 
   const submitToVendorMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/typing-jobs/${id}/submit-to-vendor`, {
-        vendorId: selectedVendorId,
+      const res = await fetch(`/api/typing-jobs/${id}/submit-to-vendor`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vendorId: selectedVendorId }),
+        credentials: "include",
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const missingDocs = Array.isArray(body.missingDocumentTypes)
+          ? (body.missingDocumentTypes as string[])
+          : undefined;
+        const err: SubmitToVendorError = Object.assign(
+          new Error(body.message || res.statusText),
+          { missingDocumentTypes: missingDocs, status: res.status }
+        );
+        throw err;
+      }
+      return res;
     },
     onMutate: () => applyOptimisticStatus("SubmittedToVendor"),
     onSuccess: () => {
       setShowSubmitDialog(false);
       setSelectedVendorId("");
+      setMissingDocumentTypes([]);
       toast({ title: "Job submitted to vendor" });
     },
-    onError: (error: Error, _vars, context) => {
+    onError: (error: SubmitToVendorError, _vars, context) => {
       rollbackOptimistic(context);
-      toast({ title: "Failed to submit", description: error.message, variant: "destructive" });
+      if (error.status === 422 && error.missingDocumentTypes?.length) {
+        setMissingDocumentTypes(error.missingDocumentTypes);
+      } else {
+        toast({ title: "Failed to submit", description: error.message, variant: "destructive" });
+      }
     },
     onSettled: () => invalidateTypingJobQueries(),
   });
@@ -375,6 +403,42 @@ export default function TypingJobDetail() {
             </Link>
           </div>
         </div>
+
+        {/* Missing documents pre-check warning */}
+        {missingDocumentTypes.length > 0 && job.status === "Draft" && (
+          <Card className="border border-destructive/30 bg-destructive/5" data-testid="card-missing-docs-warning">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <XCircle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-destructive">Missing required documents</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 mb-2">
+                    The following documents must be uploaded before this job can be submitted to a vendor:
+                  </p>
+                  <ul className="space-y-0.5" data-testid="list-missing-docs">
+                    {missingDocumentTypes.map((docType) => (
+                      <li key={docType} className="flex items-center gap-1.5 text-sm">
+                        <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
+                        <span data-testid={`missing-doc-${docType}`}>
+                          {DOCUMENT_TYPE_LABELS[docType] || docType}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="shrink-0 h-7 w-7"
+                  onClick={() => setMissingDocumentTypes([])}
+                  data-testid="button-dismiss-missing-docs"
+                >
+                  <XCircle className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Action Buttons based on status */}
         <Card className="border border-primary/20 bg-primary/5">
@@ -783,7 +847,13 @@ export default function TypingJobDetail() {
       </div>
 
       {/* Submit to Vendor Dialog */}
-      <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
+      <Dialog open={showSubmitDialog} onOpenChange={(open) => {
+        setShowSubmitDialog(open);
+        if (!open) {
+          setSelectedVendorId("");
+          setMissingDocumentTypes([]);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Submit to Vendor</DialogTitle>
@@ -792,6 +862,27 @@ export default function TypingJobDetail() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {missingDocumentTypes.length > 0 && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2" data-testid="dialog-missing-docs">
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-destructive shrink-0" />
+                  <p className="text-sm font-medium text-destructive">Missing required documents</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Upload the following documents before submitting:
+                </p>
+                <ul className="space-y-1" data-testid="dialog-list-missing-docs">
+                  {missingDocumentTypes.map((docType) => (
+                    <li key={docType} className="flex items-center gap-1.5 text-sm">
+                      <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />
+                      <span data-testid={`dialog-missing-doc-${docType}`}>
+                        {DOCUMENT_TYPE_LABELS[docType] || docType}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Vendor</Label>
               <Select value={selectedVendorId} onValueChange={setSelectedVendorId}>

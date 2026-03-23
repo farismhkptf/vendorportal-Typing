@@ -17,7 +17,7 @@ import {
 import { validateAppointmentTime, getAvailableTimeSlots, isCenterOpenOnDate } from "@shared/scheduling";
 import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { toProperCase } from "./proper-case";
-import { executeTransition, validateTransition, type Actor } from "./typing-job-machine";
+import { executeTransition, validateTransition, type Actor, type TypingJobStatus } from "./typing-job-machine";
 import { WalletService } from "./wallet-service";
 import { registerExternalRoutes, hashApiKey } from "./external-routes";
 import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "./zoho-workdrive";
@@ -3337,7 +3337,48 @@ export async function registerRoutes(
       }
 
       const job = await storage.getTypingJobById(id);
-      const jobType = job?.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+      if (!job) {
+        return res.status(404).json({ message: "Typing job not found" });
+      }
+
+      // Validate the transition is permitted before running any side-effect checks
+      const transitionCheck = validateTransition("submit_to_vendor", job.status as TypingJobStatus, "team");
+      if (!transitionCheck.valid) {
+        return res.status(400).json({ message: transitionCheck.error });
+      }
+
+      // Document completeness gate
+      if (job.woId) {
+        const wo = await storage.getWorkOrderById(job.woId);
+        if (wo?.serviceTypeId) {
+          const serviceType = await storage.getServiceTypeById(wo.serviceTypeId);
+          if (serviceType?.category) {
+            const requirements = await storage.getDocumentRequirementsByCategory(serviceType.category);
+            const requiredDocTypes = requirements
+              .filter(r => r.isRequired)
+              .map(r => r.documentType);
+
+            if (requiredDocTypes.length > 0) {
+              const uploadedDocs = await storage.getWoDocuments(job.woId);
+              const uploadedTypes = new Set(
+                uploadedDocs
+                  .filter(d => d.status === "Uploaded" || d.status === "Verified")
+                  .map(d => d.documentType)
+              );
+
+              const missingTypes = requiredDocTypes.filter(t => !uploadedTypes.has(t));
+              if (missingTypes.length > 0) {
+                return res.status(422).json({
+                  message: "Required documents are missing for this work order",
+                  missingDocumentTypes: missingTypes,
+                });
+              }
+            }
+          }
+        }
+      }
+
+      const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
       const cost = jobType?.cost || 0;
       
       const result = await executeTransition({
