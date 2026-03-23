@@ -843,21 +843,41 @@ function ServicesTab() {
         <Input placeholder="Search services..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" data-testid="input-search-services" />
       </div>
       <div className="space-y-2">
-        {filtered.map(svc => (
-          <Card key={svc.id} className="p-3 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="font-medium truncate" data-testid={`text-service-name-${svc.id}`}>{svc.name}</p>
-              <div className="flex items-center gap-1 flex-wrap">
-                {svc.requiresMedicalTyping && <Badge variant="secondary" className="text-xs">Med Typing</Badge>}
-                {svc.requiresMedicalScheduling && <Badge variant="secondary" className="text-xs">Med Schedule</Badge>}
-                {svc.requiresIdBiometrics && <Badge variant="secondary" className="text-xs">EID Bio</Badge>}
+        {filtered.map(svc => {
+          const autoJobs: string[] = [];
+          if (svc.requiresMedicalTyping) autoJobs.push("Medical Typing");
+          if (svc.requiresIdTyping2Years) autoJobs.push("EID Typing (2Y)");
+          if (svc.requiresIdTyping1Year) autoJobs.push("EID Typing (1Y)");
+          if (svc.requiresIdTyping10Years) autoJobs.push("EID Typing (10Y)");
+          return (
+            <Card key={svc.id} className="p-3 flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-medium truncate" data-testid={`text-service-name-${svc.id}`}>{svc.name}</p>
+                {autoJobs.length > 0 ? (
+                  <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                    <span className="text-xs text-muted-foreground">Auto-creates:</span>
+                    {autoJobs.map((label) => (
+                      <Badge key={label} variant="secondary" className="text-[10px] px-1.5 py-0 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                        {label}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                    {svc.requiresMedicalScheduling && <Badge variant="secondary" className="text-xs">Med Schedule</Badge>}
+                    {svc.requiresIdBiometrics && <Badge variant="secondary" className="text-xs">EID Bio</Badge>}
+                    {!svc.requiresMedicalScheduling && !svc.requiresIdBiometrics && (
+                      <span className="text-xs text-muted-foreground/60">No auto-created jobs</span>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => setEditingService(svc)} data-testid={`button-edit-service-${svc.id}`}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-          </Card>
-        ))}
+              <Button variant="ghost" size="icon" onClick={() => setEditingService(svc)} data-testid={`button-edit-service-${svc.id}`}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+            </Card>
+          );
+        })}
         {filtered.length === 0 && <p className="text-center text-muted-foreground py-8">No services found</p>}
       </div>
 
@@ -915,6 +935,30 @@ function EditServiceDialog({ service, onClose, onSave, isPending }: {
                 </FormItem>
               )} />
             ))}
+            {(() => {
+              const watched = form.watch();
+              const autoJobs: string[] = [];
+              if (watched.requiresMedicalTyping) autoJobs.push("Medical Typing");
+              if (watched.requiresIdTyping2Years) autoJobs.push("EID Typing (2Y)");
+              if (watched.requiresIdTyping1Year) autoJobs.push("EID Typing (1Y)");
+              if (watched.requiresIdTyping10Years) autoJobs.push("EID Typing (10Y)");
+              return (
+                <div className={`p-3 rounded-lg border text-sm ${autoJobs.length > 0 ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800" : "bg-muted/30 border-border/30"}`} data-testid="service-auto-creation-summary">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Typing jobs that will be auto-created on WO creation:</p>
+                  {autoJobs.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {autoJobs.map((label) => (
+                        <span key={label} className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-200 dark:border-blue-800">
+                          {label}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground/70">None — no typing jobs will be auto-created.</p>
+                  )}
+                </div>
+              );
+            })()}
             <Button type="submit" className="w-full" disabled={isPending} data-testid="button-save-service">
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Changes

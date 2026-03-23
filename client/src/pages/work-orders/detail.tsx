@@ -79,7 +79,7 @@ import { useAutosave } from "@/hooks/use-autosave";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Eye } from "lucide-react";
 
-function PipelineBar({ pipeline, serviceType, isMinor, onTrackClick }: { pipeline: PipelineInfo; serviceType?: any; isMinor?: boolean; onTrackClick?: (track: "medical" | "eid") => void }) {
+function PipelineBar({ pipeline, serviceType, isMinor, onTrackClick }: { pipeline: PipelineInfo; serviceType?: ServiceType; isMinor?: boolean; onTrackClick?: (track: "medical" | "eid") => void }) {
   const medRequired = !isMinor && serviceType && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling);
   const eidRequired = serviceType && (serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years || serviceType.requiresIdBiometrics);
 
@@ -731,6 +731,10 @@ const editWorkOrderSchema = z.object({
 
 type EditWorkOrderForm = z.infer<typeof editWorkOrderSchema>;
 
+interface TypingJobWithType extends TypingJob {
+  jobType?: JobType;
+}
+
 interface WorkOrderDetail extends WorkOrder {
   company?: Company & {
     rmStaff?: Staff;
@@ -740,7 +744,8 @@ interface WorkOrderDetail extends WorkOrder {
     preferredEidCenter?: Center;
   };
   appointments?: Appointment[];
-  typingJobs?: TypingJob[];
+  typingJobs?: TypingJobWithType[];
+  serviceType?: ServiceType;
 }
 
 function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
@@ -1025,13 +1030,13 @@ export default function WorkOrderDetail() {
   const [activateIsMinor, setActivateIsMinor] = useState<"adult" | "minor">("adult");
 
   const draftTypingJobs = workOrder?.typingJobs?.filter(j => j.status === "Draft") || [];
-  const existingMedicalJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "Medical" && j.status !== "Aborted") || null;
-  const existingEidJob = workOrder?.typingJobs?.find((j: any) => j.jobType?.category === "EID" && j.status !== "Aborted") || null;
+  const existingMedicalJob = workOrder?.typingJobs?.find(j => j.jobType?.category === "Medical" && j.status !== "Aborted") || null;
+  const existingEidJob = workOrder?.typingJobs?.find(j => j.jobType?.category === "EID" && j.status !== "Aborted") || null;
   const canCreateNewJob = !existingMedicalJob || !existingEidJob;
 
   const effectiveTypingJobs = workOrder
-    ? (workOrder as any).isMinor
-      ? (workOrder.typingJobs || []).filter((j: any) => j.jobType?.category !== "Medical")
+    ? workOrder.isMinor
+      ? (workOrder.typingJobs || []).filter(j => j.jobType?.category !== "Medical")
       : workOrder.typingJobs || []
     : [];
   const pipeline = workOrder ? getPipelineInfo(effectiveTypingJobs, workOrder.appointments || []) : null;
@@ -1567,12 +1572,58 @@ export default function WorkOrderDetail() {
           </div>
         )}
 
+        {(() => {
+          const st = workOrder.serviceType;
+          if (!st || workOrder.status === "Completed" || workOrder.status === "Cancelled") return null;
+          const allJobs = workOrder.typingJobs || [];
+          const activeJobs = allJobs.filter(j => j.status !== "Aborted");
+          const hasMedicalJob = activeJobs.some(j => j.jobType?.category === "Medical");
+          const hasEidJob = activeJobs.some(j => j.jobType?.category === "EID");
+
+          const missingLabels: string[] = [];
+          if (st.requiresMedicalTyping && !hasMedicalJob) missingLabels.push("Medical Typing");
+          if (st.requiresIdTyping2Years && !hasEidJob) missingLabels.push("EID Typing (2 Years)");
+          if (st.requiresIdTyping1Year && !hasEidJob) missingLabels.push("EID Typing (1 Year)");
+          if (st.requiresIdTyping10Years && !hasEidJob) missingLabels.push("EID Typing (10 Years)");
+
+          if (missingLabels.length === 0) return null;
+
+          return (
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-700" data-testid="missing-jobs-banner">
+              <div className="h-10 w-10 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-orange-700 dark:text-orange-300">Missing Required Typing Job{missingLabels.length > 1 ? "s" : ""}</p>
+                <p className="text-sm text-orange-600/80 dark:text-orange-400/80 mt-0.5">
+                  {missingLabels.join(" and ")} {missingLabels.length > 1 ? "are" : "is"} required by this service type but not yet created.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 shrink-0 border-orange-400 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40"
+                onClick={() => {
+                  setActiveTab("typing");
+                  setTypeMedical(missingLabels.includes("Medical Typing"));
+                  setTypeEid(missingLabels.some(l => l.startsWith("EID Typing")));
+                  setShowNewTypingJobForm(true);
+                }}
+                data-testid="button-create-missing-job"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Create Missing Job{missingLabels.length > 1 ? "s" : ""}
+              </Button>
+            </div>
+          );
+        })()}
+
         {pipeline && (
           <div className="space-y-3">
             <PipelineBar
               pipeline={pipeline}
-              serviceType={(workOrder as any).serviceType}
-              isMinor={(workOrder as any).isMinor}
+              serviceType={workOrder.serviceType}
+              isMinor={workOrder.isMinor}
               onTrackClick={(track) => {
                 const stage = track === "medical" ? pipeline.medical.stage : pipeline.eid.stage;
                 if (stage === "at_vendor" || stage === "new" || stage === "needs_attention") {

@@ -4544,6 +4544,30 @@ export default function AdminPage() {
                           </FormItem>
                         )}
                       />
+                      {(() => {
+                        const watched = editServiceForm.watch();
+                        const autoJobs: string[] = [];
+                        if (watched.requiresMedicalTyping) autoJobs.push("Medical Typing");
+                        if (watched.requiresIdTyping2Years) autoJobs.push("EID Typing (2Y)");
+                        if (watched.requiresIdTyping1Year) autoJobs.push("EID Typing (1Y)");
+                        if (watched.requiresIdTyping10Years) autoJobs.push("EID Typing (10Y)");
+                        return (
+                          <div className={`p-3 rounded-xl border text-sm ${autoJobs.length > 0 ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800" : "bg-muted/30 border-border/30"}`} data-testid="admin-service-auto-creation-summary">
+                            <p className="text-xs font-medium text-muted-foreground mb-1.5">Typing jobs auto-created when a WO is created with this service type:</p>
+                            {autoJobs.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {autoJobs.map((label) => (
+                                  <span key={label} className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-200 dark:border-blue-800">
+                                    {label}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground/70">None — no typing jobs will be auto-created.</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                       <div className="flex justify-end gap-3 pt-4">
                         <Button type="button" variant="outline" className="rounded-xl" onClick={() => setEditServiceDialogOpen(false)}>
                           Cancel
@@ -4596,26 +4620,35 @@ export default function AdminPage() {
                         </div>
                         <div className="flex flex-col gap-1">
                           <p className="font-medium text-foreground">{service.name}</p>
-                          <div className="flex flex-wrap gap-1">
-                            {service.requiresMedicalTyping && (
-                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">Med Typing</Badge>
-                            )}
-                            {service.requiresMedicalScheduling && (
-                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">Med Sched</Badge>
-                            )}
-                            {service.requiresIdTyping2Years && (
-                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">ID 2Y</Badge>
-                            )}
-                            {service.requiresIdTyping1Year && (
-                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">ID 1Y</Badge>
-                            )}
-                            {service.requiresIdTyping10Years && (
-                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">ID 10Y</Badge>
-                            )}
-                            {service.requiresIdBiometrics && (
-                              <Badge variant="outline" className="text-xs rounded-full px-2 py-0">Biometrics</Badge>
-                            )}
-                          </div>
+                          {(() => {
+                            const autoJobs: string[] = [];
+                            if (service.requiresMedicalTyping) autoJobs.push("Medical Typing");
+                            if (service.requiresIdTyping2Years) autoJobs.push("EID Typing (2Y)");
+                            if (service.requiresIdTyping1Year) autoJobs.push("EID Typing (1Y)");
+                            if (service.requiresIdTyping10Years) autoJobs.push("EID Typing (10Y)");
+                            return autoJobs.length > 0 ? (
+                              <div className="flex items-center gap-1 flex-wrap">
+                                <span className="text-xs text-muted-foreground">Auto-creates:</span>
+                                {autoJobs.map((label) => (
+                                  <Badge key={label} variant="secondary" className="text-[10px] rounded-full px-2 py-0 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
+                                    {label}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap gap-1">
+                                {service.requiresMedicalScheduling && (
+                                  <Badge variant="outline" className="text-xs rounded-full px-2 py-0">Med Sched</Badge>
+                                )}
+                                {service.requiresIdBiometrics && (
+                                  <Badge variant="outline" className="text-xs rounded-full px-2 py-0">Biometrics</Badge>
+                                )}
+                                {!service.requiresMedicalScheduling && !service.requiresIdBiometrics && (
+                                  <span className="text-xs text-muted-foreground/60">No auto-created jobs</span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">

@@ -1708,38 +1708,52 @@ export async function registerRoutes(
         relatedEntityId: wo.id,
       });
       
-      // Auto-create Medical and EID typing jobs for the new work order
+      // Auto-create typing jobs based on service type requirements
+      const autoCreatedJobs: { id: string; jobCode: string; category: string; label: string }[] = [];
       try {
+        const serviceTypeForWo = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId) : null;
         const jobTypes = await storage.getJobTypes();
         const medicalJobType = jobTypes.find(jt => jt.category === "Medical");
         const eidJobType = jobTypes.find(jt => jt.category === "EID");
+
+        const needsMedical = serviceTypeForWo?.requiresMedicalTyping ?? false;
+        const needsEid = (serviceTypeForWo ? (serviceTypeForWo.requiresIdTyping2Years || serviceTypeForWo.requiresIdTyping1Year || serviceTypeForWo.requiresIdTyping10Years) : false);
+        const eidLabel = serviceTypeForWo?.requiresIdTyping2Years
+          ? "EID Typing (2 Years)"
+          : serviceTypeForWo?.requiresIdTyping1Year
+            ? "EID Typing (1 Year)"
+            : serviceTypeForWo?.requiresIdTyping10Years
+              ? "EID Typing (10 Years)"
+              : "EID Typing";
         
-        if (medicalJobType) {
+        if (needsMedical && medicalJobType) {
           const jobCode = await storage.generateNextJobCode("Medical");
-          await storage.createTypingJob({
+          const medJob = await storage.createTypingJob({
             woId: wo.id,
             jobCode,
             jobTypeId: medicalJobType.id,
             status: "Draft",
           });
+          autoCreatedJobs.push({ id: medJob.id, jobCode: medJob.jobCode ?? jobCode, category: "Medical", label: "Medical Typing" });
         }
         
-        if (eidJobType) {
+        if (needsEid && eidJobType) {
           const jobCode = await storage.generateNextJobCode("EID");
-          await storage.createTypingJob({
+          const eidJob = await storage.createTypingJob({
             woId: wo.id,
             jobCode,
             jobTypeId: eidJobType.id,
             status: "Draft",
           });
           // Note: typing job status "Draft" is intentional - typing jobs stay draft until WO is activated
+          autoCreatedJobs.push({ id: eidJob.id, jobCode: eidJob.jobCode ?? jobCode, category: "EID", label: eidLabel });
         }
       } catch (typingJobError) {
         // Log but don't fail the WO creation if typing job creation fails
         console.error("Failed to auto-create typing jobs for WO:", typingJobError);
       }
       
-      const responseData: any = { ...wo };
+      const responseData = { ...wo, autoCreatedJobs } as typeof wo & { autoCreatedJobs: typeof autoCreatedJobs; duplicateWarning?: { message: string; count: number } };
       if (duplicateCount > 0) {
         responseData.duplicateWarning = {
           message: "An active work order for this applicant already exists",

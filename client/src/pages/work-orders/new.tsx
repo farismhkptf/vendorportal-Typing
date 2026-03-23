@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, AlertTriangle, X, Phone, Mail, Star, RefreshCw, Home, Loader2 } from "lucide-react";
+import { ArrowLeft, Building2, User, FileText, ClipboardPaste, Check, AlertCircle, AlertTriangle, X, Phone, Mail, Star, RefreshCw, Home, Loader2, Stethoscope, CreditCard, Info } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
+import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Company, ServiceType, WorkOrder } from "@shared/schema";
@@ -89,10 +90,30 @@ export default function NewWorkOrder() {
     onSuccess: async (response) => {
       const wo = await response.json();
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
-      toast({
-        title: "Work order created",
-        description: `Work order ${wo.woNumber} has been created successfully.`,
-      });
+
+      const autoCreatedJobs: { id: string; jobCode: string; category: string; label: string }[] = wo.autoCreatedJobs || [];
+
+      if (autoCreatedJobs.length > 0) {
+        const jobSummary = autoCreatedJobs.map(j => `${j.label} (${j.jobCode})`).join(", ");
+        const woId = wo.id;
+        toast({
+          title: `Work order ${wo.woNumber} created`,
+          description: `Draft typing jobs auto-created: ${jobSummary}.`,
+          action: (
+            <ToastAction
+              altText="View typing jobs"
+              onClick={() => setLocation(`/work-orders/${woId}?tab=typing`)}
+            >
+              View Jobs
+            </ToastAction>
+          ),
+        });
+      } else {
+        toast({
+          title: "Work order created",
+          description: `Work order ${wo.woNumber} has been created successfully.`,
+        });
+      }
       setLocation(`/work-orders/${wo.id}`);
     },
     onError: (error: Error) => {
@@ -109,7 +130,21 @@ export default function NewWorkOrder() {
   };
 
   const selectedCompanyId = form.watch("companyId");
+  const selectedServiceTypeId = form.watch("serviceTypeId");
   const selectedCompany = companies?.find((c) => c.id === selectedCompanyId);
+  const selectedServiceType = serviceTypes?.find((s) => s.id === selectedServiceTypeId);
+
+  const getAutoCreatedJobLabels = (st: typeof selectedServiceType): string[] => {
+    if (!st) return [];
+    const labels: string[] = [];
+    if (st.requiresMedicalTyping) labels.push("Medical Typing");
+    if (st.requiresIdTyping2Years) labels.push("EID Typing (2 Years)");
+    if (st.requiresIdTyping1Year) labels.push("EID Typing (1 Year)");
+    if (st.requiresIdTyping10Years) labels.push("EID Typing (10 Years)");
+    return labels;
+  };
+
+  const autoCreatedJobLabels = getAutoCreatedJobLabels(selectedServiceType);
 
   const watchedApplicantName = form.watch("applicantName");
   const [debouncedApplicantName, setDebouncedApplicantName] = useState("");
@@ -820,6 +855,38 @@ export default function NewWorkOrder() {
                     </FormItem>
                   )}
                 />
+
+                {selectedServiceType && (
+                  <div
+                    className={`p-3 rounded-lg border text-sm ${
+                      autoCreatedJobLabels.length > 0
+                        ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"
+                        : "bg-muted/40 border-border/40"
+                    }`}
+                    data-testid="auto-creation-preview"
+                  >
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <Info className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      <span className="font-medium text-blue-700 dark:text-blue-300 text-xs">Jobs that will be auto-created</span>
+                    </div>
+                    {autoCreatedJobLabels.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {autoCreatedJobLabels.map((label) => (
+                          <span
+                            key={label}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-200 dark:border-blue-800"
+                            data-testid={`auto-job-label-${label.replace(/\s+/g, "-").toLowerCase()}`}
+                          >
+                            {label.startsWith("Medical") ? <Stethoscope className="h-3 w-3" /> : <CreditCard className="h-3 w-3" />}
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">No typing jobs will be auto-created for this service type.</p>
+                    )}
+                  </div>
+                )}
 
                 <FormField
                   control={form.control}
