@@ -13,6 +13,7 @@ import { KeyboardShortcutsModal } from "@/components/keyboard-shortcuts-modal";
 import { MobileBottomNav } from "@/components/mobile-nav";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { VendorAuthProvider, useVendorAuth } from "@/hooks/use-vendor-auth";
+import { AttestationVendorAuthProvider, useAttestationVendorAuth } from "@/hooks/use-attestation-vendor-auth";
 import { ThemeProvider } from "@/hooks/use-theme";
 import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
@@ -88,6 +89,13 @@ import V2MedicalJobs from "@/pages/vendor-v2/medical-jobs";
 import V2JobDetail from "@/pages/vendor-v2/job-detail";
 import V2WalletPage from "@/pages/vendor-v2/wallet";
 import { V2Layout } from "@/components/vendor-v2/layout";
+import { AttestationVendorLayout } from "@/pages/vendor-attestation/layout";
+import AttestationVendorDashboard from "@/pages/vendor-attestation/dashboard";
+import AttestationVendorInquiries from "@/pages/vendor-attestation/inquiries";
+import AttestationVendorJobs from "@/pages/vendor-attestation/jobs";
+import AttestationInquiriesPage from "@/pages/attestation/inquiries";
+import NewAttestationInquiry from "@/pages/attestation/new-inquiry";
+import InquiryDetailPage from "@/pages/attestation/inquiry-detail";
 import AppointmentsIndex from "@/pages/appointments/index";
 import ScheduleMedical from "@/pages/appointments/schedule-medical";
 import ScheduleEid from "@/pages/appointments/schedule-eid";
@@ -166,6 +174,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     location.startsWith("/vendor/") ||
     location === "/vendor-v2" ||
     location.startsWith("/vendor-v2/") ||
+    location === "/vendor-attestation" ||
+    location.startsWith("/vendor-attestation/") ||
     location.startsWith("/reschedule/") ||
     location.startsWith("/card/");
 
@@ -198,10 +208,37 @@ function VendorAuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function TypingVendorGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useVendorAuth();
+
+  if (isLoading) {
+    return <BrandedSplash variant="vendor" />;
+  }
+
+  if (user && user.vendorType === "Attestation") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-foreground font-medium">Access restricted to typing vendors</p>
+          <button
+            className="mt-4 text-sm text-primary underline"
+            onClick={() => window.location.href = "/vendor-attestation"}
+          >
+            Go to your portal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
 function VendorV2Layout() {
   return (
     <VendorAuthProvider>
       <VendorAuthGuard>
+        <TypingVendorGuard>
         <V2Layout>
           <Switch>
             <Route path="/" component={V2Dashboard} />
@@ -214,8 +251,57 @@ function VendorV2Layout() {
             <Route component={NotFound} />
           </Switch>
         </V2Layout>
+        </TypingVendorGuard>
       </VendorAuthGuard>
     </VendorAuthProvider>
+  );
+}
+
+function AttestationVendorGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAttestationVendorAuth();
+
+  if (isLoading) {
+    return <BrandedSplash variant="vendor" />;
+  }
+
+  if (!user) {
+    window.location.href = "/vendor/login";
+    return <BrandedSplash variant="vendor" />;
+  }
+
+  if (user.vendorType !== "Attestation") {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-foreground font-medium">Access restricted to attestation vendors</p>
+          <button
+            className="mt-4 text-sm text-primary underline"
+            onClick={() => window.location.href = "/vendor-v2"}
+          >
+            Go to your portal
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+function VendorAttestationLayout() {
+  return (
+    <AttestationVendorAuthProvider>
+      <AttestationVendorGuard>
+        <AttestationVendorLayout>
+          <Switch>
+            <Route path="/" component={AttestationVendorDashboard} />
+            <Route path="/inquiries" component={AttestationVendorInquiries} />
+            <Route path="/jobs" component={AttestationVendorJobs} />
+            <Route component={NotFound} />
+          </Switch>
+        </AttestationVendorLayout>
+      </AttestationVendorGuard>
+    </AttestationVendorAuthProvider>
   );
 }
 
@@ -255,7 +341,11 @@ function AppRoutes() {
       <Route path="/account/security" component={AccountSecurity} />
       <Route path="/vendor/login" component={VendorLogin} />
       <Route path="/vendor-v2" nest component={VendorV2Layout} />
+      <Route path="/vendor-attestation" nest component={VendorAttestationLayout} />
       <Route path="/vendor" nest component={VendorRedirect} />
+      <Route path="/attestation/inquiries/new" component={NewAttestationInquiry} />
+      <Route path="/attestation/inquiries/:id" component={InquiryDetailPage} />
+      <Route path="/attestation/inquiries" component={AttestationInquiriesPage} />
       <Route path="/appointments" component={AppointmentsIndex} />
       <Route path="/appointments/schedule-medical" component={ScheduleMedical} />
       <Route path="/appointments/schedule-eid" component={ScheduleEid} />

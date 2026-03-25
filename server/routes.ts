@@ -4155,6 +4155,37 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/auth/enter-attestation-portal", async (req, res) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const adminUser = await storage.getUser(req.session.userId);
+      if (!adminUser || adminUser.role !== "Admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      const allUsers = await storage.getUsers();
+      const vendorUsers = allUsers.filter(u => u.role === "Vendor" && u.active && u.vendorId);
+      let foundUser = null;
+      for (const vu of vendorUsers) {
+        const vendor = await storage.getVendorById(vu.vendorId!);
+        if (vendor && vendor.vendorType === "Attestation") {
+          foundUser = vu;
+          break;
+        }
+      }
+      if (!foundUser) {
+        return res.status(404).json({ message: "No attestation vendor accounts found" });
+      }
+      req.session.vendorUserId = foundUser.id;
+      req.session.vendorId = foundUser.vendorId;
+      res.json({ success: true, vendorName: foundUser.name });
+    } catch (error) {
+      console.error("Enter attestation portal error:", error);
+      res.status(500).json({ message: "Failed to enter attestation portal" });
+    }
+  });
+
   app.post("/api/auth/login", loginRateLimit, async (req, res) => {
     try {
       const validation = validateBody(loginSchema, req.body);
@@ -4998,11 +5029,11 @@ export async function registerRoutes(
         req.session.vendorId = user.vendorId;
       }
       let vendorName: string | null = null;
-      let vendorType: string = "Typing";
+      let vendorType: string | null = null;
       if (user.vendorId) {
         const vendor = await storage.getVendorById(user.vendorId);
         vendorName = vendor?.name || null;
-        vendorType = vendor?.vendorType || "Typing";
+        vendorType = vendor?.vendorType || null;
       }
       res.json({
         id: user.id,
@@ -9524,113 +9555,457 @@ export async function registerRoutes(
     }
   });
 
-  // ========== Attestation Vendor Portal Endpoints ==========
+  // ─── CRM: Attestation Inquiry CRUD ──────────────────────────────────────────
+
+  const createInquirySchema = z.object({
+    companyId: z.string().min(1),
+    applicantName: z.string().optional(),
+    vendorId: z.string().min(1),
+    documentType: z.string().min(1),
+    documentNameDescription: z.string().min(1),
+    documentClass: z.enum(["Personal", "Business"]),
+    homeCountry: z.string().optional(),
+    descriptionOfNeed: z.string().min(1),
+    externalWoNumber: z.string().optional(),
+  });
+
+  app.post("/api/attestation/inquiries", requireAuth, async (req, res) => {
+    try {
+      const validation = validateBody(createInquirySchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { vendorId, companyId } = validation.data;
+
+      const vendor = await storage.getVendorById(vendorId);
+      if (!vendor || vendor.vendorType !== "Attestation") {
+        return res.status(400).json({ message: "Selected vendor is not an Attestation vendor" });
+      }
+      const company = await storage.getCompanyById(companyId);
+      if (!company) return res.status(400).json({ message: "Company not found" });
+
+      const inquiry = await storage.createAttestationInquiry({
+        ...validation.data,
+        createdBy: req.session.userId!,
+        status: "Open",
+      });
+
+      await storage.createAuditLog({
+        action: "attestation_inquiry_created",
+        entityType: "attestation_inquiry",
+        entityId: inquiry.id,
+        userId: req.session.userId!,
+        details: { companyId, vendorId, documentType: inquiry.documentType },
+      });
+
+      res.status(201).json(inquiry);
+    } catch (error) {
+      console.error("Create attestation inquiry error:", error);
+      res.status(500).json({ message: "Failed to create inquiry" });
+    }
+  });
+
+  app.get("/api/attestation/inquiries", requireAuth, async (req, res) => {
+    try {
+      const { status, companyId, vendorId } = req.query as Record<string, string>;
+      const inquiries = await storage.getAttestationInquiries({ status, companyId, vendorId });
+
+      const enriched = await Promise.all(inquiries.map(async inq => {
+        const company = await storage.getCompanyById(inq.companyId);
+        const vendor = await storage.getVendorById(inq.vendorId);
+        const latestQuote = await storage.getLatestQuoteForInquiry(inq.id);
+        return {
+          ...inq,
+          companyName: company?.name || null,
+          vendorName: vendor?.name || null,
+          latestQuote: latestQuote || null,
+        };
+      }));
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Get attestation inquiries error:", error);
+      res.status(500).json({ message: "Failed to get inquiries" });
+    }
+  });
+
+  app.get("/api/attestation/inquiries/:id", requireAuth, async (req, res) => {
+    try {
+      const inquiry = await storage.getAttestationInquiryById(req.params.id);
+      if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
+
+      const company = await storage.getCompanyById(inquiry.companyId);
+      const vendor = await storage.getVendorById(inquiry.vendorId);
+      const quotes = await storage.getQuotesByInquiry(inquiry.id);
+      const latestQuote = quotes[0] || null;
+
+      let linkedSr = null;
+      if (inquiry.convertedToSrId) {
+        linkedSr = await storage.getAttestationSrById(inquiry.convertedToSrId);
+      }
+
+      res.json({
+        ...inquiry,
+        companyName: company?.name || null,
+        vendorName: vendor?.name || null,
+        latestQuote,
+        quotes,
+        linkedSr,
+      });
+    } catch (error) {
+      console.error("Get attestation inquiry detail error:", error);
+      res.status(500).json({ message: "Failed to get inquiry" });
+    }
+  });
+
+  const acceptInquirySchema = z.object({
+    externalWoNumber: z.string().min(1, "External WO number is required"),
+    serviceName: z.string().min(1, "Service name is required"),
+    serviceNotes: z.string().optional(),
+  });
+
+  app.post("/api/attestation/inquiries/:id/accept", requireAuth, async (req, res) => {
+    try {
+      const inquiry = await storage.getAttestationInquiryById(req.params.id);
+      if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
+      if (inquiry.status !== "Open" && inquiry.status !== "QuoteReceived") {
+        return res.status(400).json({ message: "Inquiry cannot be accepted in current status" });
+      }
+
+      const validation = validateBody(acceptInquirySchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+
+      const latestQuote = await storage.getLatestQuoteForInquiry(inquiry.id);
+
+      const sr = await storage.createAttestationSr({
+        inquiryId: inquiry.id,
+        companyId: inquiry.companyId,
+        vendorId: inquiry.vendorId,
+        applicantName: inquiry.applicantName,
+        documentType: inquiry.documentType,
+        documentNameDescription: inquiry.documentNameDescription,
+        documentClass: inquiry.documentClass as any,
+        homeCountry: inquiry.homeCountry,
+        externalWoNumber: validation.data.externalWoNumber,
+        serviceName: validation.data.serviceName || null,
+        serviceFeeAed: latestQuote?.amountAed ? String(latestQuote.amountAed) : null,
+        feeSource: latestQuote ? "quote" : null,
+        serviceNotes: validation.data.serviceNotes || null,
+        status: "SentToVendor" as any,
+        createdBy: req.session.userId!,
+      } as any);
+
+      await storage.updateAttestationInquiry(inquiry.id, {
+        status: "Converted",
+        convertedToSrId: sr.id,
+        externalWoNumber: validation.data.externalWoNumber,
+      });
+
+      await storage.createAuditLog({
+        action: "attestation_inquiry_accepted",
+        entityType: "attestation_inquiry",
+        entityId: inquiry.id,
+        userId: req.session.userId!,
+        details: { srId: sr.id, externalWoNumber: validation.data.externalWoNumber },
+      });
+
+      res.json({ inquiry: { ...inquiry, status: "Converted", convertedToSrId: sr.id }, sr });
+    } catch (error) {
+      console.error("Accept attestation inquiry error:", error);
+      res.status(500).json({ message: "Failed to accept inquiry" });
+    }
+  });
+
+  const rejectInquirySchema = z.object({
+    reason: z.string().min(1, "Rejection reason is required"),
+  });
+
+  app.post("/api/attestation/inquiries/:id/reject", requireAuth, async (req, res) => {
+    try {
+      const inquiry = await storage.getAttestationInquiryById(req.params.id);
+      if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
+      if (inquiry.status === "Converted" || inquiry.status === "Rejected") {
+        return res.status(400).json({ message: "Inquiry cannot be rejected in current status" });
+      }
+
+      const validation = validateBody(rejectInquirySchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+
+      const updated = await storage.updateAttestationInquiry(inquiry.id, {
+        status: "Rejected",
+        rejectionReason: validation.data.reason,
+      });
+
+      await storage.createAuditLog({
+        action: "attestation_inquiry_rejected",
+        entityType: "attestation_inquiry",
+        entityId: inquiry.id,
+        userId: req.session.userId!,
+        details: { reason: validation.data.reason },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Reject attestation inquiry error:", error);
+      res.status(500).json({ message: "Failed to reject inquiry" });
+    }
+  });
+
+  // CRM: list attestation service requests
+  app.get("/api/attestation/service-requests", requireAuth, async (req, res) => {
+    try {
+      const { vendorId, status, companyId } = req.query as Record<string, string>;
+      const srs = await storage.getAttestationSrs({ vendorId, status, companyId });
+
+      const enriched = await Promise.all(srs.map(async sr => {
+        const company = await storage.getCompanyById(sr.companyId);
+        const vendor = await storage.getVendorById(sr.vendorId);
+        return {
+          ...sr,
+          companyName: company?.name || null,
+          vendorName: vendor?.name || null,
+          feeLabel: sr.feeSource === "quote" ? "Quoted Fee" : sr.feeSource === "catalog" ? "Service Fee" : "Fee TBD",
+          feeAmount: sr.serviceFeeAed || null,
+        };
+      }));
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Get attestation SRs error:", error);
+      res.status(500).json({ message: "Failed to get service requests" });
+    }
+  });
+
+  // CRM: get attestation vendors (for dropdowns)
+  app.get("/api/attestation/vendors", requireAuth, async (req, res) => {
+    try {
+      const allVendors = await storage.getVendors();
+      const attestationVendors = allVendors.filter(v => v.vendorType === "Attestation" && v.active);
+      res.json(attestationVendors);
+    } catch (error) {
+      console.error("Get attestation vendors error:", error);
+      res.status(500).json({ message: "Failed to get vendors" });
+    }
+  });
+
+  // ─── Attestation Vendor: Quote Submission ────────────────────────────────────
+
+  const submitQuoteSchema = z.object({
+    amountAed: z.number().int().positive(),
+    timelineDays: z.number().int().positive(),
+    notes: z.string().optional(),
+  });
+
+  app.post("/api/attestation-vendor/inquiries/:id/quote", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = req.attestationVendorId;
+      const inquiry = await storage.getAttestationInquiryById(req.params.id);
+      if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
+      if (inquiry.vendorId !== vendorId) return res.status(403).json({ message: "Access denied" });
+      if (inquiry.status !== "Open" && inquiry.status !== "QuoteReceived") {
+        return res.status(400).json({ message: "Inquiry is not open for quoting" });
+      }
+
+      const validation = validateBody(submitQuoteSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+
+      const version = await storage.getNextQuoteVersion(inquiry.id);
+      const quote = await storage.createAttestationInquiryQuote({
+        inquiryId: inquiry.id,
+        vendorId: vendorId,
+        submittedByVendorUserId: req.attestationVendorUserId || null,
+        quoteVersion: version,
+        amountAed: validation.data.amountAed,
+        timelineDays: validation.data.timelineDays,
+        notes: validation.data.notes || null,
+      });
+
+      await storage.updateAttestationInquiry(inquiry.id, { status: "QuoteReceived" });
+
+      res.status(201).json(quote);
+    } catch (error) {
+      console.error("Submit attestation quote error:", error);
+      res.status(500).json({ message: "Failed to submit quote" });
+    }
+  });
+
+  // ─── Attestation Vendor: Inquiry List ────────────────────────────────────────
+
+  app.get("/api/attestation-vendor/inquiries", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = req.attestationVendorId;
+      const inquiries = await storage.getAttestationInquiries({ vendorId });
+
+      const result = await Promise.all(inquiries.map(async inq => {
+        const latestQuote = await storage.getLatestQuoteForInquiry(inq.id);
+        return {
+          id: inq.id,
+          documentType: inq.documentType,
+          documentNameDescription: inq.documentNameDescription,
+          documentClass: inq.documentClass,
+          homeCountry: inq.homeCountry,
+          descriptionOfNeed: inq.descriptionOfNeed,
+          externalWoNumber: inq.externalWoNumber,
+          status: inq.status,
+          createdAt: inq.createdAt,
+          latestQuote: latestQuote || null,
+        };
+      }));
+
+      res.json(result);
+    } catch (error) {
+      console.error("Attestation vendor inquiries error:", error);
+      res.status(500).json({ message: "Failed to get inquiries" });
+    }
+  });
+
+  // ─── Attestation Vendor: Jobs (Service Requests) ────────────────────────────
+
+  app.get("/api/attestation-vendor/jobs", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = req.attestationVendorId;
+      const srs = await storage.getAttestationSrs({ vendorId });
+
+      const result = srs.map(sr => ({
+        id: sr.id,
+        externalWoNumber: sr.externalWoNumber,
+        documentType: sr.documentType,
+        documentNameDescription: sr.documentNameDescription,
+        documentClass: sr.documentClass,
+        serviceName: sr.serviceName,
+        homeCountry: sr.homeCountry,
+        status: sr.status,
+        createdAt: sr.createdAt,
+        feeLabel: sr.feeSource === "quote" ? "Quoted Fee" : sr.feeSource === "catalog" ? "Service Fee" : "Fee TBD",
+        feeAmount: sr.serviceFeeAed || null,
+        serviceNotes: sr.serviceNotes,
+      }));
+
+      res.json(result);
+    } catch (error) {
+      console.error("Attestation vendor jobs error:", error);
+      res.status(500).json({ message: "Failed to get jobs" });
+    }
+  });
+
+  app.post("/api/attestation-vendor/jobs/:id/accept", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = req.attestationVendorId;
+      const sr = await storage.getAttestationSrById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "Job not found" });
+      if (sr.vendorId !== vendorId) return res.status(403).json({ message: "Access denied" });
+      if (sr.status !== "SentToVendor") return res.status(400).json({ message: "Job cannot be accepted from current status" });
+
+      const updated = await storage.updateAttestationSr(sr.id, { status: "AcceptedByVendor" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Attestation vendor accept job error:", error);
+      res.status(500).json({ message: "Failed to accept job" });
+    }
+  });
+
+  app.post("/api/attestation-vendor/jobs/:id/start", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = req.attestationVendorId;
+      const sr = await storage.getAttestationSrById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "Job not found" });
+      if (sr.vendorId !== vendorId) return res.status(403).json({ message: "Access denied" });
+      if (sr.status !== "AcceptedByVendor") return res.status(400).json({ message: "Job cannot be started from current status" });
+
+      const updated = await storage.updateAttestationSr(sr.id, { status: "InProgress" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Attestation vendor start job error:", error);
+      res.status(500).json({ message: "Failed to start job" });
+    }
+  });
+
+  app.post("/api/attestation-vendor/jobs/:id/complete", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = req.attestationVendorId;
+      const sr = await storage.getAttestationSrById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "Job not found" });
+      if (sr.vendorId !== vendorId) return res.status(403).json({ message: "Access denied" });
+      if (sr.status !== "InProgress") return res.status(400).json({ message: "Job cannot be completed from current status" });
+
+      const updated = await storage.updateAttestationSr(sr.id, { status: "Completed" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Attestation vendor complete job error:", error);
+      res.status(500).json({ message: "Failed to complete job" });
+    }
+  });
+
+  // ─── Attestation Vendor: Dashboard ───────────────────────────────────────────
+
   app.get("/api/attestation-vendor/dashboard", requireAttestationVendor, async (req, res) => {
     try {
-      const vendorId = (req as any).session?.vendorId;
-      const srs = await storage.getAttestationServiceRequestsByVendorId(vendorId);
-      const stats = {
-        total: srs.length,
-        active: srs.filter(sr => ["SentToVendor", "AcceptedByVendor", "InProgress"].includes(sr.status)).length,
-        completed: srs.filter(sr => sr.status === "Completed").length,
-        pending: srs.filter(sr => sr.status === "SentToVendor").length,
-      };
-      const recentSrs = srs.slice(0, 5);
-      const enrichedRecent = await Promise.all(recentSrs.map(async (sr) => {
-        const company = await storage.getCompanyById(sr.companyId);
-        const service = await storage.getAttestationServiceById(sr.attestationServiceId);
-        return {
-          ...sr, companyName: company?.name ?? null, serviceName: service?.name ?? null,
-          internalNotes: undefined,
-        };
-      }));
-      res.json({ stats, recentSrs: enrichedRecent });
-    } catch (err) {
-      console.error("[attestation-vendor] dashboard error:", err);
-      res.status(500).json({ message: "Failed to fetch dashboard" });
-    }
-  });
-
-  app.get("/api/attestation-vendor/service-requests", requireAttestationVendor, async (req, res) => {
-    try {
-      const vendorId = (req as any).session?.vendorId;
-      const srs = await storage.getAttestationServiceRequestsByVendorId(vendorId);
-      const enriched = await Promise.all(srs.map(async (sr) => {
-        const company = await storage.getCompanyById(sr.companyId);
-        const service = await storage.getAttestationServiceById(sr.attestationServiceId);
-        return {
-          id: sr.id, externalWoNumber: sr.externalWoNumber, companyId: sr.companyId,
-          applicantName: sr.applicantName, attestationServiceId: sr.attestationServiceId,
-          documentType: sr.documentType, documentNameDescription: sr.documentNameDescription,
-          documentClass: sr.documentClass, homeCountry: sr.homeCountry,
-          originalDocumentInvolved: sr.originalDocumentInvolved,
-          status: sr.status, physicalCustodyStatus: sr.physicalCustodyStatus,
-          serviceFeeAed: sr.serviceFeeAed, createdAt: sr.createdAt, updatedAt: sr.updatedAt,
-          companyName: company?.name ?? null, serviceName: service?.name ?? null,
-        };
-      }));
-      res.json(enriched);
-    } catch (err) {
-      console.error("[attestation-vendor] list SRs error:", err);
-      res.status(500).json({ message: "Failed to fetch service requests" });
-    }
-  });
-
-  app.get("/api/attestation-vendor/service-requests/:id", requireAttestationVendor, async (req, res) => {
-    try {
-      const vendorId = (req as any).session?.vendorId;
-      const sr = await storage.getAttestationServiceRequestById(req.params.id);
-      if (!sr || sr.vendorId !== vendorId) {
-        return res.status(404).json({ message: "Service request not found" });
-      }
-      const [company, service, steps] = await Promise.all([
-        storage.getCompanyById(sr.companyId),
-        storage.getAttestationServiceById(sr.attestationServiceId),
-        storage.getAttestationSrSteps(sr.id),
+      const vendorId = req.attestationVendorId;
+      const [inquiries, srs] = await Promise.all([
+        storage.getAttestationInquiries({ vendorId }),
+        storage.getAttestationSrs({ vendorId }),
       ]);
-      let variant = null;
-      if (sr.serviceVariantId) {
-        variant = await storage.getAttestationServiceVariantById(sr.serviceVariantId);
+
+      const openInquiries = inquiries.filter(i => i.status === "Open").length;
+      const pendingQuote = inquiries.filter(i => i.status === "Open" || i.status === "QuoteReceived").length;
+      const pendingAcceptance = srs.filter(s => s.status === "SentToVendor").length;
+      const activeJobs = srs.filter(s => s.status === "AcceptedByVendor" || s.status === "InProgress").length;
+      const completedJobs = srs.filter(s => s.status === "Completed").length;
+
+      const recentActivity = [
+        ...inquiries.slice(0, 5).map(i => ({
+          id: i.id,
+          type: "inquiry" as const,
+          title: `Inquiry: ${i.documentType}`,
+          description: `${i.documentClass} document — ${i.status}`,
+          timestamp: i.createdAt,
+        })),
+        ...srs.slice(0, 5).map(s => ({
+          id: s.id,
+          type: "job" as const,
+          title: `Job: ${s.documentType}`,
+          description: `WO ${s.externalWoNumber} — ${s.status}`,
+          timestamp: s.createdAt,
+        })),
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 8);
+
+      res.json({
+        stats: { openInquiries, pendingQuote, pendingAcceptance, activeJobs, completedJobs },
+        recentActivity,
+      });
+    } catch (error) {
+      console.error("Attestation vendor dashboard error:", error);
+      res.status(500).json({ message: "Failed to get dashboard" });
+    }
+  });
+
+  // ─── Attestation Vendor Auth: me endpoint extension ──────────────────────────
+  // (Return vendorType in /api/vendor/auth/me response already handled in vendor_type on vendors table)
+  // Update the attestation vendor auth check endpoint
+  app.get("/api/attestation-vendor/auth/me", async (req, res) => {
+    try {
+      if (!req.session?.vendorUserId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const user = await storage.getUser(req.session.vendorUserId);
+      if (!user || !user.vendorId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const vendor = await storage.getVendorById(user.vendorId);
+      if (!vendor || vendor.vendorType !== "Attestation") {
+        return res.status(403).json({ message: "Access restricted to attestation vendors" });
       }
       res.json({
-        id: sr.id, externalWoNumber: sr.externalWoNumber, companyId: sr.companyId,
-        applicantName: sr.applicantName, attestationServiceId: sr.attestationServiceId,
-        serviceVariantId: sr.serviceVariantId, documentType: sr.documentType,
-        documentNameDescription: sr.documentNameDescription, documentClass: sr.documentClass,
-        homeCountry: sr.homeCountry, originalDocumentInvolved: sr.originalDocumentInvolved,
-        status: sr.status, physicalCustodyStatus: sr.physicalCustodyStatus,
-        currentCustodian: sr.currentCustodian, serviceFeeAed: sr.serviceFeeAed,
-        createdAt: sr.createdAt, updatedAt: sr.updatedAt,
-        companyName: company?.name ?? null, serviceName: service?.name ?? null,
-        serviceCategory: service?.category ?? null, variantLabel: variant?.variantLabel ?? null,
-        steps,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        vendorId: user.vendorId,
+        vendorName: vendor.name,
+        vendorType: vendor.vendorType,
+        isAdminViewing: !!req.session.userId && req.session.userId !== req.session.vendorUserId,
       });
-    } catch (err) {
-      console.error("[attestation-vendor] get SR error:", err);
-      res.status(500).json({ message: "Failed to fetch service request" });
-    }
-  });
-
-  app.patch("/api/attestation-vendor/service-requests/:id/accept", requireAttestationVendor, async (req, res) => {
-    try {
-      const vendorId = (req as any).session?.vendorId;
-      const sr = await storage.getAttestationServiceRequestById(req.params.id);
-      if (!sr || sr.vendorId !== vendorId) {
-        return res.status(404).json({ message: "Service request not found" });
-      }
-      if (sr.status !== "SentToVendor") {
-        return res.status(400).json({ message: "Can only accept SRs that are Sent to Vendor" });
-      }
-      const updated = await storage.updateAttestationServiceRequest(sr.id, { status: "AcceptedByVendor" });
-      await storage.createAttestationSrActivityLog({
-        srId: sr.id, action: "status_change",
-        detail: "Status changed from SentToVendor to AcceptedByVendor (by vendor)",
-        performedBy: (req as any).session?.vendorUserId || null,
-      });
-      res.json(updated);
-    } catch (err) {
-      console.error("[attestation-vendor] accept SR error:", err);
-      res.status(500).json({ message: "Failed to accept service request" });
+    } catch (error) {
+      console.error("Attestation vendor me error:", error);
+      res.status(500).json({ message: "Failed to get user" });
     }
   });
 

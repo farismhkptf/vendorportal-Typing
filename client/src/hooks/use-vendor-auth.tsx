@@ -9,6 +9,7 @@ type VendorUser = {
   role: string;
   vendorId: string | null;
   vendorName: string | null;
+  vendorType: string | null;
   isAdminViewing?: boolean;
 };
 

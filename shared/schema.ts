@@ -799,6 +799,8 @@ export const attestationServiceStepDefinitions = pgTable("attestation_service_st
 ]);
 
 // Attestation Service Requests table
+// Supports both catalog-based and inquiry-flow based SRs.
+// attestationServiceId is nullable for inquiry-flow SRs (where service name is stored in serviceName).
 export const attestationServiceRequests = pgTable("attestation_service_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   externalWoNumber: text("external_wo_number").notNull(),
@@ -806,7 +808,7 @@ export const attestationServiceRequests = pgTable("attestation_service_requests"
   companyId: varchar("company_id").notNull().references(() => companies.id),
   applicantName: text("applicant_name"),
   vendorId: varchar("vendor_id").notNull().references(() => vendors.id),
-  attestationServiceId: varchar("attestation_service_id").notNull().references(() => attestationServices.id),
+  attestationServiceId: varchar("attestation_service_id").references(() => attestationServices.id),
   serviceVariantId: varchar("service_variant_id").references(() => attestationServiceVariants.id),
   documentType: text("document_type").notNull(),
   documentNameDescription: text("document_name_description").notNull(),
@@ -818,8 +820,11 @@ export const attestationServiceRequests = pgTable("attestation_service_requests"
   currentCustodian: text("current_custodian"),
   currentResponsibleStaffId: varchar("current_responsible_staff_id").references(() => users.id),
   serviceFeeAed: numeric("service_fee_aed", { precision: 10, scale: 2 }),
+  feeSource: text("fee_source"),
+  serviceName: text("service_name"),
+  serviceNotes: text("service_notes"),
   internalNotes: text("internal_notes"),
-  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdBy: varchar("created_by").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -1041,7 +1046,7 @@ export const insertDeletionRequestSchema = createInsertSchema(deletionRequests).
 export type InsertDeletionRequest = z.infer<typeof insertDeletionRequestSchema>;
 export type DeletionRequest = typeof deletionRequests.$inferSelect;
 
-// Attestation insert schemas and types
+// Attestation insert schemas and types (Service Catalog)
 export const insertAttestationServiceSchema = createInsertSchema(attestationServices).omit({ id: true });
 export type InsertAttestationService = z.infer<typeof insertAttestationServiceSchema>;
 export type AttestationService = typeof attestationServices.$inferSelect;
@@ -1065,3 +1070,61 @@ export type AttestationSrStep = typeof attestationSrSteps.$inferSelect;
 export const insertAttestationSrActivityLogSchema = createInsertSchema(attestationSrActivityLog).omit({ id: true, createdAt: true });
 export type InsertAttestationSrActivityLog = z.infer<typeof insertAttestationSrActivityLogSchema>;
 export type AttestationSrActivityLog = typeof attestationSrActivityLog.$inferSelect;
+
+// ─── Attestation Inquiry Flow ─────────────────────────────────────────────────
+
+export const attestationInquiryStatusEnum = pgEnum("attestation_inquiry_status", [
+  "Open", "QuoteReceived", "Accepted", "Rejected", "Converted"
+]);
+
+export const attestationDocumentClassEnum = pgEnum("attestation_document_class", [
+  "Personal", "Business"
+]);
+
+// Attestation Inquiries table (pre-SR inquiry + quoting flow)
+export const attestationInquiries = pgTable("attestation_inquiries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: varchar("company_id").notNull().references(() => companies.id),
+  applicantName: text("applicant_name"),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id),
+  documentType: text("document_type").notNull(),
+  documentNameDescription: text("document_name_description").notNull(),
+  documentClass: attestationDocumentClassEnum("document_class").notNull(),
+  homeCountry: text("home_country"),
+  descriptionOfNeed: text("description_of_need").notNull(),
+  externalWoNumber: text("external_wo_number"),
+  status: attestationInquiryStatusEnum("status").notNull().default("Open"),
+  rejectionReason: text("rejection_reason"),
+  convertedToSrId: varchar("converted_to_sr_id"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_attestation_inquiries_company_id").on(table.companyId),
+  index("idx_attestation_inquiries_vendor_id").on(table.vendorId),
+  index("idx_attestation_inquiries_status").on(table.status),
+]);
+
+// Attestation Inquiry Quotes table (vendor quotes on inquiries)
+export const attestationInquiryQuotes = pgTable("attestation_inquiry_quotes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  inquiryId: varchar("inquiry_id").notNull().references(() => attestationInquiries.id),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id),
+  submittedByVendorUserId: varchar("submitted_by_vendor_user_id").references(() => users.id),
+  quoteVersion: integer("quote_version").notNull().default(1),
+  amountAed: integer("amount_aed").notNull(),
+  timelineDays: integer("timeline_days").notNull(),
+  notes: text("notes"),
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_attestation_quotes_inquiry_id").on(table.inquiryId),
+]);
+
+// Attestation insert schemas (Inquiry Flow)
+export const insertAttestationInquirySchema = createInsertSchema(attestationInquiries).omit({ id: true, createdAt: true });
+export type InsertAttestationInquiry = z.infer<typeof insertAttestationInquirySchema>;
+export type AttestationInquiry = typeof attestationInquiries.$inferSelect;
+
+export const insertAttestationInquiryQuoteSchema = createInsertSchema(attestationInquiryQuotes).omit({ id: true, submittedAt: true });
+export type InsertAttestationInquiryQuote = z.infer<typeof insertAttestationInquiryQuoteSchema>;
+export type AttestationInquiryQuote = typeof attestationInquiryQuotes.$inferSelect;

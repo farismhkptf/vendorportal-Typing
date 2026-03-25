@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, Briefcase, Stethoscope, Store } from "lucide-react";
+import { LayoutDashboard, Briefcase, Stethoscope, Store, Stamp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -11,6 +11,7 @@ const views = [
   { key: "crm", label: "CRM", icon: Briefcase, href: "/crm" },
   { key: "medical", label: "Medical", icon: Stethoscope, href: "/medical" },
   { key: "vendor", label: "Vendor", icon: Store, href: "/vendor" },
+  { key: "attestation", label: "Attestation", icon: Stamp, href: "/vendor-attestation" },
 ] as const;
 
 type ViewKey = (typeof views)[number]["key"];
@@ -39,6 +40,22 @@ export function DashboardSwitcher({ active }: { active: ViewKey }) {
     }
   }
 
+  async function handleAttestationSwitch() {
+    setEntering(true);
+    try {
+      await apiRequest("POST", "/api/auth/enter-attestation-portal");
+      window.location.href = "/vendor-attestation";
+    } catch {
+      toast({
+        title: "No attestation vendors",
+        description: "Create an attestation vendor account first to access the portal.",
+        variant: "destructive",
+      });
+    } finally {
+      setEntering(false);
+    }
+  }
+
   return (
     <div
       className="inline-flex items-center gap-0.5 p-0.5 rounded-lg bg-muted/60 dark:bg-muted/30"
@@ -46,17 +63,19 @@ export function DashboardSwitcher({ active }: { active: ViewKey }) {
     >
       {views.map((view) => {
         const isActive = view.key === active;
-        const isVendor = view.key === "vendor";
+        const isPortalSwitch = view.key === "vendor" || view.key === "attestation";
         return (
           <Button
             key={view.key}
             variant="ghost"
             size="sm"
-            disabled={isVendor && entering}
+            disabled={isPortalSwitch && entering}
             onClick={() => {
               if (isActive) return;
-              if (isVendor) {
+              if (view.key === "vendor") {
                 handleVendorSwitch();
+              } else if (view.key === "attestation") {
+                handleAttestationSwitch();
               } else {
                 navigate(view.href);
               }
