@@ -2323,11 +2323,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Attestation Service Requests
-  async getAttestationSrs(filters?: { assignedProId?: string; vendorId?: string; status?: string }): Promise<AttestationSr[]> {
+  async getAttestationSrs(filters?: { assignedProId?: string; vendorId?: string; status?: string; companyId?: string }): Promise<AttestationSr[]> {
     const conditions = [];
     if (filters?.assignedProId) conditions.push(eq(attestationServiceRequests.assignedProId, filters.assignedProId));
     if (filters?.vendorId) conditions.push(eq(attestationServiceRequests.vendorId, filters.vendorId));
     if (filters?.status) conditions.push(eq(attestationServiceRequests.status, filters.status as any));
+    if (filters?.companyId) conditions.push(eq(attestationServiceRequests.companyId, filters.companyId));
     if (conditions.length > 0) {
       return db.select().from(attestationServiceRequests).where(and(...conditions)).orderBy(desc(attestationServiceRequests.createdAt));
     }
@@ -2466,23 +2467,6 @@ export class DatabaseStorage implements IStorage {
       .from(attestationInquiryQuotes)
       .where(eq(attestationInquiryQuotes.inquiryId, inquiryId));
     return (Number(result?.maxVer || 0)) + 1;
-  }
-
-  // Attestation SR convenience wrappers
-  async createAttestationSr(data: InsertAttestationServiceRequest): Promise<AttestationServiceRequest> {
-    return this.createAttestationServiceRequest(data);
-  }
-
-  async getAttestationSrs(filters?: { vendorId?: string; status?: string; companyId?: string }): Promise<AttestationServiceRequest[]> {
-    return this.getAttestationServiceRequests(filters);
-  }
-
-  async getAttestationSrById(id: string): Promise<AttestationServiceRequest | undefined> {
-    return this.getAttestationServiceRequestById(id);
-  }
-
-  async updateAttestationSr(id: string, data: Partial<InsertAttestationServiceRequest>): Promise<AttestationServiceRequest | undefined> {
-    return this.updateAttestationServiceRequest(id, data);
   }
 
   // Document Custody Records (new standalone lifecycle module)

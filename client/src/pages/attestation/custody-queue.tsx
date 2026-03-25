@@ -99,7 +99,7 @@ function SrCard({ sr, staffName }: SrCardProps) {
       {showForm && nextAction ? (
         <HandoverForm
           srId={sr.id}
-          srNumber={sr.srNumber}
+          srNumber={sr.srNumber ?? ""}
           direction={nextAction.direction}
           defaultStaffName={staffName}
           onSuccess={() => setShowForm(false)}

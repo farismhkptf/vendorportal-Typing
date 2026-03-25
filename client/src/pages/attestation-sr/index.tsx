@@ -12,12 +12,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { StatCard } from "@/components/ui/stat-card";
-import type { AttestationServiceRequest, Company, Vendor } from "@shared/schema";
+import type { AttestationSr, Company, Vendor } from "@shared/schema";
 
-interface SRWithRelations extends AttestationServiceRequest {
+interface SRWithRelations extends AttestationSr {
   companyName?: string | null;
   vendorName?: string | null;
-  serviceName?: string | null;
 }
 
 const SR_STATUS_LABELS: Record<string, string> = {
@@ -82,7 +81,7 @@ export default function AttestationSRList() {
       const matchesDateTo = !dateTo || srDate <= new Date(dateTo + "T23:59:59");
       const searchLower = search.toLowerCase();
       const matchesSearch = !search ||
-        sr.externalWoNumber.toLowerCase().includes(searchLower) ||
+        (sr.externalWoNumber?.toLowerCase().includes(searchLower)) ||
         (sr.applicantName?.toLowerCase().includes(searchLower)) ||
         (sr.companyName?.toLowerCase().includes(searchLower)) ||
         (sr.vendorName?.toLowerCase().includes(searchLower)) ||
@@ -245,7 +244,7 @@ export default function AttestationSRList() {
                     <TableCell data-testid={`text-service-${sr.id}`}>
                       {sr.serviceName || <span className="text-muted-foreground italic">—</span>}
                     </TableCell>
-                    <TableCell className="max-w-[140px] truncate text-sm" data-testid={`text-doc-${sr.id}`} title={sr.documentNameDescription}>
+                    <TableCell className="max-w-[140px] truncate text-sm" data-testid={`text-doc-${sr.id}`} title={sr.documentNameDescription ?? undefined}>
                       {sr.documentNameDescription || <span className="text-muted-foreground italic">—</span>}
                     </TableCell>
                     <TableCell data-testid={`text-vendor-${sr.id}`}>

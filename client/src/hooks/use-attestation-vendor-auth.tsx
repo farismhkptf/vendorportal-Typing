@@ -43,11 +43,11 @@ export function AttestationVendorAuthProvider({ children }: { children: ReactNod
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/vendor/auth/logout");
+      await apiRequest("POST", "/api/attestation-vendor/auth/logout");
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/attestation-vendor/auth/me"], null);
-      window.location.href = "/vendor/login";
+      window.location.href = "/vendor-attestation/login";
     },
   });
 

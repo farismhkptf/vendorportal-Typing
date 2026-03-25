@@ -114,6 +114,7 @@ const serviceTypeSchema = z.object({
   requiresIdTyping1Year: z.boolean().default(false),
   requiresIdTyping10Years: z.boolean().default(false),
   requiresIdBiometrics: z.boolean().default(false),
+  requiresAttestation: z.boolean().default(false),
   isDependent: z.boolean().default(false),
 });
 
@@ -968,6 +969,7 @@ export default function AdminPage() {
       requiresIdTyping1Year: false,
       requiresIdTyping10Years: false,
       requiresIdBiometrics: false,
+      requiresAttestation: false,
       isDependent: false,
     },
   });
@@ -982,6 +984,7 @@ export default function AdminPage() {
       requiresIdTyping1Year: false,
       requiresIdTyping10Years: false,
       requiresIdBiometrics: false,
+      requiresAttestation: false,
       isDependent: false,
     },
   });
@@ -1601,6 +1604,7 @@ export default function AdminPage() {
       requiresIdTyping1Year: service.requiresIdTyping1Year,
       requiresIdTyping10Years: service.requiresIdTyping10Years,
       requiresIdBiometrics: service.requiresIdBiometrics,
+      requiresAttestation: service.requiresAttestation ?? false,
       isDependent: (service as any).isDependent ?? false,
     });
     setEditServiceDialogOpen(true);
@@ -4413,6 +4417,18 @@ export default function AdminPage() {
                                 </FormItem>
                               )}
                             />
+                            <FormField
+                              control={serviceForm.control}
+                              name="requiresAttestation"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center gap-2 space-y-0">
+                                  <FormControl>
+                                    <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                  </FormControl>
+                                  <FormLabel className="text-sm font-normal cursor-pointer">Attestation</FormLabel>
+                                </FormItem>
+                              )}
+                            />
                           </div>
                         </div>
                         <div className="pt-1">
@@ -4540,6 +4556,18 @@ export default function AdminPage() {
                                   <Checkbox checked={field.value} onCheckedChange={field.onChange} />
                                 </FormControl>
                                 <FormLabel className="text-sm font-normal cursor-pointer">ID Biometrics</FormLabel>
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={editServiceForm.control}
+                            name="requiresAttestation"
+                            render={({ field }) => (
+                              <FormItem className="flex items-center gap-2 space-y-0">
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                                <FormLabel className="text-sm font-normal cursor-pointer">Attestation</FormLabel>
                               </FormItem>
                             )}
                           />

@@ -394,6 +394,7 @@ export const serviceTypes = pgTable("service_types", {
   requiresIdTyping1Year: boolean("requires_id_typing_1_year").notNull().default(false),
   requiresIdTyping10Years: boolean("requires_id_typing_10_years").notNull().default(false),
   requiresIdBiometrics: boolean("requires_id_biometrics").notNull().default(false),
+  requiresAttestation: boolean("requires_attestation").notNull().default(false),
   isDependent: boolean("is_dependent").notNull().default(false),
   active: boolean("active").notNull().default(true),
 });

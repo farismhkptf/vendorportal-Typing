@@ -111,7 +111,7 @@ export function ApiKeysTab() {
     setShowCreate(false);
   }
 
-  const crmStaff = staffList?.filter(s => s.role === "Client Relationship Manager" && s.active) || [];
+  const crmStaff = staffList?.filter(s => s.roleTitle === "Client Relationship Manager" && s.active) || [];
 
   if (isLoading) {
     return (

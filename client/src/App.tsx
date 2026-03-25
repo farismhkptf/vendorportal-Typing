@@ -277,7 +277,7 @@ function AttestationVendorGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    window.location.href = "/vendor/login";
+    window.location.href = "/vendor-attestation/login";
     return <BrandedSplash variant="vendor" />;
   }
 
