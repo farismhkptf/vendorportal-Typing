@@ -137,6 +137,34 @@ A completely renovated vendor portal at `/vendor-v2/*` with Apple/iOS-inspired g
 -   **Guided Tour**: `client/src/components/vendor-v2/guided-tour.tsx` — Interactive 7-step tutorial overlay with glassmorphic tooltips, spotlight cutout highlighting, step progress dots, and Back/Next/Skip controls. Auto-launches on first visit (persisted via `localStorage["v2-tour-completed"]`). Re-triggerable via `?` help button in the V2 header. Target elements use `data-tour` attributes in layout.tsx and dashboard.tsx.
 -   **Routes**: Registered in `App.tsx` under `VendorV2Layout` wrapper with same `VendorAuthProvider`/`VendorAuthGuard`.
 
+## Attestation Document Custody & Signature Acknowledgements (Task #57)
+
+A full physical document custody chain system for attestation service requests, tracking documents through four handover points with identity proof, ID photos, and digital signatures.
+
+### Data Model (shared/schema.ts)
+-   **Enums**: `attestationSrStatusEnum` (Draft/SentToVendor/AcceptedByVendor/InProgress/Completed/Cancelled), `physicalCustodyStatusEnum` (WithClient/WithUs/WithVendor/ReturnedToClient), `handoverDirectionEnum` (ClientToUs/UsToVendor/VendorToUs/UsToClient)
+-   **`attestationServiceRequests`**: SR tracking with `srNumber`, `physicalCustodyStatus`, `currentCustodian`, `currentResponsibleStaffId`, `assignedProId`, `vendorId`
+-   **`documentCustodyLog`**: Immutable event log — counterparty name/contact, ID photo URL, signature URL, optional approver fields, receiving staff name/signature for VendorToUs dual-signatory, `acknowledgedAt` timestamp
+
+### Backend (server/routes.ts, server/storage.ts)
+-   `createCustodyLogWithSrUpdate()`: Atomic transaction inserting a custody log entry and updating SR's `physicalCustodyStatus` + `currentCustodian` in one operation
+-   **PRO Routes** (`requireAuth`): GET/POST `/api/attestation/sr`, GET/PATCH `/api/attestation/sr/:id`, GET/POST `/api/attestation/sr/:id/custody`
+-   **Attestation Vendor Portal** (separate session `req.session.attestationVendorUserId`, `requireAttestationVendor` middleware): POST `/api/attestation-vendor/auth/login|logout`, GET `/api/attestation-vendor/auth/me`, GET `/api/attestation-vendor/jobs`, GET/POST `/api/attestation-vendor/jobs/:id/custody`, POST `…/accept`, POST `…/complete`
+-   ID photos and signatures uploaded to object storage under `attestation/custody/{srId}/{timestamp}_{type}.{ext}`
+
+### Frontend Components
+-   **`SignaturePad`** (`client/src/components/ui/signature-pad.tsx`): Canvas-based signature capture with touch support, `clear()`/`getDataUrl()`/`getBlob()` ref handle
+-   **`HandoverForm`** (`client/src/components/attestation/handover-form.tsx`): Multi-stage form (form → confirm → done) with camera capture for ID photo, SignaturePad for counterparty, optional approver section, dual-signatory section for VendorToUs direction
+-   **`CustodyTimeline`** (`client/src/components/attestation/custody-timeline.tsx`): Chronological custody event list with image lightbox for ID photos and signatures
+-   **PRO Custody Queue** (`/attestation/custody-queue`): Unified task queue showing all SRs with pending custody actions, collapsible timeline per SR, inline handover form
+-   **SR Detail** (`/attestation/sr/:id`): Full SR details with embedded custody timeline section
+-   **Attestation Vendor Portal** (`/vendor-attestation/login`, `/vendor-attestation/jobs`): Separate portal for attestation vendors — accept jobs, collect documents (HandoverForm for UsToVendor), mark complete, view custody timeline. Login persisted via `req.session.attestationVendorUserId` (isolated from `vendorUserId`)
+
+### Route Access
+-   `/attestation/*` — Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary
+-   `/vendor-attestation/*` — Public (uses its own session-based auth guard)
+-   "Doc Custody" appears in sidebar navigation for all allowed roles
+
 These features have code preserved but are not active in the current UI:
 -   **Bots System**: "Quick Paste WO" and "Appointment Scheduler" bots. Code preserved, listed under Admin Console → Future Updates.
 -   **Manager Console**: PIN-protected CRM console for managing entities. Code preserved, listed under Admin Console → Future Updates.

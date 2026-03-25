@@ -18,7 +18,8 @@ import {
   Shield,
   HelpCircle,
   FileCheck,
-  Stamp
+  Stamp,
+  PackageCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -55,6 +56,7 @@ const allNavigation = [
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Expiring Docs", href: "/expiring-documents", icon: Clock, roles: ["Admin", "Client Relationship Manager"] as string[] },
+  { name: "Doc Custody", href: "/attestation/custody-queue", icon: PackageCheck, roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] as string[] },
   { name: "Admin Console", href: "/admin", icon: Settings, roles: ["Admin"] as string[] },
 ];
 

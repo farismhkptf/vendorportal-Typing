@@ -108,6 +108,10 @@ import ExpiringDocuments from "@/pages/expiring-documents";
 import AccountSecurity from "@/pages/account-security";
 import LegalPage from "@/pages/legal";
 import CardPage from "@/pages/card";
+import CustodyQueuePage from "@/pages/attestation/custody-queue";
+import AttestationSrDetailPage from "@/pages/attestation/sr-detail";
+import AttestationVendorLogin from "@/pages/vendor-attestation/login";
+import AttestationVendorJobsPage from "@/pages/vendor-attestation/jobs";
 
 function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
   return (
@@ -147,6 +151,7 @@ const ROUTE_ACCESS: Array<{ path: string; exact?: boolean; roles: string[] }> = 
   { path: "/admin", roles: ["Admin"] },
   { path: "/manager-console", roles: OPS_ROLES },
   { path: "/bots", roles: ["Admin", "Client Relationship Manager"] },
+  { path: "/attestation", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] },
 ];
 
 function getRouteRoles(location: string): string[] | null {
@@ -177,7 +182,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     location === "/vendor-attestation" ||
     location.startsWith("/vendor-attestation/") ||
     location.startsWith("/reschedule/") ||
-    location.startsWith("/card/");
+    location.startsWith("/card/") ||
+    location === "/vendor-attestation/login" ||
+    location === "/vendor-attestation/jobs" ||
+    location.startsWith("/vendor-attestation/");
 
   if (!user && !isPublicPath) {
     return <Redirect to="/login" />;
@@ -353,6 +361,10 @@ function AppRoutes() {
       <Route path="/bots/quick-paste" component={QuickPasteBot} />
       <Route path="/bots/scheduler" component={SchedulerBot} />
       <Route path="/card/:token" component={CardPage} />
+      <Route path="/attestation/custody-queue" component={CustodyQueuePage} />
+      <Route path="/attestation/sr/:id" component={AttestationSrDetailPage} />
+      <Route path="/vendor-attestation/login" component={AttestationVendorLogin} />
+      <Route path="/vendor-attestation/jobs" component={AttestationVendorJobsPage} />
       <Route component={NotFound} />
     </Switch>
   );

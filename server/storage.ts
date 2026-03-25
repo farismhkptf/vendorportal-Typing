@@ -11,6 +11,7 @@ import {
   attestationServices, attestationServiceVariants, attestationServiceStepDefinitions,
   attestationServiceRequests, attestationSrSteps, attestationSrActivityLog,
   attestationInquiries, attestationInquiryQuotes,
+  documentCustodyLog,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -40,11 +41,12 @@ import {
   type AttestationService, type InsertAttestationService,
   type AttestationServiceVariant, type InsertAttestationServiceVariant,
   type AttestationServiceStepDefinition, type InsertAttestationServiceStepDefinition,
-  type AttestationServiceRequest, type InsertAttestationServiceRequest,
+  type AttestationSr, type InsertAttestationSr,
   type AttestationSrStep, type InsertAttestationSrStep,
   type AttestationSrActivityLog, type InsertAttestationSrActivityLog,
   type AttestationInquiry, type InsertAttestationInquiry,
   type AttestationInquiryQuote, type InsertAttestationInquiryQuote,
+  type DocumentCustodyLog, type InsertDocumentCustodyLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
@@ -333,17 +335,17 @@ export interface IStorage {
   deleteAttestationServiceStepDefinition(id: string): Promise<boolean>;
   replaceAttestationServiceStepDefinitions(serviceId: string, steps: Omit<InsertAttestationServiceStepDefinition, 'serviceId'>[]): Promise<AttestationServiceStepDefinition[]>;
 
-  // Attestation Service Requests (complex workflow)
-  getAttestationServiceRequests(filters?: { status?: string; companyId?: string; vendorId?: string }): Promise<AttestationServiceRequest[]>;
-  getAttestationServiceRequestById(id: string): Promise<AttestationServiceRequest | undefined>;
-  createAttestationServiceRequest(data: InsertAttestationServiceRequest): Promise<AttestationServiceRequest>;
-  updateAttestationServiceRequest(id: string, data: Partial<InsertAttestationServiceRequest>): Promise<AttestationServiceRequest | undefined>;
+  // Attestation Service Requests
+  getAttestationSrs(filters?: { assignedProId?: string; vendorId?: string; status?: string; companyId?: string }): Promise<AttestationSr[]>;
+  getAttestationSrById(id: string): Promise<AttestationSr | undefined>;
+  createAttestationSr(data: InsertAttestationSr): Promise<AttestationSr>;
+  updateAttestationSr(id: string, data: Partial<AttestationSr>): Promise<AttestationSr | undefined>;
+  getNextSrNumber(): Promise<string>;
   getAttestationSrSteps(srId: string): Promise<AttestationSrStep[]>;
   createAttestationSrStep(data: InsertAttestationSrStep): Promise<AttestationSrStep>;
   updateAttestationSrStep(id: string, data: Partial<InsertAttestationSrStep>): Promise<AttestationSrStep | undefined>;
   getAttestationSrActivityLog(srId: string): Promise<AttestationSrActivityLog[]>;
   createAttestationSrActivityLog(data: InsertAttestationSrActivityLog): Promise<AttestationSrActivityLog>;
-  getAttestationServiceRequestsByVendorId(vendorId: string): Promise<AttestationServiceRequest[]>;
   getAttestationVendors(): Promise<Vendor[]>;
 
   // Attestation Inquiries (inquiry/quote flow)
@@ -358,11 +360,10 @@ export interface IStorage {
   getQuotesByInquiry(inquiryId: string): Promise<AttestationInquiryQuote[]>;
   getNextQuoteVersion(inquiryId: string): Promise<number>;
 
-  // Attestation SR convenience methods (inquiry-flow wrappers)
-  createAttestationSr(data: InsertAttestationServiceRequest): Promise<AttestationServiceRequest>;
-  getAttestationSrs(filters?: { vendorId?: string; status?: string; companyId?: string }): Promise<AttestationServiceRequest[]>;
-  getAttestationSrById(id: string): Promise<AttestationServiceRequest | undefined>;
-  updateAttestationSr(id: string, data: Partial<InsertAttestationServiceRequest>): Promise<AttestationServiceRequest | undefined>;
+  // Document Custody Log
+  getCustodyLogs(srId: string): Promise<DocumentCustodyLog[]>;
+  createCustodyLog(data: InsertDocumentCustodyLog): Promise<DocumentCustodyLog>;
+  createCustodyLogWithSrUpdate(data: InsertDocumentCustodyLog, srUpdate: Partial<AttestationSr>): Promise<{ log: DocumentCustodyLog; sr: AttestationSr }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2245,30 +2246,39 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Attestation Service Requests
-  async getAttestationServiceRequests(filters?: { status?: string; companyId?: string; vendorId?: string }): Promise<AttestationServiceRequest[]> {
+  async getAttestationSrs(filters?: { assignedProId?: string; vendorId?: string; status?: string }): Promise<AttestationSr[]> {
     const conditions = [];
-    if (filters?.status) conditions.push(eq(attestationServiceRequests.status, filters.status as "Draft" | "SentToVendor" | "AcceptedByVendor" | "InProgress" | "Completed" | "Cancelled"));
-    if (filters?.companyId) conditions.push(eq(attestationServiceRequests.companyId, filters.companyId));
+    if (filters?.assignedProId) conditions.push(eq(attestationServiceRequests.assignedProId, filters.assignedProId));
     if (filters?.vendorId) conditions.push(eq(attestationServiceRequests.vendorId, filters.vendorId));
+    if (filters?.status) conditions.push(eq(attestationServiceRequests.status, filters.status as any));
     if (conditions.length > 0) {
       return db.select().from(attestationServiceRequests).where(and(...conditions)).orderBy(desc(attestationServiceRequests.createdAt));
     }
     return db.select().from(attestationServiceRequests).orderBy(desc(attestationServiceRequests.createdAt));
   }
 
-  async getAttestationServiceRequestById(id: string): Promise<AttestationServiceRequest | undefined> {
+  async getAttestationSrById(id: string): Promise<AttestationSr | undefined> {
     const [row] = await db.select().from(attestationServiceRequests).where(eq(attestationServiceRequests.id, id));
     return row || undefined;
   }
 
-  async createAttestationServiceRequest(data: InsertAttestationServiceRequest): Promise<AttestationServiceRequest> {
+  async createAttestationSr(data: InsertAttestationSr): Promise<AttestationSr> {
     const [row] = await db.insert(attestationServiceRequests).values(data).returning();
     return row;
   }
 
-  async updateAttestationServiceRequest(id: string, data: Partial<InsertAttestationServiceRequest>): Promise<AttestationServiceRequest | undefined> {
+  async updateAttestationSr(id: string, data: Partial<AttestationSr>): Promise<AttestationSr | undefined> {
     const [row] = await db.update(attestationServiceRequests).set(data).where(eq(attestationServiceRequests.id, id)).returning();
     return row || undefined;
+  }
+
+  async getNextSrNumber(): Promise<string> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(attestationServiceRequests);
+    const count = Number(result?.count || 0);
+    const padded = String(count + 1).padStart(5, "0");
+    return `ASR-${padded}`;
   }
 
   async getAttestationSrSteps(srId: string): Promise<AttestationSrStep[]> {
@@ -2302,10 +2312,28 @@ export class DatabaseStorage implements IStorage {
     return row;
   }
 
-  async getAttestationServiceRequestsByVendorId(vendorId: string): Promise<AttestationServiceRequest[]> {
-    return db.select().from(attestationServiceRequests)
-      .where(eq(attestationServiceRequests.vendorId, vendorId))
-      .orderBy(desc(attestationServiceRequests.createdAt));
+  // Document Custody Log
+  async getCustodyLogs(srId: string): Promise<DocumentCustodyLog[]> {
+    return db.select().from(documentCustodyLog)
+      .where(eq(documentCustodyLog.srId, srId))
+      .orderBy(documentCustodyLog.acknowledgedAt);
+  }
+
+  async createCustodyLog(data: InsertDocumentCustodyLog): Promise<DocumentCustodyLog> {
+    const [row] = await db.insert(documentCustodyLog).values(data).returning();
+    return row;
+  }
+
+  async createCustodyLogWithSrUpdate(
+    data: InsertDocumentCustodyLog,
+    srUpdate: Partial<AttestationSr>
+  ): Promise<{ log: DocumentCustodyLog; sr: AttestationSr }> {
+    const [logRow] = await db.insert(documentCustodyLog).values(data).returning();
+    const [srRow] = await db.update(attestationServiceRequests)
+      .set(srUpdate)
+      .where(eq(attestationServiceRequests.id, data.srId))
+      .returning();
+    return { log: logRow, sr: srRow };
   }
 
   // Attestation Inquiries

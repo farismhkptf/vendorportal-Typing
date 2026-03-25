@@ -9066,6 +9066,452 @@ export async function registerRoutes(
     }
   });
 
+  // ==============================
+  // Attestation Custody Routes
+  // ==============================
+
+  // requireAttestationVendor middleware — checks session.attestationVendorUserId
+  function requireAttestationVendor(req: any, res: any, next: any) {
+    if (!req.session?.attestationVendorUserId) {
+      return res.status(401).json({ message: "Attestation vendor authentication required" });
+    }
+    next();
+  }
+
+  const custodyLogUploadSchema = z.object({
+    handoverDirection: z.enum(["ClientToUs", "UsToVendor", "VendorToUs", "UsToClient"]),
+    counterpartyName: z.string().min(1),
+    counterpartyContact: z.string().min(1),
+    approverName: z.string().optional().nullable(),
+    approverContact: z.string().optional().nullable(),
+    approverDesignation: z.string().optional().nullable(),
+    receivingStaffName: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  });
+
+  // GET /api/attestation/sr — list attestation SRs (Admin, CRM, PRO filtered)
+  app.get("/api/attestation/sr", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const allowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+      if (!allowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      let srs = await storage.getAttestationSrs();
+
+      if (user.role === "Medical Support" || user.role === "Medical Support - Temporary") {
+        if (user.staffId) {
+          srs = srs.filter(sr => sr.assignedProId === user.staffId);
+        } else {
+          srs = [];
+        }
+      }
+
+      res.json(srs);
+    } catch (error) {
+      console.error("Get attestation SRs error:", error);
+      res.status(500).json({ message: "Failed to get attestation service requests" });
+    }
+  });
+
+  // GET /api/attestation/sr/:id — get single SR
+  app.get("/api/attestation/sr/:id", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const sr = await storage.getAttestationSrById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "SR not found" });
+
+      const allowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+      if (!allowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      if ((user.role === "Medical Support" || user.role === "Medical Support - Temporary") && user.staffId) {
+        if (sr.assignedProId !== user.staffId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      res.json(sr);
+    } catch (error) {
+      console.error("Get attestation SR error:", error);
+      res.status(500).json({ message: "Failed to get attestation service request" });
+    }
+  });
+
+  // POST /api/attestation/sr — create SR (Admin, CRM)
+  app.post("/api/attestation/sr", requireAuth, requireRole("Admin", "Client Relationship Manager"), async (req: any, res) => {
+    try {
+      const srNumber = await storage.getNextSrNumber();
+      const sr = await storage.createAttestationSr({
+        ...req.body,
+        srNumber,
+        createdBy: req.session.userId,
+      });
+      res.status(201).json(sr);
+    } catch (error) {
+      console.error("Create attestation SR error:", error);
+      res.status(500).json({ message: "Failed to create attestation service request" });
+    }
+  });
+
+  // PATCH /api/attestation/sr/:id — update SR (Admin, CRM)
+  app.patch("/api/attestation/sr/:id", requireAuth, requireRole("Admin", "Client Relationship Manager"), async (req: any, res) => {
+    try {
+      const sr = await storage.updateAttestationSr(req.params.id, req.body);
+      if (!sr) return res.status(404).json({ message: "SR not found" });
+      res.json(sr);
+    } catch (error) {
+      console.error("Update attestation SR error:", error);
+      res.status(500).json({ message: "Failed to update attestation service request" });
+    }
+  });
+
+  // GET /api/attestation/sr/:id/custody — get custody chain for an SR
+  app.get("/api/attestation/sr/:id/custody", requireAuth, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const allowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+      if (!allowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const sr = await storage.getAttestationSrById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "SR not found" });
+
+      if ((user.role === "Medical Support" || user.role === "Medical Support - Temporary") && user.staffId) {
+        if (sr.assignedProId !== user.staffId) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      const logs = await storage.getCustodyLogs(req.params.id);
+      res.json(logs);
+    } catch (error) {
+      console.error("Get custody logs error:", error);
+      res.status(500).json({ message: "Failed to get custody logs" });
+    }
+  });
+
+  // POST /api/attestation/sr/:id/custody — record a custody handover (PRO via staff auth)
+  app.post(
+    "/api/attestation/sr/:id/custody",
+    upload.fields([
+      { name: "counterpartyIdPhoto", maxCount: 1 },
+      { name: "counterpartySignature", maxCount: 1 },
+      { name: "receivingStaffSignature", maxCount: 1 },
+    ]),
+    requireAuth,
+    async (req: any, res) => {
+      try {
+        const user = await storage.getUser(req.session.userId);
+        if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+        const allowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+        if (!allowedRoles.includes(user.role)) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+
+        const sr = await storage.getAttestationSrById(req.params.id);
+        if (!sr) return res.status(404).json({ message: "SR not found" });
+
+        const validation = validateBody(custodyLogUploadSchema, req.body);
+        if ("error" in validation) return res.status(400).json({ message: validation.error });
+        const data = validation.data;
+
+        const files = req.files as Record<string, Express.Multer.File[]>;
+        const objectStorageService = new ObjectStorageService();
+
+        // Upload counterparty ID photo if provided
+        let counterpartyIdPhotoUrl: string | null = null;
+        const externalDirections = ["ClientToUs", "UsToVendor", "VendorToUs", "UsToClient"];
+        if (files?.counterpartyIdPhoto?.[0]) {
+          const file = files.counterpartyIdPhoto[0];
+          const ext = file.originalname.split(".").pop() || "jpg";
+          const objectPath = `attestation/custody/${sr.id}/${Date.now()}_cp_id.${ext}`;
+          counterpartyIdPhotoUrl = await objectStorageService.uploadObjectEntityFile(objectPath, file.buffer, file.mimetype);
+        } else if (externalDirections.includes(data.handoverDirection)) {
+          return res.status(400).json({ message: "ID photo is required for external counterparty handovers" });
+        }
+
+        // Upload counterparty signature (required)
+        if (!files?.counterpartySignature?.[0]) {
+          return res.status(400).json({ message: "Counterparty signature is required" });
+        }
+        const cpSigFile = files.counterpartySignature[0];
+        const cpSigExt = cpSigFile.originalname.split(".").pop() || "png";
+        const cpSigPath = `attestation/custody/${sr.id}/${Date.now()}_cp_sig.${cpSigExt}`;
+        const counterpartySignatureUrl = await objectStorageService.uploadObjectEntityFile(cpSigPath, cpSigFile.buffer, cpSigFile.mimetype);
+
+        // For VendorToUs: upload receiving staff signature (required)
+        let receivingStaffSignatureUrl: string | null = null;
+        if (data.handoverDirection === "VendorToUs") {
+          if (!data.receivingStaffName) {
+            return res.status(400).json({ message: "Receiving staff name is required for VendorToUs handover" });
+          }
+          if (!files?.receivingStaffSignature?.[0]) {
+            return res.status(400).json({ message: "Receiving staff signature is required for VendorToUs handover" });
+          }
+          const staffSigFile = files.receivingStaffSignature[0];
+          const staffSigExt = staffSigFile.originalname.split(".").pop() || "png";
+          const staffSigPath = `attestation/custody/${sr.id}/${Date.now()}_staff_sig.${staffSigExt}`;
+          receivingStaffSignatureUrl = await objectStorageService.uploadObjectEntityFile(staffSigPath, staffSigFile.buffer, staffSigFile.mimetype);
+        }
+
+        // Approver fields: if approverName set, contact and designation required
+        if (data.approverName && !data.approverContact) {
+          return res.status(400).json({ message: "Approver contact is required when approver is specified" });
+        }
+
+        // Determine new custody status and custodian from direction
+        const custodyMap: Record<string, { physicalCustodyStatus: any; currentCustodian: string | null }> = {
+          ClientToUs: { physicalCustodyStatus: "WithUs", currentCustodian: "Keystone Team" },
+          UsToVendor: { physicalCustodyStatus: "WithVendor", currentCustodian: data.counterpartyName },
+          VendorToUs: { physicalCustodyStatus: "WithUs", currentCustodian: data.receivingStaffName || "Keystone Team" },
+          UsToClient: { physicalCustodyStatus: "ReturnedToClient", currentCustodian: data.counterpartyName },
+        };
+        const custodyUpdate = custodyMap[data.handoverDirection];
+
+        const logData: any = {
+          srId: req.params.id,
+          handoverDirection: data.handoverDirection,
+          counterpartyName: data.counterpartyName,
+          counterpartyContact: data.counterpartyContact,
+          counterpartyIdPhotoUrl,
+          counterpartySignatureUrl,
+          approverName: data.approverName || null,
+          approverContact: data.approverContact || null,
+          approverDesignation: data.approverDesignation || null,
+          receivingStaffName: data.receivingStaffName || null,
+          receivingStaffSignatureUrl,
+          recordedBy: user.id,
+          notes: data.notes || null,
+        };
+
+        const srUpdate: any = {
+          physicalCustodyStatus: custodyUpdate.physicalCustodyStatus,
+          currentCustodian: custodyUpdate.currentCustodian,
+          currentResponsibleStaffId: user.staffId || null,
+        };
+
+        const { log, sr: updatedSr } = await storage.createCustodyLogWithSrUpdate(logData, srUpdate);
+
+        await storage.createAuditLog({
+          action: "custody_handover_recorded",
+          entityType: "attestation_sr",
+          entityId: req.params.id,
+          userId: user.id,
+          details: { direction: data.handoverDirection, counterpartyName: data.counterpartyName, srNumber: sr.srNumber },
+        });
+
+        res.status(201).json({ log, sr: updatedSr });
+      } catch (error) {
+        console.error("Create custody log error:", error);
+        res.status(500).json({ message: "Failed to record custody handover" });
+      }
+    }
+  );
+
+  // Attestation vendor portal — GET /api/attestation-vendor/auth/me
+  app.get("/api/attestation-vendor/auth/me", (req: any, res) => {
+    if (!req.session?.attestationVendorUserId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    const userId = req.session.attestationVendorUserId;
+    storage.getUser(userId).then(user => {
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      const vendor = { id: user.id, name: user.name, email: user.email, role: user.role, vendorId: user.vendorId };
+      res.json(vendor);
+    }).catch(() => res.status(500).json({ message: "Error" }));
+  });
+
+  // Attestation vendor portal — POST /api/attestation-vendor/auth/login
+  app.post("/api/attestation-vendor/auth/login", async (req: any, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) return res.status(400).json({ message: "Username and password required" });
+
+      const user = await storage.getUserByEmail(username);
+      if (!user || user.role !== "Vendor") {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      const valid = await bcrypt.compare(password, user.passwordHash);
+      if (!valid) return res.status(401).json({ message: "Invalid credentials" });
+
+      req.session.attestationVendorUserId = user.id;
+      res.json({ id: user.id, name: user.name, email: user.email, role: user.role, vendorId: user.vendorId });
+    } catch (error) {
+      console.error("Attestation vendor login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  // Attestation vendor portal — POST /api/attestation-vendor/auth/logout
+  app.post("/api/attestation-vendor/auth/logout", (req: any, res) => {
+    delete req.session.attestationVendorUserId;
+    res.json({ message: "Logged out" });
+  });
+
+  // Attestation vendor portal — GET /api/attestation-vendor/jobs (SRs assigned to vendor)
+  app.get("/api/attestation-vendor/jobs", requireAttestationVendor, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.attestationVendorUserId);
+      if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
+      const srs = await storage.getAttestationSrs({ vendorId: user.vendorId });
+      res.json(srs);
+    } catch (error) {
+      console.error("Attestation vendor jobs error:", error);
+      res.status(500).json({ message: "Failed to get jobs" });
+    }
+  });
+
+  // Attestation vendor portal — GET /api/attestation-vendor/jobs/:id/custody
+  app.get("/api/attestation-vendor/jobs/:id/custody", requireAttestationVendor, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.attestationVendorUserId);
+      if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
+
+      const sr = await storage.getAttestationSrById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "SR not found" });
+      if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
+
+      const logs = await storage.getCustodyLogs(req.params.id);
+      res.json(logs);
+    } catch (error) {
+      console.error("Attestation vendor custody logs error:", error);
+      res.status(500).json({ message: "Failed to get custody logs" });
+    }
+  });
+
+  // Attestation vendor portal — POST /api/attestation-vendor/jobs/:id/accept
+  app.post("/api/attestation-vendor/jobs/:id/accept", requireAttestationVendor, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.attestationVendorUserId);
+      if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
+
+      const sr = await storage.getAttestationSrById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "SR not found" });
+      if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
+      if (sr.status !== "SentToVendor") return res.status(400).json({ message: "SR is not in SentToVendor status" });
+
+      const updated = await storage.updateAttestationSr(req.params.id, { status: "AcceptedByVendor" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Accept attestation SR error:", error);
+      res.status(500).json({ message: "Failed to accept SR" });
+    }
+  });
+
+  // Attestation vendor portal — POST /api/attestation-vendor/jobs/:id/custody (vendor collecting docs)
+  app.post(
+    "/api/attestation-vendor/jobs/:id/custody",
+    upload.fields([
+      { name: "counterpartyIdPhoto", maxCount: 1 },
+      { name: "counterpartySignature", maxCount: 1 },
+      { name: "receivingStaffSignature", maxCount: 1 },
+    ]),
+    requireAttestationVendor,
+    async (req: any, res) => {
+      try {
+        const user = await storage.getUser(req.session.attestationVendorUserId);
+        if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
+
+        const sr = await storage.getAttestationSrById(req.params.id);
+        if (!sr) return res.status(404).json({ message: "SR not found" });
+        if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
+
+        const validation = validateBody(custodyLogUploadSchema, req.body);
+        if ("error" in validation) return res.status(400).json({ message: validation.error });
+        const data = validation.data;
+
+        const files = req.files as Record<string, Express.Multer.File[]>;
+        const objectStorageService = new ObjectStorageService();
+
+        let counterpartyIdPhotoUrl: string | null = null;
+        if (files?.counterpartyIdPhoto?.[0]) {
+          const file = files.counterpartyIdPhoto[0];
+          const ext = file.originalname.split(".").pop() || "jpg";
+          const objectPath = `attestation/custody/${sr.id}/${Date.now()}_cp_id.${ext}`;
+          counterpartyIdPhotoUrl = await objectStorageService.uploadObjectEntityFile(objectPath, file.buffer, file.mimetype);
+        }
+
+        if (!files?.counterpartySignature?.[0]) {
+          return res.status(400).json({ message: "Counterparty signature is required" });
+        }
+        const cpSigFile = files.counterpartySignature[0];
+        const cpSigPath = `attestation/custody/${sr.id}/${Date.now()}_cp_sig.png`;
+        const counterpartySignatureUrl = await objectStorageService.uploadObjectEntityFile(cpSigPath, cpSigFile.buffer, cpSigFile.mimetype);
+
+        const custodyMap: Record<string, { physicalCustodyStatus: any; currentCustodian: string | null }> = {
+          ClientToUs: { physicalCustodyStatus: "WithUs", currentCustodian: "Keystone Team" },
+          UsToVendor: { physicalCustodyStatus: "WithVendor", currentCustodian: data.counterpartyName },
+          VendorToUs: { physicalCustodyStatus: "WithUs", currentCustodian: data.receivingStaffName || "Keystone Team" },
+          UsToClient: { physicalCustodyStatus: "ReturnedToClient", currentCustodian: data.counterpartyName },
+        };
+        const custodyUpdate = custodyMap[data.handoverDirection];
+
+        const logData: any = {
+          srId: req.params.id,
+          handoverDirection: data.handoverDirection,
+          counterpartyName: data.counterpartyName,
+          counterpartyContact: data.counterpartyContact,
+          counterpartyIdPhotoUrl,
+          counterpartySignatureUrl,
+          approverName: data.approverName || null,
+          approverContact: data.approverContact || null,
+          approverDesignation: data.approverDesignation || null,
+          receivingStaffName: data.receivingStaffName || null,
+          receivingStaffSignatureUrl: null,
+          recordedBy: user.id,
+          notes: data.notes || null,
+        };
+
+        const srUpdateData: any = {
+          physicalCustodyStatus: custodyUpdate.physicalCustodyStatus,
+          currentCustodian: custodyUpdate.currentCustodian,
+        };
+
+        if (data.handoverDirection === "UsToVendor") {
+          srUpdateData.status = "InProgress";
+        }
+
+        const { log, sr: updatedSr } = await storage.createCustodyLogWithSrUpdate(logData, srUpdateData);
+        res.status(201).json({ log, sr: updatedSr });
+      } catch (error) {
+        console.error("Attestation vendor custody error:", error);
+        res.status(500).json({ message: "Failed to record custody handover" });
+      }
+    }
+  );
+
+  // Attestation vendor portal — POST /api/attestation-vendor/jobs/:id/complete
+  app.post("/api/attestation-vendor/jobs/:id/complete", requireAttestationVendor, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.session.attestationVendorUserId);
+      if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
+
+      const sr = await storage.getAttestationSrById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "SR not found" });
+      if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
+      if (sr.status !== "InProgress" && sr.status !== "AcceptedByVendor") {
+        return res.status(400).json({ message: "SR is not in a valid status to complete" });
+      }
+
+      const updated = await storage.updateAttestationSr(req.params.id, { status: "Completed" });
+      res.json(updated);
+    } catch (error) {
+      console.error("Complete attestation SR error:", error);
+      res.status(500).json({ message: "Failed to complete SR" });
+    }
+  });
+
   // Admin denies a deletion request
   app.patch("/api/deletion-requests/:id/deny", requireAuth, requireRole("Admin"), async (req, res) => {
     try {

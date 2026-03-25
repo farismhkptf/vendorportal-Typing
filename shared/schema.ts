@@ -798,39 +798,51 @@ export const attestationServiceStepDefinitions = pgTable("attestation_service_st
   index("idx_attest_step_defs_service_id").on(table.serviceId),
 ]);
 
+// Attestation Service Request status / custody enums
+export const attestationSrStatusEnum = pgEnum("attestation_sr_status", [
+  "Draft", "SentToVendor", "AcceptedByVendor", "InProgress", "Completed", "Cancelled"
+]);
+
+export const handoverDirectionEnum = pgEnum("handover_direction", [
+  "ClientToUs", "UsToVendor", "VendorToUs", "UsToClient"
+]);
+
 // Attestation Service Requests table
 // Supports both catalog-based and inquiry-flow based SRs.
 // attestationServiceId is nullable for inquiry-flow SRs (where service name is stored in serviceName).
 export const attestationServiceRequests = pgTable("attestation_service_requests", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  externalWoNumber: text("external_wo_number").notNull(),
+  srNumber: varchar("sr_number", { length: 20 }).unique(),
+  externalWoNumber: text("external_wo_number"),
   inquiryId: varchar("inquiry_id"),
-  companyId: varchar("company_id").notNull().references(() => companies.id),
+  companyId: varchar("company_id").notNull(),
   applicantName: text("applicant_name"),
-  vendorId: varchar("vendor_id").notNull().references(() => vendors.id),
+  documentName: text("document_name"),
+  vendorId: varchar("vendor_id"),
+  assignedProId: varchar("assigned_pro_id"),
   attestationServiceId: varchar("attestation_service_id").references(() => attestationServices.id),
   serviceVariantId: varchar("service_variant_id").references(() => attestationServiceVariants.id),
-  documentType: text("document_type").notNull(),
-  documentNameDescription: text("document_name_description").notNull(),
-  documentClass: documentClassEnum("document_class").notNull(),
+  documentType: text("document_type"),
+  documentNameDescription: text("document_name_description"),
+  documentClass: documentClassEnum("document_class"),
   homeCountry: text("home_country"),
   originalDocumentInvolved: boolean("original_document_involved").notNull().default(false),
   status: srStatusEnum("status").notNull().default("Draft"),
   physicalCustodyStatus: physicalCustodyStatusEnum("physical_custody_status").notNull().default("WithClient"),
   currentCustodian: text("current_custodian"),
-  currentResponsibleStaffId: varchar("current_responsible_staff_id").references(() => users.id),
+  currentResponsibleStaffId: varchar("current_responsible_staff_id"),
   serviceFeeAed: numeric("service_fee_aed", { precision: 10, scale: 2 }),
   feeSource: text("fee_source"),
   serviceName: text("service_name"),
   serviceNotes: text("service_notes"),
   internalNotes: text("internal_notes"),
-  createdBy: varchar("created_by").references(() => users.id),
+  notes: text("notes"),
+  createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_attest_sr_company_id").on(table.companyId),
-  index("idx_attest_sr_vendor_id").on(table.vendorId),
-  index("idx_attest_sr_status").on(table.status),
+  index("idx_attestation_sr_company_id").on(table.companyId),
+  index("idx_attestation_sr_vendor_id").on(table.vendorId),
+  index("idx_attestation_sr_assigned_pro_id").on(table.assignedProId),
 ]);
 
 // Attestation SR Steps table
@@ -1026,7 +1038,27 @@ export type BiometricsEvent = typeof biometricsAppointmentEvents.$inferSelect;
 export const FINAL_BIOMETRICS_STATUSES = ["COMPLETED", "NO_SHOW", "CLOSED_ADMIN_OVERRIDE"] as const;
 export type BiometricsApptStatus = "SCHEDULED" | "AWAITING_MEETING" | "IN_PROCESS" | "COMPLETED" | "NO_SHOW" | "RESCHEDULE_REQUIRED" | "CLOSED_ADMIN_OVERRIDE";
 
-// Deletion Requests (CRM submits, Admin approves)
+// Document Custody Log table
+export const documentCustodyLog = pgTable("document_custody_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  srId: varchar("sr_id").notNull(),
+  handoverDirection: handoverDirectionEnum("handover_direction").notNull(),
+  counterpartyName: text("counterparty_name").notNull(),
+  counterpartyContact: text("counterparty_contact").notNull(),
+  counterpartyIdPhotoUrl: text("counterparty_id_photo_url"),
+  counterpartySignatureUrl: text("counterparty_signature_url").notNull(),
+  approverName: text("approver_name"),
+  approverContact: text("approver_contact"),
+  approverDesignation: text("approver_designation"),
+  receivingStaffName: text("receiving_staff_name"),
+  receivingStaffSignatureUrl: text("receiving_staff_signature_url"),
+  recordedBy: varchar("recorded_by").notNull(),
+  notes: text("notes"),
+  acknowledgedAt: timestamp("acknowledged_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_document_custody_log_sr_id").on(table.srId),
+]);
+
 export const deletionRequests = pgTable("deletion_requests", {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   entityType: text("entity_type").notNull(), // e.g. "work_order", "document", "note", "company_email"
@@ -1059,9 +1091,9 @@ export const insertAttestationServiceStepDefinitionSchema = createInsertSchema(a
 export type InsertAttestationServiceStepDefinition = z.infer<typeof insertAttestationServiceStepDefinitionSchema>;
 export type AttestationServiceStepDefinition = typeof attestationServiceStepDefinitions.$inferSelect;
 
-export const insertAttestationServiceRequestSchema = createInsertSchema(attestationServiceRequests).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertAttestationServiceRequest = z.infer<typeof insertAttestationServiceRequestSchema>;
-export type AttestationServiceRequest = typeof attestationServiceRequests.$inferSelect;
+export const insertAttestationSrSchema = createInsertSchema(attestationServiceRequests).omit({ id: true, createdAt: true });
+export type InsertAttestationSr = z.infer<typeof insertAttestationSrSchema>;
+export type AttestationSr = typeof attestationServiceRequests.$inferSelect;
 
 export const insertAttestationSrStepSchema = createInsertSchema(attestationSrSteps).omit({ id: true });
 export type InsertAttestationSrStep = z.infer<typeof insertAttestationSrStepSchema>;
@@ -1128,3 +1160,7 @@ export type AttestationInquiry = typeof attestationInquiries.$inferSelect;
 export const insertAttestationInquiryQuoteSchema = createInsertSchema(attestationInquiryQuotes).omit({ id: true, submittedAt: true });
 export type InsertAttestationInquiryQuote = z.infer<typeof insertAttestationInquiryQuoteSchema>;
 export type AttestationInquiryQuote = typeof attestationInquiryQuotes.$inferSelect;
+
+export const insertDocumentCustodyLogSchema = createInsertSchema(documentCustodyLog).omit({ id: true, acknowledgedAt: true });
+export type InsertDocumentCustodyLog = z.infer<typeof insertDocumentCustodyLogSchema>;
+export type DocumentCustodyLog = typeof documentCustodyLog.$inferSelect;
