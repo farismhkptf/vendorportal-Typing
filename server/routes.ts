@@ -643,9 +643,6 @@ export async function registerRoutes(
     );
   }, 5000);
 
-  const sentApptReminders = new Set<string>();
-  let lastApptReminderPruneDate = "";
-
   async function checkAppointmentsTomorrow() {
     try {
       const tomorrow = new Date();
@@ -653,12 +650,6 @@ export async function registerRoutes(
       tomorrow.setHours(0, 0, 0, 0);
       const dayAfter = new Date(tomorrow);
       dayAfter.setDate(dayAfter.getDate() + 1);
-      const dateKey = tomorrow.toISOString().slice(0, 10);
-
-      if (lastApptReminderPruneDate !== dateKey) {
-        sentApptReminders.clear();
-        lastApptReminderPruneDate = dateKey;
-      }
 
       const allAppointments = await storage.getAllAppointments();
       const tomorrowAppts = allAppointments.filter(a => {
@@ -668,9 +659,8 @@ export async function registerRoutes(
 
       let sent = 0;
       for (const appt of tomorrowAppts) {
-        const dedupeKey = `${dateKey}:${appt.id}`;
-        if (sentApptReminders.has(dedupeKey)) continue;
-        sentApptReminders.add(dedupeKey);
+        const alreadySent = await storage.hasRecentNotification("appointment_tomorrow", appt.id, 20);
+        if (alreadySent) continue;
 
         const wo = await storage.getWorkOrderById(appt.woId);
         notifyStaffByRoles(["Admin", "PRO", "PRO - Temporary"], {

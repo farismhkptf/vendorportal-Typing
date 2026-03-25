@@ -244,6 +244,7 @@ export interface IStorage {
   getUnreadStaffNotificationCount(userId: string): Promise<number>;
   markStaffNotificationRead(id: string): Promise<void>;
   markAllStaffNotificationsRead(userId: string): Promise<void>;
+  hasRecentNotification(type: string, relatedEntityId: string, withinHours: number): Promise<boolean>;
 
   // Login audit
   createLoginAuditEntry(data: InsertLoginAuditLog): Promise<LoginAuditLog>;
@@ -1806,6 +1807,18 @@ export class DatabaseStorage implements IStorage {
     await db.update(staffNotifications)
       .set({ isRead: true })
       .where(eq(staffNotifications.userId, userId));
+  }
+
+  async hasRecentNotification(type: string, relatedEntityId: string, withinHours: number): Promise<boolean> {
+    const cutoff = new Date(Date.now() - withinHours * 3600000);
+    const result = await db.select({ count: sql<number>`count(*)::int` })
+      .from(staffNotifications)
+      .where(and(
+        eq(staffNotifications.type, type),
+        eq(staffNotifications.relatedEntityId, relatedEntityId),
+        sql`${staffNotifications.createdAt} > ${cutoff}`
+      ));
+    return (result[0]?.count || 0) > 0;
   }
 
   async createLoginAuditEntry(data: InsertLoginAuditLog): Promise<LoginAuditLog> {
