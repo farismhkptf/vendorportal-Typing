@@ -26,6 +26,7 @@ import { buildAppointmentEmail } from "./email-templates/appointment-confirmatio
 import { sendEmail, isEmailConfigured } from "./email-service";
 import UAParser from "ua-parser-js";
 import { generateAppointmentPass } from "./apple-pass";
+import { RESTORE_SNAPSHOT_SQL } from "./restore-snapshot-data";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -8724,6 +8725,72 @@ export async function registerRoutes(
   setTimeout(() => {
     runBiometricsTimerJobs().catch(err => console.error("[biometrics-timer] Initial error:", err));
   }, 9000);
+
+  // ─── Admin: Restore Production Database ────────────────────────────────────
+  app.post("/api/admin/restore-db", async (req, res) => {
+    // Allow either admin session auth OR a one-time restore key
+    const RESTORE_KEY = process.env.RESTORE_KEY || "proco-restore-2024";
+    const providedKey = req.headers["x-restore-key"] || req.body?.restoreKey;
+    const hasValidKey = providedKey === RESTORE_KEY;
+    
+    if (!hasValidKey) {
+      // Fall back to session admin auth
+      if (!req.session?.userId) {
+        return res.status(403).json({ message: "Unauthorized: provide valid restore key or admin session" });
+      }
+      const user = await storage.getUser(req.session.userId);
+      if (!user || user.role !== "Admin") {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+    }
+    
+    try {
+      const { pool } = await import("./db");
+      
+      // Split on semicolons and execute each statement
+      const statements = RESTORE_SNAPSHOT_SQL
+        .split(";")
+        .map((s: string) => s.trim())
+        .filter((s: string) => s.length > 0 && !s.startsWith("--"));
+      
+      let executed = 0;
+      let errors: string[] = [];
+      
+      for (const stmt of statements) {
+        try {
+          await pool.query(stmt);
+          executed++;
+        } catch (err: any) {
+          errors.push(`${err.message} | SQL: ${stmt.substring(0, 100)}`);
+        }
+      }
+      
+      // Verify counts
+      const counts = await pool.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM companies) as companies,
+          (SELECT COUNT(*) FROM service_types) as service_types,
+          (SELECT COUNT(*) FROM centers) as centers,
+          (SELECT COUNT(*) FROM staff) as staff,
+          (SELECT COUNT(*) FROM vendors) as vendors,
+          (SELECT COUNT(*) FROM job_types) as job_types,
+          (SELECT COUNT(*) FROM users) as users,
+          (SELECT COUNT(*) FROM work_orders) as work_orders,
+          (SELECT COUNT(*) FROM typing_jobs) as typing_jobs,
+          (SELECT COUNT(*) FROM appointments) as appointments
+      `);
+      
+      res.json({
+        success: true,
+        executed,
+        errors: errors.length > 0 ? errors : undefined,
+        counts: counts.rows[0],
+      });
+    } catch (err: any) {
+      console.error("[restore-db] Error:", err);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  });
 
   // ─── Apple Wallet Pass ──────────────────────────────────────────────────────
   app.get("/api/pass", async (req, res) => {
