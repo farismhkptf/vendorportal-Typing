@@ -22,7 +22,9 @@ import {
   Inbox,
   Trash2,
   BanIcon,
+  Send,
 } from "lucide-react";
+import { VendorGroupedJobsView, VendorGroupedWorkOrdersView, type VendorJobItem, type VendorWorkOrderItem } from "@/components/vendor-grouped-jobs-view";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +56,12 @@ interface DeletionRequest {
 interface TypingJobSummary {
   id: string;
   status: string;
+  vendorId?: string | null;
+  sentAt?: string | null;
+  returnedAt?: string | null;
+  urgent?: boolean;
+  jobCode?: string;
+  jobType?: { category?: string } | null;
   [key: string]: unknown;
 }
 
@@ -93,6 +101,7 @@ interface Vendor {
   id: string;
   name: string;
   status: string;
+  logoUrl?: string | null;
 }
 
 interface DashStats {
@@ -216,6 +225,54 @@ export default function CrmDashboard() {
     }).filter(v => v.pending > 0).sort((a, b) => b.pending - a.pending).slice(0, 5);
   }, [workOrders, vendors]);
 
+  const vendorJobItems = useMemo((): VendorJobItem[] => {
+    if (!workOrders || !vendors) return [];
+    const vendorMap = new Map(vendors.map(v => [v.id, v]));
+    const now = Date.now();
+    const jobs: VendorJobItem[] = [];
+
+    for (const wo of activeWorkOrders) {
+      for (const job of wo.typingJobs) {
+        const isActive = job.status === "SubmittedToVendor" || job.status === "InProcess";
+        const isReturned = job.status === "Returned" || job.status === "Rejected";
+        if (!isActive && !isReturned) continue;
+
+        const vendor = job.vendorId ? vendorMap.get(job.vendorId) : undefined;
+        const category = job.jobType?.category || (
+          (job.jobCode || "").startsWith("M") ? "Medical" : "EID"
+        );
+        const statusKey: VendorJobItem["status"] = isReturned
+          ? "returned"
+          : job.status === "InProcess"
+          ? "inProgress"
+          : "unaccepted";
+
+        jobs.push({
+          id: job.id,
+          woId: wo.id,
+          woNumber: wo.woNumber,
+          applicantName: wo.applicantName,
+          type: (category === "Medical" ? "Medical" : "EID") as "Medical" | "EID",
+          urgent: job.urgent ?? false,
+          vendorId: vendor?.id ?? null,
+          vendorName: vendor?.name ?? "Unassigned",
+          vendorLogoUrl: vendor?.logoUrl ?? null,
+          status: statusKey,
+          jobStatus: isReturned ? job.status : undefined,
+          hoursWaiting: statusKey === "unaccepted" && job.sentAt
+            ? Math.round((now - new Date(job.sentAt).getTime()) / 3600000)
+            : undefined,
+          hoursElapsed: statusKey === "inProgress" && job.sentAt
+            ? Math.round((now - new Date(job.sentAt).getTime()) / 3600000)
+            : undefined,
+          returnedAt: job.returnedAt ?? null,
+        });
+      }
+    }
+
+    return jobs;
+  }, [activeWorkOrders, vendors]);
+
   const prioritizedWorkOrders = useMemo(() => {
     const priority = (wo: WorkOrderEnriched) => {
       const pipeline = getPipelineInfo(wo.typingJobs, wo.appointments);
@@ -233,6 +290,72 @@ export default function CrmDashboard() {
     (companies || []).forEach(c => { map[c.id] = c.name; });
     return map;
   }, [companies]);
+
+  const vendorWorkOrders = useMemo((): VendorWorkOrderItem[] => {
+    if (!activeWorkOrders || !vendors) return [];
+    const vendorMap = new Map(vendors.map(v => [v.id, v]));
+
+    const items: VendorWorkOrderItem[] = [];
+    const seen = new Set<string>();
+
+    for (const wo of activeWorkOrders) {
+      const hasIssue = wo.typingJobs.some(j => j.status === "Returned" || j.status === "Rejected") ||
+        getPipelineInfo(wo.typingJobs, wo.appointments).overall === "needs_attention";
+
+      const activeVendorIds = Array.from(
+        new Set(
+          wo.typingJobs
+            .filter(j => j.status === "SubmittedToVendor" || j.status === "InProcess" ||
+                         j.status === "Returned" || j.status === "Rejected")
+            .map(j => j.vendorId)
+            .filter((id): id is string => !!id)
+        )
+      );
+
+      const woStatus = wo.status satisfies VendorWorkOrderItem["status"];
+
+      if (activeVendorIds.length === 0) {
+        const key = `${wo.id}::__unassigned__`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          items.push({
+            id: wo.id,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            status: woStatus,
+            companyName: companyMap[wo.companyId],
+            hasIssue,
+            vendorId: null,
+            vendorName: "Unassigned",
+            vendorLogoUrl: null,
+          });
+        }
+      } else {
+        for (const vendorId of activeVendorIds) {
+          const key = `${wo.id}::${vendorId}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          const vendor = vendorMap.get(vendorId);
+          items.push({
+            id: wo.id,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            status: woStatus,
+            companyName: companyMap[wo.companyId],
+            hasIssue,
+            vendorId: vendor?.id ?? null,
+            vendorName: vendor?.name ?? "Unassigned",
+            vendorLogoUrl: vendor?.logoUrl ?? null,
+          });
+        }
+      }
+    }
+
+    return items.sort((a, b) => {
+      if (a.hasIssue !== b.hasIssue) return a.hasIssue ? -1 : 1;
+      return 0;
+    });
+  }, [activeWorkOrders, vendors, companyMap]);
 
   const pipelineBreakdown = useMemo(() => {
     if (!workOrders) return { atVendor: 0, scheduled: 0, readyToSchedule: 0, needsAttention: 0, complete: 0 };
@@ -654,10 +777,38 @@ export default function CrmDashboard() {
           )}
         </div>
 
+        {/* Typing Jobs Grouped by Vendor */}
+        <div className="space-y-3 opacity-0 animate-fade-in animate-delay-4" data-testid="section-vendor-grouped-jobs">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Send className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-base font-semibold text-foreground tracking-tight">Typing Jobs by Vendor</h2>
+              {!workOrdersLoading && vendorJobItems.length > 0 && (
+                <span className="text-xs text-muted-foreground tabular-nums">({vendorJobItems.length})</span>
+              )}
+            </div>
+            <Link href="/typing-jobs">
+              <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" data-testid="link-vendor-jobs-all">
+                View All
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
+          {workOrdersLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 rounded-xl" />
+              <Skeleton className="h-12 rounded-xl" />
+              <Skeleton className="h-12 rounded-xl" />
+            </div>
+          ) : (
+            <VendorGroupedJobsView jobs={vendorJobItems} />
+          )}
+        </div>
+
         {/* Work Orders Pipeline + Companies Needing Attention */}
         <div className="grid lg:grid-cols-2 gap-4">
 
-          {/* Active Work Orders */}
+          {/* Active Work Orders — grouped by vendor */}
           <div className="space-y-3 opacity-0 animate-fade-in animate-delay-4">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -681,68 +832,8 @@ export default function CrmDashboard() {
                   <Skeleton className="h-16 rounded-2xl" />
                   <Skeleton className="h-16 rounded-2xl" />
                 </>
-              ) : prioritizedWorkOrders.length > 0 ? (
-                prioritizedWorkOrders.map((wo, i) => {
-                  const hasIssue = wo.typingJobs.some(j => j.status === "Returned" || j.status === "Rejected") ||
-                    getPipelineInfo(wo.typingJobs, wo.appointments).overall === "needs_attention";
-                  return (
-                    <Link key={wo.id} href={`/work-orders/${wo.id}`}>
-                      <div
-                        className="opacity-0 animate-fade-in"
-                        style={{ animationDelay: `${i * 50 + 250}ms` }}
-                      >
-                        <DataTableRow>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="space-y-1.5 min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="font-medium text-foreground text-sm" data-testid={`text-pipeline-wo-${wo.id}`}>
-                                  {wo.woNumber}
-                                </span>
-                                <StatusBadge status={wo.status} />
-                                {hasIssue && (
-                                  <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded-full">
-                                    Action needed
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <span className="truncate" data-testid={`text-pipeline-applicant-${wo.id}`}>
-                                  {toProperCase(wo.applicantName)}
-                                </span>
-                                {companyMap[wo.companyId] && (
-                                  <>
-                                    <span className="text-muted-foreground/40">·</span>
-                                    <span className="truncate max-w-[110px]">
-                                      {toProperCase(companyMap[wo.companyId])}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                          </div>
-                        </DataTableRow>
-                      </div>
-                    </Link>
-                  );
-                })
               ) : (
-                <EmptyState
-                  icon={<FileText className="h-6 w-6" />}
-                  title="No active work orders"
-                  description="No work orders in the pipeline right now."
-                  compact
-                />
-              )}
-              {activeWorkOrders.length > 8 && (
-                <div className="text-center pt-1">
-                  <Link href="/work-orders">
-                    <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground" data-testid="link-more-work-orders">
-                      View all {activeWorkOrders.length} work orders
-                      <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
-                  </Link>
-                </div>
+                <VendorGroupedWorkOrdersView workOrders={vendorWorkOrders} />
               )}
             </div>
           </div>

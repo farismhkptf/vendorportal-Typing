@@ -26,6 +26,7 @@ import {
   XCircle,
   Hourglass,
 } from "lucide-react";
+import { VendorGroupedJobsView, type VendorJobItem } from "@/components/vendor-grouped-jobs-view";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
@@ -84,7 +85,9 @@ interface TypingJobItem {
   woId: string;
   woNumber: string;
   applicantName: string;
+  vendorId: string | null;
   vendorName: string;
+  vendorLogoUrl?: string | null;
   type: "Medical" | "EID";
   sentAt: string | null;
   hoursWaiting?: number;
@@ -108,7 +111,9 @@ interface ReturnedTypingJobItem {
   woId: string;
   woNumber: string;
   applicantName: string;
+  vendorId: string | null;
   vendorName: string;
+  vendorLogoUrl?: string | null;
   type: "Medical" | "EID";
   returnedAt: string | null;
   status: string;
@@ -468,11 +473,26 @@ function TypingJobsLane({ data, isLoading, photoMap }: { data?: TypingJobsSummar
   const [, navigate] = useLocation();
   const totalActive = (data?.counts.unaccepted || 0) + (data?.counts.inProgress || 0) + (data?.counts.returned || 0);
 
+  const vendorJobs: VendorJobItem[] = useMemo(() => {
+    if (!data) return [];
+    const jobs: VendorJobItem[] = [];
+    for (const job of data.returned || []) {
+      jobs.push({ ...job, status: "returned", jobStatus: job.status });
+    }
+    for (const job of data.inProgress) {
+      jobs.push({ ...job, status: "inProgress" });
+    }
+    for (const job of data.unaccepted) {
+      jobs.push({ ...job, status: "unaccepted" });
+    }
+    return jobs;
+  }, [data]);
+
   return (
     <div className="premium-card p-4 opacity-0 animate-fade-in animate-delay-2" data-testid="lane-typing-jobs">
       <LaneHeader
         icon={<Send className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
-        title="Typing Jobs"
+        title="Typing Jobs by Vendor"
         count={totalActive}
         color="bg-amber-100 dark:bg-amber-900/40"
         action={
@@ -509,126 +529,50 @@ function TypingJobsLane({ data, isLoading, photoMap }: { data?: TypingJobsSummar
         </div>
       ) : (
         <div className="mt-3 space-y-3">
-          <SubSection
-            title="Waiting for Vendor"
-            count={data.counts.unaccepted}
-            icon={<Timer className="h-3 w-3 text-amber-600 dark:text-amber-400" />}
-            color="bg-amber-100 dark:bg-amber-900/40"
-            testId="section-unaccepted"
-          >
-            {[...data.unaccepted]
-              .sort((a, b) => (b.hoursWaiting || 0) - (a.hoursWaiting || 0))
-              .map((job) => (
-              <JobRow
-                key={job.id}
-                item={job}
-                photoUrl={photoMap?.[job.woId]}
-                onClick={() => navigate(`/typing-jobs/${job.id}`)}
-                rightContent={
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">{job.vendorName}</span>
-                    <span className={cn(
-                      "text-[11px] font-medium tabular-nums",
-                      (job.hoursWaiting || 0) > 24 ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"
-                    )}>
-                      {job.hoursWaiting}h waiting
-                    </span>
-                  </div>
-                }
-              />
-            ))}
-          </SubSection>
+          <VendorGroupedJobsView jobs={vendorJobs} photoMap={photoMap} />
 
-          <SubSection
-            title="In Progress"
-            count={data.counts.inProgress}
-            icon={<Loader2 className="h-3 w-3 text-blue-600 dark:text-blue-400" />}
-            color="bg-blue-100 dark:bg-blue-900/40"
-            testId="section-in-progress"
-          >
-            {data.inProgress.map((job) => (
-              <JobRow
-                key={job.id}
-                item={job}
-                photoUrl={photoMap?.[job.woId]}
-                onClick={() => navigate(`/typing-jobs/${job.id}`)}
-                rightContent={
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">{job.vendorName}</span>
-                    <span className="text-[11px] text-blue-600 dark:text-blue-400 font-medium tabular-nums">
-                      {job.hoursElapsed}h elapsed
-                    </span>
-                  </div>
-                }
-              />
-            ))}
-          </SubSection>
-
-          <SubSection
-            title="Returned"
-            count={data.counts.returned || 0}
-            icon={<RotateCcw className="h-3 w-3 text-red-600 dark:text-red-400" />}
-            color="bg-red-100 dark:bg-red-900/40"
-            testId="section-returned"
-          >
-            {(data.returned || []).map((job) => (
-              <JobRow
-                key={job.id}
-                item={job}
-                photoUrl={photoMap?.[job.woId]}
-                onClick={() => navigate(`/typing-jobs/${job.id}`)}
-                rightContent={
-                  <div className="flex flex-col items-end gap-0.5">
-                    <span className="text-xs text-muted-foreground truncate max-w-[100px]">{job.vendorName}</span>
-                    <span className="text-[11px] text-red-600 dark:text-red-400 font-medium">
-                      {job.status === "Rejected" ? "Rejected" : "Returned"}
-                    </span>
-                  </div>
-                }
-              />
-            ))}
-          </SubSection>
-
-          <SubSection
-            title="Ready to Schedule"
-            count={data.counts.readyToSchedule}
-            icon={<CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />}
-            color="bg-emerald-100 dark:bg-emerald-900/40"
-            testId="section-ready-to-schedule-jobs"
-          >
-            {data.readyToSchedule.map((job) => (
-              <JobRow
-                key={job.id}
-                item={job}
-                photoUrl={photoMap?.[job.woId]}
-                onClick={() => navigate(
-                  job.type === "Medical" 
-                    ? `/appointments/schedule-medical?woId=${job.woId}` 
-                    : `/appointments/schedule-eid?woId=${job.woId}`
-                )}
-                rightContent={
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="h-7 text-xs gap-1"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      navigate(
-                        job.type === "Medical" 
-                          ? `/appointments/schedule-medical?woId=${job.woId}` 
-                          : `/appointments/schedule-eid?woId=${job.woId}`
-                      );
-                    }}
-                    data-testid={`button-schedule-${job.id}`}
-                  >
-                    <Calendar className="h-3 w-3" />
-                    Schedule
-                  </Button>
-                }
-              />
-            ))}
-          </SubSection>
+          {data.counts.readyToSchedule > 0 && (
+            <SubSection
+              title="Ready to Schedule"
+              count={data.counts.readyToSchedule}
+              icon={<CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />}
+              color="bg-emerald-100 dark:bg-emerald-900/40"
+              testId="section-ready-to-schedule-jobs"
+            >
+              {data.readyToSchedule.map((job) => (
+                <JobRow
+                  key={job.id}
+                  item={job}
+                  photoUrl={photoMap?.[job.woId]}
+                  onClick={() => navigate(
+                    job.type === "Medical" 
+                      ? `/appointments/schedule-medical?woId=${job.woId}` 
+                      : `/appointments/schedule-eid?woId=${job.woId}`
+                  )}
+                  rightContent={
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-7 text-xs gap-1"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        navigate(
+                          job.type === "Medical" 
+                            ? `/appointments/schedule-medical?woId=${job.woId}` 
+                            : `/appointments/schedule-eid?woId=${job.woId}`
+                        );
+                      }}
+                      data-testid={`button-schedule-${job.id}`}
+                    >
+                      <Calendar className="h-3 w-3" />
+                      Schedule
+                    </Button>
+                  }
+                />
+              ))}
+            </SubSection>
+          )}
         </div>
       )}
     </div>
