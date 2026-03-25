@@ -135,7 +135,7 @@ export function getNextAction(
     const heldJobs = typingJobs.filter((j: any) => j.status === "OnHold");
     const rejectedJobs = typingJobs.filter((j: any) => j.status === "Rejected");
     if (heldJobs.length > 0) return { message: `${heldJobs.length} job${heldJobs.length > 1 ? "s" : ""} on hold — resume or reassign`, variant: "warning", actionType: "attention" };
-    if (rejectedJobs.length > 0) return { message: `${rejectedJobs.length} job${rejectedJobs.length > 1 ? "s" : ""} rejected — reassign to vendor`, variant: "warning", actionType: "attention" };
+    if (rejectedJobs.length > 0) return { message: "Vendor declined — edit the job and re-send to proceed", variant: "warning", actionType: "attention" };
     return { message: "Jobs need attention", variant: "warning", actionType: "attention" };
   }
 

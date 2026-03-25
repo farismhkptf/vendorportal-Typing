@@ -341,12 +341,14 @@ export default function WorkOrdersList() {
     let attentionNeeded = 0;
     let totalActive = 0;
     let vipCount = 0;
+    let draftCount = 0;
 
     workOrders.forEach((wo) => {
       const woStatus = wo.status as string;
       if (woStatus === "Cancelled") return;
       if (woStatus !== "Completed") totalActive++;
       if (wo.isVip && woStatus !== "Completed" && woStatus !== "Cancelled") vipCount++;
+      if (woStatus === "Draft") draftCount++;
 
       const med = getMedicalStatus(wo);
       const eid = getEidStatus(wo);
@@ -362,7 +364,7 @@ export default function WorkOrdersList() {
       if (needsAttention(wo)) attentionNeeded++;
     });
 
-    return { awaitingTyping, needScheduling, attentionNeeded, totalActive, vipCount };
+    return { awaitingTyping, needScheduling, attentionNeeded, totalActive, vipCount, draftCount };
   }, [workOrders]);
 
   const pipelineCounts = useMemo(() => {
@@ -1444,6 +1446,21 @@ export default function WorkOrdersList() {
       </div>
 
       <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
+        {!isLoading && stats && stats.draftCount > 0 && statusFilter !== "Draft" && (
+          <button
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-amber-50/80 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 text-left transition-colors hover:bg-amber-100/80 dark:hover:bg-amber-900/30"
+            onClick={() => setStatusFilter("Draft")}
+            data-testid="banner-draft-callout"
+          >
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+              <span className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                {stats.draftCount} work order{stats.draftCount > 1 ? "s" : ""} in Draft — confirm to add to pipeline
+              </span>
+            </div>
+            <span className="text-xs text-amber-600 dark:text-amber-400 shrink-0">View Drafts →</span>
+          </button>
+        )}
         {!isLoading && renderPipelineButtons()}
         {!isLoading && renderStatTiles()}
 

@@ -80,6 +80,7 @@ import { SaveStatusIndicator } from "@/components/ui/save-status";
 import { useAutosave } from "@/hooks/use-autosave";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Eye } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function PipelineBar({ pipeline, serviceType, isMinor, onTrackClick }: { pipeline: PipelineInfo; serviceType?: ServiceType; isMinor?: boolean; onTrackClick?: (track: "medical" | "eid") => void }) {
   const medRequired = !isMinor && serviceType && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling);
@@ -87,9 +88,14 @@ function PipelineBar({ pipeline, serviceType, isMinor, onTrackClick }: { pipelin
 
   return (
     <div className="bg-card border border-border/50 rounded-xl p-4 shadow-sm" data-testid="pipeline-bar">
-      <div className="flex items-center gap-2 mb-3">
-        <Package className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium text-foreground">Workflow Progress</span>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <Package className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">Workflow Progress</span>
+        </div>
+        {onTrackClick && (
+          <span className="text-[10px] text-muted-foreground/60 italic">Click a row to jump to its tab</span>
+        )}
       </div>
       {pipeline.medical.exists ? (
         <TrackRow label="Medical" icon={<Stethoscope className="h-3.5 w-3.5" />} track={pipeline.medical} onClick={() => onTrackClick?.("medical")} />
@@ -149,9 +155,9 @@ function TrackRow({ label, icon, track, onClick }: { label: string; icon: React.
   const currentIdx = PIPELINE_STEPS.indexOf(track.stage as any);
   const isAttention = track.stage === "needs_attention";
 
-  return (
+  const row = (
     <div
-      className={cn("flex items-center gap-3 py-2 rounded-lg px-1 -mx-1 transition-colors", onClick && "cursor-pointer hover:bg-muted/50")}
+      className={cn("flex items-center gap-3 py-2 rounded-lg px-1 -mx-1 transition-colors", onClick && "cursor-pointer hover:bg-muted/50 hover:underline-offset-1")}
       onClick={onClick}
       data-testid={`track-${label.toLowerCase().replace(/\s/g, "-")}`}
     >
@@ -192,6 +198,21 @@ function TrackRow({ label, icon, track, onClick }: { label: string; icon: React.
       </Badge>
     </div>
   );
+
+  if (onClick) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {row}
+        </TooltipTrigger>
+        <TooltipContent side="right" className="text-xs">
+          Click to jump to {label} tab
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return row;
 }
 
 function NextActionBanner({ 
@@ -321,13 +342,13 @@ function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: strin
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1 text-xs"
+                  className="gap-1 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
                   onClick={(e: React.MouseEvent) => { e.stopPropagation(); abortMutation.mutate(); }}
                   disabled={abortMutation.isPending}
                   data-testid={`button-abort-${job.id}`}
                 >
                   <XCircle className="h-3 w-3" />
-                  Abort
+                  Abort Job
                 </Button>
               )}
               <StatusBadge status={job.status} />

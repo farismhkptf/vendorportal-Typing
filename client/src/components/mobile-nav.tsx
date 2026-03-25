@@ -20,42 +20,51 @@ function getDashboardHref(role?: string): string {
   return "/";
 }
 
-const MAIN_TABS = [
-  { name: "Home", href: "__dashboard__", icon: LayoutDashboard, roles: null as string[] | null },
-  { name: "WOs", href: "/work-orders", icon: FileText, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
-  { name: "Appts", href: "/appointments", icon: Stethoscope, roles: null as string[] | null },
-  { name: "Jobs", href: "/typing-jobs", icon: ClipboardList, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
-];
+function getTabsForRole(role: string | undefined, dashboardHref: string) {
+  const home = { name: "Home", href: dashboardHref, icon: LayoutDashboard };
+  const wos = { name: "WOs", href: "/work-orders", icon: FileText };
+  const appts = { name: "Appts", href: "/appointments", icon: Stethoscope };
+  const jobs = { name: "Jobs", href: "/typing-jobs", icon: ClipboardList };
+  const companies = { name: "Companies", href: "/companies", icon: Building2 };
+  const wallet = { name: "Wallet", href: "/vendor-wallet", icon: Wallet };
+  const admin = { name: "Admin", href: "/admin", icon: Settings };
 
-const MORE_ITEMS = [
-  { name: "Companies", href: "/companies", icon: Building2, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
-  { name: "Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin", "Client Relationship Manager"] as string[] | null },
-  { name: "Admin", href: "/admin", icon: Settings, roles: ["Admin"] as string[] | null },
-];
+  if (role === "Admin") {
+    return {
+      main: [home, wos, companies, wallet, admin],
+      more: [appts, jobs],
+    };
+  }
+  if (role === "Client Relationship Manager") {
+    return {
+      main: [home, wos, companies, wallet, appts],
+      more: [jobs],
+    };
+  }
+  return {
+    main: [home, appts],
+    more: [],
+  };
+}
 
 export function MobileBottomNav() {
   const [location, navigate] = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const { user } = useAuth();
-  const dashboardHref = getDashboardHref(user?.role);
 
   if (!user) return null;
   if (location === "/vendor-v2" || location.startsWith("/vendor-v2/")) return null;
 
-  const resolvedTabs = MAIN_TABS
-    .filter(tab => tab.roles === null || (user && tab.roles.includes(user.role)))
-    .map(tab => tab.href === "__dashboard__" ? { ...tab, href: dashboardHref } : tab
-  );
+  const dashboardHref = getDashboardHref(user?.role);
+  const { main: mainTabs, more: moreItems } = getTabsForRole(user?.role, dashboardHref);
 
   const isActive = (href: string) => {
     if (href === "/" || href === "/crm" || href === "/medical") return location === href;
     return location.startsWith(href);
   };
 
-  const filteredMoreItems = MORE_ITEMS.filter(
-    item => item.roles === null || (user && item.roles.includes(user.role))
-  );
-  const isMoreActive = filteredMoreItems.some(item => isActive(item.href));
+  const isMoreActive = moreItems.some(item => isActive(item.href));
+  const hasMore = moreItems.length > 0;
 
   return (
     <>
@@ -66,10 +75,10 @@ export function MobileBottomNav() {
         />
       )}
 
-      {moreOpen && (
+      {moreOpen && hasMore && (
         <div className="fixed bottom-[72px] right-3 z-[100] lg:hidden opacity-0 animate-fade-in">
           <div className="bg-card border border-border/60 rounded-xl shadow-xl p-2 space-y-0.5 min-w-[180px]">
-            {filteredMoreItems.map((item) => (
+            {moreItems.map((item) => (
               <button
                 key={item.href}
                 onClick={() => {
@@ -97,7 +106,7 @@ export function MobileBottomNav() {
         data-testid="mobile-bottom-nav"
       >
         <div className="flex items-center justify-around h-[64px] px-2">
-          {resolvedTabs.map((tab) => {
+          {mainTabs.map((tab) => {
             const active = isActive(tab.href);
             return (
               <button
@@ -119,21 +128,23 @@ export function MobileBottomNav() {
               </button>
             );
           })}
-          <button
-            onClick={() => setMoreOpen(!moreOpen)}
-            className={cn(
-              "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[56px]",
-              (moreOpen || isMoreActive) ? "text-primary" : "text-muted-foreground"
-            )}
-            data-testid="mobile-tab-more"
-          >
-            {moreOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <MoreHorizontal className="h-5 w-5" />
-            )}
-            <span className="text-[10px] font-medium">More</span>
-          </button>
+          {hasMore && (
+            <button
+              onClick={() => setMoreOpen(!moreOpen)}
+              className={cn(
+                "flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[56px]",
+                (moreOpen || isMoreActive) ? "text-primary" : "text-muted-foreground"
+              )}
+              data-testid="mobile-tab-more"
+            >
+              {moreOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <MoreHorizontal className="h-5 w-5" />
+              )}
+              <span className="text-[10px] font-medium">More</span>
+            </button>
+          )}
         </div>
       </nav>
     </>

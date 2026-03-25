@@ -19,9 +19,11 @@ import {
   HelpCircle,
   FileCheck,
   Stamp,
-  PackageCheck
+  PackageCheck,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { NotificationsBell } from "@/components/notifications-bell";
@@ -240,7 +242,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 data-testid="button-search-trigger"
               >
                 <Search className="h-3.5 w-3.5" />
-                <span>Search...</span>
+                <span>Search or jump to...</span>
                 <kbd className="ml-2 px-1.5 py-0.5 rounded-md text-[10px] font-mono bg-muted/60 border border-border/40">
                   Ctrl Space
                 </kbd>
@@ -257,6 +259,48 @@ export function AppLayout({ children }: AppLayoutProps) {
               <ThemeSwitcher compact />
               <StaffNotificationsBell />
               <NotificationsBell />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-muted/60 transition-colors focus-visible:ring-2 focus-visible:ring-ring/30"
+                    data-testid="button-user-menu"
+                  >
+                    <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
+                      <span className="text-xs font-semibold text-primary">{userInitial}</span>
+                    </div>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground hidden sm:block" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 rounded-xl" data-testid="menu-user-dropdown">
+                  <div className="px-3 py-2 border-b border-border/40">
+                    <p className="text-sm font-medium text-foreground truncate">{user?.name || "User"}</p>
+                    <p className="text-xs text-muted-foreground">{user?.role || ""}</p>
+                  </div>
+                  <Link href="/account/security">
+                    <DropdownMenuItem className="gap-2 cursor-pointer" data-testid="menu-item-account-security">
+                      <Shield className="h-4 w-4" />
+                      Account Security
+                    </DropdownMenuItem>
+                  </Link>
+                  <DropdownMenuItem
+                    className="gap-2 cursor-pointer"
+                    onClick={() => setChangePasswordOpen(true)}
+                    data-testid="menu-item-change-password"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    Change Password
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="gap-2 cursor-pointer text-destructive focus:text-destructive"
+                    onClick={logout}
+                    data-testid="menu-item-logout"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
