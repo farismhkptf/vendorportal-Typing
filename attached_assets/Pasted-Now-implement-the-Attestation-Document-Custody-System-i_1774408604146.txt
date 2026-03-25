@@ -1,0 +1,99 @@
+Now implement the Attestation + Document Custody System in PHASES.
+
+IMPORTANT:
+- Do NOT break existing app
+- Do NOT refactor unrelated logic
+- Reuse existing components
+- Follow current UI patterns
+- Keep changes modular
+- If unsure, ASK before proceeding
+
+==================================================
+IMPLEMENTATION APPROACH
+==================================================
+
+Build in phases.
+
+After each phase:
+- stop
+- explain what was done
+- confirm before moving forward
+
+--------------------------------------------------
+
+PHASE 1 — FOUNDATION
+
+- Add document tracking structure
+- Add basic linkage with existing Work Order (if applicable)
+- Add minimal data structure for documents
+
+Do NOT add full logic yet.
+
+--------------------------------------------------
+
+PHASE 2 — INQUIRY + WORK FLOW
+
+- Add inquiry logic
+- Add conversion to work order
+- Ensure no duplication with existing flows
+
+--------------------------------------------------
+
+PHASE 3 — VENDOR JOB LOGIC
+
+- Add vendor assignment
+- add vendor job tracking
+- status handling
+
+--------------------------------------------------
+
+PHASE 4 — CUSTODY SYSTEM
+
+- add acknowledgement capture
+- signature handling
+- custodian tracking
+- enforce required steps
+
+--------------------------------------------------
+
+PHASE 5 — PERMISSIONS + CONTROLS
+
+- enforce role rules
+- prevent invalid actions
+- add validations
+
+--------------------------------------------------
+
+PHASE 6 — UI INTEGRATION
+
+- integrate into existing dashboards
+- reuse UI components
+- ensure clean UX
+
+--------------------------------------------------
+
+PHASE 7 — FINAL CHECK
+
+- test flows
+- ensure no breakage
+- validate rules
+
+==================================================
+
+CRITICAL RULES
+==================================================
+
+- No document movement without acknowledgement
+- No step completion without required actions
+- No direct client-vendor interaction
+- Always track custodian and location
+- Support multiple documents per case
+- Keep everything traceable
+
+==================================================
+
+If at any step you are unsure:
+STOP and ask questions.
+
+Do NOT assume.
+Do NOT guess.

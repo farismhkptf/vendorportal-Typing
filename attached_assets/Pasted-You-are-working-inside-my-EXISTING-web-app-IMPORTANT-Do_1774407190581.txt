@@ -1,0 +1,134 @@
+You are working inside my EXISTING web app.
+
+IMPORTANT:
+Do NOT implement anything yet.
+Do NOT assume structure.
+Do NOT change or break existing logic.
+
+Your job in this step is ONLY:
+→ Understand the idea
+→ Analyze the current app
+→ Propose how to integrate safely
+→ Ask questions where unclear
+
+If you are unsure about anything, ASK before proceeding.
+
+==================================================
+CONTEXT — WHAT WE WANT TO BUILD
+==================================================
+
+We want to add a new capability to the system:
+
+“Attestation + Document Custody System”
+
+This system will handle:
+- vendor inquiries (when we are unsure)
+- direct work orders (when we are sure)
+- document tracking (very important)
+- legal acknowledgement at every handover
+- vendor execution tracking
+- no direct client ↔ vendor interaction (we are always in the middle)
+
+--------------------------------------------------
+
+REAL-WORLD FLOW:
+
+Client requests attestation.
+
+Two possibilities:
+
+1) CRM is unsure → creates Inquiry → vendor gives quote → CRM talks to client manually → if accepted → convert to Work Order
+
+2) CRM is sure → creates Work Order directly
+
+After Work Order:
+- vendor accepts
+- vendor either collects documents OR we deliver
+- document moves through stages:
+  client → us → vendor → us → client
+
+Every movement must have:
+- acknowledgement
+- signature
+- traceability
+- responsible person
+
+--------------------------------------------------
+
+IMPORTANT REALITY:
+
+Documents are sensitive (certificates, legal docs).
+
+So system must always know:
+- what document it is
+- who has it
+- where it is
+- who handled it
+- proof of handover
+
+--------------------------------------------------
+
+DOCUMENT LOGIC:
+
+Each case can have multiple documents.
+
+Each document can require:
+- Home Country Attestation (depends on country)
+- UAE MOFA Attestation (fixed logic)
+
+So:
+Document → has steps → each step may involve vendor work
+
+--------------------------------------------------
+
+ROLES:
+
+Admin (full control)
+CRM (main operator)
+PRO (handles physical documents)
+Accountant (invoices only)
+Vendor (execution only)
+
+Client and Vendor NEVER interact directly.
+
+--------------------------------------------------
+
+CONSTRAINTS:
+
+- This must fit into existing app
+- Must reuse current UI patterns
+- Must not break current logic
+- Must not duplicate existing features if already present
+- Must scale cleanly
+
+==================================================
+YOUR TASK
+==================================================
+
+1) Analyze the current app structure
+
+2) Explain:
+- What already exists that can support this
+- What needs to be added
+- What should be extended instead of recreated
+
+3) Suggest:
+- how this idea fits into current modules
+- where it should live in navigation
+- what should be new vs extended
+
+4) Identify risks:
+- what could break
+- what needs careful handling
+
+5) Ask questions:
+- anything unclear
+- any assumptions you need to confirm
+
+==================================================
+
+DO NOT WRITE CODE.
+DO NOT IMPLEMENT ANYTHING.
+
+First fully understand and propose.
+Ask questions before moving forward.
