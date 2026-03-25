@@ -92,6 +92,14 @@ const TRANSITIONS: Record<string, TransitionDef> = {
     sideEffects: [
       { type: "audit", action: "vendor_rejected" },
       { type: "comment", messageFn: (ctx) => `Vendor rejected job${ctx.reason ? `: ${ctx.reason}` : " — cannot process"}` },
+      {
+        type: "notify_staff",
+        roles: ["Admin", "Client Relationship Manager"],
+        notificationType: "job_rejected_by_vendor",
+        title: "Vendor Rejected Job",
+        messageFn: (ctx) => `Job ${ctx.jobCode || ""} was rejected by vendor${ctx.applicantName ? ` — ${ctx.applicantName}` : ""}${ctx.reason ? `: ${ctx.reason}` : " — cannot process"}`,
+        entityType: "typing_job",
+      },
     ],
   },
 

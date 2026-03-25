@@ -271,9 +271,10 @@ export default function CrmDashboard() {
       <div className="px-4 lg:px-6 pb-6 space-y-5">
 
         {/* System-wide stat row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           {isLoading ? (
             <>
+              <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
               <Skeleton className="h-24 rounded-xl" />
@@ -311,6 +312,14 @@ export default function CrmDashboard() {
                 animationDelay={4}
                 onClick={() => navigate("/typing-jobs")}
                 data-testid="stat-pending-typing-jobs"
+              />
+              <StatCard
+                title="Vendor Wallet"
+                value={`AED ${(dashStats?.walletBalance ?? 0).toLocaleString()}`}
+                icon={<Wallet className="h-4 w-4" />}
+                animationDelay={5}
+                onClick={() => navigate("/vendor-wallet")}
+                data-testid="stat-wallet-balance"
               />
             </>
           )}

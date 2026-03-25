@@ -24,6 +24,7 @@ import {
   Activity,
   RotateCcw,
   XCircle,
+  Hourglass,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -1002,6 +1003,102 @@ function NeedsAttentionSection({ navigate }: { navigate: (path: string) => void 
   );
 }
 
+interface IdleDraftJob {
+  id: string;
+  woId: string;
+  woNumber: string | null;
+  applicantName: string | null;
+  companyName: string | null;
+  jobTypeName: string | null;
+  jobTypeCategory: string | null;
+  hoursIdle: number | null;
+  createdAt: string | null;
+}
+
+function IdleDraftJobsPanel({ navigate }: { navigate: (path: string) => void }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  const { data: idleJobs, isLoading } = useQuery<IdleDraftJob[]>({
+    queryKey: ["/api/admin/idle-draft-jobs"],
+    staleTime: 60000,
+  });
+
+  if (isLoading) return null;
+  if (!idleJobs || idleJobs.length === 0) return null;
+
+  return (
+    <div
+      className="premium-card border-amber-200/60 dark:border-amber-800/30 bg-gradient-to-r from-amber-50/80 to-yellow-50/40 dark:from-amber-950/20 dark:to-yellow-950/10 opacity-0 animate-fade-in"
+      data-testid="section-idle-draft-jobs"
+    >
+      <button
+        className="flex items-center justify-between gap-3 w-full p-4 text-left"
+        onClick={() => setCollapsed(!collapsed)}
+        data-testid="toggle-idle-draft-jobs"
+      >
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+            <Hourglass className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">Idle Draft Typing Jobs</p>
+            <p className="text-xs text-amber-600/70 dark:text-amber-400/70">
+              {idleJobs.length} job{idleJobs.length !== 1 ? "s" : ""} stuck in Draft for over 24 hours
+            </p>
+          </div>
+        </div>
+        <ChevronDown className={cn("h-4 w-4 text-amber-500 transition-transform duration-200", collapsed && "rotate-180")} />
+      </button>
+
+      {!collapsed && (
+        <div className="px-4 pb-4 space-y-2">
+          {idleJobs.slice(0, 8).map((job) => (
+            <div
+              key={job.id}
+              className="flex items-center gap-3 p-2.5 rounded-xl bg-white/60 dark:bg-black/10 cursor-pointer hover:bg-white/80 dark:hover:bg-black/20 transition-colors"
+              onClick={() => navigate(`/work-orders/${job.woId}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === "Enter") navigate(`/work-orders/${job.woId}`); }}
+              data-testid={`idle-draft-job-${job.id}`}
+            >
+              <Hourglass className="h-4 w-4 text-amber-500 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">{job.woNumber || "—"}</span>
+                  {job.jobTypeName && (
+                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded-full">
+                      {job.jobTypeName}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="truncate">{job.applicantName ? toProperCase(job.applicantName) : "—"}</span>
+                  {job.companyName && (
+                    <>
+                      <span className="text-muted-foreground/40">·</span>
+                      <span className="truncate max-w-[100px]">{toProperCase(job.companyName)}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <span className="text-xs font-medium text-amber-600 dark:text-amber-400 shrink-0" data-testid={`idle-hours-${job.id}`}>
+                {job.hoursIdle != null ? `${job.hoursIdle}h idle` : "—"}
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
+            </div>
+          ))}
+          {idleJobs.length > 8 && (
+            <p className="text-xs text-center text-muted-foreground pt-1">
+              +{idleJobs.length - 8} more — <button className="underline" onClick={() => navigate("/typing-jobs")}>view all</button>
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DelayedWorkOrdersAlert({ navigate }: { navigate: (path: string) => void }) {
   const { data: workOrders } = useQuery<WorkOrderEnriched[]>({
     queryKey: ["/api/work-orders"],
@@ -1150,6 +1247,8 @@ export default function Dashboard() {
         <NeedsAttentionSection navigate={navigate} />
 
         <DelayedWorkOrdersAlert navigate={navigate} />
+
+        {user?.role === "Admin" && <IdleDraftJobsPanel navigate={navigate} />}
 
         {stats?.lowBalanceWarning && (
           <div 

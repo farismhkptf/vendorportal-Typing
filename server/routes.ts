@@ -364,6 +364,31 @@ async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boolean> {
       details: { reason: "All required tracks completed", applicantName: wo.applicantName, woNumber: wo.woNumber },
     });
     console.log(`[auto-complete] Work order ${wo.woNumber} auto-completed`);
+
+    // Notify the assigned CRM (or all Admins as fallback)
+    try {
+      const company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
+      const notification = {
+        type: "wo_completed",
+        title: "Work Order Completed",
+        message: `Work order ${wo.woNumber} (${wo.applicantName}) has been automatically completed — all tracks finished.`,
+        relatedEntityType: "work_order" as const,
+        relatedEntityId: woId,
+      };
+      if (company?.rmStaffId) {
+        const rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => null);
+        if (rmStaff?.userId) {
+          await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+        } else {
+          await notifyStaffByRoles(["Admin"], notification);
+        }
+      } else {
+        await notifyStaffByRoles(["Admin"], notification);
+      }
+    } catch (notifyErr) {
+      console.error("[auto-complete] Failed to send CRM notification:", notifyErr);
+    }
+
     return true;
   } catch (err) {
     console.error("[auto-complete] Error checking work order completion:", err);
@@ -1802,6 +1827,26 @@ export async function registerRoutes(
         relatedEntityType: "work_order",
         relatedEntityId: wo.id,
       });
+
+      // Notify the company's assigned CRM
+      try {
+        const woCompany = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
+        if (woCompany?.rmStaffId) {
+          const woRmStaff = await storage.getStaffById(woCompany.rmStaffId).catch(() => null);
+          if (woRmStaff?.userId) {
+            await storage.createStaffNotification({
+              userId: woRmStaff.userId,
+              type: "wo_created",
+              title: "New Work Order — Your Client",
+              message: `Work order ${wo.woNumber} created for ${wo.applicantName} (${woCompany.name})`,
+              relatedEntityType: "work_order",
+              relatedEntityId: wo.id,
+            });
+          }
+        }
+      } catch (crmNotifyErr) {
+        console.error("[wo-create] Failed to notify CRM:", crmNotifyErr);
+      }
       
       // Auto-create typing jobs based on service type requirements
       const autoCreatedJobs: { id: string; jobCode: string; category: string; label: string }[] = [];
@@ -7806,6 +7851,36 @@ export async function registerRoutes(
     }
   });
 
+  // GET /api/admin/idle-draft-jobs — typing jobs in Draft for > 24 hours
+  app.get("/api/admin/idle-draft-jobs", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      const allDraftJobs = await storage.getTypingJobs("Draft");
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      const idleJobs = allDraftJobs.filter(j => j.createdAt && new Date(j.createdAt) < cutoff);
+
+      const enriched = await Promise.all(idleJobs.map(async (job) => {
+        const wo = await storage.getWorkOrderById(job.woId);
+        const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
+        const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+        return {
+          ...job,
+          woNumber: wo?.woNumber || null,
+          applicantName: wo?.applicantName || null,
+          companyName: company?.name || null,
+          jobTypeName: jobType?.name || null,
+          jobTypeCategory: jobType?.category || null,
+          hoursIdle: job.createdAt ? Math.floor((Date.now() - new Date(job.createdAt).getTime()) / (1000 * 60 * 60)) : null,
+        };
+      }));
+
+      enriched.sort((a, b) => (a.hoursIdle || 0) > (b.hoursIdle || 0) ? -1 : 1);
+      res.json(enriched);
+    } catch (error) {
+      console.error("Idle draft jobs error:", error);
+      res.status(500).json({ message: "Failed to fetch idle draft jobs" });
+    }
+  });
+
   // ========== Medical Scheduling ==========
 
   const FINAL_STATUSES = ["RESULT_ISSUED", "MEDICAL_FAILED", "CLOSED_ADMIN_OVERRIDE", "NO_SHOW", "RETEST_REQUIRED"];
@@ -8159,6 +8234,34 @@ export async function registerRoutes(
         details: { from: cycle.status, to: "RETEST_REQUIRED" },
       });
 
+      // Notify CRM to create a new cycle
+      try {
+        const medCase = await storage.getMedicalCaseById(cycle.caseId);
+        if (medCase?.woId) {
+          const wo = await storage.getWorkOrderById(medCase.woId);
+          const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+          const notification = {
+            type: "retest_required",
+            title: "Medical Retest Required",
+            message: `${wo?.applicantName || "Applicant"} (${wo?.woNumber || ""}) requires a retest — please schedule a new appointment cycle.`,
+            relatedEntityType: "work_order" as const,
+            relatedEntityId: medCase.woId,
+          };
+          if (company?.rmStaffId) {
+            const rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => null);
+            if (rmStaff?.userId) {
+              await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+            } else {
+              await notifyStaffByRoles(["Admin"], notification);
+            }
+          } else {
+            await notifyStaffByRoles(["Admin"], notification);
+          }
+        }
+      } catch (notifyErr) {
+        console.error("[retest-required] Failed to notify CRM:", notifyErr);
+      }
+
       res.json(updated);
     } catch (error) {
       console.error("Retest required error:", error);
@@ -8256,6 +8359,16 @@ export async function registerRoutes(
         details: { from: cycle.status, to: "RESULT_ISSUED" },
       });
 
+      // Bridge: attempt to auto-complete the parent WO
+      try {
+        const medCase = await storage.getMedicalCaseById(cycle.caseId);
+        if (medCase?.woId) {
+          await checkAndAutoCompleteWorkOrder(medCase.woId);
+        }
+      } catch (bridgeErr) {
+        console.error("[result-issued] WO auto-complete bridge error:", bridgeErr);
+      }
+
       res.json(updated);
     } catch (error) {
       console.error("Result issued error:", error);
@@ -8299,6 +8412,34 @@ export async function registerRoutes(
         actorRole: user.role,
         details: { from: cycle.status, to: "MEDICAL_FAILED" },
       });
+
+      // Notify CRM of medical failure
+      try {
+        const medCase = await storage.getMedicalCaseById(cycle.caseId);
+        if (medCase?.woId) {
+          const wo = await storage.getWorkOrderById(medCase.woId);
+          const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+          const notification = {
+            type: "medical_failed",
+            title: "Medical Result: FAILED",
+            message: `Applicant ${wo?.applicantName || "unknown"} (${wo?.woNumber || ""}) has failed their medical. Immediate follow-up required.`,
+            relatedEntityType: "work_order" as const,
+            relatedEntityId: medCase.woId,
+          };
+          if (company?.rmStaffId) {
+            const rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => null);
+            if (rmStaff?.userId) {
+              await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+            } else {
+              await notifyStaffByRoles(["Admin"], notification);
+            }
+          } else {
+            await notifyStaffByRoles(["Admin"], notification);
+          }
+        }
+      } catch (notifyErr) {
+        console.error("[medical-failed] Failed to notify CRM:", notifyErr);
+      }
 
       res.json(updated);
     } catch (error) {
@@ -8356,6 +8497,33 @@ export async function registerRoutes(
           actorRole: "system",
           details: { from: "AWAITING_MEETING", to: "NO_SHOW" },
         });
+        // Notify CRM of no-show
+        try {
+          const medCase = await storage.getMedicalCaseById(cycle.caseId);
+          if (medCase?.woId) {
+            const wo = await storage.getWorkOrderById(medCase.woId);
+            const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+            const notification = {
+              type: "no_show",
+              title: "Medical Appointment: No Show",
+              message: `${wo?.applicantName || "Applicant"} (${wo?.woNumber || ""}) did not attend their medical appointment. Please follow up and reschedule if needed.`,
+              relatedEntityType: "work_order" as const,
+              relatedEntityId: medCase.woId,
+            };
+            if (company?.rmStaffId) {
+              const rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => null);
+              if (rmStaff?.userId) {
+                await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+              } else {
+                await notifyStaffByRoles(["Admin"], notification);
+              }
+            } else {
+              await notifyStaffByRoles(["Admin"], notification);
+            }
+          }
+        } catch (notifyErr) {
+          console.error("[medical-timer] Failed to notify CRM of no-show:", notifyErr);
+        }
       }
 
       // (c) COMPLETED → RESULT_DELAYED (30 hours, no result)
