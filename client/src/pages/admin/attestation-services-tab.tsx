@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Pencil, ChevronDown, ChevronRight, Trash2, Loader2, Tag } from "lucide-react";
+import { Plus, Pencil, ChevronDown, ChevronRight, Trash2, Loader2, Tag, GripVertical, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -13,18 +14,22 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { AttestationService, AttestationServiceVariant, AttestationServiceStepDefinition } from "@shared/schema";
 
-const CATEGORIES = ["MofaUAE", "MofaHomeCountry", "Embassy", "Lawyer", "Other"] as const;
+type AttestationCategory = { id: string; name: string; sortOrder: number; active: boolean };
+
 const DOC_CLASSES = ["Personal", "Business", "Both"] as const;
 
+const CATEGORY_COLORS: Record<string, string> = {
+  MofaUAE: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  MofaHomeCountry: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  Embassy: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  Lawyer: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  Other: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300",
+};
+
+const FALLBACK_COLOR = "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300";
+
 function categoryBadgeColor(cat: string) {
-  const map: Record<string, string> = {
-    MofaUAE: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    MofaHomeCountry: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-    Embassy: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
-    Lawyer: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-    Other: "bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300",
-  };
-  return map[cat] ?? map.Other;
+  return CATEGORY_COLORS[cat] ?? FALLBACK_COLOR;
 }
 
 interface ServiceFormData {
@@ -39,7 +44,7 @@ interface ServiceFormData {
 
 const defaultForm: ServiceFormData = {
   name: "",
-  category: "MofaUAE",
+  category: "",
   documentClassApplicability: "Both",
   basePriceAed: "0",
   timelineDays: "",
@@ -49,9 +54,10 @@ const defaultForm: ServiceFormData = {
 
 interface ServiceDetailPanelProps {
   service: AttestationService;
+  categories: AttestationCategory[];
 }
 
-function ServiceDetailPanel({ service }: ServiceDetailPanelProps) {
+function ServiceDetailPanel({ service, categories }: ServiceDetailPanelProps) {
   const { toast } = useToast();
   const [variantLabel, setVariantLabel] = useState("");
   const [variantPrice, setVariantPrice] = useState("0");
@@ -129,8 +135,6 @@ function ServiceDetailPanel({ service }: ServiceDetailPanelProps) {
   const initStepsFromRemote = () => {
     setStepDefs(stepDefsRemote.map(s => ({ stepName: s.stepName, stepType: s.stepType, description: s.description || "" })));
   };
-
-  const showStepsNeededCategory = ["Embassy", "MofaHomeCountry", "MofaUAE"].includes(service.category);
 
   return (
     <div className="pl-4 pr-2 pb-4 space-y-4">
@@ -223,11 +227,13 @@ function ServiceDetailPanel({ service }: ServiceDetailPanelProps) {
                   data-testid={`input-step-name-${i}`}
                 />
                 <Select value={s.stepType} onValueChange={v => setStepDefs(prev => prev.map((x, j) => j === i ? { ...x, stepType: v } : x))}>
-                  <SelectTrigger className="h-8 text-sm w-36" data-testid={`select-step-type-${i}`}>
-                    <SelectValue />
+                  <SelectTrigger className="h-8 text-sm w-40" data-testid={`select-step-type-${i}`}>
+                    <SelectValue placeholder="Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {categories.filter(c => c.active).map(c => (
+                      <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
                 <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => setStepDefs(prev => prev.filter((_, j) => j !== i))} data-testid={`button-remove-step-${i}`}>
@@ -251,12 +257,225 @@ function ServiceDetailPanel({ service }: ServiceDetailPanelProps) {
   );
 }
 
+function CategoriesPanel() {
+  const { toast } = useToast();
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
+  const [deletingCategory, setDeletingCategory] = useState<AttestationCategory | null>(null);
+
+  const { data: categories = [], isLoading } = useQuery<AttestationCategory[]>({
+    queryKey: ["/api/admin/attestation-categories"],
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (name: string) => apiRequest("POST", "/api/admin/attestation-categories", { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/attestation-categories"] });
+      setNewCategoryName("");
+      toast({ title: "Category added" });
+    },
+    onError: async (err: any) => {
+      const msg = err?.message || "Failed to add category";
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
+      apiRequest("PATCH", `/api/admin/attestation-categories/${id}`, { name }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/attestation-categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/attestation/services"] });
+      setEditingId(null);
+      toast({ title: "Category renamed" });
+    },
+    onError: async (err: any) => {
+      const msg = err?.message || "Failed to rename category";
+      toast({ title: msg, variant: "destructive" });
+    },
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, active }: { id: string; active: boolean }) =>
+      apiRequest("PATCH", `/api/admin/attestation-categories/${id}`, { active }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/attestation-categories"] }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/attestation-categories/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/attestation-categories"] });
+      setDeletingCategory(null);
+      toast({ title: "Category deleted" });
+    },
+    onError: async (err: any) => {
+      const msg = err?.message || "Failed to delete category";
+      toast({ title: msg, variant: "destructive" });
+      setDeletingCategory(null);
+    },
+  });
+
+  const reorderMutation = useMutation({
+    mutationFn: (ids: string[]) => apiRequest("PUT", "/api/admin/attestation-categories/reorder", { ids }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/attestation-categories"] }),
+  });
+
+  const handleMoveUp = (index: number) => {
+    if (index === 0) return;
+    const newOrder = [...categories];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    reorderMutation.mutate(newOrder.map(c => c.id));
+  };
+
+  const handleMoveDown = (index: number) => {
+    if (index === categories.length - 1) return;
+    const newOrder = [...categories];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    reorderMutation.mutate(newOrder.map(c => c.id));
+  };
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-muted/30 border-b">
+        <div className="flex items-center gap-2">
+          <FolderOpen className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Categories</span>
+          <span className="text-xs text-muted-foreground">({categories.length})</span>
+        </div>
+      </div>
+      {isLoading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-6 justify-center">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+        </div>
+      ) : (
+        <div className="divide-y">
+          {categories.map((cat, index) => (
+            <div key={cat.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-muted/10" data-testid={`category-row-${cat.id}`}>
+              <div className="flex flex-col gap-0.5">
+                <button
+                  className="h-3.5 w-4 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  onClick={() => handleMoveUp(index)}
+                  disabled={index === 0 || reorderMutation.isPending}
+                  data-testid={`button-move-up-${cat.id}`}
+                >
+                  <ChevronDown className="h-3 w-3 rotate-180" />
+                </button>
+                <button
+                  className="h-3.5 w-4 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  onClick={() => handleMoveDown(index)}
+                  disabled={index === categories.length - 1 || reorderMutation.isPending}
+                  data-testid={`button-move-down-${cat.id}`}
+                >
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              </div>
+              <GripVertical className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+              {editingId === cat.id ? (
+                <>
+                  <Input
+                    value={editingName}
+                    onChange={e => setEditingName(e.target.value)}
+                    className="h-7 text-sm flex-1"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") updateMutation.mutate({ id: cat.id, name: editingName });
+                      if (e.key === "Escape") setEditingId(null);
+                    }}
+                    data-testid={`input-category-name-${cat.id}`}
+                    autoFocus
+                  />
+                  <Button size="sm" className="h-7" onClick={() => updateMutation.mutate({ id: cat.id, name: editingName })} disabled={!editingName.trim() || updateMutation.isPending} data-testid={`button-save-category-${cat.id}`}>
+                    {updateMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                  </Button>
+                  <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditingId(null)} data-testid={`button-cancel-category-${cat.id}`}>Cancel</Button>
+                </>
+              ) : (
+                <>
+                  <span className={`flex-1 text-sm font-medium ${!cat.active ? "text-muted-foreground line-through" : ""}`}>{cat.name}</span>
+                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${categoryBadgeColor(cat.name)}`}>{cat.name}</span>
+                  <Switch
+                    checked={cat.active}
+                    onCheckedChange={active => toggleMutation.mutate({ id: cat.id, active })}
+                    data-testid={`switch-category-active-${cat.id}`}
+                  />
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={() => { setEditingId(cat.id); setEditingName(cat.name); }}
+                    data-testid={`button-edit-category-${cat.id}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    onClick={() => setDeletingCategory(cat)}
+                    data-testid={`button-delete-category-${cat.id}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
+            </div>
+          ))}
+          <div className="flex items-center gap-2 px-4 py-2.5">
+            <Input
+              placeholder="New category name..."
+              value={newCategoryName}
+              onChange={e => setNewCategoryName(e.target.value)}
+              className="h-8 text-sm flex-1"
+              onKeyDown={e => { if (e.key === "Enter" && newCategoryName.trim()) createMutation.mutate(newCategoryName.trim()); }}
+              data-testid="input-new-category-name"
+            />
+            <Button
+              size="sm"
+              onClick={() => createMutation.mutate(newCategoryName.trim())}
+              disabled={!newCategoryName.trim() || createMutation.isPending}
+              data-testid="button-add-category"
+            >
+              {createMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Plus className="h-3.5 w-3.5 mr-1" />Add</>}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <AlertDialog open={!!deletingCategory} onOpenChange={open => { if (!open) setDeletingCategory(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deletingCategory?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this category. You cannot delete a category that is currently in use by any attestation service.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletingCategory && deleteMutation.mutate(deletingCategory.id)}
+              data-testid="button-confirm-delete-category"
+            >
+              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
 export function AttestationServicesTab() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<AttestationService | null>(null);
   const [form, setForm] = useState<ServiceFormData>(defaultForm);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery<AttestationCategory[]>({
+    queryKey: ["/api/admin/attestation-categories"],
+  });
 
   const { data: services = [], isLoading } = useQuery<AttestationService[]>({
     queryKey: ["/api/attestation/services"],
@@ -299,7 +518,8 @@ export function AttestationServicesTab() {
 
   const openCreate = () => {
     setEditingService(null);
-    setForm(defaultForm);
+    const firstActive = categories.find(c => c.active);
+    setForm({ ...defaultForm, category: firstActive?.name || "" });
     setDialogOpen(true);
   };
 
@@ -330,75 +550,82 @@ export function AttestationServicesTab() {
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const activeCategories = categories.filter(c => c.active);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-base font-semibold">Attestation Services</h2>
-          <p className="text-sm text-muted-foreground">Manage the catalog of attestation services, pricing, and step sequences.</p>
-        </div>
-        <Button size="sm" onClick={openCreate} className="gap-1.5" data-testid="button-add-attestation-service">
-          <Plus className="h-4 w-4" />
-          Add Service
-        </Button>
+    <div className="space-y-6">
+      <div>
+        <CategoriesPanel />
       </div>
 
-      {isLoading ? (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-semibold">Attestation Services</h2>
+            <p className="text-sm text-muted-foreground">Manage the catalog of attestation services, pricing, and step sequences.</p>
+          </div>
+          <Button size="sm" onClick={openCreate} className="gap-1.5" data-testid="button-add-attestation-service">
+            <Plus className="h-4 w-4" />
+            Add Service
+          </Button>
         </div>
-      ) : services.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Tag className="h-10 w-10 mx-auto mb-3 opacity-20" />
-          <p className="text-sm">No attestation services yet. Add your first service to get started.</p>
-        </div>
-      ) : (
-        <div className="border rounded-lg overflow-hidden divide-y">
-          {services.map(svc => (
-            <div key={svc.id} data-testid={`service-row-${svc.id}`}>
-              <div className="flex items-center gap-3 p-3 hover:bg-muted/20 cursor-pointer" onClick={() => setExpandedId(expandedId === svc.id ? null : svc.id)}>
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <Tag className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{svc.name}</span>
-                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${categoryBadgeColor(svc.category)}`}>{svc.category}</span>
-                    {!svc.active && <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>}
+
+        {isLoading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+          </div>
+        ) : services.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Tag className="h-10 w-10 mx-auto mb-3 opacity-20" />
+            <p className="text-sm">No attestation services yet. Add your first service to get started.</p>
+          </div>
+        ) : (
+          <div className="border rounded-lg overflow-hidden divide-y">
+            {services.map(svc => (
+              <div key={svc.id} data-testid={`service-row-${svc.id}`}>
+                <div className="flex items-center gap-3 p-3 hover:bg-muted/20 cursor-pointer" onClick={() => setExpandedId(expandedId === svc.id ? null : svc.id)}>
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                    <Tag className="h-4 w-4 text-primary" />
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    AED {svc.basePriceAed} base
-                    {svc.timelineDays && ` · ${svc.timelineDays} days`}
-                    {" · "}{svc.documentClassApplicability}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{svc.name}</span>
+                      <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${categoryBadgeColor(svc.category)}`}>{svc.category}</span>
+                      {!svc.active && <Badge variant="outline" className="text-xs text-muted-foreground">Inactive</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      AED {svc.basePriceAed} base
+                      {svc.timelineDays && ` · ${svc.timelineDays} days`}
+                      {" · "}{svc.documentClassApplicability}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={svc.active}
+                      onCheckedChange={active => { toggleActiveMutation.mutate({ id: svc.id, active }); }}
+                      onClick={e => e.stopPropagation()}
+                      data-testid={`switch-service-active-${svc.id}`}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8"
+                      onClick={e => { e.stopPropagation(); openEdit(svc); }}
+                      data-testid={`button-edit-service-${svc.id}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <span className="text-muted-foreground">
+                      {expandedId === svc.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={svc.active}
-                    onCheckedChange={active => { toggleActiveMutation.mutate({ id: svc.id, active }); }}
-                    onClick={e => e.stopPropagation()}
-                    data-testid={`switch-service-active-${svc.id}`}
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8"
-                    onClick={e => { e.stopPropagation(); openEdit(svc); }}
-                    data-testid={`button-edit-service-${svc.id}`}
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  <span className="text-muted-foreground">
-                    {expandedId === svc.id ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  </span>
-                </div>
+                {expandedId === svc.id && <ServiceDetailPanel service={svc} categories={categories} />}
               </div>
-              {expandedId === svc.id && <ServiceDetailPanel service={svc} />}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={open => { if (!open) { setDialogOpen(false); setEditingService(null); } }}>
         <DialogContent className="max-w-lg">
@@ -415,10 +642,17 @@ export function AttestationServicesTab() {
                 <Label>Category *</Label>
                 <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v }))}>
                   <SelectTrigger data-testid="select-service-category">
-                    <SelectValue />
+                    <SelectValue placeholder={categoriesLoading ? "Loading..." : "Select category"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {categories.map(c => (
+                      <SelectItem key={c.id} value={c.name}>
+                        {c.name}{!c.active ? " (inactive)" : ""}
+                      </SelectItem>
+                    ))}
+                    {form.category && !categories.some(c => c.name === form.category) && (
+                      <SelectItem value={form.category}>{form.category} (legacy)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

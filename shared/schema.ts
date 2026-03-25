@@ -94,7 +94,6 @@ export const deletionRequestStatusEnum = pgEnum("deletion_request_status", ["pen
 
 // Attestation enums
 export const vendorTypeEnum = pgEnum("vendor_type", ["Typing", "Attestation"]);
-export const attestationCategoryEnum = pgEnum("attestation_category", ["MofaUAE", "MofaHomeCountry", "Embassy", "Lawyer", "Other"]);
 export const documentClassEnum = pgEnum("document_class", ["Personal", "Business", "Both"]);
 export const srStatusEnum = pgEnum("sr_status", ["Draft", "SentToVendor", "AcceptedByVendor", "InProgress", "Completed", "Cancelled"]);
 export const physicalCustodyStatusEnum = pgEnum("physical_custody_status", ["WithClient", "WithUs", "WithVendor", "ReturnedToClient"]);
@@ -762,11 +761,19 @@ export const passwordResetRequests = pgTable("password_reset_requests", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Attestation Categories table — admin-managed, replaces the old enum
+export const attestationCategories = pgTable("attestation_categories", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull().unique(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+});
+
 // Attestation Services catalog table
 export const attestationServices = pgTable("attestation_services", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
-  category: attestationCategoryEnum("category").notNull(),
+  category: text("category").notNull(),
   documentClassApplicability: documentClassEnum("document_class_applicability").notNull().default("Both"),
   basePriceAed: numeric("base_price_aed", { precision: 10, scale: 2 }).notNull().default("0"),
   timelineDays: integer("timeline_days"),
@@ -792,7 +799,7 @@ export const attestationServiceStepDefinitions = pgTable("attestation_service_st
   serviceId: varchar("service_id").notNull().references(() => attestationServices.id, { onDelete: "cascade" }),
   stepOrder: integer("step_order").notNull(),
   stepName: text("step_name").notNull(),
-  stepType: attestationCategoryEnum("step_type").notNull(),
+  stepType: text("step_type").notNull(),
   description: text("description"),
 }, (table) => [
   index("idx_attest_step_defs_service_id").on(table.serviceId),
@@ -851,7 +858,7 @@ export const attestationSrSteps = pgTable("attestation_sr_steps", {
   srId: varchar("sr_id").notNull().references(() => attestationServiceRequests.id, { onDelete: "cascade" }),
   stepOrder: integer("step_order").notNull(),
   stepName: text("step_name").notNull(),
-  stepType: attestationCategoryEnum("step_type").notNull(),
+  stepType: text("step_type").notNull(),
   status: srStepStatusEnum("status").notNull().default("Pending"),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
@@ -1077,6 +1084,11 @@ export const deletionRequests = pgTable("deletion_requests", {
 export const insertDeletionRequestSchema = createInsertSchema(deletionRequests).omit({ id: true, createdAt: true, reviewedBy: true, reviewedAt: true, reviewNote: true });
 export type InsertDeletionRequest = z.infer<typeof insertDeletionRequestSchema>;
 export type DeletionRequest = typeof deletionRequests.$inferSelect;
+
+// Attestation Categories insert schemas and types
+export const insertAttestationCategorySchema = createInsertSchema(attestationCategories).omit({ id: true });
+export type InsertAttestationCategory = z.infer<typeof insertAttestationCategorySchema>;
+export type AttestationCategory = typeof attestationCategories.$inferSelect;
 
 // Attestation insert schemas and types (Service Catalog)
 export const insertAttestationServiceSchema = createInsertSchema(attestationServices).omit({ id: true });

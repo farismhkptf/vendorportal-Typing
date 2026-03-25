@@ -8,7 +8,7 @@ import {
   medicalCases, appointmentCycles, medicalAppointmentEvents,
   biometricsCases, biometricsAppointmentCycles, biometricsAppointmentEvents,
   deletionRequests,
-  attestationServices, attestationServiceVariants, attestationServiceStepDefinitions,
+  attestationCategories, attestationServices, attestationServiceVariants, attestationServiceStepDefinitions,
   attestationServiceRequests, attestationSrSteps, attestationSrActivityLog,
   attestationInquiries, attestationInquiryQuotes,
   documentCustodyLog,
@@ -38,6 +38,7 @@ import {
   type BiometricsCycle, type InsertBiometricsCycle,
   type BiometricsEvent, type InsertBiometricsEvent,
   type DeletionRequest, type InsertDeletionRequest,
+  type AttestationCategory, type InsertAttestationCategory,
   type AttestationService, type InsertAttestationService,
   type AttestationServiceVariant, type InsertAttestationServiceVariant,
   type AttestationServiceStepDefinition, type InsertAttestationServiceStepDefinition,
@@ -318,6 +319,16 @@ export interface IStorage {
   getBiometricsEventsByCycle(cycleId: string): Promise<BiometricsEvent[]>;
   getBiometricsCyclesDueForAwaitingMeeting(): Promise<BiometricsCycle[]>;
   getBiometricsCyclesDueForNoShow(): Promise<BiometricsCycle[]>;
+
+  // Attestation Categories
+  getAttestationCategories(activeOnly?: boolean): Promise<AttestationCategory[]>;
+  getAttestationCategoryById(id: string): Promise<AttestationCategory | undefined>;
+  getAttestationCategoryByName(name: string): Promise<AttestationCategory | undefined>;
+  createAttestationCategory(data: InsertAttestationCategory): Promise<AttestationCategory>;
+  updateAttestationCategory(id: string, data: Partial<InsertAttestationCategory>): Promise<AttestationCategory | undefined>;
+  deleteAttestationCategory(id: string): Promise<boolean>;
+  renameAttestationCategoryInServices(oldName: string, newName: string): Promise<void>;
+  seedAttestationCategories(): Promise<void>;
 
   // Attestation Services Catalog
   getAttestationServices(activeOnly?: boolean): Promise<AttestationService[]>;
@@ -2164,6 +2175,58 @@ export class DatabaseStorage implements IStorage {
       .from(deletionRequests)
       .where(eq(deletionRequests.status, "pending"));
     return Number(result?.count || 0);
+  }
+
+  // Attestation Categories
+  async getAttestationCategories(activeOnly = false): Promise<AttestationCategory[]> {
+    if (activeOnly) {
+      return db.select().from(attestationCategories).where(eq(attestationCategories.active, true)).orderBy(attestationCategories.sortOrder, attestationCategories.name);
+    }
+    return db.select().from(attestationCategories).orderBy(attestationCategories.sortOrder, attestationCategories.name);
+  }
+
+  async getAttestationCategoryById(id: string): Promise<AttestationCategory | undefined> {
+    const [row] = await db.select().from(attestationCategories).where(eq(attestationCategories.id, id));
+    return row || undefined;
+  }
+
+  async getAttestationCategoryByName(name: string): Promise<AttestationCategory | undefined> {
+    const [row] = await db.select().from(attestationCategories).where(eq(attestationCategories.name, name));
+    return row || undefined;
+  }
+
+  async createAttestationCategory(data: InsertAttestationCategory): Promise<AttestationCategory> {
+    const [row] = await db.insert(attestationCategories).values(data).returning();
+    return row;
+  }
+
+  async updateAttestationCategory(id: string, data: Partial<InsertAttestationCategory>): Promise<AttestationCategory | undefined> {
+    const [row] = await db.update(attestationCategories).set(data).where(eq(attestationCategories.id, id)).returning();
+    return row || undefined;
+  }
+
+  async deleteAttestationCategory(id: string): Promise<boolean> {
+    const result = await db.delete(attestationCategories).where(eq(attestationCategories.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async renameAttestationCategoryInServices(oldName: string, newName: string): Promise<void> {
+    await db.update(attestationServices).set({ category: newName }).where(eq(attestationServices.category, oldName));
+    await db.update(attestationServiceStepDefinitions).set({ stepType: newName }).where(eq(attestationServiceStepDefinitions.stepType, oldName));
+    await db.update(attestationSrSteps).set({ stepType: newName }).where(eq(attestationSrSteps.stepType, oldName));
+  }
+
+  async seedAttestationCategories(): Promise<void> {
+    const existingCategories = await db.select().from(attestationCategories);
+    if (existingCategories.length > 0) return;
+    const defaults = [
+      { name: "MofaUAE", sortOrder: 0, active: true },
+      { name: "MofaHomeCountry", sortOrder: 1, active: true },
+      { name: "Embassy", sortOrder: 2, active: true },
+      { name: "Lawyer", sortOrder: 3, active: true },
+      { name: "Other", sortOrder: 4, active: true },
+    ];
+    await db.insert(attestationCategories).values(defaults);
   }
 
   // Attestation Services Catalog

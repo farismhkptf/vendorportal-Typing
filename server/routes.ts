@@ -27,6 +27,7 @@ import { sendEmail, isEmailConfigured } from "./email-service";
 import UAParser from "ua-parser-js";
 import { generateAppointmentPass } from "./apple-pass";
 import { RESTORE_SNAPSHOT_SQL } from "./restore-snapshot-data";
+import { pool } from "./db";
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
@@ -489,6 +490,66 @@ async function revertDelayedWorkOrder(woId: string): Promise<void> {
   }
 }
 
+async function runAttestationCategoryMigration(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    // Create the attestation_categories table if it does not exist
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS attestation_categories (
+        id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL UNIQUE,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        active BOOLEAN NOT NULL DEFAULT true
+      )
+    `);
+
+    // Convert attestation_services.category from enum to text if needed
+    const svcColResult = await client.query(`
+      SELECT data_type FROM information_schema.columns
+      WHERE table_name = 'attestation_services' AND column_name = 'category'
+    `);
+    if (svcColResult.rows.length > 0 && svcColResult.rows[0].data_type === 'USER-DEFINED') {
+      await client.query(`ALTER TABLE attestation_services ALTER COLUMN category TYPE TEXT USING category::TEXT`);
+      console.log("[migration] converted attestation_services.category from enum to text");
+    }
+
+    // Convert attestation_service_step_definitions.step_type from enum to text if needed
+    const stepDefColResult = await client.query(`
+      SELECT data_type FROM information_schema.columns
+      WHERE table_name = 'attestation_service_step_definitions' AND column_name = 'step_type'
+    `);
+    if (stepDefColResult.rows.length > 0 && stepDefColResult.rows[0].data_type === 'USER-DEFINED') {
+      await client.query(`ALTER TABLE attestation_service_step_definitions ALTER COLUMN step_type TYPE TEXT USING step_type::TEXT`);
+      console.log("[migration] converted attestation_service_step_definitions.step_type from enum to text");
+    }
+
+    // Convert attestation_sr_steps.step_type from enum to text if needed
+    const srStepColResult = await client.query(`
+      SELECT data_type FROM information_schema.columns
+      WHERE table_name = 'attestation_sr_steps' AND column_name = 'step_type'
+    `);
+    if (srStepColResult.rows.length > 0 && srStepColResult.rows[0].data_type === 'USER-DEFINED') {
+      await client.query(`ALTER TABLE attestation_sr_steps ALTER COLUMN step_type TYPE TEXT USING step_type::TEXT`);
+      console.log("[migration] converted attestation_sr_steps.step_type from enum to text");
+    }
+
+    // Drop the old attestation_category enum type if it still exists and is no longer in use
+    const enumResult = await client.query(`
+      SELECT typname FROM pg_type WHERE typname = 'attestation_category'
+    `);
+    if (enumResult.rows.length > 0) {
+      await client.query(`DROP TYPE IF EXISTS attestation_category`);
+      console.log("[migration] dropped old attestation_category enum type");
+    }
+
+    // Seed default categories
+    await storage.seedAttestationCategories();
+    console.log("[migration] attestation categories seeded");
+  } finally {
+    client.release();
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -502,6 +563,13 @@ export async function registerRoutes(
   
   // Seed database on startup
   await storage.seedData();
+
+  // Run attestation category migration: convert enum columns to text and seed categories table
+  try {
+    await runAttestationCategoryMigration();
+  } catch (migErr) {
+    console.error("[migration] attestation category migration error:", migErr);
+  }
 
   // Run delay detection every 15 minutes
   setInterval(() => {
@@ -9544,6 +9612,96 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Deletion request deny error:", error);
       res.status(500).json({ message: "Failed to deny deletion request" });
+    }
+  });
+
+  // ========== Attestation Categories (Admin CRUD) ==========
+  app.get("/api/admin/attestation-categories", requireAuth, async (req, res) => {
+    try {
+      const activeOnly = req.query.activeOnly === "true";
+      const categories = await storage.getAttestationCategories(activeOnly);
+      res.json(categories);
+    } catch (err) {
+      console.error("[attestation-categories] get error:", err);
+      res.status(500).json({ message: "Failed to fetch attestation categories" });
+    }
+  });
+
+  app.post("/api/admin/attestation-categories", requireRole("Admin"), async (req, res) => {
+    try {
+      const { name, sortOrder, active } = req.body;
+      if (!name || !name.trim()) return res.status(400).json({ message: "name is required" });
+      const existing = await storage.getAttestationCategoryByName(name.trim());
+      if (existing) return res.status(409).json({ message: "A category with that name already exists" });
+      const allCategories = await storage.getAttestationCategories();
+      const nextOrder = typeof sortOrder === "number" ? sortOrder : allCategories.length;
+      const category = await storage.createAttestationCategory({
+        name: name.trim(),
+        sortOrder: nextOrder,
+        active: active ?? true,
+      });
+      res.status(201).json(category);
+    } catch (err) {
+      console.error("[attestation-categories] create error:", err);
+      res.status(500).json({ message: "Failed to create attestation category" });
+    }
+  });
+
+  app.patch("/api/admin/attestation-categories/:id", requireRole("Admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { name, sortOrder, active } = req.body;
+      const existing = await storage.getAttestationCategoryById(id);
+      if (!existing) return res.status(404).json({ message: "Category not found" });
+      if (name !== undefined && name.trim() !== existing.name) {
+        const conflict = await storage.getAttestationCategoryByName(name.trim());
+        if (conflict && conflict.id !== id) return res.status(409).json({ message: "A category with that name already exists" });
+        // Cascade the rename to all services and step records
+        await storage.renameAttestationCategoryInServices(existing.name, name.trim());
+      }
+      const updated = await storage.updateAttestationCategory(id, {
+        ...(name !== undefined ? { name: name.trim() } : {}),
+        ...(sortOrder !== undefined ? { sortOrder } : {}),
+        ...(active !== undefined ? { active } : {}),
+      });
+      if (!updated) return res.status(404).json({ message: "Category not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("[attestation-categories] update error:", err);
+      res.status(500).json({ message: "Failed to update attestation category" });
+    }
+  });
+
+  app.delete("/api/admin/attestation-categories/:id", requireRole("Admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const category = await storage.getAttestationCategoryById(id);
+      if (!category) return res.status(404).json({ message: "Category not found" });
+      // Block deletion if any service uses this category
+      const allServices = await storage.getAttestationServices();
+      const inUse = allServices.some(svc => svc.category === category.name);
+      if (inUse) return res.status(409).json({ message: "Cannot delete: this category is in use by one or more services" });
+      await storage.deleteAttestationCategory(id);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[attestation-categories] delete error:", err);
+      res.status(500).json({ message: "Failed to delete attestation category" });
+    }
+  });
+
+  // Bulk reorder categories
+  app.put("/api/admin/attestation-categories/reorder", requireRole("Admin"), async (req, res) => {
+    try {
+      const { ids } = req.body;
+      if (!Array.isArray(ids)) return res.status(400).json({ message: "ids array is required" });
+      await Promise.all(ids.map((id: string, index: number) =>
+        storage.updateAttestationCategory(id, { sortOrder: index })
+      ));
+      const updated = await storage.getAttestationCategories();
+      res.json(updated);
+    } catch (err) {
+      console.error("[attestation-categories] reorder error:", err);
+      res.status(500).json({ message: "Failed to reorder categories" });
     }
   });
 
