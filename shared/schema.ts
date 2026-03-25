@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, json, pgEnum, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, json, pgEnum, index, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -91,6 +91,14 @@ export const approvalStatusEnum = pgEnum("approval_status", ["Pending", "Approve
 export const changeNotificationStatusEnum = pgEnum("change_notification_status", ["pending", "reviewed", "dismissed"]);
 export const passwordResetStatusEnum = pgEnum("password_reset_status", ["pending", "approved", "rejected"]);
 export const deletionRequestStatusEnum = pgEnum("deletion_request_status", ["pending", "approved", "denied"]);
+
+// Attestation enums
+export const vendorTypeEnum = pgEnum("vendor_type", ["Typing", "Attestation"]);
+export const attestationCategoryEnum = pgEnum("attestation_category", ["MofaUAE", "MofaHomeCountry", "Embassy", "Lawyer", "Other"]);
+export const documentClassEnum = pgEnum("document_class", ["Personal", "Business", "Both"]);
+export const srStatusEnum = pgEnum("sr_status", ["Draft", "SentToVendor", "AcceptedByVendor", "InProgress", "Completed", "Cancelled"]);
+export const physicalCustodyStatusEnum = pgEnum("physical_custody_status", ["WithClient", "WithUs", "WithVendor", "ReturnedToClient"]);
+export const srStepStatusEnum = pgEnum("sr_step_status", ["Pending", "InProgress", "Done"]);
 
 // Medical Appointment Scheduling enums
 export const medicalApptStatusEnum = pgEnum("medical_appt_status", [
@@ -492,6 +500,7 @@ export const vendors = pgTable("vendors", {
   email: text("email"),
   active: boolean("active").notNull().default(true),
   logoUrl: text("logo_url"),
+  vendorType: vendorTypeEnum("vendor_type").notNull().default("Typing"),
 });
 
 // Typing Jobs table
@@ -753,6 +762,99 @@ export const passwordResetRequests = pgTable("password_reset_requests", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Attestation Services catalog table
+export const attestationServices = pgTable("attestation_services", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  category: attestationCategoryEnum("category").notNull(),
+  documentClassApplicability: documentClassEnum("document_class_applicability").notNull().default("Both"),
+  basePriceAed: numeric("base_price_aed", { precision: 10, scale: 2 }).notNull().default("0"),
+  timelineDays: integer("timeline_days"),
+  description: text("description"),
+  active: boolean("active").notNull().default(true),
+});
+
+// Attestation Service Variants table (e.g. per country/embassy)
+export const attestationServiceVariants = pgTable("attestation_service_variants", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceId: varchar("service_id").notNull().references(() => attestationServices.id, { onDelete: "cascade" }),
+  variantLabel: text("variant_label").notNull(),
+  priceAed: numeric("price_aed", { precision: 10, scale: 2 }).notNull().default("0"),
+  timelineDays: integer("timeline_days"),
+  active: boolean("active").notNull().default(true),
+}, (table) => [
+  index("idx_attest_svc_variants_service_id").on(table.serviceId),
+]);
+
+// Attestation Service Step Definitions table
+export const attestationServiceStepDefinitions = pgTable("attestation_service_step_definitions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceId: varchar("service_id").notNull().references(() => attestationServices.id, { onDelete: "cascade" }),
+  stepOrder: integer("step_order").notNull(),
+  stepName: text("step_name").notNull(),
+  stepType: attestationCategoryEnum("step_type").notNull(),
+  description: text("description"),
+}, (table) => [
+  index("idx_attest_step_defs_service_id").on(table.serviceId),
+]);
+
+// Attestation Service Requests table
+export const attestationServiceRequests = pgTable("attestation_service_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  externalWoNumber: text("external_wo_number").notNull(),
+  inquiryId: varchar("inquiry_id"),
+  companyId: varchar("company_id").notNull().references(() => companies.id),
+  applicantName: text("applicant_name"),
+  vendorId: varchar("vendor_id").notNull().references(() => vendors.id),
+  attestationServiceId: varchar("attestation_service_id").notNull().references(() => attestationServices.id),
+  serviceVariantId: varchar("service_variant_id").references(() => attestationServiceVariants.id),
+  documentType: text("document_type").notNull(),
+  documentNameDescription: text("document_name_description").notNull(),
+  documentClass: documentClassEnum("document_class").notNull(),
+  homeCountry: text("home_country"),
+  originalDocumentInvolved: boolean("original_document_involved").notNull().default(false),
+  status: srStatusEnum("status").notNull().default("Draft"),
+  physicalCustodyStatus: physicalCustodyStatusEnum("physical_custody_status").notNull().default("WithClient"),
+  currentCustodian: text("current_custodian"),
+  currentResponsibleStaffId: varchar("current_responsible_staff_id").references(() => users.id),
+  serviceFeeAed: numeric("service_fee_aed", { precision: 10, scale: 2 }),
+  internalNotes: text("internal_notes"),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_attest_sr_company_id").on(table.companyId),
+  index("idx_attest_sr_vendor_id").on(table.vendorId),
+  index("idx_attest_sr_status").on(table.status),
+]);
+
+// Attestation SR Steps table
+export const attestationSrSteps = pgTable("attestation_sr_steps", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  srId: varchar("sr_id").notNull().references(() => attestationServiceRequests.id, { onDelete: "cascade" }),
+  stepOrder: integer("step_order").notNull(),
+  stepName: text("step_name").notNull(),
+  stepType: attestationCategoryEnum("step_type").notNull(),
+  status: srStepStatusEnum("status").notNull().default("Pending"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  notes: text("notes"),
+}, (table) => [
+  index("idx_attest_sr_steps_sr_id").on(table.srId),
+]);
+
+// Attestation SR Activity Log
+export const attestationSrActivityLog = pgTable("attestation_sr_activity_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  srId: varchar("sr_id").notNull().references(() => attestationServiceRequests.id, { onDelete: "cascade" }),
+  action: text("action").notNull(),
+  detail: text("detail"),
+  performedBy: varchar("performed_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_attest_sr_activity_sr_id").on(table.srId),
+]);
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertStaffSchema = createInsertSchema(staff).omit({ id: true });
@@ -938,3 +1040,28 @@ export const deletionRequests = pgTable("deletion_requests", {
 export const insertDeletionRequestSchema = createInsertSchema(deletionRequests).omit({ id: true, createdAt: true, reviewedBy: true, reviewedAt: true, reviewNote: true });
 export type InsertDeletionRequest = z.infer<typeof insertDeletionRequestSchema>;
 export type DeletionRequest = typeof deletionRequests.$inferSelect;
+
+// Attestation insert schemas and types
+export const insertAttestationServiceSchema = createInsertSchema(attestationServices).omit({ id: true });
+export type InsertAttestationService = z.infer<typeof insertAttestationServiceSchema>;
+export type AttestationService = typeof attestationServices.$inferSelect;
+
+export const insertAttestationServiceVariantSchema = createInsertSchema(attestationServiceVariants).omit({ id: true });
+export type InsertAttestationServiceVariant = z.infer<typeof insertAttestationServiceVariantSchema>;
+export type AttestationServiceVariant = typeof attestationServiceVariants.$inferSelect;
+
+export const insertAttestationServiceStepDefinitionSchema = createInsertSchema(attestationServiceStepDefinitions).omit({ id: true });
+export type InsertAttestationServiceStepDefinition = z.infer<typeof insertAttestationServiceStepDefinitionSchema>;
+export type AttestationServiceStepDefinition = typeof attestationServiceStepDefinitions.$inferSelect;
+
+export const insertAttestationServiceRequestSchema = createInsertSchema(attestationServiceRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertAttestationServiceRequest = z.infer<typeof insertAttestationServiceRequestSchema>;
+export type AttestationServiceRequest = typeof attestationServiceRequests.$inferSelect;
+
+export const insertAttestationSrStepSchema = createInsertSchema(attestationSrSteps).omit({ id: true });
+export type InsertAttestationSrStep = z.infer<typeof insertAttestationSrStepSchema>;
+export type AttestationSrStep = typeof attestationSrSteps.$inferSelect;
+
+export const insertAttestationSrActivityLogSchema = createInsertSchema(attestationSrActivityLog).omit({ id: true, createdAt: true });
+export type InsertAttestationSrActivityLog = z.infer<typeof insertAttestationSrActivityLogSchema>;
+export type AttestationSrActivityLog = typeof attestationSrActivityLog.$inferSelect;

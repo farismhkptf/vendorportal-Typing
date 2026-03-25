@@ -16,7 +16,8 @@ import {
   KeyRound,
   Clock,
   Shield,
-  HelpCircle
+  HelpCircle,
+  FileCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ const allNavigation = [
   { name: "Work Orders", href: "/work-orders", icon: FileText, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Appointments", href: "/appointments", icon: Stethoscope, roles: null },
   { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList, roles: ["Admin", "Client Relationship Manager"] as string[] },
+  { name: "Attestation SRs", href: "/attestation-sr", icon: FileCheck, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Companies", href: "/companies", icon: Building2, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: ["Admin", "Client Relationship Manager"] as string[] },

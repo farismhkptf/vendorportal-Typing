@@ -71,6 +71,7 @@ import { z } from "zod";
 import type { Center, Staff, ServiceType, JobType, AppSettings, Company, CompanyEmail, Vendor } from "@shared/schema";
 import { toProperCase } from "@/lib/proper-case";
 import { ApiKeysTab } from "./api-keys-tab";
+import { AttestationServicesTab } from "./attestation-services-tab";
 import { formatDate } from "@/lib/format-date";
 
 
@@ -152,6 +153,7 @@ const vendorSchema = z.object({
   contactPerson: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
+  vendorType: z.enum(["Typing", "Attestation"]).default("Typing"),
 });
 
 type ImportResult = {
@@ -1037,6 +1039,7 @@ export default function AdminPage() {
       contactPerson: "",
       phone: "",
       email: "",
+      vendorType: "Typing",
     },
   });
 
@@ -1138,6 +1141,7 @@ export default function AdminPage() {
       contactPerson: "",
       phone: "",
       email: "",
+      vendorType: "Typing",
     },
   });
 
@@ -2478,6 +2482,9 @@ export default function AdminPage() {
                       <Inbox className="h-4 w-4 mr-1.5" />
                       Deletion Requests
                       <DeletionRequestsBadge />
+                    </TabsTrigger>
+                    <TabsTrigger value="attestation-services" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-attestation-services">
+                      Attestation Services
                     </TabsTrigger>
                   </>
                 )}
@@ -5098,6 +5105,27 @@ export default function AdminPage() {
                             </FormItem>
                           )}
                         />
+                        <FormField
+                          control={vendorForm.control}
+                          name="vendorType"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Vendor Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-vendor-type">
+                                    <SelectValue placeholder="Select type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Typing">Typing</SelectItem>
+                                  <SelectItem value="Attestation">Attestation</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                         <div className="flex justify-end">
                           <Button type="submit" disabled={createVendorMutation.isPending} data-testid="button-save-vendor">
                             {createVendorMutation.isPending ? "Adding..." : "Add Vendor"}
@@ -5179,6 +5207,27 @@ export default function AdminPage() {
                             <FormControl>
                               <Input type="email" {...field} data-testid="input-edit-vendor-email" />
                             </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={editVendorForm.control}
+                        name="vendorType"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Vendor Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-edit-vendor-type">
+                                  <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="Typing">Typing</SelectItem>
+                                <SelectItem value="Attestation">Attestation</SelectItem>
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -5294,6 +5343,7 @@ export default function AdminPage() {
                                 contactPerson: vendor.contactPerson || "",
                                 phone: vendor.phone || "",
                                 email: vendor.email || "",
+                                vendorType: (vendor.vendorType ?? "Typing") as "Typing" | "Attestation",
                               });
                               setEditVendorDialogOpen(true);
                             }}
@@ -5782,6 +5832,10 @@ export default function AdminPage() {
 
             <TabsContent value="deletionrequests" className="p-4">
               <DeletionRequestsTab />
+            </TabsContent>
+
+            <TabsContent value="attestation-services" className="p-4">
+              <AttestationServicesTab />
             </TabsContent>
           </Tabs>
         </div>

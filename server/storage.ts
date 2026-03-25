@@ -8,6 +8,8 @@ import {
   medicalCases, appointmentCycles, medicalAppointmentEvents,
   biometricsCases, biometricsAppointmentCycles, biometricsAppointmentEvents,
   deletionRequests,
+  attestationServices, attestationServiceVariants, attestationServiceStepDefinitions,
+  attestationServiceRequests, attestationSrSteps, attestationSrActivityLog,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -34,6 +36,12 @@ import {
   type BiometricsCycle, type InsertBiometricsCycle,
   type BiometricsEvent, type InsertBiometricsEvent,
   type DeletionRequest, type InsertDeletionRequest,
+  type AttestationService, type InsertAttestationService,
+  type AttestationServiceVariant, type InsertAttestationServiceVariant,
+  type AttestationServiceStepDefinition, type InsertAttestationServiceStepDefinition,
+  type AttestationServiceRequest, type InsertAttestationServiceRequest,
+  type AttestationSrStep, type InsertAttestationSrStep,
+  type AttestationSrActivityLog, type InsertAttestationSrActivityLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
@@ -305,6 +313,35 @@ export interface IStorage {
   getBiometricsEventsByCycle(cycleId: string): Promise<BiometricsEvent[]>;
   getBiometricsCyclesDueForAwaitingMeeting(): Promise<BiometricsCycle[]>;
   getBiometricsCyclesDueForNoShow(): Promise<BiometricsCycle[]>;
+
+  // Attestation Services Catalog
+  getAttestationServices(activeOnly?: boolean): Promise<AttestationService[]>;
+  getAttestationServiceById(id: string): Promise<AttestationService | undefined>;
+  createAttestationService(data: InsertAttestationService): Promise<AttestationService>;
+  updateAttestationService(id: string, data: Partial<InsertAttestationService>): Promise<AttestationService | undefined>;
+  getAttestationServiceVariants(serviceId: string): Promise<AttestationServiceVariant[]>;
+  getAttestationServiceVariantById(id: string): Promise<AttestationServiceVariant | undefined>;
+  createAttestationServiceVariant(data: InsertAttestationServiceVariant): Promise<AttestationServiceVariant>;
+  updateAttestationServiceVariant(id: string, data: Partial<InsertAttestationServiceVariant>): Promise<AttestationServiceVariant | undefined>;
+  deleteAttestationServiceVariant(id: string): Promise<boolean>;
+  getAttestationServiceStepDefinitions(serviceId: string): Promise<AttestationServiceStepDefinition[]>;
+  createAttestationServiceStepDefinition(data: InsertAttestationServiceStepDefinition): Promise<AttestationServiceStepDefinition>;
+  updateAttestationServiceStepDefinition(id: string, data: Partial<InsertAttestationServiceStepDefinition>): Promise<AttestationServiceStepDefinition | undefined>;
+  deleteAttestationServiceStepDefinition(id: string): Promise<boolean>;
+  replaceAttestationServiceStepDefinitions(serviceId: string, steps: Omit<InsertAttestationServiceStepDefinition, 'serviceId'>[]): Promise<AttestationServiceStepDefinition[]>;
+
+  // Attestation Service Requests
+  getAttestationServiceRequests(filters?: { status?: string; companyId?: string; vendorId?: string }): Promise<AttestationServiceRequest[]>;
+  getAttestationServiceRequestById(id: string): Promise<AttestationServiceRequest | undefined>;
+  createAttestationServiceRequest(data: InsertAttestationServiceRequest): Promise<AttestationServiceRequest>;
+  updateAttestationServiceRequest(id: string, data: Partial<InsertAttestationServiceRequest>): Promise<AttestationServiceRequest | undefined>;
+  getAttestationSrSteps(srId: string): Promise<AttestationSrStep[]>;
+  createAttestationSrStep(data: InsertAttestationSrStep): Promise<AttestationSrStep>;
+  updateAttestationSrStep(id: string, data: Partial<InsertAttestationSrStep>): Promise<AttestationSrStep | undefined>;
+  getAttestationSrActivityLog(srId: string): Promise<AttestationSrActivityLog[]>;
+  createAttestationSrActivityLog(data: InsertAttestationSrActivityLog): Promise<AttestationSrActivityLog>;
+  getAttestationServiceRequestsByVendorId(vendorId: string): Promise<AttestationServiceRequest[]>;
+  getAttestationVendors(): Promise<Vendor[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2105,6 +2142,149 @@ export class DatabaseStorage implements IStorage {
       .from(deletionRequests)
       .where(eq(deletionRequests.status, "pending"));
     return Number(result?.count || 0);
+  }
+
+  // Attestation Services Catalog
+  async getAttestationServices(activeOnly = false): Promise<AttestationService[]> {
+    if (activeOnly) {
+      return db.select().from(attestationServices).where(eq(attestationServices.active, true)).orderBy(attestationServices.name);
+    }
+    return db.select().from(attestationServices).orderBy(attestationServices.name);
+  }
+
+  async getAttestationServiceById(id: string): Promise<AttestationService | undefined> {
+    const [row] = await db.select().from(attestationServices).where(eq(attestationServices.id, id));
+    return row || undefined;
+  }
+
+  async createAttestationService(data: InsertAttestationService): Promise<AttestationService> {
+    const [row] = await db.insert(attestationServices).values(data).returning();
+    return row;
+  }
+
+  async updateAttestationService(id: string, data: Partial<InsertAttestationService>): Promise<AttestationService | undefined> {
+    const [row] = await db.update(attestationServices).set(data).where(eq(attestationServices.id, id)).returning();
+    return row || undefined;
+  }
+
+  async getAttestationServiceVariants(serviceId: string): Promise<AttestationServiceVariant[]> {
+    return db.select().from(attestationServiceVariants)
+      .where(eq(attestationServiceVariants.serviceId, serviceId))
+      .orderBy(attestationServiceVariants.variantLabel);
+  }
+
+  async getAttestationServiceVariantById(id: string): Promise<AttestationServiceVariant | undefined> {
+    const [row] = await db.select().from(attestationServiceVariants).where(eq(attestationServiceVariants.id, id));
+    return row || undefined;
+  }
+
+  async createAttestationServiceVariant(data: InsertAttestationServiceVariant): Promise<AttestationServiceVariant> {
+    const [row] = await db.insert(attestationServiceVariants).values(data).returning();
+    return row;
+  }
+
+  async updateAttestationServiceVariant(id: string, data: Partial<InsertAttestationServiceVariant>): Promise<AttestationServiceVariant | undefined> {
+    const [row] = await db.update(attestationServiceVariants).set(data).where(eq(attestationServiceVariants.id, id)).returning();
+    return row || undefined;
+  }
+
+  async deleteAttestationServiceVariant(id: string): Promise<boolean> {
+    const result = await db.delete(attestationServiceVariants).where(eq(attestationServiceVariants.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getAttestationServiceStepDefinitions(serviceId: string): Promise<AttestationServiceStepDefinition[]> {
+    return db.select().from(attestationServiceStepDefinitions)
+      .where(eq(attestationServiceStepDefinitions.serviceId, serviceId))
+      .orderBy(attestationServiceStepDefinitions.stepOrder);
+  }
+
+  async createAttestationServiceStepDefinition(data: InsertAttestationServiceStepDefinition): Promise<AttestationServiceStepDefinition> {
+    const [row] = await db.insert(attestationServiceStepDefinitions).values(data).returning();
+    return row;
+  }
+
+  async updateAttestationServiceStepDefinition(id: string, data: Partial<InsertAttestationServiceStepDefinition>): Promise<AttestationServiceStepDefinition | undefined> {
+    const [row] = await db.update(attestationServiceStepDefinitions).set(data).where(eq(attestationServiceStepDefinitions.id, id)).returning();
+    return row || undefined;
+  }
+
+  async deleteAttestationServiceStepDefinition(id: string): Promise<boolean> {
+    const result = await db.delete(attestationServiceStepDefinitions).where(eq(attestationServiceStepDefinitions.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async replaceAttestationServiceStepDefinitions(serviceId: string, steps: Omit<InsertAttestationServiceStepDefinition, 'serviceId'>[]): Promise<AttestationServiceStepDefinition[]> {
+    await db.delete(attestationServiceStepDefinitions).where(eq(attestationServiceStepDefinitions.serviceId, serviceId));
+    if (steps.length === 0) return [];
+    const rows = await db.insert(attestationServiceStepDefinitions)
+      .values(steps.map(s => ({ ...s, serviceId })))
+      .returning();
+    return rows;
+  }
+
+  // Attestation Service Requests
+  async getAttestationServiceRequests(filters?: { status?: string; companyId?: string; vendorId?: string }): Promise<AttestationServiceRequest[]> {
+    const conditions = [];
+    if (filters?.status) conditions.push(eq(attestationServiceRequests.status, filters.status as "Draft" | "SentToVendor" | "AcceptedByVendor" | "InProgress" | "Completed" | "Cancelled"));
+    if (filters?.companyId) conditions.push(eq(attestationServiceRequests.companyId, filters.companyId));
+    if (filters?.vendorId) conditions.push(eq(attestationServiceRequests.vendorId, filters.vendorId));
+    if (conditions.length > 0) {
+      return db.select().from(attestationServiceRequests).where(and(...conditions)).orderBy(desc(attestationServiceRequests.createdAt));
+    }
+    return db.select().from(attestationServiceRequests).orderBy(desc(attestationServiceRequests.createdAt));
+  }
+
+  async getAttestationServiceRequestById(id: string): Promise<AttestationServiceRequest | undefined> {
+    const [row] = await db.select().from(attestationServiceRequests).where(eq(attestationServiceRequests.id, id));
+    return row || undefined;
+  }
+
+  async createAttestationServiceRequest(data: InsertAttestationServiceRequest): Promise<AttestationServiceRequest> {
+    const [row] = await db.insert(attestationServiceRequests).values(data).returning();
+    return row;
+  }
+
+  async updateAttestationServiceRequest(id: string, data: Partial<InsertAttestationServiceRequest>): Promise<AttestationServiceRequest | undefined> {
+    const [row] = await db.update(attestationServiceRequests).set(data).where(eq(attestationServiceRequests.id, id)).returning();
+    return row || undefined;
+  }
+
+  async getAttestationSrSteps(srId: string): Promise<AttestationSrStep[]> {
+    return db.select().from(attestationSrSteps)
+      .where(eq(attestationSrSteps.srId, srId))
+      .orderBy(attestationSrSteps.stepOrder);
+  }
+
+  async createAttestationSrStep(data: InsertAttestationSrStep): Promise<AttestationSrStep> {
+    const [row] = await db.insert(attestationSrSteps).values(data).returning();
+    return row;
+  }
+
+  async updateAttestationSrStep(id: string, data: Partial<InsertAttestationSrStep>): Promise<AttestationSrStep | undefined> {
+    const [row] = await db.update(attestationSrSteps).set(data).where(eq(attestationSrSteps.id, id)).returning();
+    return row || undefined;
+  }
+
+  async getAttestationVendors(): Promise<Vendor[]> {
+    return db.select().from(vendors).where(and(eq(vendors.vendorType, "Attestation"), eq(vendors.active, true)));
+  }
+
+  async getAttestationSrActivityLog(srId: string): Promise<AttestationSrActivityLog[]> {
+    return db.select().from(attestationSrActivityLog)
+      .where(eq(attestationSrActivityLog.srId, srId))
+      .orderBy(desc(attestationSrActivityLog.createdAt));
+  }
+
+  async createAttestationSrActivityLog(data: InsertAttestationSrActivityLog): Promise<AttestationSrActivityLog> {
+    const [row] = await db.insert(attestationSrActivityLog).values(data).returning();
+    return row;
+  }
+
+  async getAttestationServiceRequestsByVendorId(vendorId: string): Promise<AttestationServiceRequest[]> {
+    return db.select().from(attestationServiceRequests)
+      .where(eq(attestationServiceRequests.vendorId, vendorId))
+      .orderBy(desc(attestationServiceRequests.createdAt));
   }
 }
 

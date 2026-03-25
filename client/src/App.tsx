@@ -77,6 +77,9 @@ import TypingJobsList from "@/pages/typing-jobs/index";
 import NewTypingJob from "@/pages/typing-jobs/new";
 import TypingJobDetail from "@/pages/typing-jobs/detail";
 import VendorWallet from "@/pages/vendor-wallet";
+import AttestationSRList from "@/pages/attestation-sr/index";
+import NewAttestationSR from "@/pages/attestation-sr/new";
+import AttestationSRDetail from "@/pages/attestation-sr/detail";
 import AdminPage from "@/pages/admin/index";
 import VendorLogin from "@/pages/vendor/login";
 import V2Dashboard from "@/pages/vendor-v2/dashboard";
@@ -242,6 +245,9 @@ function AppRoutes() {
       <Route path="/typing-jobs/new" component={NewTypingJob} />
       <Route path="/typing-jobs/:id" component={TypingJobDetail} />
       <Route path="/vendor-wallet" component={VendorWallet} />
+      <Route path="/attestation-sr" component={AttestationSRList} />
+      <Route path="/attestation-sr/new" component={NewAttestationSR} />
+      <Route path="/attestation-sr/:id" component={AttestationSRDetail} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/manager-console" component={ManagerConsole} />
       <Route path="/reports" component={ReportsPage} />

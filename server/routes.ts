@@ -211,6 +211,32 @@ function requireRole(...roles: string[]) {
 
 const requireOpsRole = requireRole("Admin", "Client Relationship Manager");
 
+async function requireTypingVendor(req: any, res: any, next: any) {
+  if (!req.session?.vendorUserId) {
+    return res.status(401).json({ message: "Vendor authentication required" });
+  }
+  const vendorId = req.session?.vendorId;
+  if (!vendorId) return res.status(403).json({ message: "Typing vendor access required" });
+  const vendor = await storage.getVendorById(vendorId);
+  if (!vendor || vendor.vendorType !== "Typing") {
+    return res.status(403).json({ message: "Typing vendor access required" });
+  }
+  next();
+}
+
+async function requireAttestationVendor(req: any, res: any, next: any) {
+  if (!req.session?.vendorUserId) {
+    return res.status(401).json({ message: "Vendor authentication required" });
+  }
+  const vendorId = req.session?.vendorId;
+  if (!vendorId) return res.status(403).json({ message: "Attestation vendor access required" });
+  const vendor = await storage.getVendorById(vendorId);
+  if (!vendor || vendor.vendorType !== "Attestation") {
+    return res.status(403).json({ message: "Attestation vendor access required" });
+  }
+  next();
+}
+
 async function checkAndAutoTransitionWorkOrder(woId: string): Promise<void> {
   try {
     const wo = await storage.getWorkOrderById(woId);
@@ -2918,18 +2944,23 @@ export async function registerRoutes(
 
   app.post("/api/vendors", requireOpsRole, async (req, res) => {
     try {
-      const { name, contactPerson, phone, email } = req.body;
+      const { name, contactPerson, phone, email, vendorType } = req.body;
       if (!name) {
         return res.status(400).json({ message: "Vendor name is required" });
       }
       if (!validateEmailField(email)) {
         return res.status(400).json({ message: "Invalid vendor email format" });
       }
+      const validVendorTypes = ["Typing", "Attestation"];
+      if (vendorType && !validVendorTypes.includes(vendorType)) {
+        return res.status(400).json({ message: "Invalid vendorType. Must be Typing or Attestation." });
+      }
       const vendor = await storage.createVendor({
         name: toProperCase(name),
         contactPerson: contactPerson ? toProperCase(contactPerson) : undefined,
         phone,
         email,
+        vendorType: vendorType || "Typing",
       });
       await storage.createAuditLog({
         action: 'created',
@@ -2946,9 +2977,13 @@ export async function registerRoutes(
 
   app.put("/api/vendors/:id", requireOpsRole, async (req, res) => {
     try {
-      const { name, contactPerson, phone, email, active } = req.body;
+      const { name, contactPerson, phone, email, active, vendorType } = req.body;
       if (!validateEmailField(email)) {
         return res.status(400).json({ message: "Invalid vendor email format" });
+      }
+      const validVendorTypes = ["Typing", "Attestation"];
+      if (vendorType && !validVendorTypes.includes(vendorType)) {
+        return res.status(400).json({ message: "Invalid vendorType. Must be Typing or Attestation." });
       }
       const updateData: any = {};
       if (name !== undefined) updateData.name = toProperCase(name);
@@ -2956,6 +2991,7 @@ export async function registerRoutes(
       if (phone !== undefined) updateData.phone = phone;
       if (email !== undefined) updateData.email = email;
       if (active !== undefined) updateData.active = active;
+      if (vendorType !== undefined) updateData.vendorType = vendorType;
       
       const vendor = await storage.updateVendor(req.params.id, updateData);
       if (!vendor) {
@@ -4928,12 +4964,20 @@ export async function registerRoutes(
       req.session.userRole = user.role;
       req.session.userName = user.name;
 
+      let vendorType = "Typing";
+      if (user.vendorId) {
+        const vendorRecord = await storage.getVendorById(user.vendorId);
+        vendorType = vendorRecord?.vendorType || "Typing";
+      }
+      req.session.vendorType = vendorType;
+
       res.json({ 
         id: user.id, 
         name: user.name, 
         email: user.email,
         role: user.role,
-        vendorId: user.vendorId 
+        vendorId: user.vendorId,
+        vendorType,
       });
     } catch (error) {
       console.error("Vendor login error:", error);
@@ -4954,9 +4998,11 @@ export async function registerRoutes(
         req.session.vendorId = user.vendorId;
       }
       let vendorName: string | null = null;
+      let vendorType: string = "Typing";
       if (user.vendorId) {
         const vendor = await storage.getVendorById(user.vendorId);
         vendorName = vendor?.name || null;
+        vendorType = vendor?.vendorType || "Typing";
       }
       res.json({
         id: user.id,
@@ -4965,6 +5011,7 @@ export async function registerRoutes(
         role: user.role,
         vendorId: user.vendorId,
         vendorName,
+        vendorType,
         isAdminViewing: !!req.session.userId && req.session.userId !== req.session.vendorUserId,
       });
     } catch (error) {
@@ -5032,7 +5079,10 @@ export async function registerRoutes(
     });
   });
 
-  // ========== Vendor Notifications ==========
+  // ========== Vendor Notifications (intentionally requireVendorAuth, not requireTypingVendor) ==========
+  // These endpoints are available to ALL vendor types (Typing and Attestation) —
+  // notifications, password change, and read status are not typing-specific.
+  // All typing-data endpoints (wallet, jobs, dashboard, performance) use requireTypingVendor.
   app.get("/api/vendor/notifications", requireVendorAuth, async (req, res) => {
     try {
       const vendorUserId = req.session.vendorUserId;
@@ -5090,7 +5140,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendor/wallet/balance", requireVendorAuth, async (req, res) => {
+  app.get("/api/vendor/wallet/balance", requireTypingVendor, async (req, res) => {
     try {
       const vendorId = req.session.vendorId;
       if (!vendorId) return res.json({ balance: 0 });
@@ -5102,7 +5152,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendor/wallet/transactions", requireVendorAuth, async (req, res) => {
+  app.get("/api/vendor/wallet/transactions", requireTypingVendor, async (req, res) => {
     try {
       const vendorId = req.session.vendorId;
       if (!vendorId) return res.json([]);
@@ -5133,7 +5183,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendor/dashboard", requireVendorAuth, async (req, res) => {
+  app.get("/api/vendor/dashboard", requireTypingVendor, async (req, res) => {
     try {
       const vendorId = req.session.vendorId;
       if (!vendorId) {
@@ -5274,7 +5324,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendor/performance", requireVendorAuth, async (req, res) => {
+  app.get("/api/vendor/performance", requireTypingVendor, async (req, res) => {
     try {
       const vendorId = req.session.vendorId;
       if (!vendorId) {
@@ -5367,7 +5417,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/vendor/jobs", requireVendorAuth, async (req, res) => {
+  app.get("/api/vendor/jobs", requireTypingVendor, async (req, res) => {
     try {
       const vendorId = req.session.vendorId;
       if (!vendorId) {
@@ -5415,7 +5465,7 @@ export async function registerRoutes(
   });
 
   // Get single vendor job with full details
-  app.get("/api/vendor/jobs/:id", requireVendorAuth, async (req, res) => {
+  app.get("/api/vendor/jobs/:id", requireTypingVendor, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
@@ -5541,7 +5591,7 @@ export async function registerRoutes(
     objectPath: z.string().min(1),
   });
 
-  app.post("/api/vendor/jobs/:id/files", requireVendorAuth, async (req, res) => {
+  app.post("/api/vendor/jobs/:id/files", requireTypingVendor, async (req, res) => {
     try {
       const jobId = req.params.id;
       const vendorId = req.session.vendorId;
@@ -5581,7 +5631,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/vendor/jobs/:jobId/files/:fileId", requireVendorAuth, async (req, res) => {
+  app.delete("/api/vendor/jobs/:jobId/files/:fileId", requireTypingVendor, async (req, res) => {
     try {
       const vendorId = req.session.vendorId;
       if (!vendorId) {
@@ -5626,7 +5676,7 @@ export async function registerRoutes(
     message: z.string().min(1).max(2000),
   });
 
-  app.post("/api/vendor/jobs/:id/comments", requireVendorAuth, async (req, res) => {
+  app.post("/api/vendor/jobs/:id/comments", requireTypingVendor, async (req, res) => {
     try {
       const jobId = req.params.id;
       const vendorId = req.session.vendorId;
@@ -5664,7 +5714,7 @@ export async function registerRoutes(
   });
 
   // Vendor start work (SubmittedToVendor → InProcess)
-  app.post("/api/vendor/jobs/:id/start-work", requireVendorAuth, async (req, res) => {
+  app.post("/api/vendor/jobs/:id/start-work", requireTypingVendor, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
@@ -5689,7 +5739,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vendor/jobs/:id/accept", requireVendorAuth, async (req, res) => {
+  app.post("/api/vendor/jobs/:id/accept", requireTypingVendor, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
@@ -5715,7 +5765,7 @@ export async function registerRoutes(
   });
 
   // Vendor mark job completed (InProcess → ReadyForScheduling) + immediate wallet deduction
-  app.post("/api/vendor/jobs/:id/complete", requireVendorAuth, async (req, res) => {
+  app.post("/api/vendor/jobs/:id/complete", requireTypingVendor, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
@@ -5787,7 +5837,7 @@ export async function registerRoutes(
   });
 
   // Vendor return job (InProcess → Returned)
-  app.post("/api/vendor/jobs/:id/return", requireVendorAuth, async (req, res) => {
+  app.post("/api/vendor/jobs/:id/return", requireTypingVendor, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
@@ -5827,7 +5877,7 @@ export async function registerRoutes(
     applicationRefNo: z.string().nullable().optional(),
   });
 
-  app.put("/api/vendor/jobs/:id/biometrics", requireVendorAuth, async (req, res) => {
+  app.put("/api/vendor/jobs/:id/biometrics", requireTypingVendor, async (req, res) => {
     try {
       const jobId = req.params.id;
       const job = await storage.getTypingJobById(jobId);
@@ -9017,6 +9067,570 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Deletion request deny error:", error);
       res.status(500).json({ message: "Failed to deny deletion request" });
+    }
+  });
+
+  // ========== Attestation Services Catalog (Admin only) ==========
+  app.get("/api/attestation/services", requireAuth, async (req, res) => {
+    try {
+      const activeOnly = req.query.activeOnly === "true";
+      const services = await storage.getAttestationServices(activeOnly);
+      const withVariants = await Promise.all(services.map(async (svc) => {
+        const variants = await storage.getAttestationServiceVariants(svc.id);
+        return { ...svc, variants };
+      }));
+      res.json(withVariants);
+    } catch (err) {
+      console.error("[attestation] get services error:", err);
+      res.status(500).json({ message: "Failed to fetch attestation services" });
+    }
+  });
+
+  app.post("/api/attestation/services", requireRole("Admin"), async (req, res) => {
+    try {
+      const { name, category, documentClassApplicability, basePriceAed, timelineDays, description, active } = req.body;
+      if (!name || !category) return res.status(400).json({ message: "name and category are required" });
+      const service = await storage.createAttestationService({
+        name, category, documentClassApplicability: documentClassApplicability ?? "Both",
+        basePriceAed: basePriceAed ?? "0", timelineDays: timelineDays ?? null,
+        description: description ?? null, active: active ?? true,
+      });
+      res.status(201).json(service);
+    } catch (err) {
+      console.error("[attestation] create service error:", err);
+      res.status(500).json({ message: "Failed to create attestation service" });
+    }
+  });
+
+  app.patch("/api/attestation/services/:id", requireRole("Admin"), async (req, res) => {
+    try {
+      const updated = await storage.updateAttestationService(req.params.id, req.body);
+      if (!updated) return res.status(404).json({ message: "Service not found" });
+      res.json(updated);
+    } catch (err) {
+      console.error("[attestation] update service error:", err);
+      res.status(500).json({ message: "Failed to update attestation service" });
+    }
+  });
+
+  app.get("/api/attestation/services/:id/variants", requireAuth, async (req, res) => {
+    try {
+      const variants = await storage.getAttestationServiceVariants(req.params.id);
+      res.json(variants);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch variants" });
+    }
+  });
+
+  app.post("/api/attestation/services/:id/variants", requireRole("Admin"), async (req, res) => {
+    try {
+      const { variantLabel, priceAed, timelineDays, active } = req.body;
+      if (!variantLabel) return res.status(400).json({ message: "variantLabel is required" });
+      const variant = await storage.createAttestationServiceVariant({
+        serviceId: req.params.id, variantLabel, priceAed: priceAed ?? "0",
+        timelineDays: timelineDays ?? null, active: active ?? true,
+      });
+      res.status(201).json(variant);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to create variant" });
+    }
+  });
+
+  app.patch("/api/attestation/services/variants/:variantId", requireRole("Admin"), async (req, res) => {
+    try {
+      const updated = await storage.updateAttestationServiceVariant(req.params.variantId, req.body);
+      if (!updated) return res.status(404).json({ message: "Variant not found" });
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update variant" });
+    }
+  });
+
+  app.delete("/api/attestation/services/variants/:variantId", requireRole("Admin"), async (req, res) => {
+    try {
+      const deleted = await storage.deleteAttestationServiceVariant(req.params.variantId);
+      if (!deleted) return res.status(404).json({ message: "Variant not found" });
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ message: "Failed to delete variant" });
+    }
+  });
+
+  app.get("/api/attestation/services/:id/step-definitions", requireAuth, async (req, res) => {
+    try {
+      const steps = await storage.getAttestationServiceStepDefinitions(req.params.id);
+      res.json(steps);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch step definitions" });
+    }
+  });
+
+  app.put("/api/attestation/services/:id/step-definitions", requireRole("Admin"), async (req, res) => {
+    try {
+      const steps = req.body;
+      if (!Array.isArray(steps)) return res.status(400).json({ message: "steps must be an array" });
+      const result = await storage.replaceAttestationServiceStepDefinitions(req.params.id, steps);
+      res.json(result);
+    } catch (err) {
+      console.error("[attestation] replace step defs error:", err);
+      res.status(500).json({ message: "Failed to update step definitions" });
+    }
+  });
+
+  // ========== Attestation Service Requests (Admin + CRM) ==========
+  const SR_VALID_TRANSITIONS: Record<string, string[]> = {
+    Draft: ["SentToVendor", "Cancelled"],
+    SentToVendor: ["AcceptedByVendor", "Cancelled"],
+    AcceptedByVendor: ["InProgress", "Cancelled"],
+    InProgress: ["Completed", "Cancelled"],
+    Completed: [],
+    Cancelled: [],
+  };
+
+  app.get("/api/attestation/service-requests", requireOpsRole, async (req, res) => {
+    try {
+      const { status, companyId, vendorId } = req.query as Record<string, string>;
+      const srs = await storage.getAttestationServiceRequests({ status, companyId, vendorId });
+      const enriched = await Promise.all(srs.map(async (sr) => {
+        const company = await storage.getCompanyById(sr.companyId);
+        const vendor = await storage.getVendorById(sr.vendorId);
+        const service = await storage.getAttestationServiceById(sr.attestationServiceId);
+        return {
+          ...sr,
+          companyName: company?.name ?? null,
+          vendorName: vendor?.name ?? null,
+          serviceName: service?.name ?? null,
+        };
+      }));
+      res.json(enriched);
+    } catch (err) {
+      console.error("[attestation] list SRs error:", err);
+      res.status(500).json({ message: "Failed to fetch service requests" });
+    }
+  });
+
+  app.post("/api/attestation/service-requests", requireOpsRole, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session.userId!);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const { companyId, vendorId, attestationServiceId, externalWoNumber, documentType,
+        documentNameDescription, documentClass, serviceVariantId, applicantName,
+        homeCountry, originalDocumentInvolved, internalNotes, serviceFeeAed } = req.body;
+
+      if (!companyId || !vendorId || !attestationServiceId || !externalWoNumber || !documentType || !documentNameDescription || !documentClass) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const company = await storage.getCompanyById(companyId);
+      if (!company) return res.status(400).json({ message: "Company not found" });
+
+      const vendor = await storage.getVendorById(vendorId);
+      if (!vendor || vendor.vendorType !== "Attestation") {
+        return res.status(400).json({ message: "Vendor must be an Attestation vendor" });
+      }
+
+      const service = await storage.getAttestationServiceById(attestationServiceId);
+      if (!service) return res.status(400).json({ message: "Attestation service not found" });
+
+      let resolvedVariant = null;
+      if (serviceVariantId) {
+        resolvedVariant = await storage.getAttestationServiceVariantById(serviceVariantId);
+        if (!resolvedVariant || resolvedVariant.serviceId !== attestationServiceId) {
+          return res.status(400).json({ message: "Service variant does not belong to the selected service" });
+        }
+      }
+
+      const derivedFeeAed = serviceFeeAed ?? resolvedVariant?.priceAed ?? service.basePriceAed ?? null;
+
+      const sr = await storage.createAttestationServiceRequest({
+        companyId, vendorId, attestationServiceId, externalWoNumber,
+        documentType, documentNameDescription, documentClass,
+        serviceVariantId: serviceVariantId ?? null,
+        applicantName: applicantName ?? null,
+        homeCountry: homeCountry ?? null,
+        originalDocumentInvolved: originalDocumentInvolved ?? false,
+        internalNotes: internalNotes ?? null,
+        serviceFeeAed: derivedFeeAed,
+        status: "Draft",
+        physicalCustodyStatus: "WithClient",
+        currentCustodian: null,
+        currentResponsibleStaffId: user.id,
+        inquiryId: null,
+        createdBy: user.id,
+      });
+
+      const stepDefs = await storage.getAttestationServiceStepDefinitions(attestationServiceId);
+      for (const def of stepDefs) {
+        await storage.createAttestationSrStep({
+          srId: sr.id,
+          stepOrder: def.stepOrder,
+          stepName: def.stepName,
+          stepType: def.stepType,
+          status: "Pending",
+          startedAt: null,
+          completedAt: null,
+          notes: null,
+        });
+      }
+
+      res.status(201).json(sr);
+    } catch (err) {
+      console.error("[attestation] create SR error:", err);
+      res.status(500).json({ message: "Failed to create service request" });
+    }
+  });
+
+  app.get("/api/attestation/service-requests/:id", requireOpsRole, async (req, res) => {
+    try {
+      const sr = await storage.getAttestationServiceRequestById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "Service request not found" });
+
+      const [company, vendor, service, steps] = await Promise.all([
+        storage.getCompanyById(sr.companyId),
+        storage.getVendorById(sr.vendorId),
+        storage.getAttestationServiceById(sr.attestationServiceId),
+        storage.getAttestationSrSteps(sr.id),
+      ]);
+
+      let variant = null;
+      if (sr.serviceVariantId) {
+        variant = await storage.getAttestationServiceVariantById(sr.serviceVariantId);
+      }
+
+      let responsibleStaff = null;
+      if (sr.currentResponsibleStaffId) {
+        responsibleStaff = await storage.getUser(sr.currentResponsibleStaffId);
+      }
+
+      res.json({
+        ...sr,
+        companyName: company?.name ?? null,
+        vendorName: vendor?.name ?? null,
+        serviceName: service?.name ?? null,
+        serviceCategory: service?.category ?? null,
+        variantLabel: variant?.variantLabel ?? null,
+        responsibleStaffName: responsibleStaff?.name ?? null,
+        steps,
+      });
+    } catch (err) {
+      console.error("[attestation] get SR error:", err);
+      res.status(500).json({ message: "Failed to fetch service request" });
+    }
+  });
+
+  app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async (req, res) => {
+    try {
+      const { status } = req.body;
+      const sr = await storage.getAttestationServiceRequestById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "Service request not found" });
+      const allowedNext = SR_VALID_TRANSITIONS[sr.status] ?? [];
+      if (!allowedNext.includes(status)) {
+        return res.status(400).json({ message: `Invalid transition: ${sr.status} → ${status}` });
+      }
+      const updated = await storage.updateAttestationServiceRequest(req.params.id, { status });
+      const userId = (req as any).session?.userId;
+      await storage.createAttestationSrActivityLog({
+        srId: sr.id, action: "status_change",
+        detail: `Status changed from ${sr.status} to ${status}`,
+        performedBy: userId || null,
+      });
+      if (status === "SentToVendor") {
+        await notifyVendorUsers(sr.vendorId, {
+          type: "attestation_sr_assigned",
+          title: "New Attestation SR Assigned",
+          message: `Service request ${sr.externalWoNumber} has been sent to you.`,
+          relatedJobId: null,
+        });
+      }
+      if (status === "Completed" || status === "Cancelled") {
+        await notifyVendorUsers(sr.vendorId, {
+          type: "attestation_sr_closed",
+          title: `Attestation SR ${status}`,
+          message: `Service request ${sr.externalWoNumber} has been ${status.toLowerCase()}.`,
+          relatedJobId: null,
+        });
+      }
+      res.json(updated);
+    } catch (err) {
+      console.error("[attestation] update SR status error:", err);
+      res.status(500).json({ message: "Failed to update status" });
+    }
+  });
+
+  app.patch("/api/attestation/service-requests/:id", requireOpsRole, async (req, res) => {
+    try {
+      const { internalNotes, serviceFeeAed, physicalCustodyStatus, currentCustodian } = req.body;
+      const sr = await storage.getAttestationServiceRequestById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "Service request not found" });
+      if (sr.status === "Cancelled" || sr.status === "Completed") {
+        return res.status(400).json({ message: "Cannot edit a completed or cancelled service request" });
+      }
+      const updateData: Record<string, unknown> = {};
+      const userId = (req as any).session?.userId;
+      if (internalNotes !== undefined) {
+        updateData.internalNotes = internalNotes;
+        await storage.createAttestationSrActivityLog({
+          srId: sr.id, action: "notes_updated", detail: "Internal notes updated", performedBy: userId || null,
+        });
+      }
+      if (serviceFeeAed !== undefined) {
+        updateData.serviceFeeAed = serviceFeeAed;
+        await storage.createAttestationSrActivityLog({
+          srId: sr.id, action: "fee_updated",
+          detail: `Service fee changed from ${sr.serviceFeeAed || '—'} to ${serviceFeeAed} AED`,
+          performedBy: userId || null,
+        });
+      }
+      if (physicalCustodyStatus !== undefined) {
+        const validCustody = ["WithClient", "WithUs", "WithVendor", "ReturnedToClient"];
+        if (!validCustody.includes(physicalCustodyStatus)) {
+          return res.status(400).json({ message: "Invalid custody status" });
+        }
+        updateData.physicalCustodyStatus = physicalCustodyStatus;
+        if (currentCustodian !== undefined) updateData.currentCustodian = currentCustodian;
+        await storage.createAttestationSrActivityLog({
+          srId: sr.id, action: "custody_change",
+          detail: `Custody changed from ${sr.physicalCustodyStatus} to ${physicalCustodyStatus}${currentCustodian ? ` (${currentCustodian})` : ''}`,
+          performedBy: userId || null,
+        });
+      }
+      const updated = await storage.updateAttestationServiceRequest(req.params.id, updateData as any);
+      res.json(updated);
+    } catch (err) {
+      console.error("[attestation] patch SR error:", err);
+      res.status(500).json({ message: "Failed to update service request" });
+    }
+  });
+
+  app.post("/api/attestation/service-requests/bulk-status", requireOpsRole, async (req, res) => {
+    try {
+      const { ids, status } = req.body;
+      if (!Array.isArray(ids) || !status) {
+        return res.status(400).json({ message: "ids (array) and status are required" });
+      }
+      const userId = (req as any).session?.userId;
+      const results: { id: string; success: boolean; error?: string }[] = [];
+      for (const id of ids) {
+        const sr = await storage.getAttestationServiceRequestById(id);
+        if (!sr) { results.push({ id, success: false, error: "Not found" }); continue; }
+        const allowedNext = SR_VALID_TRANSITIONS[sr.status] ?? [];
+        if (!allowedNext.includes(status)) {
+          results.push({ id, success: false, error: `Invalid transition: ${sr.status} → ${status}` });
+          continue;
+        }
+        await storage.updateAttestationServiceRequest(id, { status });
+        await storage.createAttestationSrActivityLog({
+          srId: id, action: "status_change",
+          detail: `Status changed from ${sr.status} to ${status} (bulk)`,
+          performedBy: userId || null,
+        });
+        if (status === "SentToVendor") {
+          await notifyVendorUsers(sr.vendorId, {
+            type: "attestation_sr_assigned", title: "New Attestation SR Assigned",
+            message: `Service request ${sr.externalWoNumber} has been sent to you.`,
+            relatedJobId: null,
+          });
+        }
+        results.push({ id, success: true });
+      }
+      res.json({ results });
+    } catch (err) {
+      console.error("[attestation] bulk status error:", err);
+      res.status(500).json({ message: "Failed to bulk update" });
+    }
+  });
+
+  app.get("/api/attestation/service-requests/:id/steps", requireOpsRole, async (req, res) => {
+    try {
+      const steps = await storage.getAttestationSrSteps(req.params.id);
+      res.json(steps);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch steps" });
+    }
+  });
+
+  app.patch("/api/attestation/service-requests/:id/steps/:stepId", requireOpsRole, async (req, res) => {
+    try {
+      const { status, notes } = req.body;
+      const sr = await storage.getAttestationServiceRequestById(req.params.id);
+      if (!sr) return res.status(404).json({ message: "Service request not found" });
+      const step = await storage.getAttestationSrSteps(sr.id).then(steps => steps.find(s => s.id === req.params.stepId));
+      if (!step) return res.status(404).json({ message: "Step not found" });
+      const updateData: Record<string, unknown> = {};
+      if (status !== undefined) {
+        updateData.status = status;
+        if (status === "InProgress" && !step.startedAt) updateData.startedAt = new Date();
+        if (status === "Done" && !step.completedAt) updateData.completedAt = new Date();
+      }
+      if (notes !== undefined) updateData.notes = notes;
+      const updated = await storage.updateAttestationSrStep(req.params.stepId, updateData as any);
+      if (!updated) return res.status(404).json({ message: "Step not found" });
+      const userId = (req as any).session?.userId;
+      await storage.createAttestationSrActivityLog({
+        srId: sr.id, action: "step_updated",
+        detail: `Step "${step.stepName}" ${status ? `status → ${status}` : 'notes updated'}`,
+        performedBy: userId || null,
+      });
+      res.json(updated);
+    } catch (err) {
+      console.error("[attestation] update SR step error:", err);
+      res.status(500).json({ message: "Failed to update step" });
+    }
+  });
+
+  app.get("/api/attestation/service-requests/:id/activity-log", requireOpsRole, async (req, res) => {
+    try {
+      const logs = await storage.getAttestationSrActivityLog(req.params.id);
+      const enriched = await Promise.all(logs.map(async (log) => {
+        let performedByName = null;
+        if (log.performedBy) {
+          const user = await storage.getUser(log.performedBy);
+          performedByName = user?.name ?? null;
+        }
+        return { ...log, performedByName };
+      }));
+      res.json(enriched);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch activity log" });
+    }
+  });
+
+  app.get("/api/attestation/stats", requireOpsRole, async (req, res) => {
+    try {
+      const allSrs = await storage.getAttestationServiceRequests({});
+      const stats = {
+        total: allSrs.length,
+        draft: allSrs.filter(sr => sr.status === "Draft").length,
+        sentToVendor: allSrs.filter(sr => sr.status === "SentToVendor").length,
+        acceptedByVendor: allSrs.filter(sr => sr.status === "AcceptedByVendor").length,
+        inProgress: allSrs.filter(sr => sr.status === "InProgress").length,
+        completed: allSrs.filter(sr => sr.status === "Completed").length,
+        cancelled: allSrs.filter(sr => sr.status === "Cancelled").length,
+        totalFees: allSrs.reduce((sum, sr) => sum + (sr.serviceFeeAed ? parseFloat(sr.serviceFeeAed) : 0), 0),
+      };
+      res.json(stats);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch attestation stats" });
+    }
+  });
+
+  app.get("/api/attestation/vendors", requireAuth, async (req, res) => {
+    try {
+      const vendors = await storage.getAttestationVendors();
+      res.json(vendors);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch attestation vendors" });
+    }
+  });
+
+  // ========== Attestation Vendor Portal Endpoints ==========
+  app.get("/api/attestation-vendor/dashboard", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = (req as any).session?.vendorId;
+      const srs = await storage.getAttestationServiceRequestsByVendorId(vendorId);
+      const stats = {
+        total: srs.length,
+        active: srs.filter(sr => ["SentToVendor", "AcceptedByVendor", "InProgress"].includes(sr.status)).length,
+        completed: srs.filter(sr => sr.status === "Completed").length,
+        pending: srs.filter(sr => sr.status === "SentToVendor").length,
+      };
+      const recentSrs = srs.slice(0, 5);
+      const enrichedRecent = await Promise.all(recentSrs.map(async (sr) => {
+        const company = await storage.getCompanyById(sr.companyId);
+        const service = await storage.getAttestationServiceById(sr.attestationServiceId);
+        return {
+          ...sr, companyName: company?.name ?? null, serviceName: service?.name ?? null,
+          internalNotes: undefined,
+        };
+      }));
+      res.json({ stats, recentSrs: enrichedRecent });
+    } catch (err) {
+      console.error("[attestation-vendor] dashboard error:", err);
+      res.status(500).json({ message: "Failed to fetch dashboard" });
+    }
+  });
+
+  app.get("/api/attestation-vendor/service-requests", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = (req as any).session?.vendorId;
+      const srs = await storage.getAttestationServiceRequestsByVendorId(vendorId);
+      const enriched = await Promise.all(srs.map(async (sr) => {
+        const company = await storage.getCompanyById(sr.companyId);
+        const service = await storage.getAttestationServiceById(sr.attestationServiceId);
+        return {
+          id: sr.id, externalWoNumber: sr.externalWoNumber, companyId: sr.companyId,
+          applicantName: sr.applicantName, attestationServiceId: sr.attestationServiceId,
+          documentType: sr.documentType, documentNameDescription: sr.documentNameDescription,
+          documentClass: sr.documentClass, homeCountry: sr.homeCountry,
+          originalDocumentInvolved: sr.originalDocumentInvolved,
+          status: sr.status, physicalCustodyStatus: sr.physicalCustodyStatus,
+          serviceFeeAed: sr.serviceFeeAed, createdAt: sr.createdAt, updatedAt: sr.updatedAt,
+          companyName: company?.name ?? null, serviceName: service?.name ?? null,
+        };
+      }));
+      res.json(enriched);
+    } catch (err) {
+      console.error("[attestation-vendor] list SRs error:", err);
+      res.status(500).json({ message: "Failed to fetch service requests" });
+    }
+  });
+
+  app.get("/api/attestation-vendor/service-requests/:id", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = (req as any).session?.vendorId;
+      const sr = await storage.getAttestationServiceRequestById(req.params.id);
+      if (!sr || sr.vendorId !== vendorId) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      const [company, service, steps] = await Promise.all([
+        storage.getCompanyById(sr.companyId),
+        storage.getAttestationServiceById(sr.attestationServiceId),
+        storage.getAttestationSrSteps(sr.id),
+      ]);
+      let variant = null;
+      if (sr.serviceVariantId) {
+        variant = await storage.getAttestationServiceVariantById(sr.serviceVariantId);
+      }
+      res.json({
+        id: sr.id, externalWoNumber: sr.externalWoNumber, companyId: sr.companyId,
+        applicantName: sr.applicantName, attestationServiceId: sr.attestationServiceId,
+        serviceVariantId: sr.serviceVariantId, documentType: sr.documentType,
+        documentNameDescription: sr.documentNameDescription, documentClass: sr.documentClass,
+        homeCountry: sr.homeCountry, originalDocumentInvolved: sr.originalDocumentInvolved,
+        status: sr.status, physicalCustodyStatus: sr.physicalCustodyStatus,
+        currentCustodian: sr.currentCustodian, serviceFeeAed: sr.serviceFeeAed,
+        createdAt: sr.createdAt, updatedAt: sr.updatedAt,
+        companyName: company?.name ?? null, serviceName: service?.name ?? null,
+        serviceCategory: service?.category ?? null, variantLabel: variant?.variantLabel ?? null,
+        steps,
+      });
+    } catch (err) {
+      console.error("[attestation-vendor] get SR error:", err);
+      res.status(500).json({ message: "Failed to fetch service request" });
+    }
+  });
+
+  app.patch("/api/attestation-vendor/service-requests/:id/accept", requireAttestationVendor, async (req, res) => {
+    try {
+      const vendorId = (req as any).session?.vendorId;
+      const sr = await storage.getAttestationServiceRequestById(req.params.id);
+      if (!sr || sr.vendorId !== vendorId) {
+        return res.status(404).json({ message: "Service request not found" });
+      }
+      if (sr.status !== "SentToVendor") {
+        return res.status(400).json({ message: "Can only accept SRs that are Sent to Vendor" });
+      }
+      const updated = await storage.updateAttestationServiceRequest(sr.id, { status: "AcceptedByVendor" });
+      await storage.createAttestationSrActivityLog({
+        srId: sr.id, action: "status_change",
+        detail: "Status changed from SentToVendor to AcceptedByVendor (by vendor)",
+        performedBy: (req as any).session?.vendorUserId || null,
+      });
+      res.json(updated);
+    } catch (err) {
+      console.error("[attestation-vendor] accept SR error:", err);
+      res.status(500).json({ message: "Failed to accept service request" });
     }
   });
 
