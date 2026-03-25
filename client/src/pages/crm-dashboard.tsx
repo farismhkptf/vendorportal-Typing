@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import {
@@ -116,6 +116,11 @@ export default function CrmDashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const isAdmin = user?.role === "Admin";
+
+  useEffect(() => {
+    document.title = "Keystone Client Relation Manager Dashboard";
+    return () => { document.title = "Keystone"; };
+  }, []);
 
   const { data: companies, isLoading: companiesLoading } = useQuery<CompanyEnriched[]>({
     queryKey: ["/api/companies"],
@@ -253,7 +258,7 @@ export default function CrmDashboard() {
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
             <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight" data-testid="text-user-greeting">
-              {isAdmin ? "Operations Command Center" : (user?.name || "Operations")}
+              Keystone Client Relation Manager Dashboard
             </h1>
           </div>
           <div className="flex items-center gap-2">

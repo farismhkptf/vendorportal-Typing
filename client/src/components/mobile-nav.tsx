@@ -16,7 +16,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 function getDashboardHref(role?: string): string {
   if (role === "Client Relationship Manager") return "/crm";
-  if (role === "Medical Support" || role === "Medical Support - Temporary") return "/medical";
+  if (role === "PRO" || role === "PRO - Temporary") return "/medical";
   return "/";
 }
 

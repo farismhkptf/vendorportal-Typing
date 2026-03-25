@@ -524,6 +524,24 @@ async function revertDelayedWorkOrder(woId: string): Promise<void> {
   }
 }
 
+async function runRoleRenameMigration(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    const enumCheck = await client.query(`
+      SELECT enumlabel FROM pg_enum
+      JOIN pg_type ON pg_enum.enumtypid = pg_type.oid
+      WHERE pg_type.typname = 'user_role' AND enumlabel = 'Medical Support'
+    `);
+    if (enumCheck.rows.length === 0) return;
+
+    await client.query(`ALTER TYPE user_role RENAME VALUE 'Medical Support' TO 'PRO'`);
+    await client.query(`ALTER TYPE user_role RENAME VALUE 'Medical Support - Temporary' TO 'PRO - Temporary'`);
+    console.log("[migration] renamed user_role enum values: Medical Support -> PRO, Medical Support - Temporary -> PRO - Temporary");
+  } finally {
+    client.release();
+  }
+}
+
 async function runAttestationCategoryMigration(): Promise<void> {
   const client = await pool.connect();
   try {
@@ -598,6 +616,13 @@ export async function registerRoutes(
   // Seed database on startup
   await storage.seedData();
 
+  // Run role rename migration: Medical Support -> PRO
+  try {
+    await runRoleRenameMigration();
+  } catch (migErr) {
+    console.error("[migration] role rename migration error:", migErr);
+  }
+
   // Run attestation category migration: convert enum columns to text and seed categories table
   try {
     await runAttestationCategoryMigration();
@@ -648,7 +673,7 @@ export async function registerRoutes(
         sentApptReminders.add(dedupeKey);
 
         const wo = await storage.getWorkOrderById(appt.woId);
-        notifyStaffByRoles(["Admin", "Medical Support", "Medical Support - Temporary"], {
+        notifyStaffByRoles(["Admin", "PRO", "PRO - Temporary"], {
           type: "appointment_tomorrow",
           title: "Appointment Tomorrow",
           message: `${appt.type} appointment tomorrow for ${wo?.applicantName || "applicant"} (${wo?.woNumber || ""})`,
@@ -5971,7 +5996,7 @@ export async function registerRoutes(
           },
         });
 
-        notifyStaffByRoles(["Admin", "Medical Support", "Medical Support - Temporary"], {
+        notifyStaffByRoles(["Admin", "PRO", "PRO - Temporary"], {
           type: "job_returned_from_vendor",
           title: "Typing Job Returned from Vendor",
           message: `Job ${job.jobCode || ""} completed by vendor${wo ? ` — ${wo.woNumber} (${wo.applicantName})` : ""}`,
@@ -8035,7 +8060,7 @@ export async function registerRoutes(
 
   // Roles allowed to perform PRO field actions (confirm meeting attendance, mark completed)
   // CRM users schedule appointments but do NOT confirm or complete meetings
-  const PRO_ACTION_ROLES = ["Medical Support", "Medical Support - Temporary", "Admin"];
+  const PRO_ACTION_ROLES = ["PRO", "PRO - Temporary", "Admin"];
 
   // POST /api/appointment-cycles/:cycleId/confirm-qr — QR confirmation (PRO field action)
   app.post("/api/appointment-cycles/:cycleId/confirm-qr", requireAuth, async (req, res) => {
@@ -8043,7 +8068,7 @@ export async function registerRoutes(
       const user = await storage.getUser(req.session!.userId);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
       if (!PRO_ACTION_ROLES.includes(user.role)) {
-        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+        return res.status(403).json({ message: "Access denied: PRO or Admin required" });
       }
 
       const cycle = await storage.getCycleById(req.params.cycleId);
@@ -8088,7 +8113,7 @@ export async function registerRoutes(
       const user = await storage.getUser(req.session!.userId);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
       if (!PRO_ACTION_ROLES.includes(user.role)) {
-        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+        return res.status(403).json({ message: "Access denied: PRO or Admin required" });
       }
 
       const cycle = await storage.getCycleById(req.params.cycleId);
@@ -8133,7 +8158,7 @@ export async function registerRoutes(
       const user = await storage.getUser(req.session!.userId);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
       if (!PRO_ACTION_ROLES.includes(user.role)) {
-        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+        return res.status(403).json({ message: "Access denied: PRO or Admin required" });
       }
 
       const cycle = await storage.getCycleById(req.params.cycleId);
@@ -8703,7 +8728,7 @@ export async function registerRoutes(
     }
   });
 
-  const BIO_PRO_ROLES = ["Medical Support", "Medical Support - Temporary", "Admin"];
+  const BIO_PRO_ROLES = ["PRO", "PRO - Temporary", "Admin"];
 
   // POST /api/biometrics-cycles/:cycleId/confirm-qr — QR confirmation
   app.post("/api/biometrics-cycles/:cycleId/confirm-qr", requireAuth, async (req, res) => {
@@ -8711,7 +8736,7 @@ export async function registerRoutes(
       const user = await storage.getUser(req.session!.userId);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
       if (!BIO_PRO_ROLES.includes(user.role)) {
-        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+        return res.status(403).json({ message: "Access denied: PRO or Admin required" });
       }
 
       const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
@@ -8756,7 +8781,7 @@ export async function registerRoutes(
       const user = await storage.getUser(req.session!.userId);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
       if (!BIO_PRO_ROLES.includes(user.role)) {
-        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+        return res.status(403).json({ message: "Access denied: PRO or Admin required" });
       }
 
       const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
@@ -8801,7 +8826,7 @@ export async function registerRoutes(
       const user = await storage.getUser(req.session!.userId);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
       if (!BIO_PRO_ROLES.includes(user.role)) {
-        return res.status(403).json({ message: "Access denied: Medical Support or Admin required" });
+        return res.status(403).json({ message: "Access denied: PRO or Admin required" });
       }
 
       const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
@@ -9350,14 +9375,14 @@ export async function registerRoutes(
       const user = await storage.getUser(req.session.userId);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
-      const allowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+      const allowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
       if (!allowedRoles.includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
       let srs = await storage.getAttestationSrs();
 
-      if (user.role === "Medical Support" || user.role === "Medical Support - Temporary") {
+      if (user.role === "PRO" || user.role === "PRO - Temporary") {
         if (user.staffId) {
           srs = srs.filter(sr => sr.assignedProId === user.staffId);
         } else {
@@ -9381,12 +9406,12 @@ export async function registerRoutes(
       const sr = await storage.getAttestationSrById(req.params.id);
       if (!sr) return res.status(404).json({ message: "SR not found" });
 
-      const allowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+      const allowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
       if (!allowedRoles.includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      if ((user.role === "Medical Support" || user.role === "Medical Support - Temporary") && user.staffId) {
+      if ((user.role === "PRO" || user.role === "PRO - Temporary") && user.staffId) {
         if (sr.assignedProId !== user.staffId) {
           return res.status(403).json({ message: "Access denied" });
         }
@@ -9433,7 +9458,7 @@ export async function registerRoutes(
       const user = await storage.getUser(req.session.userId);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
-      const allowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+      const allowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
       if (!allowedRoles.includes(user.role)) {
         return res.status(403).json({ message: "Access denied" });
       }
@@ -9441,7 +9466,7 @@ export async function registerRoutes(
       const sr = await storage.getAttestationSrById(req.params.id);
       if (!sr) return res.status(404).json({ message: "SR not found" });
 
-      if ((user.role === "Medical Support" || user.role === "Medical Support - Temporary") && user.staffId) {
+      if ((user.role === "PRO" || user.role === "PRO - Temporary") && user.staffId) {
         if (sr.assignedProId !== user.staffId) {
           return res.status(403).json({ message: "Access denied" });
         }
@@ -9469,7 +9494,7 @@ export async function registerRoutes(
         const user = await storage.getUser(req.session.userId);
         if (!user) return res.status(401).json({ message: "Not authenticated" });
 
-        const allowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+        const allowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
         if (!allowedRoles.includes(user.role)) {
           return res.status(403).json({ message: "Access denied" });
         }
@@ -10715,7 +10740,7 @@ export async function registerRoutes(
 
   // ─── Document Custody Records (Full Lifecycle Module) ─────────────────────────
 
-  const docCustodyAllowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+  const docCustodyAllowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
 
   function requireDocCustodyRole(req: any, res: any, next: any) {
     if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });

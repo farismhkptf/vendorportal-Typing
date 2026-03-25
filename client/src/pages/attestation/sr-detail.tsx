@@ -34,7 +34,7 @@ const SR_STATUS_COLORS: Record<string, string> = {
 export default function AttestationSrDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const isPro = user?.role === "Medical Support" || user?.role === "Medical Support - Temporary";
+  const isPro = user?.role === "PRO" || user?.role === "PRO - Temporary";
   const isOps = user?.role === "Admin" || user?.role === "Client Relationship Manager";
   const [custodyOpen, setCustodyOpen] = useState(true);
 

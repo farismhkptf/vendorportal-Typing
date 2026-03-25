@@ -30,8 +30,8 @@ function getRedirectForRole(role: string): string {
       return "/";
     case "Client Relationship Manager":
       return "/crm";
-    case "Medical Support":
-    case "Medical Support - Temporary":
+    case "PRO":
+    case "PRO - Temporary":
       return "/medical";
     default:
       return "/";
@@ -44,8 +44,8 @@ function getRoleLabel(role: string): string {
   switch (role) {
     case "Admin": return "Admin";
     case "Client Relationship Manager": return "CRM";
-    case "Medical Support": return "Medical";
-    case "Medical Support - Temporary": return "Medical (Temp)";
+    case "PRO": return "PRO";
+    case "PRO - Temporary": return "PRO (Temp)";
     default: return role;
   }
 }

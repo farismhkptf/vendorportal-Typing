@@ -153,9 +153,9 @@ const ROUTE_ACCESS: Array<{ path: string; exact?: boolean; roles: string[] }> = 
   { path: "/admin", roles: ["Admin"] },
   { path: "/manager-console", roles: OPS_ROLES },
   { path: "/bots", roles: ["Admin", "Client Relationship Manager"] },
-  { path: "/attestation", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] },
-  { path: "/custody-queue", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] },
-  { path: "/custody", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] },
+  { path: "/attestation", roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] },
+  { path: "/custody-queue", roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] },
+  { path: "/custody", roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] },
 ];
 
 function getRouteRoles(location: string): string[] | null {

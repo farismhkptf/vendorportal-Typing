@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import {
@@ -101,6 +102,11 @@ export default function V2Dashboard() {
   const { user } = useVendorAuth();
   const [, setLocation] = useLocation();
 
+  useEffect(() => {
+    document.title = "Keystone Vendor Dashboard";
+    return () => { document.title = "Keystone"; };
+  }, []);
+
   const { data: dashData, isLoading: dashLoading } = useQuery<DashboardData>({
     queryKey: ["/api/vendor/dashboard"],
   });
@@ -174,8 +180,9 @@ export default function V2Dashboard() {
     <div className="max-w-2xl mx-auto pt-2 pb-4 space-y-8">
       <div data-tour="greeting">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight" data-testid="text-v2-greeting">
-          {getGreeting()}, {user?.name?.split(" ")[0]}
+          Keystone Vendor Dashboard
         </h1>
+        <p className="text-slate-500 dark:text-white/50 text-sm">{getGreeting()}, {user?.name?.split(" ")[0]}</p>
         <p className="text-slate-500 dark:text-white/50 text-sm mt-1">
           {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
           {stats && stats.pending > 0 && (

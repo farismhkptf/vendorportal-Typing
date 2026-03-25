@@ -43,7 +43,7 @@ interface AppLayoutProps {
 
 function getDashboardHref(role?: string): string {
   if (role === "Client Relationship Manager") return "/crm";
-  if (role === "Medical Support" || role === "Medical Support - Temporary") return "/medical";
+  if (role === "PRO" || role === "PRO - Temporary") return "/medical";
   return "/";
 }
 
@@ -58,7 +58,7 @@ const allNavigation = [
   { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: ["Admin", "Client Relationship Manager"] as string[] },
   { name: "Expiring Docs", href: "/expiring-documents", icon: Clock, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Doc Custody", href: "/custody-queue", icon: PackageCheck, roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] as string[] },
+  { name: "Doc Custody", href: "/custody-queue", icon: PackageCheck, roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] as string[] },
   { name: "Admin Console", href: "/admin", icon: Settings, roles: ["Admin"] as string[] },
 ];
 

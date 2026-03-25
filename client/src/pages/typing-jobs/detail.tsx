@@ -1139,7 +1139,7 @@ export default function TypingJobDetail() {
                 <SelectContent>
                   <SelectItem value="__none__">Unassigned</SelectItem>
                   {staffUsers
-                    .filter(u => u.active && ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"].includes(u.role))
+                    .filter(u => u.active && ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"].includes(u.role))
                     .map(u => (
                       <SelectItem key={u.id} value={u.id}>{u.name} <span className="text-muted-foreground text-xs">({u.role})</span></SelectItem>
                     ))}

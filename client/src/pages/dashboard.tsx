@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { 
@@ -1147,6 +1147,11 @@ export default function Dashboard() {
   const [, navigate] = useLocation();
   const { user } = useAuth();
 
+  useEffect(() => {
+    document.title = "Keystone Admin Dashboard";
+    return () => { document.title = "Keystone"; };
+  }, []);
+
   const { data: stats, isLoading: statsLoading } = useQuery<DashboardStats>({
     queryKey: ["/api/dashboard/stats"],
     staleTime: 30000,
@@ -1186,7 +1191,7 @@ export default function Dashboard() {
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
             <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">
-              Dashboard
+              Keystone Admin Dashboard
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -1283,7 +1288,7 @@ export default function Dashboard() {
           </div>
           <div className="space-y-4">
             {weeklyData && <WeeklyOverviewChart data={weeklyData} />}
-            {(user?.role === "Admin" || user?.role === "Client Relationship Manager" || user?.role === "Medical Support" || user?.role === "Medical Support - Temporary") && (
+            {(user?.role === "Admin" || user?.role === "Client Relationship Manager" || user?.role === "PRO" || user?.role === "PRO - Temporary") && (
               <CustodyDashboardWidget />
             )}
             <MyActivityPanel data={myActivity} isLoading={activityLoading} photoMap={photoMap} />

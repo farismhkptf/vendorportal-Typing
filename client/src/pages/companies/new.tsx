@@ -331,7 +331,7 @@ export default function NewCompany() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Medical Support</Label>
+              <Label className="text-xs">PRO Support</Label>
               <Select
                 value={form.watch("assistStaffId") || "__none__"}
                 onValueChange={(v) => form.setValue("assistStaffId", v === "__none__" ? "" : v)}

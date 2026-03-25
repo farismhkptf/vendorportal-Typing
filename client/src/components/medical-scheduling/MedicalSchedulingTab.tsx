@@ -272,7 +272,7 @@ function CycleCard({
   const center = centers.find(c => c.id === cycle.centerId);
   const pro = staffList.find(s => s.id === cycle.assignedProId);
 
-  const isPRO = ["Medical Support", "Medical Support - Temporary", "Admin"].includes(userRole);
+  const isPRO = ["PRO", "PRO - Temporary", "Admin"].includes(userRole);
   const isCRM = userRole === "Client Relationship Manager" || userRole === "Admin";
   const isAdmin = userRole === "Admin";
 
@@ -348,7 +348,7 @@ function CycleCard({
                 </span>
               )}
 
-              {/* PRO actions — only Medical Support, Medical Support - Temporary, or Admin */}
+              {/* PRO actions — only PRO, PRO - Temporary, or Admin */}
               {isPRO && isActive && (cycle.status === "AWAITING_MEETING") && (
                 <>
                   <Button

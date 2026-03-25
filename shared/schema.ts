@@ -5,14 +5,14 @@ import { z } from "zod";
 
 // Enums
 // User roles organized by category:
-// Our Team: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary
+// Our Team: Admin, Client Relationship Manager, PRO, PRO - Temporary
 // Vendors: Vendor
 // Clients: Client Coordinator, Client Manager
 export const userRoleEnum = pgEnum("user_role", [
   "Admin",
   "Client Relationship Manager",
-  "Medical Support",
-  "Medical Support - Temporary",
+  "PRO",
+  "PRO - Temporary",
   "Vendor",
   "Client Coordinator",
   "Client Manager"
@@ -23,8 +23,8 @@ export const ROLE_CATEGORIES = {
   "Our Team": [
     "Admin",
     "Client Relationship Manager",
-    "Medical Support",
-    "Medical Support - Temporary"
+    "PRO",
+    "PRO - Temporary"
   ],
   "Vendors": [
     "Vendor"
@@ -38,8 +38,8 @@ export const ROLE_CATEGORIES = {
 export const ALL_ROLES = [
   "Admin",
   "Client Relationship Manager",
-  "Medical Support",
-  "Medical Support - Temporary",
+  "PRO",
+  "PRO - Temporary",
   "Vendor",
   "Client Coordinator",
   "Client Manager"
@@ -311,7 +311,7 @@ export const users = pgTable("users", {
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  role: userRoleEnum("role").notNull().default("Medical Support"),
+  role: userRoleEnum("role").notNull().default("PRO"),
   staffId: varchar("staff_id"),
   vendorId: varchar("vendor_id"),
   active: boolean("active").notNull().default(true),

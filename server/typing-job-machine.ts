@@ -81,7 +81,7 @@ const TRANSITIONS: Record<string, TransitionDef> = {
     sideEffects: [
       { type: "audit", action: "vendor_returned" },
       { type: "comment", messageFn: (ctx) => `Vendor returned job${ctx.reason ? `: ${ctx.reason}` : " due to incorrect documents"}` },
-      { type: "notify_staff", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"], notificationType: "job_returned_from_vendor", title: "Typing Job Returned by Vendor", messageFn: (ctx) => `Job ${ctx.jobCode || ""} returned by vendor${ctx.reason ? `: ${ctx.reason}` : ""}`, entityType: "typing_job", useAssignedUserIfAvailable: true },
+      { type: "notify_staff", roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"], notificationType: "job_returned_from_vendor", title: "Typing Job Returned by Vendor", messageFn: (ctx) => `Job ${ctx.jobCode || ""} returned by vendor${ctx.reason ? `: ${ctx.reason}` : ""}`, entityType: "typing_job", useAssignedUserIfAvailable: true },
     ],
   },
 

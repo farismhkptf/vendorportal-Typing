@@ -5493,8 +5493,8 @@ export default function AdminPage() {
                                 <SelectContent>
                                   <SelectItem value="Admin">Admin</SelectItem>
                                   <SelectItem value="Client Relationship Manager">Client Relationship Manager</SelectItem>
-                                  <SelectItem value="Medical Support">Medical Support</SelectItem>
-                                  <SelectItem value="Medical Support - Temporary">Medical Support - Temporary</SelectItem>
+                                  <SelectItem value="PRO">PRO</SelectItem>
+                                  <SelectItem value="PRO - Temporary">PRO - Temporary</SelectItem>
                                   <SelectItem value="Vendor">Vendor</SelectItem>
                                 </SelectContent>
                               </Select>
@@ -5528,7 +5528,7 @@ export default function AdminPage() {
                             )}
                           />
                         )}
-                        {["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"].includes(userForm.watch("role")) && (
+                        {["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"].includes(userForm.watch("role")) && (
                           <FormField
                             control={userForm.control}
                             name="staffId"
@@ -5721,8 +5721,8 @@ export default function AdminPage() {
                               <SelectContent>
                                 <SelectItem value="Admin">Admin</SelectItem>
                                 <SelectItem value="Client Relationship Manager">Client Relationship Manager</SelectItem>
-                                <SelectItem value="Medical Support">Medical Support</SelectItem>
-                                <SelectItem value="Medical Support - Temporary">Medical Support - Temporary</SelectItem>
+                                <SelectItem value="PRO">PRO</SelectItem>
+                                <SelectItem value="PRO - Temporary">PRO - Temporary</SelectItem>
                                 <SelectItem value="Vendor">Vendor</SelectItem>
                               </SelectContent>
                             </Select>
@@ -5756,7 +5756,7 @@ export default function AdminPage() {
                           )}
                         />
                       )}
-                      {["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"].includes(editUserForm.watch("role")) && (
+                      {["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"].includes(editUserForm.watch("role")) && (
                         <FormField
                           control={editUserForm.control}
                           name="staffId"

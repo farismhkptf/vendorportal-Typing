@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import {
@@ -138,6 +138,11 @@ export default function MedicalDashboard() {
   const { user } = useAuth();
   const isAdmin = user?.role === "Admin";
 
+  useEffect(() => {
+    document.title = "Keystone P.R.O. Dashboard";
+    return () => { document.title = "Keystone"; };
+  }, []);
+
   const { data: allAppointments, isLoading: appointmentsLoading } = useQuery<AppointmentWithDetails[]>({
     queryKey: ["/api/appointments"],
     enabled: isAdmin || !!user?.staffId,
@@ -266,7 +271,7 @@ export default function MedicalDashboard() {
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
             <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight" data-testid="text-user-greeting">
-              {isAdmin ? "Medical Dashboard" : (user?.name || "Dashboard")}
+              Keystone P.R.O. Dashboard
             </h1>
           </div>
           <div className="flex items-center gap-2">
