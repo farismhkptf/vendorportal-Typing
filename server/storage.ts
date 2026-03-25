@@ -7,6 +7,7 @@ import {
   sheetMonths, apiKeys,
   medicalCases, appointmentCycles, medicalAppointmentEvents,
   biometricsCases, biometricsAppointmentCycles, biometricsAppointmentEvents,
+  deletionRequests,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -32,6 +33,7 @@ import {
   type BiometricsCase, type InsertBiometricsCase,
   type BiometricsCycle, type InsertBiometricsCycle,
   type BiometricsEvent, type InsertBiometricsEvent,
+  type DeletionRequest, type InsertDeletionRequest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
@@ -235,6 +237,14 @@ export interface IStorage {
   createPasswordResetRequest(data: InsertPasswordResetRequest): Promise<PasswordResetRequest>;
   getPasswordResetRequests(status?: string): Promise<PasswordResetRequest[]>;
   resolvePasswordResetRequest(id: string, resolvedBy: string): Promise<PasswordResetRequest>;
+
+  // Deletion Requests
+  createDeletionRequest(data: InsertDeletionRequest): Promise<DeletionRequest>;
+  getDeletionRequests(status?: string): Promise<DeletionRequest[]>;
+  getDeletionRequestsByUser(userId: string): Promise<DeletionRequest[]>;
+  getDeletionRequestById(id: string): Promise<DeletionRequest | undefined>;
+  updateDeletionRequest(id: string, data: Partial<DeletionRequest>): Promise<DeletionRequest | undefined>;
+  getPendingDeletionRequestCount(): Promise<number>;
 
   // Seed data
   seedData(): Promise<void>;
@@ -2058,6 +2068,43 @@ export class DatabaseStorage implements IStorage {
         eq(biometricsAppointmentCycles.crmHoldActive, false)
       )
     );
+  }
+
+  async createDeletionRequest(data: InsertDeletionRequest): Promise<DeletionRequest> {
+    const [row] = await db.insert(deletionRequests).values(data).returning();
+    return row;
+  }
+
+  async getDeletionRequests(status?: string): Promise<DeletionRequest[]> {
+    if (status) {
+      return db.select().from(deletionRequests)
+        .where(eq(deletionRequests.status, status as any))
+        .orderBy(desc(deletionRequests.createdAt));
+    }
+    return db.select().from(deletionRequests).orderBy(desc(deletionRequests.createdAt));
+  }
+
+  async getDeletionRequestsByUser(userId: string): Promise<DeletionRequest[]> {
+    return db.select().from(deletionRequests)
+      .where(eq(deletionRequests.requestedBy, userId))
+      .orderBy(desc(deletionRequests.createdAt));
+  }
+
+  async getDeletionRequestById(id: string): Promise<DeletionRequest | undefined> {
+    const [row] = await db.select().from(deletionRequests).where(eq(deletionRequests.id, id));
+    return row || undefined;
+  }
+
+  async updateDeletionRequest(id: string, data: Partial<DeletionRequest>): Promise<DeletionRequest | undefined> {
+    const [row] = await db.update(deletionRequests).set(data).where(eq(deletionRequests.id, id)).returning();
+    return row || undefined;
+  }
+
+  async getPendingDeletionRequestCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` })
+      .from(deletionRequests)
+      .where(eq(deletionRequests.status, "pending"));
+    return Number(result?.count || 0);
   }
 }
 

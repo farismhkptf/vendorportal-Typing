@@ -49,6 +49,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MaskedInput } from "@/components/ui/masked-input";
 import { useScrollToError } from "@/hooks/use-scroll-to-error";
+import { useAuth } from "@/hooks/use-auth";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -750,7 +751,11 @@ interface WorkOrderDetail extends WorkOrder {
 
 function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
   const [noteText, setNoteText] = useState("");
+  const [deletionRequestNote, setDeletionRequestNote] = useState<{ id: string; content: string } | null>(null);
+  const [deletionReason, setDeletionReason] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isCrm = user?.role === "Client Relationship Manager";
   const { data: notes, isLoading } = useQuery<WoNote[]>({
     queryKey: ["/api/wo-notes", workOrderId],
     enabled: !!workOrderId,
@@ -776,6 +781,34 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
       toast({ title: "Failed to delete note", variant: "destructive" });
     },
   });
+
+  const requestNoteDeletionMutation = useMutation({
+    mutationFn: async ({ entityId, entityLabel, reason }: { entityId: string; entityLabel: string; reason: string }) => {
+      const res = await apiRequest("POST", "/api/deletion-requests", {
+        entityType: "wo_note",
+        entityId,
+        entityLabel,
+        reason,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Deletion request submitted", description: "Your request has been sent to Admin for review." });
+      setDeletionRequestNote(null);
+      setDeletionReason("");
+    },
+    onError: () => {
+      toast({ title: "Failed to submit request", variant: "destructive" });
+    },
+  });
+
+  const handleDeleteNote = (noteId: string, content: string) => {
+    if (isCrm) {
+      setDeletionRequestNote({ id: noteId, content });
+      return;
+    }
+    deleteNoteMutation.mutate(noteId);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -841,7 +874,7 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
                   variant="ghost"
                   size="icon"
                   className="opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-opacity text-muted-foreground"
-                  onClick={() => deleteNoteMutation.mutate(note.id)}
+                  onClick={() => handleDeleteNote(note.id, note.content)}
                   data-testid={`button-delete-note-${note.id}`}
                 >
                   <Trash2 className="h-3 w-3" />
@@ -857,6 +890,50 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
           description="Add internal notes for team communication about this work order."
         />
       )}
+      {/* CRM Note Deletion Request Dialog */}
+      <Dialog
+        open={!!deletionRequestNote}
+        onOpenChange={(open) => { if (!open) { setDeletionRequestNote(null); setDeletionReason(""); } }}
+      >
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Request Note Deletion</DialogTitle>
+            <DialogDescription>Submit a request to Admin to delete this note.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Note content</p>
+              <p className="text-sm text-foreground bg-muted/40 rounded-lg p-2 line-clamp-3">{deletionRequestNote?.content}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Reason *</p>
+              <Input
+                placeholder="Why should this note be deleted?"
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                data-testid="input-note-deletion-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 mt-2">
+            <Button variant="outline" onClick={() => { setDeletionRequestNote(null); setDeletionReason(""); }} data-testid="button-cancel-note-deletion">Cancel</Button>
+            <Button
+              disabled={!deletionReason.trim() || requestNoteDeletionMutation.isPending}
+              onClick={() => {
+                if (!deletionRequestNote || !deletionReason.trim()) return;
+                requestNoteDeletionMutation.mutate({
+                  entityId: deletionRequestNote.id,
+                  entityLabel: `Note: "${deletionRequestNote.content.slice(0, 60)}${deletionRequestNote.content.length > 60 ? "..." : ""}"`,
+                  reason: deletionReason.trim(),
+                });
+              }}
+              data-testid="button-submit-note-deletion"
+            >
+              {requestNoteDeletionMutation.isPending ? "Submitting..." : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -900,6 +977,10 @@ export default function WorkOrderDetail() {
   const [, setLocation] = useLocation();
   const id = params?.id;
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isCrm = user?.role === "Client Relationship Manager";
+  const [woDeletionRequest, setWoDeletionRequest] = useState<{ reason: string } | null>(null);
+  const [woDeletionReason, setWoDeletionReason] = useState("");
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [showNewTypingJobForm, setShowNewTypingJobForm] = useState(false);
   const [typeMedical, setTypeMedical] = useState(true);
@@ -1367,6 +1448,26 @@ export default function WorkOrderDetail() {
     },
   });
 
+  const requestWoDeletionMutation = useMutation({
+    mutationFn: async ({ reason }: { reason: string }) => {
+      const res = await apiRequest("POST", "/api/deletion-requests", {
+        entityType: "work_order",
+        entityId: id,
+        entityLabel: workOrder ? `WO ${workOrder.woNumber} — ${workOrder.applicantName}` : id,
+        reason,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Deletion request submitted", description: "Admin will review your request." });
+      setWoDeletionRequest(null);
+      setWoDeletionReason("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to submit request", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleOpenEdit = () => {
     if (workOrder) {
       const values = {
@@ -1482,45 +1583,99 @@ export default function WorkOrderDetail() {
               <Pencil className="h-3.5 w-3.5" />
               Edit
             </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1.5 text-destructive" data-testid="button-delete-wo">
+            {isCrm ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-destructive"
+                  onClick={() => setWoDeletionRequest({ reason: "" })}
+                  data-testid="button-delete-wo"
+                >
                   <Trash2 className="h-3.5 w-3.5" />
-                  Delete
+                  Request Deletion
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="rounded-2xl">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
-                  <AlertDialogDescription asChild>
-                    <div className="space-y-2">
-                      <p>Are you sure you want to delete work order <strong>{workOrder.woNumber}</strong>? This action cannot be undone.</p>
-                      {((workOrder.typingJobs?.length || 0) > 0 || (workOrder.appointments?.length || 0) > 0) && (
-                        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm space-y-1">
-                          <p className="font-medium text-destructive">The following will also be deleted:</p>
-                          {(workOrder.typingJobs?.length || 0) > 0 && (
-                            <p>• {workOrder.typingJobs!.length} typing job{workOrder.typingJobs!.length > 1 ? "s" : ""}</p>
-                          )}
-                          {(workOrder.appointments?.length || 0) > 0 && (
-                            <p>• {workOrder.appointments!.length} appointment{workOrder.appointments!.length > 1 ? "s" : ""}</p>
-                          )}
-                          <p>• All associated documents, notes, and files</p>
-                        </div>
-                      )}
+                <Dialog
+                  open={!!woDeletionRequest}
+                  onOpenChange={(open) => { if (!open) { setWoDeletionRequest(null); setWoDeletionReason(""); } }}
+                >
+                  <DialogContent className="sm:max-w-md rounded-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Request Work Order Deletion</DialogTitle>
+                      <DialogDescription>As CRM, deletions require Admin approval. Submit a request with a reason.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Work Order</p>
+                        <p className="text-sm font-medium">{workOrder.woNumber} — {workOrder.applicantName}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">Reason *</p>
+                        <Input
+                          placeholder="Why should this work order be deleted?"
+                          value={woDeletionReason}
+                          onChange={(e) => setWoDeletionReason(e.target.value)}
+                          data-testid="input-wo-deletion-reason"
+                        />
+                      </div>
                     </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    className="rounded-xl bg-destructive text-destructive-foreground"
-                    onClick={() => deleteMutation.mutate()}
-                  >
+                    <DialogFooter className="gap-2 mt-2">
+                      <Button variant="outline" onClick={() => { setWoDeletionRequest(null); setWoDeletionReason(""); }} data-testid="button-cancel-wo-deletion">Cancel</Button>
+                      <Button
+                        disabled={!woDeletionReason.trim() || requestWoDeletionMutation.isPending}
+                        onClick={() => {
+                          if (!woDeletionReason.trim()) return;
+                          requestWoDeletionMutation.mutate({ reason: woDeletionReason.trim() });
+                        }}
+                        data-testid="button-submit-wo-deletion"
+                      >
+                        {requestWoDeletionMutation.isPending ? "Submitting..." : "Submit Request"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </>
+            ) : (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5 text-destructive" data-testid="button-delete-wo">
+                    <Trash2 className="h-3.5 w-3.5" />
                     Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-2xl">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-2">
+                        <p>Are you sure you want to delete work order <strong>{workOrder.woNumber}</strong>? This action cannot be undone.</p>
+                        {((workOrder.typingJobs?.length || 0) > 0 || (workOrder.appointments?.length || 0) > 0) && (
+                          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm space-y-1">
+                            <p className="font-medium text-destructive">The following will also be deleted:</p>
+                            {(workOrder.typingJobs?.length || 0) > 0 && (
+                              <p>• {workOrder.typingJobs!.length} typing job{workOrder.typingJobs!.length > 1 ? "s" : ""}</p>
+                            )}
+                            {(workOrder.appointments?.length || 0) > 0 && (
+                              <p>• {workOrder.appointments!.length} appointment{workOrder.appointments!.length > 1 ? "s" : ""}</p>
+                            )}
+                            <p>• All associated documents, notes, and files</p>
+                          </div>
+                        )}
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+                    <AlertDialogAction 
+                      className="rounded-xl bg-destructive text-destructive-foreground"
+                      onClick={() => deleteMutation.mutate()}
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
             <div className="flex items-center gap-1">
               <Link href="/work-orders">
                 <Button variant="ghost" size="icon" data-testid="button-back">

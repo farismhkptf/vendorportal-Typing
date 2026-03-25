@@ -4,12 +4,16 @@ import { AlertTriangle, CheckCircle2, FileText, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { DocumentUploadZone } from "./document-upload-zone";
 import { DOCUMENT_TYPE_LABELS, SERVICE_CATEGORY_LABELS, type DocumentType, type ServiceCategory } from "./document-types";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ImageLightbox, type LightboxFile } from "@/components/image-lightbox";
 import { ExpiryBadge, getExpiryStatus } from "./document-expiry";
+import { useAuth } from "@/hooks/use-auth";
 
 interface WoDocument {
   id: string;
@@ -49,12 +53,16 @@ export function DocumentPanel({
   title = "Documents",
 }: DocumentPanelProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isCrm = user?.role === "Client Relationship Manager";
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxFiles, setLightboxFiles] = useState<LightboxFile[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [uploadingDocType, setUploadingDocType] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [deletionRequestDoc, setDeletionRequestDoc] = useState<{ id: string; label: string } | null>(null);
+  const [deletionReason, setDeletionReason] = useState("");
 
   const { data: documents = [], isLoading: loadingDocs } = useQuery<WoDocument[]>({
     queryKey: ["/api/work-orders", woId, "documents"],
@@ -166,6 +174,26 @@ export function DocumentPanel({
     },
   });
 
+  const requestDeletionMutation = useMutation({
+    mutationFn: async ({ entityId, entityLabel, reason }: { entityId: string; entityLabel: string; reason: string }) => {
+      const res = await apiRequest("POST", "/api/deletion-requests", {
+        entityType: "document",
+        entityId,
+        entityLabel,
+        reason,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Deletion request submitted", description: "Your request has been sent to Admin for review." });
+      setDeletionRequestDoc(null);
+      setDeletionReason("");
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to submit request", description: err.message, variant: "destructive" });
+    },
+  });
+
   const requirements = serviceCategory
     ? allRequirements.filter((r) => {
         if (r.serviceCategory !== serviceCategory) return false;
@@ -200,6 +228,12 @@ export function DocumentPanel({
   };
 
   const handleDelete = async (documentId: string) => {
+    if (isCrm) {
+      const doc = documents.find(d => d.id === documentId);
+      const label = doc ? `${doc.fileName} (${doc.documentType})` : documentId;
+      setDeletionRequestDoc({ id: documentId, label });
+      return;
+    }
     await deleteMutation.mutateAsync(documentId);
   };
 
@@ -415,6 +449,61 @@ export function DocumentPanel({
         open={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
       />
+
+      {/* CRM Deletion Request Dialog */}
+      <Dialog
+        open={!!deletionRequestDoc}
+        onOpenChange={(open) => {
+          if (!open) { setDeletionRequestDoc(null); setDeletionReason(""); }
+        }}
+      >
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Request Document Deletion</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              As CRM, you cannot delete documents directly. Submit a request and Admin will review it.
+            </p>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Document</p>
+              <p className="text-sm font-medium text-foreground">{deletionRequestDoc?.label}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Reason for deletion *</p>
+              <Input
+                placeholder="Explain why this document should be deleted..."
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                data-testid="input-deletion-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 mt-2">
+            <Button
+              variant="outline"
+              onClick={() => { setDeletionRequestDoc(null); setDeletionReason(""); }}
+              data-testid="button-cancel-deletion-request"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!deletionRequestDoc || !deletionReason.trim()) return;
+                requestDeletionMutation.mutate({
+                  entityId: deletionRequestDoc.id,
+                  entityLabel: deletionRequestDoc.label,
+                  reason: deletionReason.trim(),
+                });
+              }}
+              disabled={!deletionReason.trim() || requestDeletionMutation.isPending}
+              data-testid="button-submit-deletion-request"
+            >
+              {requestDeletionMutation.isPending ? "Submitting..." : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

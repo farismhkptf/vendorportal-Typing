@@ -1810,7 +1810,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/work-orders/:id", requireOpsRole, async (req, res) => {
+  app.delete("/api/work-orders/:id", requireRole("Admin"), async (req, res) => {
     try {
       const { id } = req.params;
       const deleted = await storage.deleteWorkOrder(id);
@@ -1893,6 +1893,19 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/wo-notes/:noteId", requireRole("Admin"), async (req, res) => {
+    try {
+      const { noteId } = req.params;
+      const deleted = await storage.deleteWoNote(noteId);
+      if (!deleted) {
+        return res.status(404).json({ message: "Note not found" });
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Delete WO note error:", error);
+      res.status(500).json({ message: "Failed to delete note" });
+    }
+  });
 
   // ========== Audit Logs ==========
   app.get("/api/audit-logs/:entityType/:entityId", requireAuth, async (req, res) => {
@@ -2588,7 +2601,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/companies/:companyId/emails/:emailId", requireOpsRole, async (req, res) => {
+  app.delete("/api/companies/:companyId/emails/:emailId", requireRole("Admin"), async (req, res) => {
     try {
       const existing = await storage.getCompanyEmails(req.params.companyId);
       const owns = existing.some(e => e.id === req.params.emailId);
@@ -3770,7 +3783,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/vendor-wallet/topup", requireAuth, async (req, res) => {
+  app.post("/api/vendor-wallet/topup", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
       const validation = validateBody(topupSchema, req.body);
       if ('error' in validation) {
@@ -6045,7 +6058,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/documents/:id", requireAuth, async (req, res) => {
+  app.delete("/api/documents/:id", requireRole("Admin"), async (req, res) => {
     try {
       const { id } = req.params;
       const document = await storage.getWoDocumentById(id);
@@ -7277,7 +7290,7 @@ export async function registerRoutes(
 
   // ========== Sheet Months (Monthly Google Sheet Tracking) ==========
 
-  app.get("/api/admin/sheet-months", requireRole("Admin"), async (req, res) => {
+  app.get("/api/admin/sheet-months", requireOpsRole, async (req, res) => {
     try {
       const months = await storage.getSheetMonths();
       res.json(months);
@@ -7286,7 +7299,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/sheet-months/upsert", requireRole("Admin"), async (req, res) => {
+  app.post("/api/admin/sheet-months/upsert", requireOpsRole, async (req, res) => {
     try {
       const { monthYear, sheetUrl } = req.body;
       if (!monthYear) return res.status(400).json({ message: "monthYear is required" });
@@ -7297,7 +7310,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/sheet-months/:id/close", requireRole("Admin"), async (req, res) => {
+  app.post("/api/admin/sheet-months/:id/close", requireOpsRole, async (req, res) => {
     try {
       const month = await storage.getSheetMonth(req.params.id);
       if (!month) return res.status(404).json({ message: "Sheet month not found" });
@@ -7309,7 +7322,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/sheet-months/:id/refresh", requireRole("Admin"), async (req, res) => {
+  app.post("/api/admin/sheet-months/:id/refresh", requireOpsRole, async (req, res) => {
     try {
       const month = await storage.getSheetMonth(req.params.id);
       if (!month) return res.status(404).json({ message: "Sheet month not found" });
@@ -7434,7 +7447,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/admin/sheet-months/:id/import", requireRole("Admin"), async (req, res) => {
+  app.post("/api/admin/sheet-months/:id/import", requireOpsRole, async (req, res) => {
     try {
       const month = await storage.getSheetMonth(req.params.id);
       if (!month) return res.status(404).json({ message: "Sheet month not found" });
@@ -8835,6 +8848,175 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("[apple-pass] Error generating pass:", err);
       res.status(500).json({ message: err.message ?? "Failed to generate pass" });
+    }
+  });
+
+  // ========== Deletion Requests ==========
+
+  const deletionRequestSchema = z.object({
+    entityType: z.string().min(1),
+    entityId: z.string().min(1),
+    entityLabel: z.string().min(1),
+    reason: z.string().min(1, "Please provide a reason for the deletion request"),
+  });
+
+  const deletionReviewSchema = z.object({
+    reviewNote: z.string().optional(),
+  });
+
+  // CRM submits a deletion request
+  app.post("/api/deletion-requests", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const validation = validateBody(deletionRequestSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { entityType, entityId, entityLabel, reason } = validation.data;
+
+      const request = await storage.createDeletionRequest({
+        entityType,
+        entityId,
+        entityLabel,
+        requestedBy: user.id,
+        requestedByName: user.name,
+        reason,
+        status: "pending",
+      });
+
+      await storage.createAuditLog({
+        entityType,
+        entityId,
+        action: "deletion_requested",
+        userId: user.id,
+        details: { reason, entityLabel },
+      });
+
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Deletion request create error:", error);
+      res.status(500).json({ message: "Failed to create deletion request" });
+    }
+  });
+
+  // List deletion requests (Admin sees all, CRM sees their own)
+  app.get("/api/deletion-requests", requireAuth, requireOpsRole, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const status = req.query.status as string | undefined;
+      let requests: any[];
+
+      if (user.role === "Admin") {
+        requests = await storage.getDeletionRequests(status);
+      } else {
+        const all = await storage.getDeletionRequestsByUser(user.id);
+        requests = status ? all.filter(r => r.status === status) : all;
+      }
+
+      res.json(requests);
+    } catch (error) {
+      console.error("Deletion requests list error:", error);
+      res.status(500).json({ message: "Failed to fetch deletion requests" });
+    }
+  });
+
+  // Get pending deletion request count (for badge)
+  app.get("/api/deletion-requests/pending-count", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      const count = await storage.getPendingDeletionRequestCount();
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get count" });
+    }
+  });
+
+  // Admin approves a deletion request — marks approved AND performs the actual deletion
+  app.patch("/api/deletion-requests/:id/approve", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const request = await storage.getDeletionRequestById(req.params.id);
+      if (!request) return res.status(404).json({ message: "Request not found" });
+      if (request.status !== "pending") return res.status(400).json({ message: "Request already reviewed" });
+
+      const validation = validateBody(deletionReviewSchema, req.body);
+      const reviewNote = ('data' in validation) ? validation.data.reviewNote : undefined;
+
+      // Perform the actual deletion based on entity type
+      let deleteError: string | null = null;
+      try {
+        if (request.entityType === "document") {
+          await storage.deleteWoDocument(request.entityId);
+        } else if (request.entityType === "work_order") {
+          await storage.deleteWorkOrder(request.entityId);
+        } else if (request.entityType === "wo_note") {
+          await storage.deleteWoNote(request.entityId);
+        } else if (request.entityType === "company_email") {
+          await storage.deleteCompanyEmail(request.entityId);
+        }
+      } catch (delErr: any) {
+        // Entity may already be gone; log but don't fail
+        deleteError = delErr?.message || "Entity may already be deleted";
+        console.warn("Deletion request entity delete warning:", deleteError);
+      }
+
+      const updated = await storage.updateDeletionRequest(req.params.id, {
+        status: "approved",
+        reviewedBy: user.id,
+        reviewedAt: new Date(),
+        reviewNote: reviewNote || null,
+      });
+
+      await storage.createAuditLog({
+        entityType: request.entityType,
+        entityId: request.entityId,
+        action: "deletion_request_approved",
+        userId: user.id,
+        details: { requestedBy: request.requestedByName, entityLabel: request.entityLabel, deleteError },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Deletion request approve error:", error);
+      res.status(500).json({ message: "Failed to approve deletion request" });
+    }
+  });
+
+  // Admin denies a deletion request
+  app.patch("/api/deletion-requests/:id/deny", requireAuth, requireRole("Admin"), async (req, res) => {
+    try {
+      const user = await storage.getUser(req.session!.userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const request = await storage.getDeletionRequestById(req.params.id);
+      if (!request) return res.status(404).json({ message: "Request not found" });
+      if (request.status !== "pending") return res.status(400).json({ message: "Request already reviewed" });
+
+      const validation = validateBody(deletionReviewSchema, req.body);
+      const reviewNote = ('data' in validation) ? validation.data.reviewNote : undefined;
+
+      const updated = await storage.updateDeletionRequest(req.params.id, {
+        status: "denied",
+        reviewedBy: user.id,
+        reviewedAt: new Date(),
+        reviewNote: reviewNote || null,
+      });
+
+      await storage.createAuditLog({
+        entityType: request.entityType,
+        entityId: request.entityId,
+        action: "deletion_request_denied",
+        userId: user.id,
+        details: { requestedBy: request.requestedByName, entityLabel: request.entityLabel },
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Deletion request deny error:", error);
+      res.status(500).json({ message: "Failed to deny deletion request" });
     }
   });
 

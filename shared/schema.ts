@@ -90,6 +90,7 @@ export const staffTypeEnum = pgEnum("staff_type", ["Permanent", "Temporary"]);
 export const approvalStatusEnum = pgEnum("approval_status", ["Pending", "Approved", "Rejected"]);
 export const changeNotificationStatusEnum = pgEnum("change_notification_status", ["pending", "reviewed", "dismissed"]);
 export const passwordResetStatusEnum = pgEnum("password_reset_status", ["pending", "approved", "rejected"]);
+export const deletionRequestStatusEnum = pgEnum("deletion_request_status", ["pending", "approved", "denied"]);
 
 // Medical Appointment Scheduling enums
 export const medicalApptStatusEnum = pgEnum("medical_appt_status", [
@@ -917,3 +918,23 @@ export type BiometricsEvent = typeof biometricsAppointmentEvents.$inferSelect;
 
 export const FINAL_BIOMETRICS_STATUSES = ["COMPLETED", "NO_SHOW", "CLOSED_ADMIN_OVERRIDE"] as const;
 export type BiometricsApptStatus = "SCHEDULED" | "AWAITING_MEETING" | "IN_PROCESS" | "COMPLETED" | "NO_SHOW" | "RESCHEDULE_REQUIRED" | "CLOSED_ADMIN_OVERRIDE";
+
+// Deletion Requests (CRM submits, Admin approves)
+export const deletionRequests = pgTable("deletion_requests", {
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityType: text("entity_type").notNull(), // e.g. "work_order", "document", "note", "company_email"
+  entityId: text("entity_id").notNull(),
+  entityLabel: text("entity_label").notNull(), // human-readable description
+  requestedBy: text("requested_by").notNull(), // user.id
+  requestedByName: text("requested_by_name").notNull(),
+  reason: text("reason").notNull(),
+  status: deletionRequestStatusEnum("status").default("pending").notNull(),
+  reviewedBy: text("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertDeletionRequestSchema = createInsertSchema(deletionRequests).omit({ id: true, createdAt: true, reviewedBy: true, reviewedAt: true, reviewNote: true });
+export type InsertDeletionRequest = z.infer<typeof insertDeletionRequestSchema>;
+export type DeletionRequest = typeof deletionRequests.$inferSelect;

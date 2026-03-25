@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,6 +19,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Center, Staff, Company, CompanyEmail, ClientContact } from "@shared/schema";
 import { Link } from "wouter";
 import { toProperCase } from "@/lib/proper-case";
+import { useAuth } from "@/hooks/use-auth";
 
 interface CompanyWithRelations extends Company {
   rmStaff?: Staff;
@@ -54,6 +56,8 @@ export default function CompanyDetail() {
   const params = useParams<{ id: string }>();
   const [, navigate] = useLocation();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isCrm = user?.role === "Client Relationship Manager";
 
   const [isUnsavedDialogOpen, setIsUnsavedDialogOpen] = useState(false);
   const [newEmailLabel, setNewEmailLabel] = useState("");
@@ -61,6 +65,8 @@ export default function CompanyDetail() {
   const [editingEmailId, setEditingEmailId] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
   const [editAddress, setEditAddress] = useState("");
+  const [emailDeletionRequest, setEmailDeletionRequest] = useState<{ id: string; label: string } | null>(null);
+  const [emailDeletionReason, setEmailDeletionReason] = useState("");
 
   const { data: company, isLoading } = useQuery<CompanyWithRelations>({
     queryKey: ["/api/companies", params.id],
@@ -173,6 +179,32 @@ export default function CompanyDetail() {
     },
     onError: (err: Error) => toast({ title: "Failed to remove email", description: err.message, variant: "destructive" }),
   });
+
+  const requestEmailDeletionMutation = useMutation({
+    mutationFn: async ({ entityId, entityLabel, reason }: { entityId: string; entityLabel: string; reason: string }) => {
+      const res = await apiRequest("POST", "/api/deletion-requests", {
+        entityType: "company_email",
+        entityId,
+        entityLabel,
+        reason,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Deletion request submitted", description: "Admin will review your request." });
+      setEmailDeletionRequest(null);
+      setEmailDeletionReason("");
+    },
+    onError: (err: Error) => toast({ title: "Failed to submit request", description: err.message, variant: "destructive" }),
+  });
+
+  const handleDeleteEmail = (ce: CompanyEmail) => {
+    if (isCrm) {
+      setEmailDeletionRequest({ id: ce.id, label: `${ce.label}: ${ce.email}` });
+      return;
+    }
+    deleteEmailMutation.mutate(ce.id);
+  };
 
   const onSubmit = useCallback((data: CompanyFormData) => {
     updateMutation.mutate(data);
@@ -514,8 +546,8 @@ export default function CompanyDetail() {
                         size="icon"
                         variant="ghost"
                         className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                        onClick={() => deleteEmailMutation.mutate(ce.id)}
-                        disabled={deleteEmailMutation.isPending}
+                        onClick={() => handleDeleteEmail(ce)}
+                        disabled={deleteEmailMutation.isPending || requestEmailDeletionMutation.isPending}
                         data-testid={`button-delete-email-${ce.id}`}
                       >
                         <Trash2 className="h-3 w-3" />
@@ -596,6 +628,51 @@ export default function CompanyDetail() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* CRM Email Deletion Request Dialog */}
+      <Dialog
+        open={!!emailDeletionRequest}
+        onOpenChange={(open) => { if (!open) { setEmailDeletionRequest(null); setEmailDeletionReason(""); } }}
+      >
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Request Email Deletion</DialogTitle>
+            <DialogDescription>Submit a request to Admin to remove this company email.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Email</p>
+              <p className="text-sm font-medium">{emailDeletionRequest?.label}</p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">Reason *</p>
+              <Input
+                placeholder="Why should this email be removed?"
+                value={emailDeletionReason}
+                onChange={(e) => setEmailDeletionReason(e.target.value)}
+                data-testid="input-email-deletion-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 mt-2">
+            <Button variant="outline" onClick={() => { setEmailDeletionRequest(null); setEmailDeletionReason(""); }} data-testid="button-cancel-email-deletion">Cancel</Button>
+            <Button
+              disabled={!emailDeletionReason.trim() || requestEmailDeletionMutation.isPending}
+              onClick={() => {
+                if (!emailDeletionRequest || !emailDeletionReason.trim()) return;
+                requestEmailDeletionMutation.mutate({
+                  entityId: emailDeletionRequest.id,
+                  entityLabel: emailDeletionRequest.label,
+                  reason: emailDeletionReason.trim(),
+                });
+              }}
+              data-testid="button-submit-email-deletion"
+            >
+              {requestEmailDeletionMutation.isPending ? "Submitting..." : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }

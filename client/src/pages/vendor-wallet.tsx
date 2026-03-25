@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { toProperCase } from "@/lib/proper-case";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
@@ -60,6 +61,8 @@ type TopupForm = z.infer<typeof topupSchema>;
 type ViewByOption = "none" | "type" | "date";
 
 export default function VendorWallet() {
+  const { user } = useAuth();
+  const isCrm = user?.role === "Client Relationship Manager";
   const [topupOpen, setTopupOpen] = useState(false);
   const [viewBy, setViewBy] = useState<ViewByOption>("none");
   const [ledgerSearch, setLedgerSearch] = useState("");
@@ -221,6 +224,7 @@ export default function VendorWallet() {
               </SelectContent>
             </Select>
           </div>
+          {!isCrm && (
           <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
               <DialogTrigger asChild>
                 <Button size="sm" className="gap-1.5" data-testid="button-topup">
@@ -294,6 +298,7 @@ export default function VendorWallet() {
                 </Form>
               </DialogContent>
             </Dialog>
+          )}
         </div>
       </div>
 
@@ -311,6 +316,7 @@ export default function VendorWallet() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm text-amber-800 dark:text-amber-200">Low Balance - Top up to continue</p>
               </div>
+              {!isCrm && (
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -320,6 +326,7 @@ export default function VendorWallet() {
                 Top Up
                 <ArrowRight className="h-3.5 w-3.5" />
               </Button>
+              )}
             </div>
           </div>
         )}

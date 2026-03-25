@@ -135,7 +135,7 @@ const ROUTE_ACCESS: Array<{ path: string; exact?: boolean; roles: string[] }> = 
   { path: "/reports", roles: OPS_ROLES },
   { path: "/admin", roles: ["Admin"] },
   { path: "/manager-console", roles: OPS_ROLES },
-  { path: "/bots", roles: ["Admin"] },
+  { path: "/bots", roles: ["Admin", "Client Relationship Manager"] },
 ];
 
 function getRouteRoles(location: string): string[] | null {
