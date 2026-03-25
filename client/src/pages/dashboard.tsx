@@ -37,6 +37,7 @@ import { toProperCase } from "@/lib/proper-case";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardSwitcher } from "@/components/dashboard-switcher";
+import { CustodyDashboardWidget } from "@/components/custody/dashboard-widget";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import { getPipelineInfo, STAGE_CONFIG, PIPELINE_STEPS, type PipelineStage } from "@/lib/pipeline-stage";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
@@ -1183,6 +1184,9 @@ export default function Dashboard() {
           </div>
           <div className="space-y-4">
             {weeklyData && <WeeklyOverviewChart data={weeklyData} />}
+            {(user?.role === "Admin" || user?.role === "Client Relationship Manager" || user?.role === "Medical Support" || user?.role === "Medical Support - Temporary") && (
+              <CustodyDashboardWidget />
+            )}
             <MyActivityPanel data={myActivity} isLoading={activityLoading} photoMap={photoMap} />
           </div>
         </div>

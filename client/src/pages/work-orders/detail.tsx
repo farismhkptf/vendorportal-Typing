@@ -70,6 +70,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { WorkOrder, Company, Appointment, TypingJob, Staff, Center, ServiceType, AuditLog, JobType, WoNote, Vendor, WoDocument } from "@shared/schema";
 import { DocumentPanel } from "@/components/documents/document-panel";
+import { WoCustodyPanel } from "@/components/custody/wo-custody-panel";
 import { MedicalSchedulingTab } from "@/components/medical-scheduling/MedicalSchedulingTab";
 import { BiometricsSchedulingTab } from "@/components/biometrics-scheduling/BiometricsSchedulingTab";
 import type { ServiceCategory } from "@/components/documents/document-types";
@@ -2209,12 +2210,15 @@ export default function WorkOrderDetail() {
               <ActivityTimelineSection workOrderId={id || ""} />
             </TabsContent>
 
-            <TabsContent value="documents" className="p-3 sm:p-6">
+            <TabsContent value="documents" className="p-3 sm:p-6 space-y-6">
               <DocumentPanel 
                 woId={id || ""}
                 serviceCategory={serviceTypes?.find(st => st.id === workOrder.serviceTypeId)?.category as ServiceCategory | undefined}
                 title="Work Order Documents"
               />
+              <div className="border-t border-border pt-4">
+                <WoCustodyPanel woId={id || ""} companyId={workOrder.companyId} />
+              </div>
             </TabsContent>
 
             <TabsContent value="medical-scheduling" className="p-3 sm:p-6">

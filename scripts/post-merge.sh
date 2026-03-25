@@ -102,3 +102,57 @@ CREATE INDEX IF NOT EXISTS idx_attestation_inquiries_status ON attestation_inqui
 CREATE INDEX IF NOT EXISTS idx_attestation_quotes_inquiry_id ON attestation_inquiry_quotes(inquiry_id);
 CREATE INDEX IF NOT EXISTS idx_document_custody_log_sr_id ON document_custody_log(sr_id);
 SQL
+
+# Task #62: Document Custody Lifecycle Module
+psql "$DATABASE_URL" <<'SQL' 2>/dev/null || true
+DO $$ BEGIN
+  CREATE TYPE custody_doc_category AS ENUM ('MofaPersonal', 'MofaBusiness', 'LawyerAttestation', 'EmbassyAttestation');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE custody_doc_subtype AS ENUM (
+    'BirthCertificate', 'MarriageCertificate', 'EmbassyAffidavit', 'AcademicCertificate',
+    'PersonalPOA', 'TradeLicense', 'MOA', 'BusinessPOA', 'InternalCompanyDocuments',
+    'PassportCopy', 'ResidencyCopy', 'UtilityBill', 'Other'
+  );
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE custody_doc_stage AS ENUM ('WithClient', 'WithUs', 'WithVendor', 'ReturnedToClient');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+CREATE TABLE IF NOT EXISTS document_custody_records (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  reference_number VARCHAR(20) NOT NULL UNIQUE,
+  company_id VARCHAR NOT NULL,
+  wo_id VARCHAR,
+  sr_id VARCHAR,
+  doc_category custody_doc_category NOT NULL,
+  doc_subtype custody_doc_subtype NOT NULL,
+  doc_custom_name TEXT,
+  custody_stage custody_doc_stage NOT NULL DEFAULT 'WithClient',
+  notify_email TEXT,
+  notes TEXT,
+  created_by VARCHAR,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS document_custody_handoffs (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  record_id VARCHAR NOT NULL,
+  from_stage custody_doc_stage NOT NULL,
+  to_stage custody_doc_stage NOT NULL,
+  counterparty_name TEXT NOT NULL,
+  counterparty_contact TEXT NOT NULL,
+  counterparty_id_photo_url TEXT,
+  notes TEXT,
+  performed_by VARCHAR NOT NULL,
+  performed_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_doc_custody_records_company_id ON document_custody_records(company_id);
+CREATE INDEX IF NOT EXISTS idx_doc_custody_records_wo_id ON document_custody_records(wo_id);
+CREATE INDEX IF NOT EXISTS idx_doc_custody_records_sr_id ON document_custody_records(sr_id);
+CREATE INDEX IF NOT EXISTS idx_doc_custody_handoffs_record_id ON document_custody_handoffs(record_id);
+SQL

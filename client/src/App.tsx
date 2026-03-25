@@ -110,6 +110,8 @@ import LegalPage from "@/pages/legal";
 import CardPage from "@/pages/card";
 import CustodyQueuePage from "@/pages/attestation/custody-queue";
 import AttestationSrDetailPage from "@/pages/attestation/sr-detail";
+import NewCustodyQueuePage from "@/pages/custody/queue";
+import CustodyDetailPage from "@/pages/custody/detail";
 import AttestationVendorLogin from "@/pages/vendor-attestation/login";
 import AttestationVendorJobsPage from "@/pages/vendor-attestation/jobs";
 
@@ -152,6 +154,8 @@ const ROUTE_ACCESS: Array<{ path: string; exact?: boolean; roles: string[] }> = 
   { path: "/manager-console", roles: OPS_ROLES },
   { path: "/bots", roles: ["Admin", "Client Relationship Manager"] },
   { path: "/attestation", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] },
+  { path: "/custody-queue", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] },
+  { path: "/custody", roles: ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"] },
 ];
 
 function getRouteRoles(location: string): string[] | null {
@@ -365,6 +369,8 @@ function AppRoutes() {
       <Route path="/attestation/sr/:id" component={AttestationSrDetailPage} />
       <Route path="/vendor-attestation/login" component={AttestationVendorLogin} />
       <Route path="/vendor-attestation/jobs" component={AttestationVendorJobsPage} />
+      <Route path="/custody-queue" component={NewCustodyQueuePage} />
+      <Route path="/custody/:id" component={CustodyDetailPage} />
       <Route component={NotFound} />
     </Switch>
   );

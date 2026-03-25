@@ -40,6 +40,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toProperCase } from "@/lib/proper-case";
 import type { Center, Staff, ServiceType, Company } from "@shared/schema";
+import { CustodyDashboardWidget } from "@/components/custody/dashboard-widget";
 
 const pinSchema = z.object({
   pin: z.string().length(4, "PIN must be 4 digits").regex(/^\d{4}$/, "PIN must be 4 digits"),
@@ -115,6 +116,10 @@ export default function ManagerConsole() {
             <h1 className="text-xl lg:text-2xl font-bold tracking-tight" data-testid="text-manager-title">Manager Console</h1>
           </div>
           <ChangePinButton />
+        </div>
+
+        <div className="max-w-xs">
+          <CustodyDashboardWidget />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

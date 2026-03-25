@@ -12,6 +12,7 @@ import {
   attestationServiceRequests, attestationSrSteps, attestationSrActivityLog,
   attestationInquiries, attestationInquiryQuotes,
   documentCustodyLog,
+  documentCustodyRecords, documentCustodyHandoffs,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -48,6 +49,8 @@ import {
   type AttestationInquiry, type InsertAttestationInquiry,
   type AttestationInquiryQuote, type InsertAttestationInquiryQuote,
   type DocumentCustodyLog, type InsertDocumentCustodyLog,
+  type DocumentCustodyRecord, type InsertDocumentCustodyRecord,
+  type DocumentCustodyHandoff, type InsertDocumentCustodyHandoff,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
@@ -375,6 +378,17 @@ export interface IStorage {
   getCustodyLogs(srId: string): Promise<DocumentCustodyLog[]>;
   createCustodyLog(data: InsertDocumentCustodyLog): Promise<DocumentCustodyLog>;
   createCustodyLogWithSrUpdate(data: InsertDocumentCustodyLog, srUpdate: Partial<AttestationSr>): Promise<{ log: DocumentCustodyLog; sr: AttestationSr }>;
+
+  // Document Custody Records (new standalone lifecycle module)
+  getDocumentCustodyRecords(filters?: { companyId?: string; woId?: string; custodyStage?: string; docCategory?: string; dateFrom?: Date; dateTo?: Date }): Promise<DocumentCustodyRecord[]>;
+  getDocumentCustodyRecordById(id: string): Promise<DocumentCustodyRecord | undefined>;
+  getDocumentCustodyRecordsByWoId(woId: string): Promise<DocumentCustodyRecord[]>;
+  createDocumentCustodyRecord(data: InsertDocumentCustodyRecord): Promise<DocumentCustodyRecord>;
+  updateDocumentCustodyRecord(id: string, data: Partial<InsertDocumentCustodyRecord>): Promise<DocumentCustodyRecord | undefined>;
+  getNextCustodyRefNumber(): Promise<string>;
+  getDocumentCustodyHandoffs(recordId: string): Promise<DocumentCustodyHandoff[]>;
+  createDocumentCustodyHandoff(data: InsertDocumentCustodyHandoff): Promise<DocumentCustodyHandoff>;
+  getDocumentCustodySummary(): Promise<{ withUs: number; withVendor: number; returnedThisMonth: number; overdue: number }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2469,6 +2483,100 @@ export class DatabaseStorage implements IStorage {
 
   async updateAttestationSr(id: string, data: Partial<InsertAttestationServiceRequest>): Promise<AttestationServiceRequest | undefined> {
     return this.updateAttestationServiceRequest(id, data);
+  }
+
+  // Document Custody Records (new standalone lifecycle module)
+  async getDocumentCustodyRecords(filters?: { companyId?: string; woId?: string; custodyStage?: string; docCategory?: string; dateFrom?: Date; dateTo?: Date }): Promise<DocumentCustodyRecord[]> {
+    const conditions: any[] = [];
+    if (filters?.companyId) conditions.push(eq(documentCustodyRecords.companyId, filters.companyId));
+    if (filters?.woId) conditions.push(eq(documentCustodyRecords.woId, filters.woId));
+    if (filters?.custodyStage) conditions.push(eq(documentCustodyRecords.custodyStage, filters.custodyStage as any));
+    if (filters?.docCategory) conditions.push(eq(documentCustodyRecords.docCategory, filters.docCategory as any));
+    if (filters?.dateFrom) conditions.push(gte(documentCustodyRecords.createdAt, filters.dateFrom));
+    if (filters?.dateTo) conditions.push(lte(documentCustodyRecords.createdAt, filters.dateTo));
+
+    if (conditions.length > 0) {
+      return db.select().from(documentCustodyRecords).where(and(...conditions)).orderBy(desc(documentCustodyRecords.createdAt));
+    }
+    return db.select().from(documentCustodyRecords).orderBy(desc(documentCustodyRecords.createdAt));
+  }
+
+  async getDocumentCustodyRecordById(id: string): Promise<DocumentCustodyRecord | undefined> {
+    const [row] = await db.select().from(documentCustodyRecords).where(eq(documentCustodyRecords.id, id));
+    return row || undefined;
+  }
+
+  async getDocumentCustodyRecordsByWoId(woId: string): Promise<DocumentCustodyRecord[]> {
+    return db.select().from(documentCustodyRecords).where(eq(documentCustodyRecords.woId, woId)).orderBy(desc(documentCustodyRecords.createdAt));
+  }
+
+  async createDocumentCustodyRecord(data: InsertDocumentCustodyRecord): Promise<DocumentCustodyRecord> {
+    const [row] = await db.insert(documentCustodyRecords).values(data as any).returning();
+    return row;
+  }
+
+  async updateDocumentCustodyRecord(id: string, data: Partial<InsertDocumentCustodyRecord>): Promise<DocumentCustodyRecord | undefined> {
+    const [row] = await db.update(documentCustodyRecords)
+      .set({ ...(data as any), updatedAt: new Date() })
+      .where(eq(documentCustodyRecords.id, id))
+      .returning();
+    return row || undefined;
+  }
+
+  async getNextCustodyRefNumber(): Promise<string> {
+    const year = new Date().getFullYear();
+    const prefix = `CDC-${year}-`;
+    const [result] = await db.select({ maxRef: sql<string>`max(reference_number)` })
+      .from(documentCustodyRecords)
+      .where(ilike(documentCustodyRecords.referenceNumber, `${prefix}%`));
+    const maxRef = result?.maxRef;
+    let nextNum = 1;
+    if (maxRef) {
+      const parts = maxRef.split("-");
+      const lastNum = parseInt(parts[parts.length - 1], 10);
+      if (!isNaN(lastNum)) nextNum = lastNum + 1;
+    }
+    return `${prefix}${String(nextNum).padStart(4, "0")}`;
+  }
+
+  async getDocumentCustodyHandoffs(recordId: string): Promise<DocumentCustodyHandoff[]> {
+    return db.select().from(documentCustodyHandoffs)
+      .where(eq(documentCustodyHandoffs.recordId, recordId))
+      .orderBy(documentCustodyHandoffs.performedAt);
+  }
+
+  async createDocumentCustodyHandoff(data: InsertDocumentCustodyHandoff): Promise<DocumentCustodyHandoff> {
+    const [row] = await db.insert(documentCustodyHandoffs).values(data as any).returning();
+    return row;
+  }
+
+  async getDocumentCustodySummary(): Promise<{ withUs: number; withVendor: number; returnedThisMonth: number; overdue: number }> {
+    const now = new Date();
+    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const overdueThreshold = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000); // 14 days
+
+    const [withUsResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(documentCustodyRecords).where(eq(documentCustodyRecords.custodyStage, "WithUs"));
+    const [withVendorResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(documentCustodyRecords).where(eq(documentCustodyRecords.custodyStage, "WithVendor"));
+    const [returnedResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(documentCustodyRecords).where(
+        and(eq(documentCustodyRecords.custodyStage, "ReturnedToClient"), gte(documentCustodyRecords.updatedAt, firstOfMonth))
+      );
+    const [overdueResult] = await db.select({ count: sql<number>`count(*)` })
+      .from(documentCustodyRecords).where(
+        and(
+          or(eq(documentCustodyRecords.custodyStage, "WithUs"), eq(documentCustodyRecords.custodyStage, "WithVendor")),
+          lte(documentCustodyRecords.updatedAt, overdueThreshold)
+        )
+      );
+
+    return {
+      withUs: Number(withUsResult?.count || 0),
+      withVendor: Number(withVendorResult?.count || 0),
+      returnedThisMonth: Number(returnedResult?.count || 0),
+      overdue: Number(overdueResult?.count || 0),
+    };
   }
 }
 

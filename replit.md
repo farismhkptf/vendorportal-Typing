@@ -163,7 +163,34 @@ A full physical document custody chain system for attestation service requests, 
 ### Route Access
 -   `/attestation/*` — Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary
 -   `/vendor-attestation/*` — Public (uses its own session-based auth guard)
--   "Doc Custody" appears in sidebar navigation for all allowed roles
+-   "Doc Custody" sidebar nav now points to the new `/custody-queue` (Task #62 standalone module)
+
+## Document Custody Lifecycle Module (Task #62)
+
+A full standalone document custody lifecycle module for tracking original client documents from receipt to delivery. Operates independently of (but can be linked to) Work Orders and Attestation SRs.
+
+### Data Model (shared/schema.ts)
+-   **Enums**: `custodyDocCategoryEnum` (MofaPersonal/MofaBusiness/LawyerAttestation/EmbassyAttestation), `custodyDocSubtypeEnum` (13 doc types), `custodyDocStageEnum` (WithClient/WithUs/WithVendor/ReturnedToClient)
+-   **`documentCustodyRecords`**: Core record with `referenceNumber` (CDC-YYYY-NNNN auto-gen), `companyId`, optional `woId`/`srId` link, `docCategory`, `docSubtype`, `docCustomName`, `custodyStage`, `notifyEmail`, `notes`, `createdBy`
+-   **`documentCustodyHandoffs`**: Immutable event log per stage transition — `fromStage`, `toStage`, `counterpartyName`, `counterpartyContact`, `counterpartyIdPhotoUrl` (object storage), `notes`, `performedBy`
+-   Helper constants: `CUSTODY_DOC_CATEGORY_LABELS`, `CUSTODY_DOC_SUBTYPE_LABELS`, `CUSTODY_DOC_STAGE_LABELS`, `CUSTODY_DOC_SUBTYPES_BY_CATEGORY`
+
+### Backend (server/storage.ts, server/routes.ts)
+-   10 new storage methods: `getDocumentCustodyRecords`, `getDocumentCustodyRecordById`, `getDocumentCustodyRecordsByWoId`, `createDocumentCustodyRecord`, `updateDocumentCustodyRecord`, `getNextCustodyRefNumber`, `getDocumentCustodyHandoffs`, `createDocumentCustodyHandoff`, `getDocumentCustodySummary`
+-   API routes under `/api/custody/*` with `requireDocCustodyRole` middleware (Admin + CRM + Medical Support)
+-   Automated emails on `WithUs` stage (collection receipt) and `ReturnedToClient` stage (delivery notification) when `notifyEmail` set
+-   Email templates: `server/email-templates/custody-notifications.ts`
+
+### Frontend
+-   **Custody Queue** (`/custody-queue`, `client/src/pages/custody/queue.tsx`): Summary bar (With Us / With Vendor / Overdue / Returned this month), stage tab filters, company/category/stage filter panel, create new record dialog
+-   **Custody Detail** (`/custody/:id`, `client/src/pages/custody/detail.tsx`): Stage progress visualization, advance-to-next-stage handoff form with ID photo capture, immutable timeline with all handoffs
+-   **WO Custody Panel** (`client/src/components/custody/wo-custody-panel.tsx`): Embeddable panel for Work Order detail pages showing linked custody records + add new
+-   **Dashboard Widget** (`client/src/components/custody/dashboard-widget.tsx`): Summary card with live counts, links to custody queue
+
+### Route Access
+-   `/custody-queue` and `/custody/:id` — Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary
+-   Overdue threshold: 14 days for records stuck in WithUs or WithVendor
+-   DB migration in `scripts/post-merge.sh` (Task #62 section)
 
 These features have code preserved but are not active in the current UI:
 -   **Bots System**: "Quick Paste WO" and "Appointment Scheduler" bots. Code preserved, listed under Admin Console → Future Updates.

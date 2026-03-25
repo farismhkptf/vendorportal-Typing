@@ -1066,6 +1066,117 @@ export const documentCustodyLog = pgTable("document_custody_log", {
   index("idx_document_custody_log_sr_id").on(table.srId),
 ]);
 
+// ─── Document Custody Records ──────────────────────────────────────────────────
+// Standalone custody record for tracking original document lifecycle.
+// Can be linked to an attestation SR (srId) or a WO (woId), or standalone.
+
+export const custodyDocCategoryEnum = pgEnum("custody_doc_category", [
+  "MofaPersonal", "MofaBusiness", "LawyerAttestation", "EmbassyAttestation"
+]);
+
+export const custodyDocSubtypeEnum = pgEnum("custody_doc_subtype", [
+  "BirthCertificate",
+  "MarriageCertificate",
+  "EmbassyAffidavit",
+  "AcademicCertificate",
+  "PersonalPOA",
+  "TradeLicense",
+  "MOA",
+  "BusinessPOA",
+  "InternalCompanyDocuments",
+  "PassportCopy",
+  "ResidencyCopy",
+  "UtilityBill",
+  "Other"
+]);
+
+export const custodyDocStageEnum = pgEnum("custody_doc_stage", [
+  "WithClient", "WithUs", "WithVendor", "ReturnedToClient"
+]);
+
+export const documentCustodyRecords = pgTable("document_custody_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  referenceNumber: varchar("reference_number", { length: 20 }).notNull().unique(),
+  companyId: varchar("company_id").notNull(),
+  woId: varchar("wo_id"),
+  srId: varchar("sr_id"),
+  docCategory: custodyDocCategoryEnum("doc_category").notNull(),
+  docSubtype: custodyDocSubtypeEnum("doc_subtype").notNull(),
+  docCustomName: text("doc_custom_name"),
+  custodyStage: custodyDocStageEnum("custody_stage").notNull().default("WithClient"),
+  notifyEmail: text("notify_email"),
+  notes: text("notes"),
+  createdBy: varchar("created_by"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_doc_custody_records_company_id").on(table.companyId),
+  index("idx_doc_custody_records_wo_id").on(table.woId),
+  index("idx_doc_custody_records_sr_id").on(table.srId),
+]);
+
+export const documentCustodyHandoffs = pgTable("document_custody_handoffs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  recordId: varchar("record_id").notNull(),
+  fromStage: custodyDocStageEnum("from_stage").notNull(),
+  toStage: custodyDocStageEnum("to_stage").notNull(),
+  counterpartyName: text("counterparty_name").notNull(),
+  counterpartyContact: text("counterparty_contact").notNull(),
+  counterpartyIdPhotoUrl: text("counterparty_id_photo_url"),
+  notes: text("notes"),
+  performedBy: varchar("performed_by").notNull(),
+  performedAt: timestamp("performed_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_doc_custody_handoffs_record_id").on(table.recordId),
+]);
+
+export const insertDocumentCustodyRecordSchema = createInsertSchema(documentCustodyRecords).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertDocumentCustodyRecord = z.infer<typeof insertDocumentCustodyRecordSchema>;
+export type DocumentCustodyRecord = typeof documentCustodyRecords.$inferSelect;
+
+export const insertDocumentCustodyHandoffSchema = createInsertSchema(documentCustodyHandoffs).omit({ id: true, performedAt: true });
+export type InsertDocumentCustodyHandoff = z.infer<typeof insertDocumentCustodyHandoffSchema>;
+export type DocumentCustodyHandoff = typeof documentCustodyHandoffs.$inferSelect;
+
+// Helper constants for doc custody
+export const CUSTODY_DOC_CATEGORY_LABELS: Record<string, string> = {
+  MofaPersonal: "MOFA Attestation — Personal",
+  MofaBusiness: "MOFA Attestation — Business",
+  LawyerAttestation: "Lawyer Attestation",
+  EmbassyAttestation: "Embassy Attestation",
+};
+
+export const CUSTODY_DOC_SUBTYPE_LABELS: Record<string, string> = {
+  BirthCertificate: "Birth Certificate",
+  MarriageCertificate: "Marriage Certificate",
+  EmbassyAffidavit: "Embassy Affidavit",
+  AcademicCertificate: "Academic Certificate",
+  PersonalPOA: "Personal POA",
+  TradeLicense: "Trade License",
+  MOA: "MOA",
+  BusinessPOA: "Business POA",
+  InternalCompanyDocuments: "Internal Company Documents",
+  PassportCopy: "Passport Copy",
+  ResidencyCopy: "Residency Copy",
+  UtilityBill: "Utility Bill",
+  Other: "Other",
+};
+
+export const CUSTODY_DOC_STAGE_LABELS: Record<string, string> = {
+  WithClient: "With Client",
+  WithUs: "With Us",
+  WithVendor: "With Vendor",
+  ReturnedToClient: "Returned to Client",
+};
+
+// Document subtypes available per category
+export const CUSTODY_DOC_SUBTYPES_BY_CATEGORY: Record<string, string[]> = {
+  MofaPersonal: ["BirthCertificate", "MarriageCertificate", "EmbassyAffidavit", "AcademicCertificate", "PersonalPOA", "Other"],
+  MofaBusiness: ["TradeLicense", "MOA", "BusinessPOA", "InternalCompanyDocuments", "Other"],
+  LawyerAttestation: ["BirthCertificate", "MarriageCertificate", "EmbassyAffidavit", "AcademicCertificate", "PersonalPOA", "TradeLicense", "MOA", "BusinessPOA", "InternalCompanyDocuments", "PassportCopy", "ResidencyCopy", "UtilityBill", "Other"],
+  EmbassyAttestation: ["BirthCertificate", "MarriageCertificate", "EmbassyAffidavit", "AcademicCertificate", "PersonalPOA", "TradeLicense", "MOA", "BusinessPOA", "InternalCompanyDocuments", "PassportCopy", "ResidencyCopy", "UtilityBill", "Other"],
+};
+
 export const deletionRequests = pgTable("deletion_requests", {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   entityType: text("entity_type").notNull(), // e.g. "work_order", "document", "note", "company_email"

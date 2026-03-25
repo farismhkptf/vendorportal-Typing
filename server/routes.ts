@@ -10581,6 +10581,244 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Document Custody Records (Full Lifecycle Module) ─────────────────────────
+
+  const docCustodyAllowedRoles = ["Admin", "Client Relationship Manager", "Medical Support", "Medical Support - Temporary"];
+
+  function requireDocCustodyRole(req: any, res: any, next: any) {
+    if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+    storage.getUser(req.session.userId).then(user => {
+      if (!user || !docCustodyAllowedRoles.includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      req._custodyUser = user;
+      next();
+    }).catch(() => res.status(500).json({ message: "Auth check failed" }));
+  }
+
+  // GET /api/custody/records — list with filters
+  app.get("/api/custody/records", requireDocCustodyRole, async (req: any, res) => {
+    try {
+      const { companyId, woId, custodyStage, docCategory, dateFrom, dateTo } = req.query;
+      const filters: any = {};
+      if (companyId) filters.companyId = companyId;
+      if (woId) filters.woId = woId;
+      if (custodyStage) filters.custodyStage = custodyStage;
+      if (docCategory) filters.docCategory = docCategory;
+      if (dateFrom) filters.dateFrom = new Date(dateFrom as string);
+      if (dateTo) filters.dateTo = new Date(dateTo as string);
+
+      const records = await storage.getDocumentCustodyRecords(filters);
+
+      // Enrich with company names
+      const companyIds = [...new Set(records.map(r => r.companyId))];
+      const companiesData = companyIds.length > 0 ? await storage.getCompaniesByIds(companyIds) : [];
+      const companyMap = new Map(companiesData.map(c => [c.id, c.name]));
+
+      const enriched = records.map(r => ({
+        ...r,
+        companyName: companyMap.get(r.companyId) || null,
+      }));
+
+      res.json(enriched);
+    } catch (error) {
+      console.error("Get custody records error:", error);
+      res.status(500).json({ message: "Failed to get custody records" });
+    }
+  });
+
+  // GET /api/custody/records/summary — dashboard summary counts
+  app.get("/api/custody/records/summary", requireDocCustodyRole, async (req: any, res) => {
+    try {
+      const summary = await storage.getDocumentCustodySummary();
+      res.json(summary);
+    } catch (error) {
+      console.error("Get custody summary error:", error);
+      res.status(500).json({ message: "Failed to get custody summary" });
+    }
+  });
+
+  // GET /api/custody/records/:id — single record with handoffs
+  app.get("/api/custody/records/:id", requireDocCustodyRole, async (req: any, res) => {
+    try {
+      const record = await storage.getDocumentCustodyRecordById(req.params.id);
+      if (!record) return res.status(404).json({ message: "Record not found" });
+
+      const handoffs = await storage.getDocumentCustodyHandoffs(record.id);
+      const company = await storage.getCompanyById(record.companyId);
+
+      let woNumber: string | null = null;
+      if (record.woId) {
+        const wo = await storage.getWorkOrderById(record.woId);
+        woNumber = wo?.woNumber || null;
+      }
+
+      res.json({
+        ...record,
+        companyName: company?.name || null,
+        woNumber,
+        handoffs,
+      });
+    } catch (error) {
+      console.error("Get custody record error:", error);
+      res.status(500).json({ message: "Failed to get custody record" });
+    }
+  });
+
+  // POST /api/custody/records — create new custody record
+  app.post("/api/custody/records", requireDocCustodyRole, async (req: any, res) => {
+    try {
+      const user = req._custodyUser;
+      const referenceNumber = await storage.getNextCustodyRefNumber();
+
+      const record = await storage.createDocumentCustodyRecord({
+        ...req.body,
+        referenceNumber,
+        createdBy: user.id,
+        custodyStage: "WithClient",
+      });
+
+      await storage.createAuditLog({
+        action: "custody_record_created",
+        entityType: "custody_record",
+        entityId: record.id,
+        userId: user.id,
+        details: { referenceNumber, companyId: record.companyId, docSubtype: record.docSubtype },
+      });
+
+      res.status(201).json(record);
+    } catch (error) {
+      console.error("Create custody record error:", error);
+      res.status(500).json({ message: "Failed to create custody record" });
+    }
+  });
+
+  // PATCH /api/custody/records/:id — update notes/email
+  app.patch("/api/custody/records/:id", requireDocCustodyRole, async (req: any, res) => {
+    try {
+      const record = await storage.updateDocumentCustodyRecord(req.params.id, req.body);
+      if (!record) return res.status(404).json({ message: "Record not found" });
+      res.json(record);
+    } catch (error) {
+      console.error("Update custody record error:", error);
+      res.status(500).json({ message: "Failed to update custody record" });
+    }
+  });
+
+  // POST /api/custody/records/:id/handoff — log a stage transition
+  app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.single("counterpartyIdPhoto"), async (req: any, res) => {
+    try {
+      const user = req._custodyUser;
+      const record = await storage.getDocumentCustodyRecordById(req.params.id);
+      if (!record) return res.status(404).json({ message: "Record not found" });
+
+      const { toStage, counterpartyName, counterpartyContact, notes } = req.body;
+
+      const custodyStageOrder = ["WithClient", "WithUs", "WithVendor", "ReturnedToClient"];
+      if (!custodyStageOrder.includes(toStage)) {
+        return res.status(400).json({ message: "Invalid target stage" });
+      }
+      const currentStageIdx = custodyStageOrder.indexOf(record.custodyStage);
+      const targetStageIdx = custodyStageOrder.indexOf(toStage);
+      if (targetStageIdx !== currentStageIdx + 1) {
+        return res.status(400).json({ message: `Cannot move directly from '${record.custodyStage}' to '${toStage}'. Must follow the sequential order.` });
+      }
+
+      // Upload photo if provided
+      let counterpartyIdPhotoUrl: string | undefined;
+      if (req.file) {
+        const objectStorageService = new ObjectStorageService();
+        const ext = req.file.mimetype?.split("/")[1] || "jpg";
+        const objectPath = `custody/handoffs/${record.id}/${Date.now()}_id.${ext}`;
+        const uploadedUrl = await objectStorageService.uploadObject(objectPath, req.file.buffer, req.file.mimetype, "public-read");
+        counterpartyIdPhotoUrl = uploadedUrl || undefined;
+      }
+
+      const handoff = await storage.createDocumentCustodyHandoff({
+        recordId: record.id,
+        fromStage: record.custodyStage as any,
+        toStage: toStage as any,
+        counterpartyName,
+        counterpartyContact,
+        counterpartyIdPhotoUrl,
+        notes: notes || null,
+        performedBy: user.id,
+      });
+
+      // Update the record's stage
+      await storage.updateDocumentCustodyRecord(record.id, { custodyStage: toStage as any });
+
+      // Trigger automated emails
+      const { buildCustodyCollectionEmail, buildCustodyReturnEmail } = await import("./email-templates/custody-notifications");
+      const company = await storage.getCompanyById(record.companyId);
+      const companyName = company?.name || "Your Company";
+
+      // Determine notification email: use record's notifyEmail, or fall back to company primary email
+      let emailRecipient = record.notifyEmail;
+      if (!emailRecipient && record.companyId) {
+        const companyEmails = await storage.getCompanyEmails(record.companyId);
+        const primaryEmail = companyEmails.find(e => e.isPrimary) || companyEmails[0];
+        emailRecipient = primaryEmail?.email || null;
+      }
+
+      if (toStage === "WithUs" && emailRecipient) {
+        const html = buildCustodyCollectionEmail({ record: { ...record, custodyStage: toStage as any, updatedAt: new Date() }, companyName });
+        sendEmail({
+          to: emailRecipient,
+          subject: `Document Received — ${record.referenceNumber}`,
+          html,
+        }).catch(err => console.error("Custody collection email error:", err));
+      }
+
+      if (toStage === "ReturnedToClient" && emailRecipient) {
+        const html = buildCustodyReturnEmail({ record: { ...record, custodyStage: toStage as any, updatedAt: new Date() }, companyName });
+        sendEmail({
+          to: emailRecipient,
+          subject: `Document Ready — ${record.referenceNumber}`,
+          html,
+        }).catch(err => console.error("Custody return email error:", err));
+      }
+
+      await storage.createAuditLog({
+        action: "custody_stage_transition",
+        entityType: "custody_record",
+        entityId: record.id,
+        userId: user.id,
+        details: { referenceNumber: record.referenceNumber, fromStage: record.custodyStage, toStage },
+      });
+
+      res.status(201).json({ handoff, newStage: toStage });
+    } catch (error) {
+      console.error("Custody handoff error:", error);
+      res.status(500).json({ message: "Failed to record custody handoff" });
+    }
+  });
+
+  // GET /api/custody/records/:id/handoffs — get all handoffs for a record
+  app.get("/api/custody/records/:id/handoffs", requireDocCustodyRole, async (req: any, res) => {
+    try {
+      const handoffs = await storage.getDocumentCustodyHandoffs(req.params.id);
+      res.json(handoffs);
+    } catch (error) {
+      console.error("Get custody handoffs error:", error);
+      res.status(500).json({ message: "Failed to get custody handoffs" });
+    }
+  });
+
+  // GET /api/custody/wo/:woId — get custody records for a work order
+  app.get("/api/custody/wo/:woId", requireDocCustodyRole, async (req: any, res) => {
+    try {
+      const records = await storage.getDocumentCustodyRecordsByWoId(req.params.woId);
+      const companyIds = [...new Set(records.map(r => r.companyId))];
+      const companiesData = companyIds.length > 0 ? await storage.getCompaniesByIds(companyIds) : [];
+      const companyMap = new Map(companiesData.map(c => [c.id, c.name]));
+      res.json(records.map(r => ({ ...r, companyName: companyMap.get(r.companyId) || null })));
+    } catch (error) {
+      console.error("Get WO custody records error:", error);
+      res.status(500).json({ message: "Failed to get custody records for work order" });
+    }
+  });
+
   // ─── Attestation Vendor Auth: me endpoint extension ──────────────────────────
   // (Return vendorType in /api/vendor/auth/me response already handled in vendor_type on vendors table)
   // Update the attestation vendor auth check endpoint
