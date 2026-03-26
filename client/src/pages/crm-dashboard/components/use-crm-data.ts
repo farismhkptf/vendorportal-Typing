@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { type VendorJobItem, type VendorWorkOrderItem } from "@/components/vendor-grouped-jobs-view";
+import { type ActivityItem } from "@/components/ui/activity-timeline";
 import { getPipelineInfo } from "@/lib/pipeline-stage";
 import { isToday } from "@/lib/format-date";
 import { queryKeys } from "@/lib/query-keys";
@@ -37,6 +38,11 @@ export function useCrmDashboardData() {
 
   const { data: vendors = [] } = useQuery<Vendor[]>({
     queryKey: queryKeys.vendors,
+  });
+
+  const { data: allActivity = [], isLoading: activityLoading } = useQuery<ActivityItem[]>({
+    queryKey: queryKeys.activity,
+    staleTime: 30000,
   });
 
   const activeWorkOrders = useMemo(() => {
@@ -229,6 +235,24 @@ export function useCrmDashboardData() {
 
   const walletBalance = dashStats?.walletBalance ?? 0;
 
+  const recentActivity = useMemo(() => {
+    if (!allActivity.length || !workOrders) return [];
+    const woIds = new Set(workOrders.map(wo => wo.id));
+    const tjIds = new Set(workOrders.flatMap(wo => wo.typingJobs.map(tj => tj.id)));
+    const aptIds = new Set(
+      workOrders.flatMap(wo => (wo.appointments || []).map(a => a.id))
+    );
+    return allActivity
+      .filter(a => {
+        if (!a.entityId) return false;
+        if (a.entityType === "work_order") return woIds.has(a.entityId);
+        if (a.entityType === "typing_job") return tjIds.has(a.entityId);
+        if (a.entityType === "appointment") return aptIds.has(a.entityId);
+        return false;
+      })
+      .slice(0, 15);
+  }, [allActivity, workOrders]);
+
   return {
     companies, companiesLoading, companiesError, refetchCompanies,
     workOrders, workOrdersLoading, workOrdersError, refetchWorkOrders,
@@ -238,6 +262,7 @@ export function useCrmDashboardData() {
     pendingTypingJobs, companiesNeedingAttention, pendingDeletionRequests,
     vendorTypingStats, companyMap, vendorJobItems, vendorWorkOrders,
     pipelineBreakdown,
+    recentActivity, activityLoading,
     isLoading: companiesLoading || workOrdersLoading || appointmentsLoading,
   };
 }

@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { DashboardSwitcher } from "@/components/dashboard-switcher";
 import { QueryErrorState } from "@/components/ui/query-error-state";
 import { QuickActionsSidebar } from "./components/quick-actions-sidebar";
-import { TodayAppointmentsPanel, VendorJobsSection, BottomGrid } from "./components/bottom-panels";
+import { TodayAppointmentsPanel, VendorJobsSection, BottomGrid, CrmActivityPanel } from "./components/bottom-panels";
 import { AttentionList, PipelineBreakdownCard } from "./components/attention-list";
 import { useCrmDashboardData } from "./components/use-crm-data";
 
@@ -33,7 +33,7 @@ export default function CrmDashboard() {
     activeWorkOrders, todayAppointments, attentionWorkOrders,
     pendingTypingJobs, companiesNeedingAttention, pendingDeletionRequests,
     vendorTypingStats, companyMap, vendorJobItems, vendorWorkOrders,
-    pipelineBreakdown, isLoading,
+    pipelineBreakdown, recentActivity, activityLoading, isLoading,
   } = useCrmDashboardData();
 
   return (
@@ -102,6 +102,8 @@ export default function CrmDashboard() {
         <TodayAppointmentsPanel appointments={todayAppointments} isLoading={appointmentsLoading} />
 
         <VendorJobsSection jobs={vendorJobItems} isLoading={workOrdersLoading} />
+
+        <CrmActivityPanel activities={recentActivity} isLoading={activityLoading} />
 
         <BottomGrid
           activeWorkOrders={activeWorkOrders}

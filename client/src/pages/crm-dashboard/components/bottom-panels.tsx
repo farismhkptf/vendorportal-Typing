@@ -1,9 +1,10 @@
 import { Link, useLocation } from "wouter";
 import {
   Calendar, ArrowRight, ChevronRight, AlertCircle,
-  TrendingUp, CheckCircle2, Users, Send, LayoutGrid,
+  TrendingUp, CheckCircle2, Users, Send, LayoutGrid, Activity,
 } from "lucide-react";
 import { VendorGroupedJobsView, VendorGroupedWorkOrdersView, type VendorJobItem, type VendorWorkOrderItem } from "@/components/vendor-grouped-jobs-view";
+import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -242,6 +243,43 @@ export function BottomGrid({
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface CrmActivityPanelProps {
+  activities: ActivityItem[];
+  isLoading: boolean;
+}
+
+export function CrmActivityPanel({ activities, isLoading }: CrmActivityPanelProps) {
+  return (
+    <div className="space-y-3 opacity-0 animate-fade-in animate-delay-4" data-testid="section-crm-activity">
+      <div className="flex items-center gap-2">
+        <Activity className="h-4 w-4 text-muted-foreground" />
+        <h2 className="text-base font-semibold text-foreground tracking-tight">Recent Activity</h2>
+        {!isLoading && activities.length > 0 && (
+          <span className="text-xs text-muted-foreground tabular-nums">({activities.length})</span>
+        )}
+      </div>
+      <div className="premium-card p-4">
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-10 rounded-lg" />
+            <Skeleton className="h-10 rounded-lg" />
+            <Skeleton className="h-10 rounded-lg" />
+          </div>
+        ) : activities.length === 0 ? (
+          <EmptyState
+            icon={<Activity className="h-5 w-5" />}
+            title="No recent activity"
+            description="Actions on your managed work orders will appear here."
+            compact
+          />
+        ) : (
+          <ActivityTimeline activities={activities} />
+        )}
       </div>
     </div>
   );
