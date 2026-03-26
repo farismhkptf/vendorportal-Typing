@@ -1,4 +1,5 @@
 import type { IStorage } from "./storage";
+import type { TypingJob } from "@shared/schema";
 
 export type TypingJobStatus =
   | "Draft"
@@ -36,6 +37,7 @@ export interface TransitionContext {
   actorId?: string;
   reason?: string;
   vendorName?: string;
+  applicantName?: string | null;
   deductionAmount?: number;
   extraData?: Record<string, unknown>;
 }
@@ -193,15 +195,25 @@ export function validateTransition(
   return { valid: true, newStatus: def.to, def };
 }
 
+export interface NotificationPayload {
+  type: string;
+  title: string;
+  message: string;
+  relatedJobId?: string;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  [key: string]: unknown;
+}
+
 export interface ExecuteTransitionParams {
   action: string;
   jobId: string;
   actor: Actor;
   actorId?: string;
   storage: IStorage;
-  notifyVendorUsers: (vendorId: string, notification: any) => Promise<void>;
-  notifyStaffByRoles?: (roles: string[], notification: any) => Promise<void>;
-  notifySingleUser?: (userId: string, notification: any) => Promise<void>;
+  notifyVendorUsers: (vendorId: string, notification: NotificationPayload) => Promise<void>;
+  notifyStaffByRoles?: (roles: string[], notification: NotificationPayload) => Promise<void>;
+  notifySingleUser?: (userId: string, notification: NotificationPayload) => Promise<void>;
   updateFields?: Record<string, unknown>;
   reason?: string;
 }
@@ -209,7 +221,7 @@ export interface ExecuteTransitionParams {
 export async function executeTransition(params: ExecuteTransitionParams): Promise<{
   success: boolean;
   error?: string;
-  job?: any;
+  job?: TypingJob;
   context?: TransitionContext;
 }> {
   const { action, jobId, actor, actorId, storage, notifyVendorUsers, notifyStaffByRoles, notifySingleUser, updateFields, reason } = params;

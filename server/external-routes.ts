@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createHash, timingSafeEqual } from "crypto";
 import { storage } from "./storage";
-import type { ApiKey } from "@shared/schema";
+import type { ApiKey, WorkOrder, Appointment, Company, Center } from "@shared/schema";
 
 interface ExternalRequest extends Request {
   apiKey?: ApiKey;
@@ -55,7 +55,7 @@ async function requireApiKey(req: ExternalRequest, res: Response, next: NextFunc
   }
 }
 
-function sanitizeWorkOrder(wo: any) {
+function sanitizeWorkOrder(wo: WorkOrder) {
   return {
     id: wo.id,
     woNumber: wo.woNumber,
@@ -71,7 +71,7 @@ function sanitizeWorkOrder(wo: any) {
   };
 }
 
-function sanitizeAppointment(appt: any) {
+function sanitizeAppointment(appt: Appointment) {
   return {
     id: appt.id,
     woId: appt.woId,
@@ -85,7 +85,7 @@ function sanitizeAppointment(appt: any) {
   };
 }
 
-function sanitizeCompany(c: any) {
+function sanitizeCompany(c: Company) {
   return {
     id: c.id,
     name: c.name,
@@ -97,7 +97,7 @@ function sanitizeCompany(c: any) {
   };
 }
 
-function sanitizeCenter(c: any) {
+function sanitizeCenter(c: Center) {
   return {
     id: c.id,
     name: c.name,
@@ -113,7 +113,7 @@ export function registerExternalRoutes(app: Express) {
   app.get("/api/external/me", requireApiKey, rateLimit, async (req: ExternalRequest, res: Response) => {
     try {
       const apiKey = req.apiKey!;
-      const result: any = {
+      const result: Record<string, unknown> = {
         name: apiKey.name,
         type: apiKey.type,
         active: apiKey.active,

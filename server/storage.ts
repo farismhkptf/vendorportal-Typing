@@ -244,7 +244,7 @@ export interface IStorage {
   getUnreadStaffNotificationCount(userId: string): Promise<number>;
   markStaffNotificationRead(id: string): Promise<void>;
   markAllStaffNotificationsRead(userId: string): Promise<void>;
-  hasRecentNotification(type: string, relatedEntityId: string, withinHours: number): Promise<boolean>;
+  hasRecentNotification(type: string, relatedEntityId: string, withinHours: number, userId?: string): Promise<boolean>;
 
   // Login audit
   createLoginAuditEntry(data: InsertLoginAuditLog): Promise<LoginAuditLog>;
@@ -478,12 +478,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createCenter(data: InsertCenter): Promise<Center> {
-    const [center] = await db.insert(centers).values(data as any).returning();
+    const [center] = await db.insert(centers).values(data as typeof centers.$inferInsert).returning();
     return center;
   }
 
   async updateCenter(id: string, data: Partial<InsertCenter>): Promise<Center | undefined> {
-    const [center] = await db.update(centers).set(data as any).where(eq(centers.id, id)).returning();
+    const [center] = await db.update(centers).set(data as Partial<typeof centers.$inferInsert>).where(eq(centers.id, id)).returning();
     return center || undefined;
   }
 
@@ -654,7 +654,7 @@ export class DatabaseStorage implements IStorage {
       );
     }
     if (status && status !== "all") {
-      conditions.push(eq(workOrders.status, status as any));
+      conditions.push(eq(workOrders.status, status as typeof workOrders.status.enumValues[number]));
     }
     
     if (conditions.length > 0) {
@@ -806,8 +806,8 @@ export class DatabaseStorage implements IStorage {
     const [apt] = await db.select().from(appointments).where(
       and(
         eq(appointments.woId, woId),
-        eq(appointments.type, type as any),
-        inArray(appointments.status, ["Scheduled", "Completed", "FollowUpScheduled"] as any)
+        eq(appointments.type, type as typeof appointments.type.enumValues[number]),
+        inArray(appointments.status, ["Scheduled", "Completed", "FollowUpScheduled"] as typeof appointments.status.enumValues[number][])
       )
     );
     return apt || undefined;
@@ -880,7 +880,7 @@ export class DatabaseStorage implements IStorage {
   // Typing Jobs
   async getTypingJobs(status?: string): Promise<TypingJob[]> {
     if (status && status !== "all") {
-      return db.select().from(typingJobs).where(eq(typingJobs.status, status as any)).orderBy(desc(typingJobs.createdAt));
+      return db.select().from(typingJobs).where(eq(typingJobs.status, status as typeof typingJobs.status.enumValues[number])).orderBy(desc(typingJobs.createdAt));
     }
     return db.select().from(typingJobs).orderBy(desc(typingJobs.createdAt));
   }
@@ -1043,7 +1043,7 @@ export class DatabaseStorage implements IStorage {
       const [updated] = await db.update(appSettings).set(data).where(eq(appSettings.id, existing.id)).returning();
       return updated || undefined;
     } else {
-      const [created] = await db.insert(appSettings).values(data as any).returning();
+      const [created] = await db.insert(appSettings).values(data as typeof appSettings.$inferInsert).returning();
       return created || undefined;
     }
   }
@@ -1736,7 +1736,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getDocumentRequirementsByCategory(category: string): Promise<DocumentRequirement[]> {
-    return db.select().from(documentRequirements).where(eq(documentRequirements.serviceCategory, category as any));
+    return db.select().from(documentRequirements).where(eq(documentRequirements.serviceCategory, category as typeof documentRequirements.serviceCategory.enumValues[number]));
   }
 
   async createDocumentRequirement(data: InsertDocumentRequirement): Promise<DocumentRequirement> {
@@ -1809,15 +1809,19 @@ export class DatabaseStorage implements IStorage {
       .where(eq(staffNotifications.userId, userId));
   }
 
-  async hasRecentNotification(type: string, relatedEntityId: string, withinHours: number): Promise<boolean> {
+  async hasRecentNotification(type: string, relatedEntityId: string, withinHours: number, userId?: string): Promise<boolean> {
     const cutoff = new Date(Date.now() - withinHours * 3600000);
+    const conditions = [
+      eq(staffNotifications.type, type),
+      eq(staffNotifications.relatedEntityId, relatedEntityId),
+      sql`${staffNotifications.createdAt} > ${cutoff}`,
+    ];
+    if (userId) {
+      conditions.push(eq(staffNotifications.userId, userId));
+    }
     const result = await db.select({ count: sql<number>`count(*)::int` })
       .from(staffNotifications)
-      .where(and(
-        eq(staffNotifications.type, type),
-        eq(staffNotifications.relatedEntityId, relatedEntityId),
-        sql`${staffNotifications.createdAt} > ${cutoff}`
-      ));
+      .where(and(...conditions));
     return (result[0]?.count || 0) > 0;
   }
 
@@ -1858,7 +1862,7 @@ export class DatabaseStorage implements IStorage {
         };
       })
     );
-    return enriched as any;
+    return enriched as (PasswordResetRequest & { userName: string; userEmail: string })[];
   }
 
   async resolvePasswordResetRequest(id: string, resolvedBy: string): Promise<PasswordResetRequest> {
@@ -2002,7 +2006,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteApiKey(id: string): Promise<boolean> {
     const result = await db.delete(apiKeys).where(eq(apiKeys.id, id));
-    return (result as any).rowCount > 0;
+    return (result as unknown as { rowCount: number }).rowCount > 0;
   }
 
   async touchApiKeyLastUsed(id: string): Promise<void> {
@@ -2175,7 +2179,7 @@ export class DatabaseStorage implements IStorage {
   async getDeletionRequests(status?: string): Promise<DeletionRequest[]> {
     if (status) {
       return db.select().from(deletionRequests)
-        .where(eq(deletionRequests.status, status as any))
+        .where(eq(deletionRequests.status, status as typeof deletionRequests.status.enumValues[number]))
         .orderBy(desc(deletionRequests.createdAt));
     }
     return db.select().from(deletionRequests).orderBy(desc(deletionRequests.createdAt));
@@ -2340,7 +2344,7 @@ export class DatabaseStorage implements IStorage {
     const conditions = [];
     if (filters?.assignedProId) conditions.push(eq(attestationServiceRequests.assignedProId, filters.assignedProId));
     if (filters?.vendorId) conditions.push(eq(attestationServiceRequests.vendorId, filters.vendorId));
-    if (filters?.status) conditions.push(eq(attestationServiceRequests.status, filters.status as any));
+    if (filters?.status) conditions.push(eq(attestationServiceRequests.status, filters.status as typeof attestationServiceRequests.status.enumValues[number]));
     if (filters?.companyId) conditions.push(eq(attestationServiceRequests.companyId, filters.companyId));
     if (conditions.length > 0) {
       return db.select().from(attestationServiceRequests).where(and(...conditions)).orderBy(desc(attestationServiceRequests.createdAt));
@@ -2429,13 +2433,13 @@ export class DatabaseStorage implements IStorage {
 
   // Attestation Inquiries
   async createAttestationInquiry(data: InsertAttestationInquiry): Promise<AttestationInquiry> {
-    const [row] = await db.insert(attestationInquiries).values(data as any).returning();
+    const [row] = await db.insert(attestationInquiries).values(data as typeof attestationInquiries.$inferInsert).returning();
     return row;
   }
 
   async getAttestationInquiries(filters?: { status?: string; companyId?: string; vendorId?: string }): Promise<AttestationInquiry[]> {
     const conditions = [];
-    if (filters?.status) conditions.push(eq(attestationInquiries.status, filters.status as any));
+    if (filters?.status) conditions.push(eq(attestationInquiries.status, filters.status as typeof attestationInquiries.status.enumValues[number]));
     if (filters?.companyId) conditions.push(eq(attestationInquiries.companyId, filters.companyId));
     if (filters?.vendorId) conditions.push(eq(attestationInquiries.vendorId, filters.vendorId));
     const query = db.select().from(attestationInquiries);
@@ -2451,13 +2455,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAttestationInquiry(id: string, data: Partial<AttestationInquiry>): Promise<AttestationInquiry | undefined> {
-    const [row] = await db.update(attestationInquiries).set(data as any).where(eq(attestationInquiries.id, id)).returning();
+    const [row] = await db.update(attestationInquiries).set(data as Partial<typeof attestationInquiries.$inferInsert>).where(eq(attestationInquiries.id, id)).returning();
     return row || undefined;
   }
 
   // Attestation Inquiry Quotes
   async createAttestationInquiryQuote(data: InsertAttestationInquiryQuote): Promise<AttestationInquiryQuote> {
-    const [row] = await db.insert(attestationInquiryQuotes).values(data as any).returning();
+    const [row] = await db.insert(attestationInquiryQuotes).values(data as typeof attestationInquiryQuotes.$inferInsert).returning();
     return row;
   }
 
@@ -2484,11 +2488,11 @@ export class DatabaseStorage implements IStorage {
 
   // Document Custody Records (new standalone lifecycle module)
   async getDocumentCustodyRecords(filters?: { companyId?: string; woId?: string; custodyStage?: string; docCategory?: string; dateFrom?: Date; dateTo?: Date }): Promise<DocumentCustodyRecord[]> {
-    const conditions: any[] = [];
+    const conditions: ReturnType<typeof eq>[] = [];
     if (filters?.companyId) conditions.push(eq(documentCustodyRecords.companyId, filters.companyId));
     if (filters?.woId) conditions.push(eq(documentCustodyRecords.woId, filters.woId));
-    if (filters?.custodyStage) conditions.push(eq(documentCustodyRecords.custodyStage, filters.custodyStage as any));
-    if (filters?.docCategory) conditions.push(eq(documentCustodyRecords.docCategory, filters.docCategory as any));
+    if (filters?.custodyStage) conditions.push(eq(documentCustodyRecords.custodyStage, filters.custodyStage as typeof documentCustodyRecords.custodyStage.enumValues[number]));
+    if (filters?.docCategory) conditions.push(eq(documentCustodyRecords.docCategory, filters.docCategory as typeof documentCustodyRecords.docCategory.enumValues[number]));
     if (filters?.dateFrom) conditions.push(gte(documentCustodyRecords.createdAt, filters.dateFrom));
     if (filters?.dateTo) conditions.push(lte(documentCustodyRecords.createdAt, filters.dateTo));
 
@@ -2508,13 +2512,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDocumentCustodyRecord(data: InsertDocumentCustodyRecord): Promise<DocumentCustodyRecord> {
-    const [row] = await db.insert(documentCustodyRecords).values(data as any).returning();
+    const [row] = await db.insert(documentCustodyRecords).values(data as typeof documentCustodyRecords.$inferInsert).returning();
     return row;
   }
 
   async updateDocumentCustodyRecord(id: string, data: Partial<InsertDocumentCustodyRecord>): Promise<DocumentCustodyRecord | undefined> {
     const [row] = await db.update(documentCustodyRecords)
-      .set({ ...(data as any), updatedAt: new Date() })
+      .set({ ...(data as Partial<typeof documentCustodyRecords.$inferInsert>), updatedAt: new Date() })
       .where(eq(documentCustodyRecords.id, id))
       .returning();
     return row || undefined;
@@ -2543,7 +2547,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createDocumentCustodyHandoff(data: InsertDocumentCustodyHandoff): Promise<DocumentCustodyHandoff> {
-    const [row] = await db.insert(documentCustodyHandoffs).values(data as any).returning();
+    const [row] = await db.insert(documentCustodyHandoffs).values(data as typeof documentCustodyHandoffs.$inferInsert).returning();
     return row;
   }
 

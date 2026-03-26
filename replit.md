@@ -18,6 +18,27 @@ The frontend is built with React and TypeScript, using Vite, Wouter for routing,
 
 The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API. Drizzle ORM with a PostgreSQL dialect manages database interactions, with shared schema definitions for type safety. Zod schemas generated from Drizzle are used for API validation. A storage abstraction layer is implemented for flexible database operations.
 
+**Modular Architecture**: The backend is structured with extracted middleware, services, and domain route modules:
+- `server/middleware/auth.ts` — Auth middleware (requireAuth, requireRole, requireOpsRole, requireVendorAuth, requireTypingVendor, requireAttestationVendor, requireDocCustodyRole, loginRateLimit)
+- `server/middleware/validation.ts` — Request validation helpers (validateBody, validateEmailField)
+- `server/services/notification-service.ts` — Staff and vendor notification functions (notifyStaffByRoles, notifySingleUser, notifyVendorUsers)
+- `server/services/transition-service.ts` — Work order auto-transition and auto-complete logic
+- `server/services/background-jobs.ts` — Background job scheduler (delay detection, appointment reminders with per-user dedup)
+- `server/routes/auth.ts` — Authentication, user management, manager console, change notifications, staff notifications, API key management (~860 lines)
+- `server/routes/vendor-portal.ts` — Vendor login/auth, dashboard, jobs, files, comments, wallet, biometrics (~1000 lines)
+- `server/routes/typing-jobs.ts` — Typing job CRUD, file uploads, comments, vendor assignment (~550 lines)
+- `server/routes/scheduling.ts` — Appointment scheduling, medical/EID queues, Apple Wallet passes (~1290 lines)
+- `server/routes/attestation.ts` — Attestation service requests, document custody records, handoffs (~1060 lines)
+- `server/routes/dashboard.ts` — Dashboard stats, activity feed, weekly overview, duplicate check (~820 lines)
+- `server/routes/work-orders.ts` — Work order CRUD, status transitions, comments, files, notes (~1040 lines)
+- `server/routes/entities.ts` — Companies, centers, service types, job types, staff CRUD (~840 lines)
+- `server/routes/admin.ts` — Admin operations, wallet management, document custody, data export (~1130 lines)
+- `server/routes/admin-import.ts` — Excel import/export, deletion requests, idle job management (~1840 lines)
+- `server/routes/types.ts` — Shared RouteDeps interface for dependency injection into route modules
+- `server/routes/index.ts` — Barrel re-export of all middleware/services and route modules
+- `server/route-schemas.ts` — Shared Zod schemas used across route modules
+- `server/routes.ts` — Thin route orchestrator (~190 lines) importing and registering all 10 domain modules
+
 ### Database
 
 The PostgreSQL database includes core entities such as Users (with 7 roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor, Client Coordinator, Client Manager), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns (woId, vendorId, typingJobId, centerId, assignedStaffId, etc.) for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records (appointments, typing jobs, results, comments, approvals, documents, notes, messages, files, reschedule requests). Deleting staff or centers nullifies dangling references in appointments and companies before deletion.

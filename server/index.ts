@@ -1,5 +1,5 @@
 const _origWarn = console.warn;
-console.warn = (...args: any[]) => {
+console.warn = (...args: unknown[]) => {
   if (typeof args[0] === "string" && args[0].includes("did not pass the `from` option to `postcss.parse`")) return;
   _origWarn.apply(console, args);
 };
@@ -35,6 +35,8 @@ declare module "express-session" {
     staffId: string | null;
     vendorId: string | null;
     vendorUserId: string | null;
+    vendorType: string;
+    attestationVendorUserId: string;
   }
 }
 
@@ -52,7 +54,7 @@ const PgStore = connectPgSimple(session);
 app.use(
   session({
     store: new PgStore({
-      pool: pool as any,
+      pool: pool as unknown as import("pg").Pool,
       createTableIfMissing: true,
     }),
     secret: (() => {
@@ -87,11 +89,11 @@ export function log(message: string, source = "express") {
 
 const SENSITIVE_FIELDS = new Set(["password", "passwordHash", "currentPassword", "newPassword", "masterPassword", "pin", "managerPin", "secret", "token", "refreshToken", "key", "apiKey", "accessToken", "authorization"]);
 
-function sanitizeForLog(obj: any): any {
+function sanitizeForLog(obj: unknown): unknown {
   if (!obj || typeof obj !== "object") return obj;
   if (Array.isArray(obj)) return obj.map(sanitizeForLog);
-  const sanitized: Record<string, any> = {};
-  for (const [key, value] of Object.entries(obj)) {
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     if (SENSITIVE_FIELDS.has(key)) {
       sanitized[key] = "***";
     } else if (typeof value === "object" && value !== null) {
@@ -106,7 +108,7 @@ function sanitizeForLog(obj: any): any {
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse: Record<string, unknown> | undefined = undefined;
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -132,7 +134,7 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
-  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+  app.use((err: Error & { status?: number; statusCode?: number }, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 

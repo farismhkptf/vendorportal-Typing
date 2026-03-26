@@ -1,3 +1,15 @@
+interface ZohoApiResponse {
+  data?: ZohoApiItem | ZohoApiItem[];
+  [key: string]: unknown;
+}
+
+interface ZohoApiItem {
+  id?: string;
+  type?: string;
+  attributes?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 let cachedAccessToken: string | null = null;
 let tokenExpiresAt: number = 0;
 
@@ -28,7 +40,7 @@ async function getAccessToken(): Promise<string> {
     }),
   });
 
-  const data = await response.json() as any;
+  const data = await response.json() as { access_token: string; expires_in: number; error?: string };
 
   if (data.error) {
     throw new Error(`Zoho token refresh failed: ${data.error}`);
@@ -42,8 +54,8 @@ async function getAccessToken(): Promise<string> {
 async function workdriveRequest(
   method: string,
   endpoint: string,
-  body?: any,
-): Promise<any> {
+  body?: Record<string, unknown> | FormData,
+): Promise<ZohoApiResponse> {
   const token = await getAccessToken();
   const apiDomain = process.env.ZOHO_WORKDRIVE_API_DOMAIN || "https://www.zohoapis.com";
   const url = `${apiDomain}/workdrive/api/v1${endpoint}`;
@@ -52,7 +64,7 @@ async function workdriveRequest(
     Authorization: `Zoho-oauthtoken ${token}`,
   };
 
-  let requestBody: any = undefined;
+  let requestBody: string | FormData | undefined = undefined;
 
   if (body) {
     headers["Content-Type"] = "application/json";
@@ -71,18 +83,18 @@ async function workdriveRequest(
   }
 
   const text = await response.text();
-  if (!text) return null;
-  return JSON.parse(text);
+  if (!text) return {} as ZohoApiResponse;
+  return JSON.parse(text) as ZohoApiResponse;
 }
 
 async function listSubfolders(parentFolderId: string): Promise<Array<{ id: string; name: string }>> {
   const data = await workdriveRequest("GET", `/files/${parentFolderId}/files`);
-  if (!data?.data) return [];
-  return data.data
-    .filter((item: any) => item.attributes?.type === "folder" || item.type === "folder" || item.attributes?.is_folder)
-    .map((item: any) => ({
-      id: item.id,
-      name: item.attributes?.name || "",
+  const items = Array.isArray(data?.data) ? data.data : [];
+  return items
+    .filter((item) => item.attributes?.type === "folder" || item.type === "folder" || item.attributes?.is_folder)
+    .map((item) => ({
+      id: item.id || "",
+      name: (item.attributes?.name as string) || "",
     }));
 }
 
@@ -97,11 +109,12 @@ async function createFolder(parentFolderId: string, folderName: string): Promise
     },
   });
 
-  if (!data?.data?.id) {
+  const item = Array.isArray(data?.data) ? data.data[0] : data?.data;
+  if (!item?.id) {
     throw new Error("Failed to create folder in Zoho WorkDrive");
   }
 
-  return data.data.id;
+  return item.id;
 }
 
 async function getOrCreateFolder(parentFolderId: string, folderName: string): Promise<string> {
@@ -212,15 +225,16 @@ export async function uploadFileToWorkDrive(
     throw new Error(`Zoho WorkDrive upload failed (${response.status}): ${errorText}`);
   }
 
-  const data = (await response.json()) as any;
-  const fileData = data?.data?.[0] || data?.data;
+  const data = (await response.json()) as ZohoApiResponse;
+  const dataArr = data?.data;
+  const fileData = Array.isArray(dataArr) ? dataArr[0] : dataArr;
 
   if (!fileData) {
     throw new Error("No file data returned from Zoho WorkDrive upload");
   }
 
-  const fileId = fileData.attributes?.resource_id || fileData.id;
-  const permalink = fileData.attributes?.permalink || `https://workdrive.zoho.com/file/${fileId}`;
+  const fileId = (fileData.attributes?.resource_id as string) || fileData.id || "";
+  const permalink = (fileData.attributes?.permalink as string) || `https://workdrive.zoho.com/file/${fileId}`;
 
   return { fileId, permalink };
 }
@@ -254,7 +268,7 @@ export async function testWorkDriveConnection(): Promise<{ success: boolean; err
 
     await listSubfolders(parentFolderId);
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }

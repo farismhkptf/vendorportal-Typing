@@ -329,7 +329,7 @@ export const staff = pgTable("staff", {
   email: text("email"),
   status: staffStatusEnum("status").notNull().default("Active"),
   replacementId: varchar("replacement_id"), // Staff member covering when on leave
-  leaveEndDate: text("leave_end_date"), // Date when leave ends (ISO format)
+  leaveEndDate: timestamp("leave_end_date"),
   active: boolean("active").notNull().default(true),
 });
 
@@ -806,10 +806,7 @@ export const attestationServiceStepDefinitions = pgTable("attestation_service_st
   index("idx_attest_step_defs_service_id").on(table.serviceId),
 ]);
 
-// Attestation Service Request status / custody enums
-export const attestationSrStatusEnum = pgEnum("attestation_sr_status", [
-  "Draft", "SentToVendor", "AcceptedByVendor", "InProgress", "Completed", "Cancelled"
-]);
+// Attestation Service Request status / custody enums (uses srStatusEnum for status column)
 
 export const handoverDirectionEnum = pgEnum("handover_direction", [
   "ClientToUs", "UsToVendor", "VendorToUs", "UsToClient"

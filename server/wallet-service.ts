@@ -27,7 +27,7 @@ export interface WalletSummary {
 export class WalletService {
   constructor(
     private storage: IStorage,
-    private notifyVendorUsers: (vendorId: string, notification: any) => Promise<void>
+    private notifyVendorUsers: (vendorId: string, notification: { type: string; title: string; message: string; relatedJobId?: string }) => Promise<void>
   ) {}
 
   async getBalance(vendorId: string): Promise<number> {

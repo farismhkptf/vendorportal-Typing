@@ -49,9 +49,9 @@ export async function sendEmail(options: SendEmailOptions): Promise<EmailResult>
       html: options.html,
     });
     return { success: true, messageId: info.messageId };
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Email send error:", err);
-    return { success: false, error: err.message || "Failed to send email" };
+    return { success: false, error: err instanceof Error ? err.message : "Failed to send email" };
   }
 }
 

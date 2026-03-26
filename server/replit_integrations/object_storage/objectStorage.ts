@@ -246,8 +246,8 @@ export class ObjectStorageService {
     const file = bucket.file(objectName);
     try {
       await file.delete();
-    } catch (err: any) {
-      if (err?.code !== 404) throw err;
+    } catch (err: unknown) {
+      if ((err as { code?: number })?.code !== 404) throw err;
     }
   }
 
