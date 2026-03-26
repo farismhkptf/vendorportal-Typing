@@ -280,24 +280,24 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         return res.status(404).json({ message: "Appointment not found" });
       }
 
-      const workOrder = await storage.getWorkOrderById(appointment.woId).catch(() => undefined);
+      const workOrder = await storage.getWorkOrderById(appointment.woId).catch((err) => { console.error("[admin] appointment-email: failed to fetch work order:", err); return undefined; });
       const company = workOrder?.companyId
-        ? await storage.getCompanyById(workOrder.companyId).catch(() => undefined)
+        ? await storage.getCompanyById(workOrder.companyId).catch((err) => { console.error("[admin] appointment-email: failed to fetch company:", err); return undefined; })
         : undefined;
       const serviceType = workOrder?.serviceTypeId
-        ? await storage.getServiceTypeById(workOrder.serviceTypeId).catch(() => undefined)
+        ? await storage.getServiceTypeById(workOrder.serviceTypeId).catch((err) => { console.error("[admin] appointment-email: failed to fetch service type:", err); return undefined; })
         : undefined;
       const center = appointment.centerId
-        ? await storage.getCenterById(appointment.centerId).catch(() => undefined)
+        ? await storage.getCenterById(appointment.centerId).catch((err) => { console.error("[admin] appointment-email: failed to fetch center:", err); return undefined; })
         : undefined;
       const assignedStaff = appointment.assignedStaffId
-        ? await storage.getStaffById(appointment.assignedStaffId).catch(() => undefined)
+        ? await storage.getStaffById(appointment.assignedStaffId).catch((err) => { console.error("[admin] appointment-email: failed to fetch staff:", err); return undefined; })
         : undefined;
 
       let rmStaff: Staff | undefined;
       let rmUserEmail: string | undefined;
       if (company?.rmStaffId) {
-        rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => undefined);
+        rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[admin] appointment-email: failed to fetch RM staff:", err); return undefined; });
         if (rmStaff?.email) {
           rmUserEmail = rmStaff.email;
         }
@@ -312,7 +312,9 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
             const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
             applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
           }
-        } catch {}
+        } catch (err) {
+          console.error("[admin] appointment-email: failed to fetch applicant photo:", err);
+        }
       }
 
       let appLogoUrl: string | undefined;
@@ -321,7 +323,9 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         if (settings?.logoUrl) {
           appLogoUrl = settings.logoUrl;
         }
-      } catch {}
+      } catch (err) {
+        console.error("[admin] appointment-email: failed to fetch app settings:", err);
+      }
 
       const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
 

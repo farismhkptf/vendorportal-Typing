@@ -379,7 +379,7 @@ app.post("/api/appointment-cycles/:cycleId/retest-required", requireAuth, async 
           relatedEntityId: medCase.woId,
         };
         if (company?.rmStaffId) {
-          const rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => null);
+          const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM staff:", err); return null; });
           if (rmStaff?.userId) {
             await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
           } else {
@@ -558,7 +558,7 @@ app.post("/api/appointment-cycles/:cycleId/medical-failed", requireAuth, async (
           relatedEntityId: medCase.woId,
         };
         if (company?.rmStaffId) {
-          const rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => null);
+          const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM staff:", err); return null; });
           if (rmStaff?.userId) {
             await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
           } else {
@@ -642,7 +642,7 @@ async function runMedicalTimerJobs() {
             relatedEntityId: medCase.woId,
           };
           if (company?.rmStaffId) {
-            const rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => null);
+            const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM staff:", err); return null; });
             if (rmStaff?.userId) {
               await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
             } else {

@@ -99,7 +99,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       const now = Date.now();
       if (now - lastDelayCheck > 5 * 60 * 1000) {
         lastDelayCheck = now;
-        checkAndMarkDelayedWorkOrders().catch(() => {});
+        checkAndMarkDelayedWorkOrders().catch((err) => { console.error("[work-orders] delay check failed:", err); });
       }
       const { search, status } = req.query;
       const workOrdersList = await storage.getWorkOrders(
@@ -354,7 +354,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       try {
         const woCompany = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
         if (woCompany?.rmStaffId) {
-          const woRmStaff = await storage.getStaffById(woCompany.rmStaffId).catch(() => null);
+          const woRmStaff = await storage.getStaffById(woCompany.rmStaffId).catch((err) => { console.error("[work-orders] failed to fetch RM staff:", err); return null; });
           if (woRmStaff?.userId) {
             await storage.createStaffNotification({
               userId: woRmStaff.userId,
@@ -656,16 +656,16 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
     try {
       const { woId, centerId, assignedStaffId, datetime, type, applicationNumber } = req.body;
 
-      const workOrder = woId ? await storage.getWorkOrderById(woId).catch(() => undefined) : undefined;
-      const company = workOrder?.companyId ? await storage.getCompanyById(workOrder.companyId).catch(() => undefined) : undefined;
-      const serviceType = workOrder?.serviceTypeId ? await storage.getServiceTypeById(workOrder.serviceTypeId).catch(() => undefined) : undefined;
-      const center = centerId ? await storage.getCenterById(centerId).catch(() => undefined) : undefined;
-      const assignedStaff = assignedStaffId ? await storage.getStaffById(assignedStaffId).catch(() => undefined) : undefined;
+      const workOrder = woId ? await storage.getWorkOrderById(woId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch work order:", err); return undefined; }) : undefined;
+      const company = workOrder?.companyId ? await storage.getCompanyById(workOrder.companyId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch company:", err); return undefined; }) : undefined;
+      const serviceType = workOrder?.serviceTypeId ? await storage.getServiceTypeById(workOrder.serviceTypeId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch service type:", err); return undefined; }) : undefined;
+      const center = centerId ? await storage.getCenterById(centerId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch center:", err); return undefined; }) : undefined;
+      const assignedStaff = assignedStaffId ? await storage.getStaffById(assignedStaffId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch staff:", err); return undefined; }) : undefined;
 
       let rmStaff: Staff | undefined;
       let rmUserEmail: string | undefined;
       if (company?.rmStaffId) {
-        rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => undefined);
+        rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch RM staff:", err); return undefined; });
         rmUserEmail = rmStaff?.email || undefined;
       }
 
@@ -678,14 +678,18 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
             const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
             applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
           }
-        } catch {}
+        } catch (err) {
+          console.error("[work-orders] email-preview: failed to fetch applicant photo:", err);
+        }
       }
 
       let appLogoUrl: string | undefined;
       try {
         const settings = await storage.getAppSettings();
         if (settings?.logoUrl) appLogoUrl = settings.logoUrl;
-      } catch {}
+      } catch (err) {
+        console.error("[work-orders] email-preview: failed to fetch app settings:", err);
+      }
 
       const mockAppointment = {
         id: "preview",
@@ -742,21 +746,21 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       const appointment = await storage.getAppointmentById(id);
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
-      const wo = await storage.getWorkOrderById(appointment.woId).catch(() => undefined);
+      const wo = await storage.getWorkOrderById(appointment.woId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch work order:", err); return undefined; });
       if (!wo) return res.status(404).json({ message: "Work order not found" });
 
       const recipientEmail = (overrideEmail && overrideEmail.trim()) ? overrideEmail.trim() : wo.applicantEmail;
       if (!recipientEmail) return res.status(400).json({ message: "Applicant has no email address on record." });
 
-      const company = wo.companyId ? await storage.getCompanyById(wo.companyId).catch(() => undefined) : undefined;
-      const serviceType = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId).catch(() => undefined) : undefined;
-      const center = appointment.centerId ? await storage.getCenterById(appointment.centerId).catch(() => undefined) : undefined;
-      const assignedStaff = appointment.assignedStaffId ? await storage.getStaffById(appointment.assignedStaffId).catch(() => undefined) : undefined;
+      const company = wo.companyId ? await storage.getCompanyById(wo.companyId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch company:", err); return undefined; }) : undefined;
+      const serviceType = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch service type:", err); return undefined; }) : undefined;
+      const center = appointment.centerId ? await storage.getCenterById(appointment.centerId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch center:", err); return undefined; }) : undefined;
+      const assignedStaff = appointment.assignedStaffId ? await storage.getStaffById(appointment.assignedStaffId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch staff:", err); return undefined; }) : undefined;
 
       let rmStaff: Staff | undefined;
       let rmUserEmail: string | undefined;
       if (company?.rmStaffId) {
-        rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => undefined);
+        rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch RM staff:", err); return undefined; });
         rmUserEmail = rmStaff?.email || undefined;
       }
 
@@ -768,10 +772,12 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
           const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
           applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
         }
-      } catch {}
+      } catch (err) {
+        console.error("[work-orders] create-appointment: failed to fetch applicant photo:", err);
+      }
 
       let appLogoUrl: string | undefined;
-      const settings = await storage.getAppSettings().catch(() => undefined);
+      const settings = await storage.getAppSettings().catch((err: unknown) => { console.error("[work-orders] create-appointment: failed to fetch app settings:", err); return undefined; });
       if (settings?.logoUrl) appLogoUrl = settings.logoUrl;
 
       const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
@@ -902,16 +908,16 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
       (async () => {
         try {
-          const wo = await storage.getWorkOrderById(appointment.woId).catch(() => undefined);
-          const comp = wo?.companyId ? await storage.getCompanyById(wo.companyId).catch(() => undefined) : undefined;
-          const st = wo?.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId).catch(() => undefined) : undefined;
-          const ctr = appointment.centerId ? await storage.getCenterById(appointment.centerId).catch(() => undefined) : undefined;
-          const guide = appointment.assignedStaffId ? await storage.getStaffById(appointment.assignedStaffId).catch(() => undefined) : undefined;
+          const wo = await storage.getWorkOrderById(appointment.woId).catch((err) => { console.error("[work-orders] auto-email: failed to fetch work order for appointment", appointment.id, ":", err); return undefined; });
+          const comp = wo?.companyId ? await storage.getCompanyById(wo.companyId).catch((err) => { console.error("[work-orders] auto-email: failed to fetch company for appointment", appointment.id, ":", err); return undefined; }) : undefined;
+          const st = wo?.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId).catch((err) => { console.error("[work-orders] auto-email: failed to fetch service type for appointment", appointment.id, ":", err); return undefined; }) : undefined;
+          const ctr = appointment.centerId ? await storage.getCenterById(appointment.centerId).catch((err) => { console.error("[work-orders] auto-email: failed to fetch center for appointment", appointment.id, ":", err); return undefined; }) : undefined;
+          const guide = appointment.assignedStaffId ? await storage.getStaffById(appointment.assignedStaffId).catch((err) => { console.error("[work-orders] auto-email: failed to fetch staff for appointment", appointment.id, ":", err); return undefined; }) : undefined;
 
           let rm: Staff | undefined;
           let rmEmail: string | undefined;
           if (comp?.rmStaffId) {
-            rm = await storage.getStaffById(comp.rmStaffId).catch(() => undefined);
+            rm = await storage.getStaffById(comp.rmStaffId).catch((err) => { console.error("[work-orders] auto-email: failed to fetch RM staff for appointment", appointment.id, ":", err); return undefined; });
             if (rm?.email) rmEmail = rm.email;
           }
 
@@ -924,7 +930,9 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
                 const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
                 photoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
               }
-            } catch {}
+            } catch (err) {
+              console.error("[work-orders] auto-email: failed to fetch applicant photo for appointment", appointment.id, ":", err);
+            }
           }
 
           let logoUrl: string | undefined;
@@ -934,7 +942,9 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
             if (settings?.logoUrl) {
               logoUrl = settings.logoUrl;
             }
-          } catch {}
+          } catch (err) {
+            console.error("[work-orders] auto-email: failed to fetch app settings for appointment", appointment.id, ":", err);
+          }
 
           const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
 
@@ -989,7 +999,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
                   updateData.messageSentAt = new Date();
                   updateData.messageSentBy = "auto";
                 } else {
-                  console.warn("Auto-send email failed:", emailResult.error);
+                  console.error("[work-orders] auto-send email failed for appointment", appointment.id, ":", emailResult.error);
                 }
               } catch (emailErr) {
                 console.error("Auto-send email error:", emailErr);
@@ -1011,11 +1021,15 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
   app.patch("/api/appointments/:id", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const { status } = req.body;
       
-      if (!status || !["Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status." });
-      }
+      const appointmentStatusSchema = z.object({
+        status: z.enum(["Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"], {
+          errorMap: () => ({ message: "Invalid status" }),
+        }),
+      });
+      const statusValidation = validateBody(appointmentStatusSchema, req.body);
+      if ('error' in statusValidation) return res.status(400).json({ message: statusValidation.error });
+      const { status } = statusValidation.data;
       
       const updated = await storage.updateAppointment(id, { status });
       if (!updated) {

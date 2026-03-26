@@ -33,10 +33,17 @@ app.get("/api/admin/attestation-categories", requireAuth, async (req, res) => {
   }
 });
 
+const createCategorySchema = z.object({
+  name: z.string().min(1, "name is required").transform(s => s.trim()),
+  sortOrder: z.number().int().optional(),
+  active: z.boolean().optional(),
+});
+
 app.post("/api/admin/attestation-categories", requireRole("Admin"), async (req, res) => {
   try {
-    const { name, sortOrder, active } = req.body;
-    if (!name || !name.trim()) return res.status(400).json({ message: "name is required" });
+    const validation = validateBody(createCategorySchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { name, sortOrder, active } = validation.data;
     const existing = await storage.getAttestationCategoryByName(name.trim());
     if (existing) return res.status(409).json({ message: "A category with that name already exists" });
     const allCategories = await storage.getAttestationCategories();
@@ -53,10 +60,18 @@ app.post("/api/admin/attestation-categories", requireRole("Admin"), async (req, 
   }
 });
 
+const updateCategorySchema = z.object({
+  name: z.string().min(1).transform(s => s.trim()).optional(),
+  sortOrder: z.number().int().optional(),
+  active: z.boolean().optional(),
+});
+
 app.patch("/api/admin/attestation-categories/:id", requireRole("Admin"), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, sortOrder, active } = req.body;
+    const validation = validateBody(updateCategorySchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { name, sortOrder, active } = validation.data;
     const existing = await storage.getAttestationCategoryById(id);
     if (!existing) return res.status(404).json({ message: "Category not found" });
     if (name !== undefined && name.trim() !== existing.name) {
@@ -96,10 +111,15 @@ app.delete("/api/admin/attestation-categories/:id", requireRole("Admin"), async 
 });
 
 // Bulk reorder categories
+const reorderCategoriesSchema = z.object({
+  ids: z.array(z.string().min(1)),
+});
+
 app.put("/api/admin/attestation-categories/reorder", requireRole("Admin"), async (req, res) => {
   try {
-    const { ids } = req.body;
-    if (!Array.isArray(ids)) return res.status(400).json({ message: "ids array is required" });
+    const validation = validateBody(reorderCategoriesSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { ids } = validation.data;
     await Promise.all(ids.map((id: string, index: number) =>
       storage.updateAttestationCategory(id, { sortOrder: index })
     ));
@@ -127,10 +147,21 @@ app.get("/api/attestation/services", requireAuth, async (req, res) => {
   }
 });
 
+const createServiceSchema = z.object({
+  name: z.string().min(1, "name is required"),
+  category: z.string().min(1, "category is required"),
+  documentClassApplicability: z.string().optional(),
+  basePriceAed: z.string().optional(),
+  timelineDays: z.number().int().nullable().optional(),
+  description: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+});
+
 app.post("/api/attestation/services", requireRole("Admin"), async (req, res) => {
   try {
-    const { name, category, documentClassApplicability, basePriceAed, timelineDays, description, active } = req.body;
-    if (!name || !category) return res.status(400).json({ message: "name and category are required" });
+    const validation = validateBody(createServiceSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { name, category, documentClassApplicability, basePriceAed, timelineDays, description, active } = validation.data;
     const service = await storage.createAttestationService({
       name, category, documentClassApplicability: documentClassApplicability ?? "Both",
       basePriceAed: basePriceAed ?? "0", timelineDays: timelineDays ?? null,
@@ -143,9 +174,21 @@ app.post("/api/attestation/services", requireRole("Admin"), async (req, res) => 
   }
 });
 
+const updateServiceSchema = z.object({
+  name: z.string().min(1).optional(),
+  category: z.string().min(1).optional(),
+  documentClassApplicability: z.string().optional(),
+  basePriceAed: z.string().optional(),
+  timelineDays: z.number().int().nullable().optional(),
+  description: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+}).strict();
+
 app.patch("/api/attestation/services/:id", requireRole("Admin"), async (req, res) => {
   try {
-    const updated = await storage.updateAttestationService(req.params.id, req.body);
+    const validation = validateBody(updateServiceSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const updated = await storage.updateAttestationService(req.params.id, validation.data);
     if (!updated) return res.status(404).json({ message: "Service not found" });
     res.json(updated);
   } catch (err) {
@@ -159,30 +202,50 @@ app.get("/api/attestation/services/:id/variants", requireAuth, async (req, res) 
     const variants = await storage.getAttestationServiceVariants(req.params.id);
     res.json(variants);
   } catch (err) {
+    console.error("[attestation] get variants error:", err);
     res.status(500).json({ message: "Failed to fetch variants" });
   }
 });
 
+const createVariantSchema = z.object({
+  variantLabel: z.string().min(1, "variantLabel is required"),
+  priceAed: z.string().optional(),
+  timelineDays: z.number().int().nullable().optional(),
+  active: z.boolean().optional(),
+});
+
 app.post("/api/attestation/services/:id/variants", requireRole("Admin"), async (req, res) => {
   try {
-    const { variantLabel, priceAed, timelineDays, active } = req.body;
-    if (!variantLabel) return res.status(400).json({ message: "variantLabel is required" });
+    const validation = validateBody(createVariantSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { variantLabel, priceAed, timelineDays, active } = validation.data;
     const variant = await storage.createAttestationServiceVariant({
       serviceId: req.params.id, variantLabel, priceAed: priceAed ?? "0",
       timelineDays: timelineDays ?? null, active: active ?? true,
     });
     res.status(201).json(variant);
   } catch (err) {
+    console.error("[attestation] create variant error:", err);
     res.status(500).json({ message: "Failed to create variant" });
   }
 });
 
+const updateVariantSchema = z.object({
+  variantLabel: z.string().min(1).optional(),
+  priceAed: z.string().optional(),
+  timelineDays: z.number().int().nullable().optional(),
+  active: z.boolean().optional(),
+}).strict();
+
 app.patch("/api/attestation/services/variants/:variantId", requireRole("Admin"), async (req, res) => {
   try {
-    const updated = await storage.updateAttestationServiceVariant(req.params.variantId, req.body);
+    const validation = validateBody(updateVariantSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const updated = await storage.updateAttestationServiceVariant(req.params.variantId, validation.data);
     if (!updated) return res.status(404).json({ message: "Variant not found" });
     res.json(updated);
   } catch (err) {
+    console.error("[attestation] update variant error:", err);
     res.status(500).json({ message: "Failed to update variant" });
   }
 });
@@ -193,6 +256,7 @@ app.delete("/api/attestation/services/variants/:variantId", requireRole("Admin")
     if (!deleted) return res.status(404).json({ message: "Variant not found" });
     res.json({ success: true });
   } catch (err) {
+    console.error("[attestation] delete variant error:", err);
     res.status(500).json({ message: "Failed to delete variant" });
   }
 });
@@ -202,14 +266,22 @@ app.get("/api/attestation/services/:id/step-definitions", requireAuth, async (re
     const steps = await storage.getAttestationServiceStepDefinitions(req.params.id);
     res.json(steps);
   } catch (err) {
+    console.error("[attestation] get step definitions error:", err);
     res.status(500).json({ message: "Failed to fetch step definitions" });
   }
 });
 
+const stepDefinitionSchema = z.array(z.object({
+  stepOrder: z.number().int(),
+  stepName: z.string().min(1),
+  stepType: z.string().min(1),
+}));
+
 app.put("/api/attestation/services/:id/step-definitions", requireRole("Admin"), async (req, res) => {
   try {
-    const steps = req.body;
-    if (!Array.isArray(steps)) return res.status(400).json({ message: "steps must be an array" });
+    const validation = validateBody(stepDefinitionSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const steps = validation.data;
     const result = await storage.replaceAttestationServiceStepDefinitions(req.params.id, steps);
     res.json(result);
   } catch (err) {
@@ -250,18 +322,33 @@ app.get("/api/attestation/service-requests", requireOpsRole, async (req, res) =>
   }
 });
 
+const createSrSchema = z.object({
+  companyId: z.string().min(1, "Company is required"),
+  vendorId: z.string().min(1, "Vendor is required"),
+  attestationServiceId: z.string().min(1, "Attestation service is required"),
+  externalWoNumber: z.string().min(1, "External WO number is required"),
+  documentType: z.string().min(1, "Document type is required"),
+  documentNameDescription: z.string().min(1, "Document name/description is required"),
+  documentClass: z.string().min(1, "Document class is required"),
+  serviceVariantId: z.string().nullable().optional(),
+  applicantName: z.string().nullable().optional(),
+  homeCountry: z.string().nullable().optional(),
+  originalDocumentInvolved: z.boolean().optional(),
+  internalNotes: z.string().nullable().optional(),
+  serviceFeeAed: z.union([z.string(), z.number()]).nullable().optional(),
+});
+
 app.post("/api/attestation/service-requests", requireOpsRole, async (req, res) => {
   try {
     const user = await storage.getUser(req.session.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
 
+    const validation = validateBody(createSrSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+
     const { companyId, vendorId, attestationServiceId, externalWoNumber, documentType,
       documentNameDescription, documentClass, serviceVariantId, applicantName,
-      homeCountry, originalDocumentInvolved, internalNotes, serviceFeeAed } = req.body;
-
-    if (!companyId || !vendorId || !attestationServiceId || !externalWoNumber || !documentType || !documentNameDescription || !documentClass) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+      homeCountry, originalDocumentInvolved, internalNotes, serviceFeeAed } = validation.data;
 
     const company = await storage.getCompanyById(companyId);
     if (!company) return res.status(400).json({ message: "Company not found" });
@@ -360,14 +447,23 @@ app.get("/api/attestation/service-requests/:id", requireOpsRole, async (req, res
   }
 });
 
+const updateSrStatusSchema = z.object({
+  status: z.string().min(1, "Status is required"),
+});
+
 app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async (req, res) => {
   try {
-    const { status } = req.body;
+    const validation = validateBody(updateSrStatusSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { status } = validation.data;
     const sr = await storage.getAttestationSrById(req.params.id);
     if (!sr) return res.status(404).json({ message: "Service request not found" });
     const allowedNext = SR_VALID_TRANSITIONS[sr.status] ?? [];
     if (!allowedNext.includes(status)) {
       return res.status(400).json({ message: `Invalid transition: ${sr.status} → ${status}` });
+    }
+    if (status === "Completed" && sr.physicalCustodyStatus === "WithVendor") {
+      return res.status(400).json({ message: "Cannot complete SR while documents are still with vendor. Please ensure documents are returned first." });
     }
     const updated = await storage.updateAttestationSr(req.params.id, { status });
     const userId = req.session?.userId;
@@ -407,9 +503,18 @@ app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async 
   }
 });
 
+const updateSrFieldsSchema = z.object({
+  internalNotes: z.string().optional(),
+  serviceFeeAed: z.string().nullable().optional(),
+  physicalCustodyStatus: z.string().optional(),
+  currentCustodian: z.string().nullable().optional(),
+}).strict();
+
 app.patch("/api/attestation/service-requests/:id", requireOpsRole, async (req, res) => {
   try {
-    const { internalNotes, serviceFeeAed, physicalCustodyStatus, currentCustodian } = req.body;
+    const validation = validateBody(updateSrFieldsSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { internalNotes, serviceFeeAed, physicalCustodyStatus, currentCustodian } = validation.data;
     const sr = await storage.getAttestationSrById(req.params.id);
     if (!sr) return res.status(404).json({ message: "Service request not found" });
     if (sr.status === "Cancelled" || sr.status === "Completed") {
@@ -452,12 +557,16 @@ app.patch("/api/attestation/service-requests/:id", requireOpsRole, async (req, r
   }
 });
 
+const bulkStatusSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1, "At least one ID is required"),
+  status: z.string().min(1, "Status is required"),
+});
+
 app.post("/api/attestation/service-requests/bulk-status", requireOpsRole, async (req, res) => {
   try {
-    const { ids, status } = req.body;
-    if (!Array.isArray(ids) || !status) {
-      return res.status(400).json({ message: "ids (array) and status are required" });
-    }
+    const validation = validateBody(bulkStatusSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { ids, status } = validation.data;
     const userId = req.session?.userId;
     const results: { id: string; success: boolean; error?: string }[] = [];
     for (const id of ids) {
@@ -466,6 +575,10 @@ app.post("/api/attestation/service-requests/bulk-status", requireOpsRole, async 
       const allowedNext = SR_VALID_TRANSITIONS[sr.status] ?? [];
       if (!allowedNext.includes(status)) {
         results.push({ id, success: false, error: `Invalid transition: ${sr.status} → ${status}` });
+        continue;
+      }
+      if (status === "Completed" && sr.physicalCustodyStatus === "WithVendor") {
+        results.push({ id, success: false, error: "Cannot complete SR while documents are still with vendor" });
         continue;
       }
       await storage.updateAttestationSr(id, { status });
@@ -501,13 +614,21 @@ app.get("/api/attestation/service-requests/:id/steps", requireOpsRole, async (re
     const steps = await storage.getAttestationSrSteps(req.params.id);
     res.json(steps);
   } catch (err) {
+    console.error("[attestation] get SR steps error:", err);
     res.status(500).json({ message: "Failed to fetch steps" });
   }
 });
 
+const updateSrStepSchema = z.object({
+  status: z.enum(["Pending", "InProgress", "Done"]).optional(),
+  notes: z.string().nullable().optional(),
+});
+
 app.patch("/api/attestation/service-requests/:id/steps/:stepId", requireOpsRole, async (req, res) => {
   try {
-    const { status, notes } = req.body;
+    const validation = validateBody(updateSrStepSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
+    const { status, notes } = validation.data;
     const sr = await storage.getAttestationSrById(req.params.id);
     if (!sr) return res.status(404).json({ message: "Service request not found" });
     const step = await storage.getAttestationSrSteps(sr.id).then(steps => steps.find(s => s.id === req.params.stepId));
@@ -547,6 +668,7 @@ app.get("/api/attestation/service-requests/:id/activity-log", requireOpsRole, as
     }));
     res.json(enriched);
   } catch (err) {
+    console.error("[attestation] get activity log error:", err);
     res.status(500).json({ message: "Failed to fetch activity log" });
   }
 });
@@ -566,6 +688,7 @@ app.get("/api/attestation/stats", requireOpsRole, async (req, res) => {
     };
     res.json(stats);
   } catch (err) {
+    console.error("[attestation] get stats error:", err);
     res.status(500).json({ message: "Failed to fetch attestation stats" });
   }
 });
@@ -575,6 +698,7 @@ app.get("/api/attestation/vendors", requireAuth, async (req, res) => {
     const vendors = await storage.getAttestationVendors();
     res.json(vendors);
   } catch (err) {
+    console.error("[attestation] get vendors error:", err);
     res.status(500).json({ message: "Failed to fetch attestation vendors" });
   }
 });
@@ -699,6 +823,15 @@ app.post("/api/attestation/inquiries/:id/accept", requireAuth, async (req, res) 
 
     const latestQuote = await storage.getLatestQuoteForInquiry(inquiry.id);
 
+    let resolvedServiceId: string | null = null;
+    if (validation.data.serviceName) {
+      const matchedService = await storage.getAttestationServiceByName(validation.data.serviceName);
+      if (!matchedService) {
+        return res.status(400).json({ message: `Attestation service "${validation.data.serviceName}" not found in catalog` });
+      }
+      resolvedServiceId = matchedService.id;
+    }
+
     const sr = await storage.createAttestationSr({
       inquiryId: inquiry.id,
       companyId: inquiry.companyId,
@@ -709,6 +842,7 @@ app.post("/api/attestation/inquiries/:id/accept", requireAuth, async (req, res) 
       documentClass: inquiry.documentClass,
       homeCountry: inquiry.homeCountry,
       externalWoNumber: validation.data.externalWoNumber,
+      attestationServiceId: resolvedServiceId,
       serviceName: validation.data.serviceName || null,
       serviceFeeAed: latestQuote?.amountAed ? String(latestQuote.amountAed) : null,
       feeSource: latestQuote ? "quote" : null,
@@ -716,6 +850,22 @@ app.post("/api/attestation/inquiries/:id/accept", requireAuth, async (req, res) 
       status: "SentToVendor",
       createdBy: req.session.userId!,
     } as InsertAttestationSr);
+
+    if (resolvedServiceId) {
+      const stepDefs = await storage.getAttestationServiceStepDefinitions(resolvedServiceId);
+      for (const def of stepDefs) {
+        await storage.createAttestationSrStep({
+          srId: sr.id,
+          stepOrder: def.stepOrder,
+          stepName: def.stepName,
+          stepType: def.stepType,
+          status: "Pending",
+          startedAt: null,
+          completedAt: null,
+          notes: null,
+        });
+      }
+    }
 
     await storage.updateAttestationInquiry(inquiry.id, {
       status: "Converted",
@@ -916,14 +1066,24 @@ app.get("/api/custody/records/:id", requireDocCustodyRole, async (req: Request, 
   }
 });
 
-// POST /api/custody/records — create new custody record
+const createCustodyRecordSchema = z.object({
+  companyId: z.string().min(1, "Company is required"),
+  docSubtype: z.string().min(1, "Document subtype is required"),
+  applicantName: z.string().optional(),
+  woId: z.string().optional(),
+  notifyEmail: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
 app.post("/api/custody/records", requireDocCustodyRole, async (req: Request, res: Response) => {
   try {
+    const validation = validateBody(createCustodyRecordSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
     const user = req._custodyUser;
     const referenceNumber = await storage.getNextCustodyRefNumber();
 
     const record = await storage.createDocumentCustodyRecord({
-      ...req.body,
+      ...validation.data,
       referenceNumber,
       createdBy: user.id,
       custodyStage: "WithClient",
@@ -956,14 +1116,22 @@ app.patch("/api/custody/records/:id", requireDocCustodyRole, async (req: Request
   }
 });
 
-// POST /api/custody/records/:id/handoff — log a stage transition
+const handoffSchema = z.object({
+  toStage: z.string().min(1, "Target stage is required"),
+  counterpartyName: z.string().optional(),
+  counterpartyContact: z.string().optional(),
+  notes: z.string().nullable().optional(),
+});
+
 app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.single("counterpartyIdPhoto"), async (req: Request, res: Response) => {
   try {
+    const validation = validateBody(handoffSchema, req.body);
+    if ('error' in validation) return res.status(400).json({ message: validation.error });
     const user = req._custodyUser;
     const record = await storage.getDocumentCustodyRecordById(req.params.id);
     if (!record) return res.status(404).json({ message: "Record not found" });
 
-    const { toStage, counterpartyName, counterpartyContact, notes } = req.body;
+    const { toStage, counterpartyName, counterpartyContact, notes } = validation.data;
 
     const custodyStageOrder = ["WithClient", "WithUs", "WithVendor", "ReturnedToClient"];
     if (!custodyStageOrder.includes(toStage)) {
@@ -971,7 +1139,8 @@ app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.singl
     }
     const currentStageIdx = custodyStageOrder.indexOf(record.custodyStage);
     const targetStageIdx = custodyStageOrder.indexOf(toStage);
-    if (targetStageIdx !== currentStageIdx + 1) {
+    const allowSkipVendor = record.custodyStage === "WithUs" && toStage === "ReturnedToClient";
+    if (targetStageIdx !== currentStageIdx + 1 && !allowSkipVendor) {
       return res.status(400).json({ message: `Cannot move directly from '${record.custodyStage}' to '${toStage}'. Must follow the sequential order.` });
     }
 

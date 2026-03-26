@@ -479,6 +479,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
           }
         }
       } catch (e) {
+        console.error("[vendor-portal] performance: failed to calculate monthly earnings:", e);
       }
 
       const totalJobsThisMonth = jobs.filter(j => {
@@ -863,6 +864,12 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
       const job = await storage.getTypingJobById(jobId);
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
+      }
+
+      const outputFiles = await storage.getFilesByRelated("TypingJob", jobId);
+      const hasResultFile = outputFiles.some((f: { direction: string }) => f.direction === "Output");
+      if (!hasResultFile) {
+        return res.status(400).json({ message: "Please upload your results before marking complete" });
       }
 
       const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;

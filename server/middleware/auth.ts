@@ -111,5 +111,5 @@ export function requireDocCustodyRole(req: Request, res: Response, next: NextFun
     }
     req._custodyUser = user;
     next();
-  }).catch(() => res.status(500).json({ message: "Auth check failed" }));
+  }).catch((err) => { console.error("[auth] custody auth check failed:", err); res.status(500).json({ message: "Auth check failed" }); });
 }

@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth, requireOpsRole, requireRole } from "../middleware/auth";
 import { validateBody, validateEmailField } from "../middleware/validation";
@@ -201,11 +202,16 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
+  const companyEmailSchema = z.object({
+    label: z.string().min(1, "Label is required"),
+    email: z.string().email("Valid email is required"),
+  });
+
   app.post("/api/companies/:companyId/emails", requireOpsRole, async (req, res) => {
     try {
-      const { label, email } = req.body;
-      if (!label || !email) return res.status(400).json({ message: "Label and email are required" });
-      if (!validateEmailField(email)) return res.status(400).json({ message: "Invalid email format" });
+      const validation = validateBody(companyEmailSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { label, email } = validation.data;
       const created = await storage.createCompanyEmail({ companyId: req.params.companyId, label, email });
       res.json(created);
     } catch (error: unknown) {
@@ -215,10 +221,16 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
+  const updateCompanyEmailSchema = z.object({
+    label: z.string().min(1).optional(),
+    email: z.string().email("Valid email is required").optional(),
+  });
+
   app.put("/api/companies/:companyId/emails/:emailId", requireOpsRole, async (req, res) => {
     try {
-      const { label, email } = req.body;
-      if (email && !validateEmailField(email)) return res.status(400).json({ message: "Invalid email format" });
+      const validation = validateBody(updateCompanyEmailSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { label, email } = validation.data;
       const existing = await storage.getCompanyEmails(req.params.companyId);
       const owns = existing.some(e => e.id === req.params.emailId);
       if (!owns) return res.status(404).json({ message: "Email not found for this company" });
@@ -546,19 +558,19 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
+  const createVendorSchema = z.object({
+    name: z.string().min(1, "Vendor name is required"),
+    contactPerson: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().email("Invalid email format").optional().or(z.literal("")),
+    vendorType: z.enum(["Typing", "Attestation"]).optional(),
+  });
+
   app.post("/api/vendors", requireOpsRole, async (req, res) => {
     try {
-      const { name, contactPerson, phone, email, vendorType } = req.body;
-      if (!name) {
-        return res.status(400).json({ message: "Vendor name is required" });
-      }
-      if (!validateEmailField(email)) {
-        return res.status(400).json({ message: "Invalid vendor email format" });
-      }
-      const validVendorTypes = ["Typing", "Attestation"];
-      if (vendorType && !validVendorTypes.includes(vendorType)) {
-        return res.status(400).json({ message: "Invalid vendorType. Must be Typing or Attestation." });
-      }
+      const validation = validateBody(createVendorSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { name, contactPerson, phone, email, vendorType } = validation.data;
       const vendor = await storage.createVendor({
         name: toProperCase(name),
         contactPerson: contactPerson ? toProperCase(contactPerson) : undefined,
@@ -579,16 +591,20 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
+  const updateVendorSchema = z.object({
+    name: z.string().min(1).optional(),
+    contactPerson: z.string().optional(),
+    phone: z.string().optional(),
+    email: z.string().email("Invalid email format").optional().or(z.literal("")),
+    active: z.boolean().optional(),
+    vendorType: z.enum(["Typing", "Attestation"]).optional(),
+  });
+
   app.put("/api/vendors/:id", requireOpsRole, async (req, res) => {
     try {
-      const { name, contactPerson, phone, email, active, vendorType } = req.body;
-      if (!validateEmailField(email)) {
-        return res.status(400).json({ message: "Invalid vendor email format" });
-      }
-      const validVendorTypes = ["Typing", "Attestation"];
-      if (vendorType && !validVendorTypes.includes(vendorType)) {
-        return res.status(400).json({ message: "Invalid vendorType. Must be Typing or Attestation." });
-      }
+      const validation = validateBody(updateVendorSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { name, contactPerson, phone, email, active, vendorType } = validation.data;
       const updateData: Record<string, unknown> = {};
       if (name !== undefined) updateData.name = toProperCase(name);
       if (contactPerson !== undefined) updateData.contactPerson = contactPerson ? toProperCase(contactPerson) : null;

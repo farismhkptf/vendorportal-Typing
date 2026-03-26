@@ -47,7 +47,7 @@ async function requireApiKey(req: ExternalRequest, res: Response, next: NextFunc
     }
 
     req.apiKey = apiKey;
-    storage.touchApiKeyLastUsed(apiKey.id).catch(() => {});
+    storage.touchApiKeyLastUsed(apiKey.id).catch((err) => { console.error("[external-routes] failed to touch API key last used:", err); });
     next();
   } catch (error) {
     console.error("API key auth error:", error);

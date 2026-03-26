@@ -337,6 +337,7 @@ export interface IStorage {
   // Attestation Services Catalog
   getAttestationServices(activeOnly?: boolean): Promise<AttestationService[]>;
   getAttestationServiceById(id: string): Promise<AttestationService | undefined>;
+  getAttestationServiceByName(name: string): Promise<AttestationService | undefined>;
   createAttestationService(data: InsertAttestationService): Promise<AttestationService>;
   updateAttestationService(id: string, data: Partial<InsertAttestationService>): Promise<AttestationService | undefined>;
   getAttestationServiceVariants(serviceId: string): Promise<AttestationServiceVariant[]>;
@@ -2270,6 +2271,11 @@ export class DatabaseStorage implements IStorage {
 
   async getAttestationServiceById(id: string): Promise<AttestationService | undefined> {
     const [row] = await db.select().from(attestationServices).where(eq(attestationServices.id, id));
+    return row || undefined;
+  }
+
+  async getAttestationServiceByName(name: string): Promise<AttestationService | undefined> {
+    const [row] = await db.select().from(attestationServices).where(eq(attestationServices.name, name));
     return row || undefined;
   }
 

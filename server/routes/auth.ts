@@ -25,15 +25,18 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
+  const quickLoginSchema = z.object({
+    userId: z.string().min(1, "User ID is required"),
+  });
+
   app.post("/api/auth/quick-login", async (req, res) => {
     try {
       if (process.env.NODE_ENV === 'production') {
         return res.status(403).json({ message: "This endpoint is disabled in production" });
       }
-      const { userId } = req.body;
-      if (!userId) {
-        return res.status(400).json({ message: "User ID is required" });
-      }
+      const validation = validateBody(quickLoginSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { userId } = validation.data;
       const user = await storage.getUser(userId);
       if (!user || !user.active) {
         return res.status(401).json({ message: "Account not found or inactive" });
@@ -225,6 +228,7 @@ export function registerAuthRoutes(app: Express): void {
         res.json({ message: "Logged out" });
       });
     } catch (error) {
+      console.error("[auth] logout error:", error);
       res.status(500).json({ message: "Failed to logout" });
     }
   });
@@ -280,12 +284,16 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
+  const changePasswordSchema = z.object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(4, "New password must be at least 4 characters"),
+  });
+
   app.put("/api/auth/change-password", requireAuth, async (req, res) => {
     try {
-      const { currentPassword, newPassword } = req.body;
-      if (!currentPassword || !newPassword || newPassword.length < 4) {
-        return res.status(400).json({ message: "Current and new password required (min 4 chars)" });
-      }
+      const validation = validateBody(changePasswordSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { currentPassword, newPassword } = validation.data;
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
       
@@ -313,10 +321,15 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
+  const forgotPasswordSchema = z.object({
+    email: z.string().email("Valid email is required"),
+  });
+
   app.post("/api/auth/forgot-password", async (req, res) => {
     try {
-      const { email } = req.body;
-      if (!email) return res.status(400).json({ message: "Email is required" });
+      const validation = validateBody(forgotPasswordSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { email } = validation.data;
       
       const user = await storage.getUserByEmail(email);
       if (user) {
@@ -344,12 +357,16 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
+  const resetUserPasswordSchema = z.object({
+    userId: z.string().min(1, "User ID is required"),
+    newPassword: z.string().min(4, "Password must be at least 4 characters"),
+  });
+
   app.put("/api/admin/reset-user-password", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
-      const { userId, newPassword } = req.body;
-      if (!userId || !newPassword || newPassword.length < 4) {
-        return res.status(400).json({ message: "User ID and password (min 4 chars) required" });
-      }
+      const validation = validateBody(resetUserPasswordSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { userId, newPassword } = validation.data;
       const targetUser = await storage.getUser(userId);
       if (!targetUser) return res.status(404).json({ message: "User not found" });
       
@@ -410,10 +427,15 @@ export function registerAuthRoutes(app: Express): void {
     return res.status(403).json({ message: "Access denied" });
   };
 
+  const verifyPinSchema = z.object({
+    pin: z.string().min(1, "PIN is required"),
+  });
+
   app.post("/api/manager/verify-pin", requireAuth, requireManagerRole, async (req, res) => {
     try {
-      const { pin } = req.body;
-      if (!pin) return res.status(400).json({ message: "PIN is required" });
+      const validation = validateBody(verifyPinSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { pin } = validation.data;
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "User not found" });
       if (user.managerPin !== pin) {
@@ -426,11 +448,16 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
+  const changePinSchema = z.object({
+    currentPin: z.string().min(1, "Current PIN is required"),
+    newPin: z.string().regex(/^\d{4}$/, "PIN must be 4 digits"),
+  });
+
   app.put("/api/manager/change-pin", requireAuth, requireManagerRole, async (req, res) => {
     try {
-      const { currentPin, newPin } = req.body;
-      if (!currentPin || !newPin) return res.status(400).json({ message: "Current and new PIN are required" });
-      if (!/^\d{4}$/.test(newPin)) return res.status(400).json({ message: "PIN must be 4 digits" });
+      const validation = validateBody(changePinSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { currentPin, newPin } = validation.data;
       const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "User not found" });
       if (user.managerPin !== currentPin) {
@@ -465,12 +492,15 @@ export function registerAuthRoutes(app: Express): void {
     }
   });
 
+  const managerChangePasswordSchema = z.object({
+    newPassword: z.string().min(4, "Password must be at least 4 characters"),
+  });
+
   app.put("/api/manager/change-password", requireAuth, requireManagerRole, async (req, res) => {
     try {
-      const { newPassword } = req.body;
-      if (!newPassword || newPassword.length < 4) {
-        return res.status(400).json({ message: "Password must be at least 4 characters" });
-      }
+      const validation = validateBody(managerChangePasswordSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { newPassword } = validation.data;
       const hash = await bcrypt.hash(newPassword, 10);
       await storage.updateUser(req.session.userId!, { passwordHash: hash });
       res.json({ success: true });
@@ -518,6 +548,7 @@ export function registerAuthRoutes(app: Express): void {
       const pendingCount = notifications.filter(n => n.status === "pending").length;
       res.json({ count: pendingCount });
     } catch (error) {
+      console.error("[auth] pending notification count error:", error);
       res.status(500).json({ count: 0 });
     }
   });

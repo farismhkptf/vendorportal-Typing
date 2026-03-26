@@ -101,9 +101,19 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
         if (!allDone) return false;
       }
       if (serviceType.requiresMedicalScheduling) {
-        if (medicalAppts.length === 0) return false;
-        const hasCompletedAppt = medicalAppts.some(a => terminalApptStatuses.includes(a.status));
-        if (!hasCompletedAppt) return false;
+        let hasCompletedMedical = false;
+        if (medicalAppts.length > 0) {
+          hasCompletedMedical = medicalAppts.some(a => terminalApptStatuses.includes(a.status));
+        }
+        if (!hasCompletedMedical) {
+          const medicalCase = await storage.getMedicalCaseByWoId(woId);
+          if (medicalCase) {
+            const cycles = await storage.getCyclesByCase(medicalCase.id);
+            const terminalCycleStatuses = ["RESULT_ISSUED", "CLOSED_ADMIN_OVERRIDE"];
+            hasCompletedMedical = cycles.some(c => terminalCycleStatuses.includes(c.status));
+          }
+        }
+        if (!hasCompletedMedical) return false;
       }
     }
 
@@ -121,9 +131,19 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
         if (!allDone) return false;
       }
       if (serviceType.requiresIdBiometrics) {
-        if (eidAppts.length === 0) return false;
-        const hasCompletedAppt = eidAppts.some(a => terminalApptStatuses.includes(a.status));
-        if (!hasCompletedAppt) return false;
+        let hasCompletedBiometrics = false;
+        if (eidAppts.length > 0) {
+          hasCompletedBiometrics = eidAppts.some(a => terminalApptStatuses.includes(a.status));
+        }
+        if (!hasCompletedBiometrics) {
+          const biometricsCase = await storage.getBiometricsCaseByWoId(woId);
+          if (biometricsCase) {
+            const cycles = await storage.getBiometricsCyclesByCase(biometricsCase.id);
+            const terminalBioCycleStatuses = ["COMPLETED", "CLOSED_ADMIN_OVERRIDE"];
+            hasCompletedBiometrics = cycles.some(c => terminalBioCycleStatuses.includes(c.status));
+          }
+        }
+        if (!hasCompletedBiometrics) return false;
       }
     }
 
@@ -147,7 +167,7 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
         relatedEntityId: woId,
       };
       if (company?.rmStaffId) {
-        const rmStaff = await storage.getStaffById(company.rmStaffId).catch(() => null);
+        const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[transition-service] failed to fetch RM staff:", err); return null; });
         if (rmStaff?.userId) {
           await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
         } else {
