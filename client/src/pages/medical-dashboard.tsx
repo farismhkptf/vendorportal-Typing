@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { getGreeting } from "@/lib/greeting";
 import { toProperCase } from "@/lib/proper-case";
 import { cn } from "@/lib/utils";
+import { formatTime, formatDateShort, isToday } from "@/lib/format-date";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardSwitcher } from "@/components/dashboard-switcher";
 import type { Company, Appointment } from "@shared/schema";
@@ -43,22 +44,8 @@ interface AppointmentWithDetails extends Appointment {
   };
 }
 
-function formatTime(datetime: string | Date): string {
-  const d = new Date(datetime);
-  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-}
-
 function formatDate(datetime: string | Date): string {
-  const d = new Date(datetime);
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-}
-
-function isToday(datetime: string | Date): boolean {
-  const d = new Date(datetime);
-  const now = new Date();
-  return d.getFullYear() === now.getFullYear() &&
-    d.getMonth() === now.getMonth() &&
-    d.getDate() === now.getDate();
+  return formatDateShort(datetime);
 }
 
 function isWithinNextDays(datetime: string | Date, days: number): boolean {

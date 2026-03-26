@@ -121,6 +121,140 @@ export function getPipelineInfo(typingJobs: any[], appointments: any[]): Pipelin
   return { medical, eid, overall, overallLabel };
 }
 
+export interface WorkOrderEnrichedBase {
+  id: string;
+  woNumber: string;
+  applicantName: string;
+  status: string;
+  companyId: string;
+  createdAt: string | Date;
+  isVip?: boolean;
+  isDelayed?: boolean;
+  company?: { name: string } | null;
+  serviceType?: { name: string; requiresMedicalTyping?: boolean; requiresMedicalScheduling?: boolean; requiresIdTyping2Years?: boolean; requiresIdTyping1Year?: boolean; requiresIdTyping10Years?: boolean; requiresIdBiometrics?: boolean } | null;
+  typingJobs?: any[];
+  appointments?: any[];
+}
+
+export function getMedicalStatus(wo: WorkOrderEnrichedBase): { typing: string | null; appointment: string | null; hasMedical: boolean } {
+  const medTypingJobs = (wo.typingJobs || []).filter((j: any) => j.jobType?.category === "Medical" && j.status !== "Aborted");
+  const medAppointments = (wo.appointments || []).filter((a: any) => a.type === "Medical" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+  
+  const hasMedical = medTypingJobs.length > 0 || medAppointments.length > 0;
+  
+  let typing: string | null = null;
+  if (medTypingJobs.length > 0) {
+    const sorted = [...medTypingJobs].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    typing = sorted[0].status;
+  }
+
+  let appointment: string | null = null;
+  if (medAppointments.length > 0) {
+    const sorted = [...medAppointments].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    appointment = sorted[0].status;
+  }
+
+  return { typing, appointment, hasMedical };
+}
+
+export function getEidStatus(wo: WorkOrderEnrichedBase): { typing: string | null; appointment: string | null; hasEid: boolean } {
+  const eidTypingJobs = (wo.typingJobs || []).filter((j: any) => j.jobType?.category === "EID" && j.status !== "Aborted");
+  const eidAppointments = (wo.appointments || []).filter((a: any) => a.type === "EID" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+  
+  const hasEid = eidTypingJobs.length > 0 || eidAppointments.length > 0;
+  
+  let typing: string | null = null;
+  if (eidTypingJobs.length > 0) {
+    const sorted = [...eidTypingJobs].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    typing = sorted[0].status;
+  }
+
+  let appointment: string | null = null;
+  if (eidAppointments.length > 0) {
+    const sorted = [...eidAppointments].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    appointment = sorted[0].status;
+  }
+
+  return { typing, appointment, hasEid };
+}
+
+export function needsAttention(wo: WorkOrderEnrichedBase): boolean {
+  if (wo.status === "Completed" || wo.status === "Cancelled") return false;
+  const med = getMedicalStatus(wo);
+  const eid = getEidStatus(wo);
+  if (med.hasMedical && (med.typing === "ReadyForScheduling" || med.typing === "Returned") && !med.appointment) return true;
+  if (eid.hasEid && (eid.typing === "ReadyForScheduling" || eid.typing === "Returned") && !eid.appointment) return true;
+  const daysOld = Math.floor((Date.now() - new Date(wo.createdAt).getTime()) / 86400000);
+  if (daysOld > 7 && wo.status === "Draft") return true;
+  return false;
+}
+
+type WoDisplayStatus = "Draft" | "AtVendor" | "ReadyToSchedule" | "Scheduled" | "Completed" | "Cancelled" | "MedScheduled" | "EIDScheduled" | "BothScheduled";
+
+export function getScheduledDisplayStatus(wo: WorkOrderEnrichedBase): WoDisplayStatus {
+  if (wo.status !== "Scheduled") return wo.status as WoDisplayStatus;
+  const med = getMedicalStatus(wo);
+  const eid = getEidStatus(wo);
+  const medScheduled = med.hasMedical && (med.appointment === "Scheduled" || med.appointment === "Completed");
+  const eidScheduled = eid.hasEid && (eid.appointment === "Scheduled" || eid.appointment === "Completed");
+  if (medScheduled && eidScheduled) return "BothScheduled";
+  if (medScheduled) return "MedScheduled";
+  if (eidScheduled) return "EIDScheduled";
+  return "Scheduled";
+}
+
+export function getProgressPercent(wo: WorkOrderEnrichedBase): number {
+  const med = getMedicalStatus(wo);
+  const eid = getEidStatus(wo);
+  let total = 0;
+  let done = 0;
+  if (med.hasMedical) {
+    total += 2;
+    if (med.typing === "ReadyForScheduling" || med.typing === "Returned") done += 1;
+    if (med.appointment === "Completed") done += 1;
+    else if (med.appointment === "Scheduled") done += 0.5;
+  }
+  if (eid.hasEid) {
+    total += 2;
+    if (eid.typing === "ReadyForScheduling" || eid.typing === "Returned") done += 1;
+    if (eid.appointment === "Completed") done += 1;
+    else if (eid.appointment === "Scheduled") done += 0.5;
+  }
+  if (total === 0) return 0;
+  return Math.round((done / total) * 100);
+}
+
+export function getCardBorderColor(wo: WorkOrderEnrichedBase): string {
+  if (wo.isDelayed) return "border-l-red-600 dark:border-l-red-500";
+  if (wo.status === "Completed") return "border-l-emerald-500";
+  if (wo.status === "Cancelled") return "border-l-gray-300 dark:border-l-gray-600";
+  if (needsAttention(wo)) return "border-l-red-500";
+  const progress = getProgressPercent(wo);
+  if (progress > 0) return "border-l-blue-500";
+  return "border-l-slate-300 dark:border-l-slate-600";
+}
+
+export function getDelayedElapsedText(wo: WorkOrderEnrichedBase): string | null {
+  if (!wo.isDelayed) return null;
+  const jobs = (wo.typingJobs || []).filter(
+    (j: any) => (j.status === "SubmittedToVendor" || j.status === "InProcess") && j.sentAt
+  );
+  if (jobs.length === 0) return "Vendor overdue";
+  const firstSentAt = new Date(String(jobs[0].sentAt));
+  const oldest = jobs.reduce((min: Date, j: any) => {
+    const d = new Date(String(j.sentAt));
+    return d < min ? d : min;
+  }, firstSentAt);
+  const hoursElapsed = Math.floor((Date.now() - oldest.getTime()) / (1000 * 60 * 60));
+  if (hoursElapsed < 48) return `Vendor overdue (${hoursElapsed}h)`;
+  const days = Math.floor(hoursElapsed / 24);
+  return `Vendor overdue (${days}d ${hoursElapsed % 24}h)`;
+}
+
+export function getDaysOld(date: string | Date): number {
+  return Math.floor((Date.now() - new Date(date).getTime()) / 86400000);
+}
+
 export function getNextAction(
   typingJobs: any[],
   appointments: any[],

@@ -14,6 +14,21 @@ Preferred communication style: Simple, everyday language.
 
 The frontend is built with React and TypeScript, using Vite, Wouter for routing, and TanStack React Query for state management. It leverages `shadcn/ui` (built on Radix UI) for components and TailwindCSS for styling, supporting light/dark modes. Forms are managed with React Hook Form and Zod validation. The structure is pages-based, with shared components and custom UI extensions. The app is a Progressive Web App (PWA) using `vite-plugin-pwa` with Workbox for service worker generation and asset pre-caching. A `manifest.json` in `client/public/` enables installability on desktop and mobile. An install prompt banner (`client/src/components/install-prompt-banner.tsx`) appears when the browser fires `beforeinstallprompt`.
 
+#### Component Architecture (Split Pages)
+Major pages are split into orchestrator + sub-components pattern:
+-   **Work Orders** (`client/src/pages/work-orders/`): `index.tsx` (135 lines) orchestrates 7 sub-components in `components/` (card, compact, table, kanban views + toolbar + status pills + use-work-orders-data hook + types).
+-   **Dashboard** (`client/src/pages/dashboard/`): `index.tsx` (189 lines) orchestrates 6 sub-components in `components/` (typing-jobs-lane, appointments-lane, needs-attention, pipeline-overview, widgets, shared helpers + types).
+-   **CRM Dashboard** (`client/src/pages/crm-dashboard/`): `index.tsx` (121 lines) orchestrates 6 sub-components in `components/` (attention-list, quick-actions-sidebar, bottom-panels, deletion-requests, use-crm-data hook + types).
+
+#### Shared Business Logic Modules
+-   `client/src/lib/pipeline-stage.ts`: Pipeline status computation (`getPipelineInfo`, `getNextAction`, `getMedicalStatus`, `getEidStatus`, `needsAttention`, stage configs).
+-   `client/src/lib/utils.ts`: `getInitials()` for avatar fallbacks, `cn()` for class merging.
+-   `client/src/lib/format-date.ts`: `isToday()`, `formatTime()`, `formatDate()`, `formatDateWithWeekday()`.
+
+#### UX Guardrail Components
+-   `client/src/components/ui/confirmation-dialog.tsx`: Reusable confirmation dialog wrapping AlertDialog for destructive actions (abort typing job, delete note). Supports loading state and destructive styling.
+-   `client/src/components/ui/query-error-state.tsx`: Error state with retry button for failed API queries, used in work-orders list, dashboard, and CRM dashboard.
+
 ### Backend
 
 The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API. Drizzle ORM with a PostgreSQL dialect manages database interactions, with shared schema definitions for type safety. Zod schemas generated from Drizzle are used for API validation. A storage abstraction layer is implemented for flexible database operations.

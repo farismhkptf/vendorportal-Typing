@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toProperCase } from "@/lib/proper-case";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 
 type WoStatusType = "Draft" | "AtVendor" | "ReadyToSchedule" | "Scheduled" | "Completed" | "Cancelled" | "Rescheduled" | "OnHold" | "MedScheduled" | "EIDScheduled" | "BothScheduled";
 
@@ -42,16 +42,6 @@ interface VendorGroup {
   returned: VendorJobItem[];
   inProgress: VendorJobItem[];
   unaccepted: VendorJobItem[];
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
 }
 
 function VendorJobRow({

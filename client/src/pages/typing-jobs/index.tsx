@@ -17,6 +17,8 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryErrorState } from "@/components/ui/query-error-state";
+import { queryKeys } from "@/lib/query-keys";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -77,13 +79,13 @@ export default function TypingJobsList() {
   const { toast } = useToast();
 
   const apiStatus = statusFilter.startsWith("_") ? "all" : statusFilter;
-  const { data: typingJobs, isLoading } = useQuery<TypingJobWithRelations[]>({
-    queryKey: [`/api/typing-jobs?status=${apiStatus}`],
+  const { data: typingJobs, isLoading, isError, refetch } = useQuery<TypingJobWithRelations[]>({
+    queryKey: queryKeys.typingJobs(apiStatus),
   });
 
-  const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
+  const { data: vendors } = useQuery<Vendor[]>({ queryKey: queryKeys.vendors });
 
-  const { data: allAppointments } = useQuery<AppointmentWithCenter[]>({ queryKey: ["/api/appointments"] });
+  const { data: allAppointments } = useQuery<AppointmentWithCenter[]>({ queryKey: queryKeys.appointments });
 
   const appointmentsByWoId = useMemo(() => {
     const map = new Map<string, AppointmentWithCenter[]>();
@@ -215,7 +217,7 @@ export default function TypingJobsList() {
       return res.json() as Promise<{ updated: number; failed: number; errors: string[] }>;
     },
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.typingJobsAll });
       dt.clearSelection();
       const desc = result.failed > 0
         ? `${result.updated} submitted to vendor, ${result.failed} failed.`
@@ -941,7 +943,9 @@ export default function TypingJobsList() {
         />
 
         <div>
-          {isLoading ? (
+          {isError ? (
+            <QueryErrorState message="Could not load typing jobs." onRetry={() => refetch()} />
+          ) : isLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-16 rounded-xl" />
               <Skeleton className="h-16 rounded-xl" />

@@ -43,6 +43,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { queryKeys } from "@/lib/query-keys";
 import {
   Select,
   SelectContent,
@@ -104,52 +106,52 @@ export default function TypingJobDetail() {
   const [reassignVendorId, setReassignVendorId] = useState("");
 
   const { data: job, isLoading } = useQuery<TypingJobWithDetails>({
-    queryKey: ["/api/typing-jobs", id],
+    queryKey: queryKeys.typingJob(id!),
   });
 
   const { data: vendors = [] } = useQuery<Vendor[]>({
-    queryKey: ["/api/vendors"],
+    queryKey: queryKeys.vendors,
   });
 
   const { data: activities = [] } = useQuery<ActivityItem[]>({
-    queryKey: ["/api/audit-logs", "typing_job", id],
+    queryKey: queryKeys.auditLogs("typing_job", id!),
     enabled: !!id,
   });
 
   const { data: staffUsers = [] } = useQuery<Pick<SchemaUser, "id" | "name" | "email" | "role" | "active">[]>({
-    queryKey: ["/api/staff-users"],
+    queryKey: queryKeys.staffUsers,
   });
 
   const { data: photoMap } = useQuery<Record<string, string>>({
-    queryKey: ["/api/work-orders/photos"],
+    queryKey: queryKeys.workOrderPhotos,
   });
   
   // Mutations for workflow actions
   const invalidateTypingJobQueries = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs", id] });
-    queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/audit-logs", "typing_job", id] });
-    queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.typingJob(id!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.typingJobsAll });
+    queryClient.invalidateQueries({ queryKey: queryKeys.auditLogs("typing_job", id!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
+    queryClient.invalidateQueries({ queryKey: queryKeys.vendorWallet });
   };
 
   const applyOptimisticStatus = async (newStatus: TypingJobWithDetails["status"]) => {
-    await queryClient.cancelQueries({ queryKey: ["/api/typing-jobs", id] });
-    await queryClient.cancelQueries({ queryKey: ["/api/typing-jobs"] });
-    const previousDetail = queryClient.getQueryData<TypingJobWithDetails>(["/api/typing-jobs", id]);
-    const previousList = queryClient.getQueryData<TypingJob[]>(["/api/typing-jobs"]);
+    await queryClient.cancelQueries({ queryKey: queryKeys.typingJob(id!) });
+    await queryClient.cancelQueries({ queryKey: queryKeys.typingJobsAll });
+    const previousDetail = queryClient.getQueryData<TypingJobWithDetails>(queryKeys.typingJob(id!));
+    const previousList = queryClient.getQueryData<TypingJob[]>(queryKeys.typingJobsAll);
     if (previousDetail) {
-      queryClient.setQueryData<TypingJobWithDetails>(["/api/typing-jobs", id], { ...previousDetail, status: newStatus });
+      queryClient.setQueryData<TypingJobWithDetails>(queryKeys.typingJob(id!), { ...previousDetail, status: newStatus });
     }
     if (previousList) {
-      queryClient.setQueryData<TypingJob[]>(["/api/typing-jobs"], previousList.map(j => j.id === id ? { ...j, status: newStatus } : j));
+      queryClient.setQueryData<TypingJob[]>(queryKeys.typingJobsAll, previousList.map(j => j.id === id ? { ...j, status: newStatus } : j));
     }
     return { previousDetail, previousList };
   };
 
   const rollbackOptimistic = (context: { previousDetail?: TypingJobWithDetails; previousList?: TypingJob[] } | undefined) => {
-    if (context?.previousDetail) queryClient.setQueryData(["/api/typing-jobs", id], context.previousDetail);
-    if (context?.previousList) queryClient.setQueryData(["/api/typing-jobs"], context.previousList);
+    if (context?.previousDetail) queryClient.setQueryData(queryKeys.typingJob(id!), context.previousDetail);
+    if (context?.previousList) queryClient.setQueryData(queryKeys.typingJobsAll, context.previousList);
   };
 
   const submitToVendorMutation = useMutation({
@@ -285,8 +287,8 @@ export default function TypingJobDetail() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/audit-logs", "typing_job", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.typingJob(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auditLogs("typing_job", id!) });
       toast({ title: "File uploaded successfully" });
     },
     onError: () => {
@@ -299,8 +301,8 @@ export default function TypingJobDetail() {
       return apiRequest("DELETE", `/api/files/${fileId}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/audit-logs", "typing_job", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.typingJob(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.auditLogs("typing_job", id!) });
       toast({ title: "File deleted" });
     },
     onError: () => {
@@ -330,7 +332,7 @@ export default function TypingJobDetail() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.typingJob(id!) });
       setNewComment("");
       toast({ title: "Comment added" });
     },
@@ -1073,49 +1075,27 @@ export default function TypingJobDetail() {
         </DialogContent>
       </Dialog>
 
-      {/* Abort Dialog */}
-      <Dialog open={showAbortDialog} onOpenChange={setShowAbortDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Abort Job</DialogTitle>
-            <DialogDescription>
-              This will cancel the job permanently. This action cannot be undone, but the job can be re-assigned to a vendor later.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Reason (optional)</Label>
-              <Textarea 
-                value={abortReason}
-                onChange={(e) => setAbortReason(e.target.value)}
-                placeholder="e.g., Client cancelled the request..."
-                rows={3}
-                data-testid="input-abort-reason"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAbortDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={() => abortMutation.mutate()}
-              disabled={abortMutation.isPending}
-              data-testid="button-confirm-abort"
-            >
-              {abortMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Aborting...
-                </>
-              ) : (
-                "Abort Job"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmationDialog
+        open={showAbortDialog}
+        onOpenChange={setShowAbortDialog}
+        title="Abort Job"
+        description="This will cancel the job permanently. This action cannot be undone, but the job can be re-assigned to a vendor later."
+        confirmLabel="Abort Job"
+        destructive
+        onConfirm={() => abortMutation.mutateAsync()}
+        loading={abortMutation.isPending}
+      >
+        <div className="space-y-2">
+          <Label>Reason (optional)</Label>
+          <Textarea
+            value={abortReason}
+            onChange={(e) => setAbortReason(e.target.value)}
+            placeholder="e.g., Client cancelled the request..."
+            rows={3}
+            data-testid="input-abort-reason"
+          />
+        </div>
+      </ConfirmationDialog>
 
       {/* Assign Staff Dialog */}
       <Dialog open={showAssignDialog} onOpenChange={(open) => {

@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToCsv } from "@/lib/csv-export";
-import { formatDateWithWeekday } from "@/lib/format-date";
+import { formatDateWithWeekday, formatTime, formatTime12h } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AppLayout } from "@/components/layout/app-layout";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { QueryErrorState } from "@/components/ui/query-error-state";
+import { queryKeys } from "@/lib/query-keys";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
@@ -39,13 +42,7 @@ import type { Appointment, WorkOrder, Center, Staff, Company, ServiceType, Typin
 import { RelativeTime } from "@/components/ui/relative-time";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-}
+import { getInitials } from "@/lib/utils";
 
 interface AppointmentWithRelations extends Appointment {
   workOrder?: WorkOrder & { company?: { name: string } };
@@ -77,13 +74,6 @@ interface AppointmentStats {
   readyToScheduleCount: number;
 }
 
-const formatTime12h = (time24: string) => {
-  const [h, m] = time24.split(":");
-  const hour = parseInt(h);
-  const ampm = hour >= 12 ? "PM" : "AM";
-  const hour12 = hour % 12 || 12;
-  return `${hour12}:${m} ${ampm}`;
-};
 
 export default function AppointmentsIndex() {
   const { toast } = useToast();
@@ -111,33 +101,33 @@ export default function AppointmentsIndex() {
     return d;
   });
 
-  const { data: appointments, isLoading } = useQuery<AppointmentWithRelations[]>({
-    queryKey: ["/api/appointments"],
+  const { data: appointments, isLoading, isError: appointmentsError, refetch: refetchAppointments } = useQuery<AppointmentWithRelations[]>({
+    queryKey: queryKeys.appointments,
   });
 
   const { data: staffList } = useQuery<Staff[]>({
-    queryKey: ["/api/staff"],
+    queryKey: queryKeys.staff,
   });
 
   const { data: companies } = useQuery<Company[]>({
-    queryKey: ["/api/companies"],
+    queryKey: queryKeys.companies,
   });
 
   const { data: serviceTypes } = useQuery<ServiceType[]>({
-    queryKey: ["/api/service-types"],
+    queryKey: queryKeys.serviceTypes,
   });
 
   const { data: readyToScheduleJobs } = useQuery<ReadyToScheduleJob[]>({
-    queryKey: ["/api/typing-jobs/ready-to-schedule"],
+    queryKey: queryKeys.typingJobsReadyToSchedule,
   });
 
   const { data: photoMap } = useQuery<Record<string, string>>({
-    queryKey: ["/api/work-orders/photos"],
+    queryKey: queryKeys.workOrderPhotos,
     staleTime: 60000,
   });
 
   const { data: allTypingJobs } = useQuery<TypingJobWithRelations[]>({
-    queryKey: ["/api/typing-jobs"],
+    queryKey: queryKeys.typingJobsAll,
   });
 
   const woTypingStatusMap = useMemo(() => {
@@ -413,11 +403,11 @@ Thank you,
       return apiRequest("PATCH", `/api/appointments/${id}`, { status });
     },
     onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/appointments"] });
-      const previous = queryClient.getQueryData<AppointmentWithRelations[]>(["/api/appointments"]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.appointments });
+      const previous = queryClient.getQueryData<AppointmentWithRelations[]>(queryKeys.appointments);
       if (previous) {
         queryClient.setQueryData<AppointmentWithRelations[]>(
-          ["/api/appointments"],
+          queryKeys.appointments,
           previous.map(a => a.id === id ? { ...a, status: status as AppointmentWithRelations["status"] } : a),
         );
       }
@@ -425,11 +415,11 @@ Thank you,
     },
     onError: (_err, _vars, context) => {
       if (context?.previous) {
-        queryClient.setQueryData(["/api/appointments"], context.previous);
+        queryClient.setQueryData(queryKeys.appointments, context.previous);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.appointments });
     },
   });
 
@@ -613,14 +603,7 @@ Thank you,
     }
   }, []);
 
-  const formatTime = (datetime: string | Date) => {
-    const d = typeof datetime === "string" ? new Date(datetime) : datetime;
-    return d.toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
-  };
+
 
   const formatDateDisplay = (datetime: string | Date) => {
     return formatDateWithWeekday(datetime);
@@ -645,7 +628,6 @@ Thank you,
       if (type === "follow_up") {
         await updateStatusMutation.mutateAsync({ id: appointment.id, status: "FollowUpRequired" });
         toast({ title: "Follow-up required", description: "Medical appointment marked for follow-up retest." });
-        setConfirmDialog({ open: false, type: "complete", appointment: null });
         return;
       }
 
@@ -655,11 +637,11 @@ Thank you,
         title: `Appointment ${status.toLowerCase()}`,
         description: `The appointment has been marked as ${status.toLowerCase()}.`,
       });
-      setConfirmDialog({ open: false, type: "complete", appointment: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update appointment";
       toast({
         title: "Error",
-        description: error.message || "Failed to update appointment",
+        description: message,
         variant: "destructive",
       });
     }
@@ -1013,6 +995,10 @@ Thank you,
             </Link>
           </div>
         </div>
+
+        {appointmentsError && (
+          <QueryErrorState message="Could not load appointments." onRetry={() => refetchAppointments()} />
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCard title="Ready to Schedule" value={stats.readyToScheduleCount} icon={<CalendarPlus className="h-4 w-4" />} onClick={() => scrollToSection("section-ready")} />
@@ -1429,63 +1415,49 @@ Thank you,
         </>)}
       </div>
 
-      <Dialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog({ open: false, type: "complete", appointment: null })}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {confirmDialog.type === "complete" && "Mark as Completed"}
-              {confirmDialog.type === "cancel" && "Cancel Appointment"}
-              {confirmDialog.type === "reschedule" && "Reschedule Appointment"}
-              {confirmDialog.type === "follow_up" && "Mark Follow-Up Required"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {confirmDialog.appointment && (
-              <div className="space-y-2 text-sm">
-                <p>
-                  <span className="text-muted-foreground">Applicant:</span>{" "}
-                  <span className="font-medium">{confirmDialog.appointment.workOrder?.applicantName ? toProperCase(confirmDialog.appointment.workOrder.applicantName) : "Unknown"}</span>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Type:</span>{" "}
-                  <span className="font-medium">{confirmDialog.appointment.type}</span>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">Date:</span>{" "}
-                  <span className="font-medium">{formatDateDisplay(confirmDialog.appointment.datetime)} at {formatTime(confirmDialog.appointment.datetime)}</span>
-                </p>
-              </div>
-            )}
-            <p className="text-sm text-muted-foreground mt-4">
-              {confirmDialog.type === "complete" && "This will mark the appointment as completed."}
-              {confirmDialog.type === "cancel" && "This will cancel the appointment. This action cannot be undone."}
-              {confirmDialog.type === "reschedule" && "This will mark the current appointment as rescheduled and take you to schedule a new one for the same work order."}
-              {confirmDialog.type === "follow_up" && "This will mark the medical appointment as requiring a follow-up retest. You can then schedule a follow-up appointment at the designated center."}
+      <ConfirmationDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => !open && setConfirmDialog({ open: false, type: "complete", appointment: null })}
+        title={
+          confirmDialog.type === "complete" ? "Mark as Completed" :
+          confirmDialog.type === "cancel" ? "Cancel Appointment" :
+          confirmDialog.type === "reschedule" ? "Reschedule Appointment" :
+          "Mark Follow-Up Required"
+        }
+        description={
+          confirmDialog.type === "complete" ? "This will mark the appointment as completed." :
+          confirmDialog.type === "cancel" ? "This will cancel the appointment. This action cannot be undone." :
+          confirmDialog.type === "reschedule" ? "This will mark the current appointment as rescheduled and take you to schedule a new one for the same work order." :
+          "This will mark the medical appointment as requiring a follow-up retest. You can then schedule a follow-up appointment at the designated center."
+        }
+        confirmLabel={
+          confirmDialog.type === "complete" ? "Mark Completed" :
+          confirmDialog.type === "cancel" ? "Cancel Appointment" :
+          confirmDialog.type === "follow_up" ? "Mark Follow-Up Required" :
+          "Reschedule"
+        }
+        cancelLabel="Go Back"
+        destructive={confirmDialog.type === "cancel"}
+        onConfirm={handleConfirmAction}
+        loading={updateStatusMutation.isPending}
+      >
+        {confirmDialog.appointment && (
+          <div className="space-y-2 text-sm">
+            <p>
+              <span className="text-muted-foreground">Applicant:</span>{" "}
+              <span className="font-medium">{confirmDialog.appointment.workOrder?.applicantName ? toProperCase(confirmDialog.appointment.workOrder.applicantName) : "Unknown"}</span>
+            </p>
+            <p>
+              <span className="text-muted-foreground">Type:</span>{" "}
+              <span className="font-medium">{confirmDialog.appointment.type}</span>
+            </p>
+            <p>
+              <span className="text-muted-foreground">Date:</span>{" "}
+              <span className="font-medium">{formatDateDisplay(confirmDialog.appointment.datetime)} at {formatTime(confirmDialog.appointment.datetime)}</span>
             </p>
           </div>
-          <DialogFooter className="gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDialog({ open: false, type: "complete", appointment: null })}
-              data-testid="button-dialog-cancel"
-            >
-              Go Back
-            </Button>
-            <Button
-              variant={confirmDialog.type === "cancel" ? "destructive" : "default"}
-              onClick={handleConfirmAction}
-              disabled={updateStatusMutation.isPending}
-              data-testid="button-dialog-confirm"
-            >
-              {updateStatusMutation.isPending ? "Processing..." : 
-                confirmDialog.type === "complete" ? "Mark Completed" :
-                confirmDialog.type === "cancel" ? "Cancel Appointment" :
-                confirmDialog.type === "follow_up" ? "Mark Follow-Up Required" :
-                "Reschedule"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+      </ConfirmationDialog>
       <Dialog open={!!viewMessagesApt} onOpenChange={(open) => { if (!open) { setViewMessagesApt(null); setEmailFullscreen(false); } }}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>

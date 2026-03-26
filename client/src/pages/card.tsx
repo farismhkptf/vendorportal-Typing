@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getInitials } from "@/lib/utils";
 import type { Appointment, WorkOrder, Company, Center, Staff } from "@shared/schema";
 
 interface CardData {
@@ -14,15 +15,6 @@ interface CardData {
   rmStaff: Staff | null;
   applicantPhotoUrl: string | null;
   serviceTypeName: string | null;
-}
-
-function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0].toUpperCase())
-    .slice(0, 2)
-    .join("");
 }
 
 function formatDateParts(dt: Date): { weekday: string; date: string; time: string; hour: string; ampm: string } {

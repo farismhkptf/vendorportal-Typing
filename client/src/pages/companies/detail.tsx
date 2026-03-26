@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { queryKeys } from "@/lib/query-keys";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -67,18 +68,19 @@ export default function CompanyDetail() {
   const [editAddress, setEditAddress] = useState("");
   const [emailDeletionRequest, setEmailDeletionRequest] = useState<{ id: string; label: string } | null>(null);
   const [emailDeletionReason, setEmailDeletionReason] = useState("");
+  const [emailDeleteConfirm, setEmailDeleteConfirm] = useState<{ id: string; label: string } | null>(null);
 
   const { data: company, isLoading } = useQuery<CompanyWithRelations>({
-    queryKey: ["/api/companies", params.id],
+    queryKey: queryKeys.company(params.id!),
   });
 
   const { data: companyEmails = [] } = useQuery<CompanyEmail[]>({
-    queryKey: ["/api/companies", params.id, "emails"],
+    queryKey: queryKeys.companyEmails(params.id!),
     enabled: !!params.id,
   });
 
-  const { data: centers } = useQuery<Center[]>({ queryKey: ["/api/centers"] });
-  const { data: staffList } = useQuery<Staff[]>({ queryKey: ["/api/staff"] });
+  const { data: centers } = useQuery<Center[]>({ queryKey: queryKeys.centers });
+  const { data: staffList } = useQuery<Staff[]>({ queryKey: queryKeys.staff });
 
   const medicalCenters = centers?.filter(c => c.type === "Medical" || c.type === "Both") || [];
   const normalMedicalCenters = medicalCenters.filter(c => c.tier === "Normal");
@@ -140,8 +142,8 @@ export default function CompanyDetail() {
       return apiRequest("PUT", `/api/companies/${params.id}`, payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", params.id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.companies });
+      queryClient.invalidateQueries({ queryKey: queryKeys.company(params.id!) });
       toast({ title: "Company updated successfully" });
     },
     onError: () => {
@@ -152,7 +154,7 @@ export default function CompanyDetail() {
   const addEmailMutation = useMutation({
     mutationFn: async () => apiRequest("POST", `/api/companies/${params.id}/emails`, { label: newEmailLabel, email: newEmailAddress }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", params.id, "emails"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.companyEmails(params.id!) });
       setNewEmailLabel("");
       setNewEmailAddress("");
       toast({ title: "Email added" });
@@ -164,7 +166,7 @@ export default function CompanyDetail() {
     mutationFn: async ({ id, label, email }: { id: string; label: string; email: string }) =>
       apiRequest("PUT", `/api/companies/${params.id}/emails/${id}`, { label, email }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", params.id, "emails"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.companyEmails(params.id!) });
       setEditingEmailId(null);
       toast({ title: "Email updated" });
     },
@@ -174,7 +176,7 @@ export default function CompanyDetail() {
   const deleteEmailMutation = useMutation({
     mutationFn: async (id: string) => apiRequest("DELETE", `/api/companies/${params.id}/emails/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/companies", params.id, "emails"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.companyEmails(params.id!) });
       toast({ title: "Email removed" });
     },
     onError: (err: Error) => toast({ title: "Failed to remove email", description: err.message, variant: "destructive" }),
@@ -203,7 +205,7 @@ export default function CompanyDetail() {
       setEmailDeletionRequest({ id: ce.id, label: `${ce.label}: ${ce.email}` });
       return;
     }
-    deleteEmailMutation.mutate(ce.id);
+    setEmailDeleteConfirm({ id: ce.id, label: `${ce.label}: ${ce.email}` });
   };
 
   const onSubmit = useCallback((data: CompanyFormData) => {
@@ -614,20 +616,30 @@ export default function CompanyDetail() {
         </div>
       </form>
 
-      <AlertDialog open={isUnsavedDialogOpen} onOpenChange={setIsUnsavedDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have unsaved changes. Are you sure you want to leave? Your changes will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel data-testid="button-cancel-leave">Stay</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmLeave} data-testid="button-confirm-leave">Leave</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmationDialog
+        open={isUnsavedDialogOpen}
+        onOpenChange={setIsUnsavedDialogOpen}
+        title="Unsaved Changes"
+        description="You have unsaved changes. Are you sure you want to leave? Your changes will be lost."
+        confirmLabel="Leave"
+        cancelLabel="Stay"
+        destructive
+        onConfirm={handleConfirmLeave}
+      />
+
+      <ConfirmationDialog
+        open={!!emailDeleteConfirm}
+        onOpenChange={(open) => { if (!open) setEmailDeleteConfirm(null); }}
+        title="Delete Email"
+        description={`Are you sure you want to delete "${emailDeleteConfirm?.label ?? ""}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={async () => {
+          if (emailDeleteConfirm) await deleteEmailMutation.mutateAsync(emailDeleteConfirm.id);
+          setEmailDeleteConfirm(null);
+        }}
+        loading={deleteEmailMutation.isPending}
+      />
 
       {/* CRM Email Deletion Request Dialog */}
       <Dialog

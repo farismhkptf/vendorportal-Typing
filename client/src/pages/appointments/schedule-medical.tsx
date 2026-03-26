@@ -24,16 +24,10 @@ import { AppLayout } from "@/components/layout/app-layout";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WorkOrder, Company, Center, Staff, Appointment, ServiceType } from "@shared/schema";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
+import { formatTime12h } from "@/lib/format-date";
 import { toProperCase } from "@/lib/proper-case";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-}
 
 const TIME_SLOTS = [
   "07:00", "07:30", "08:00", "08:30", "09:00", "09:30", "10:00", "10:30",
@@ -42,13 +36,6 @@ const TIME_SLOTS = [
   "19:00", "19:30", "20:00", "20:30", "21:00"
 ];
 
-const formatTime12h = (time24: string) => {
-  const [hours, minutes] = time24.split(":");
-  const h = parseInt(hours);
-  const ampm = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:${minutes} ${ampm}`;
-};
 
 const getTomorrow = () => {
   const tomorrow = new Date();

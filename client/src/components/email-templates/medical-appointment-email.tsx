@@ -21,12 +21,10 @@ export interface MedicalAppointmentEmailProps {
 }
 
 function getInitials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((w) => w[0].toUpperCase())
-    .slice(0, 2)
-    .join("");
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 }
 
 function escapeHtml(str: string): string {

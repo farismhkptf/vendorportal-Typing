@@ -5,7 +5,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, Clock, MapPin, CheckCircle, AlertCircle, AlertTriangle } from "lucide-react";
 import { z } from "zod";
-import { formatDateWithWeekday } from "@/lib/format-date";
+import { formatDateWithWeekday, formatTime12h } from "@/lib/format-date";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar as CalendarPicker } from "@/components/ui/calendar";
@@ -42,12 +42,6 @@ interface AvailableTimesResponse {
   };
 }
 
-function formatTime(time: string): string {
-  const [hours, minutes] = time.split(":").map(Number);
-  const period = hours >= 12 ? "PM" : "AM";
-  const displayHours = hours % 12 || 12;
-  return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
-}
 
 const rescheduleSchema = z.object({
   date: z.date({ required_error: "Please select a date" }),
@@ -302,7 +296,7 @@ export default function ReschedulePage() {
                         <SelectContent>
                           {availableTimesData?.slots.map((slot) => (
                             <SelectItem key={slot} value={slot}>
-                              {formatTime(slot)}
+                              {formatTime12h(slot)}
                             </SelectItem>
                           ))}
                           {availableTimesData?.slots.length === 0 && availableTimesData?.isOpen && (

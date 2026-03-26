@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AppLayout } from "@/components/layout/app-layout";
 import { EmptyState } from "@/components/ui/empty-state";
+import { QueryErrorState } from "@/components/ui/query-error-state";
+import { queryKeys } from "@/lib/query-keys";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Badge } from "@/components/ui/badge";
@@ -99,8 +101,8 @@ export default function CompaniesList() {
     });
   }, []);
 
-  const { data: companies, isLoading } = useQuery<CompanyWithRelations[]>({
-    queryKey: ["/api/companies"],
+  const { data: companies, isLoading, isError, refetch } = useQuery<CompanyWithRelations[]>({
+    queryKey: queryKeys.companies,
   });
 
   const filteredAndSortedCompanies = useMemo(() => {
@@ -462,7 +464,9 @@ export default function CompaniesList() {
         />
 
         <div>
-          {isLoading ? (
+          {isError ? (
+            <QueryErrorState message="Could not load companies." onRetry={() => refetch()} />
+          ) : isLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-16 rounded-xl" />
               <Skeleton className="h-16 rounded-xl" />

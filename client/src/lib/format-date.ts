@@ -77,3 +77,30 @@ export function formatRelativeTime(date: Date | string | null | undefined): stri
   if (days < 7) return `${days}d ago`;
   return formatDate(d);
 }
+
+export function isToday(datetime: string | Date): boolean {
+  const d = new Date(datetime);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+    d.getMonth() === now.getMonth() &&
+    d.getDate() === now.getDate();
+}
+
+export function formatTime(datetime: string | Date): string {
+  const d = new Date(datetime);
+  return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+export function formatTime12h(time24: string): string {
+  if (!time24) return "";
+  const [h, m] = time24.split(":");
+  const hour = parseInt(h, 10);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${m || "00"} ${ampm}`;
+}
+
+export function formatDateShort(datetime: string | Date): string {
+  const d = new Date(datetime);
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}

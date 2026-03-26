@@ -8,6 +8,7 @@ import { toProperCase } from "@/lib/proper-case";
 import { formatDate, formatDateWithWeekday } from "@/lib/format-date";
 import { getPipelineInfo, getNextAction, STAGE_CONFIG, PIPELINE_STEPS, type PipelineInfo } from "@/lib/pipeline-stage";
 import { cn } from "@/lib/utils";
+import { queryKeys } from "@/lib/query-keys";
 import { 
   ArrowLeft, 
   Building2, 
@@ -55,7 +56,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AppLayout } from "@/components/layout/app-layout";
 import { PageHeader } from "@/components/ui/page-header";
@@ -63,6 +63,7 @@ import { SectionCard } from "@/components/ui/section-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { ActivityTimeline, type ActivityItem } from "@/components/ui/activity-timeline";
@@ -270,10 +271,11 @@ function NextActionBanner({
 
 function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: string; onRefresh: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
   const { toast } = useToast();
 
   const { data: jobDetail } = useQuery<any>({
-    queryKey: ["/api/typing-jobs", job.id],
+    queryKey: queryKeys.typingJob(job.id),
     enabled: expanded,
   });
 
@@ -343,7 +345,7 @@ function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: strin
                   variant="outline"
                   size="sm"
                   className="gap-1 text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:border-destructive"
-                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); abortMutation.mutate(); }}
+                  onClick={(e: React.MouseEvent) => { e.stopPropagation(); setShowAbortConfirm(true); }}
                   disabled={abortMutation.isPending}
                   data-testid={`button-abort-${job.id}`}
                 >
@@ -437,6 +439,15 @@ function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId: strin
           </div>
         </CollapsibleContent>
       </Collapsible>
+      <ConfirmationDialog
+        open={showAbortConfirm}
+        onOpenChange={setShowAbortConfirm}
+        title="Abort Typing Job"
+        description="This will cancel the typing job permanently. The job can be re-assigned to a vendor later, but any in-progress work will be lost."
+        confirmLabel="Abort Job"
+        destructive
+        onConfirm={async () => { await abortMutation.mutateAsync(); }}
+      />
     </Card>
   );
 }
@@ -779,7 +790,7 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
   const { user } = useAuth();
   const isCrm = user?.role === "Client Relationship Manager";
   const { data: notes, isLoading } = useQuery<WoNote[]>({
-    queryKey: ["/api/wo-notes", workOrderId],
+    queryKey: queryKeys.woNotes(workOrderId),
     enabled: !!workOrderId,
   });
 
@@ -787,7 +798,7 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
     mutationFn: () => apiRequest("POST", "/api/wo-notes", { woId: workOrderId, content: noteText }),
     onSuccess: () => {
       setNoteText("");
-      queryClient.invalidateQueries({ queryKey: ["/api/wo-notes", workOrderId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.woNotes(workOrderId) });
     },
     onError: () => {
       toast({ title: "Failed to add note", variant: "destructive" });
@@ -797,7 +808,7 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
   const deleteNoteMutation = useMutation({
     mutationFn: (noteId: string) => apiRequest("DELETE", `/api/wo-notes/${noteId}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/wo-notes", workOrderId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.woNotes(workOrderId) });
     },
     onError: () => {
       toast({ title: "Failed to delete note", variant: "destructive" });
@@ -824,12 +835,14 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
     },
   });
 
+  const [deleteNoteConfirm, setDeleteNoteConfirm] = useState<{ id: string; content: string } | null>(null);
+
   const handleDeleteNote = (noteId: string, content: string) => {
     if (isCrm) {
       setDeletionRequestNote({ id: noteId, content });
       return;
     }
-    deleteNoteMutation.mutate(noteId);
+    setDeleteNoteConfirm({ id: noteId, content });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -956,18 +969,36 @@ function InternalNotesSection({ workOrderId }: { workOrderId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ConfirmationDialog
+        open={!!deleteNoteConfirm}
+        onOpenChange={(open) => { if (!open) setDeleteNoteConfirm(null); }}
+        title="Delete Note"
+        description="Are you sure you want to delete this note? This action cannot be undone."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (deleteNoteConfirm) {
+            return new Promise<void>((resolve, reject) => {
+              deleteNoteMutation.mutate(deleteNoteConfirm.id, {
+                onSuccess: () => { setDeleteNoteConfirm(null); resolve(); },
+                onError: () => reject(),
+              });
+            });
+          }
+        }}
+      />
     </div>
   );
 }
 
 function ActivityTimelineSection({ workOrderId }: { workOrderId: string }) {
   const { data: auditLogs, isLoading } = useQuery<(AuditLog & { userName?: string })[]>({
-    queryKey: ["/api/audit-logs", "work_order", workOrderId],
+    queryKey: queryKeys.auditLogs("work_order", workOrderId),
     enabled: !!workOrderId,
   });
 
   const { data: photoMap } = useQuery<Record<string, string>>({
-    queryKey: ["/api/work-orders/photos"],
+    queryKey: queryKeys.workOrderPhotos,
   });
 
   if (isLoading) {
@@ -1018,28 +1049,28 @@ export default function WorkOrderDetail() {
       return apiRequest("PATCH", `/api/appointments/${aptId}`, { status });
     },
     onMutate: async ({ aptId, status }) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
-      await queryClient.cancelQueries({ queryKey: ["/api/appointments"] });
-      const previousWo = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
-      const previousApts = queryClient.getQueryData<Appointment[]>(["/api/appointments"]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.workOrder(id!) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.appointments });
+      const previousWo = queryClient.getQueryData<WorkOrderDetail>(queryKeys.workOrder(id!));
+      const previousApts = queryClient.getQueryData<Appointment[]>(queryKeys.appointments);
       if (previousWo?.appointments) {
         queryClient.setQueryData<WorkOrderDetail>(
-          ["/api/work-orders", id],
+          queryKeys.workOrder(id!),
           { ...previousWo, appointments: previousWo.appointments.map(a => a.id === aptId ? { ...a, status: status as Appointment["status"] } : a) },
         );
       }
       if (previousApts) {
-        queryClient.setQueryData<Appointment[]>(["/api/appointments"], previousApts.map(a => a.id === aptId ? { ...a, status: status as Appointment["status"] } : a));
+        queryClient.setQueryData<Appointment[]>(queryKeys.appointments, previousApts.map(a => a.id === aptId ? { ...a, status: status as Appointment["status"] } : a));
       }
       return { previousWo, previousApts };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previousWo) queryClient.setQueryData(["/api/work-orders", id], context.previousWo);
-      if (context?.previousApts) queryClient.setQueryData(["/api/appointments"], context.previousApts);
+      if (context?.previousWo) queryClient.setQueryData(queryKeys.workOrder(id!), context.previousWo);
+      if (context?.previousApts) queryClient.setQueryData(queryKeys.appointments, context.previousApts);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/appointments"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.appointments });
     },
   });
 
@@ -1074,36 +1105,36 @@ export default function WorkOrderDetail() {
   };
 
   const { data: workOrder, isLoading } = useQuery<WorkOrderDetail>({
-    queryKey: ["/api/work-orders", id],
+    queryKey: queryKeys.workOrder(id!),
     enabled: !!id,
   });
 
   const { data: companies } = useQuery<Company[]>({
-    queryKey: ["/api/companies"],
+    queryKey: queryKeys.companies,
   });
 
   const { data: serviceTypes } = useQuery<ServiceType[]>({
-    queryKey: ["/api/service-types"],
+    queryKey: queryKeys.serviceTypes,
   });
 
   const { data: jobTypes } = useQuery<JobType[]>({
-    queryKey: ["/api/job-types"],
+    queryKey: queryKeys.jobTypes,
   });
 
   const { data: vendors = [] } = useQuery<Vendor[]>({
-    queryKey: ["/api/vendors"],
+    queryKey: queryKeys.vendors,
   });
 
   const { data: allCenters = [] } = useQuery<Center[]>({
-    queryKey: ["/api/centers"],
+    queryKey: queryKeys.centers,
   });
 
   const { data: allStaff = [] } = useQuery<Staff[]>({
-    queryKey: ["/api/staff"],
+    queryKey: queryKeys.staff,
   });
 
   const { data: woDocuments = [] } = useQuery<WoDocument[]>({
-    queryKey: ["/api/work-orders", id, "documents"],
+    queryKey: queryKeys.workOrderDocuments(id!),
     queryFn: async () => {
       const r = await fetch(`/api/work-orders/${id}/documents`);
       if (!r.ok) throw new Error("Failed to fetch documents");
@@ -1128,6 +1159,7 @@ export default function WorkOrderDetail() {
   const [sendVendorId, setSendVendorId] = useState("");
   const [showActivateDialog, setShowActivateDialog] = useState(false);
   const [showDeliverDialog, setShowDeliverDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [activateEntryPermit, setActivateEntryPermit] = useState(false);
   const [activateChangeStatus, setActivateChangeStatus] = useState(false);
   const [activateIsMinor, setActivateIsMinor] = useState<"adult" | "minor">("adult");
@@ -1176,8 +1208,8 @@ export default function WorkOrderDetail() {
   };
 
   const handleRefreshWo = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-    queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.typingJobsAll });
   };
 
   const activateMutation = useMutation({
@@ -1188,20 +1220,20 @@ export default function WorkOrderDetail() {
       return res.json();
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
-      await queryClient.cancelQueries({ queryKey: ["/api/work-orders"] });
-      const previousDetail = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
-      const previousList = queryClient.getQueryData<WorkOrder[]>(["/api/work-orders"]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.workOrder(id!) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.workOrders });
+      const previousDetail = queryClient.getQueryData<WorkOrderDetail>(queryKeys.workOrder(id!));
+      const previousList = queryClient.getQueryData<WorkOrder[]>(queryKeys.workOrders);
       if (previousDetail) {
-        queryClient.setQueryData<WorkOrderDetail>(["/api/work-orders", id], { ...previousDetail, status: "Scheduled" });
+        queryClient.setQueryData<WorkOrderDetail>(queryKeys.workOrder(id!), { ...previousDetail, status: "Scheduled" });
       }
       if (previousList) {
-        queryClient.setQueryData<WorkOrder[]>(["/api/work-orders"], previousList.map(wo => wo.id === id ? { ...wo, status: "Scheduled" } : wo));
+        queryClient.setQueryData<WorkOrder[]>(queryKeys.workOrders, previousList.map(wo => wo.id === id ? { ...wo, status: "Scheduled" } : wo));
       }
       return { previousDetail, previousList };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
       setShowActivateDialog(false);
       setActivateEntryPermit(false);
       setActivateChangeStatus(false);
@@ -1209,13 +1241,13 @@ export default function WorkOrderDetail() {
       toast({ title: "Work order activated", description: "The work order is now active and ready for processing.", variant: "success" });
     },
     onError: (error: Error, _vars, context) => {
-      if (context?.previousDetail) queryClient.setQueryData(["/api/work-orders", id], context.previousDetail);
-      if (context?.previousList) queryClient.setQueryData(["/api/work-orders"], context.previousList);
+      if (context?.previousDetail) queryClient.setQueryData(queryKeys.workOrder(id!), context.previousDetail);
+      if (context?.previousList) queryClient.setQueryData(queryKeys.workOrders, context.previousList);
       toast({ title: "Failed to activate", description: error.message, variant: "destructive" });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders });
     },
   });
 
@@ -1224,31 +1256,31 @@ export default function WorkOrderDetail() {
       return apiRequest("PUT", `/api/work-orders/${id}`, { status: "Completed" });
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
-      await queryClient.cancelQueries({ queryKey: ["/api/work-orders"] });
-      const previousDetail = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
-      const previousList = queryClient.getQueryData<WorkOrder[]>(["/api/work-orders"]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.workOrder(id!) });
+      await queryClient.cancelQueries({ queryKey: queryKeys.workOrders });
+      const previousDetail = queryClient.getQueryData<WorkOrderDetail>(queryKeys.workOrder(id!));
+      const previousList = queryClient.getQueryData<WorkOrder[]>(queryKeys.workOrders);
       if (previousDetail) {
-        queryClient.setQueryData<WorkOrderDetail>(["/api/work-orders", id], { ...previousDetail, status: "Completed" });
+        queryClient.setQueryData<WorkOrderDetail>(queryKeys.workOrder(id!), { ...previousDetail, status: "Completed" });
       }
       if (previousList) {
-        queryClient.setQueryData<WorkOrder[]>(["/api/work-orders"], previousList.map(wo => wo.id === id ? { ...wo, status: "Completed" } : wo));
+        queryClient.setQueryData<WorkOrder[]>(queryKeys.workOrders, previousList.map(wo => wo.id === id ? { ...wo, status: "Completed" } : wo));
       }
       return { previousDetail, previousList };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
       setShowDeliverDialog(false);
       toast({ title: "Work order completed", description: "The work order has been marked as completed and delivered.", variant: "success" });
     },
     onError: (error: Error, _vars, context) => {
-      if (context?.previousDetail) queryClient.setQueryData(["/api/work-orders", id], context.previousDetail);
-      if (context?.previousList) queryClient.setQueryData(["/api/work-orders"], context.previousList);
+      if (context?.previousDetail) queryClient.setQueryData(queryKeys.workOrder(id!), context.previousDetail);
+      if (context?.previousList) queryClient.setQueryData(queryKeys.workOrders, context.previousList);
       toast({ title: "Failed to complete", description: error.message, variant: "destructive" });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders });
     },
   });
 
@@ -1261,12 +1293,12 @@ export default function WorkOrderDetail() {
       });
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
-      const previousWo = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.workOrder(id!) });
+      const previousWo = queryClient.getQueryData<WorkOrderDetail>(queryKeys.workOrder(id!));
       const jobIds = new Set(draftTypingJobs.map(j => j.id));
       if (previousWo?.typingJobs) {
         queryClient.setQueryData<WorkOrderDetail>(
-          ["/api/work-orders", id],
+          queryKeys.workOrder(id!),
           { ...previousWo, typingJobs: previousWo.typingJobs.map(j => jobIds.has(j.id) ? { ...j, status: "SubmittedToVendor" } : j) },
         );
       }
@@ -1274,7 +1306,7 @@ export default function WorkOrderDetail() {
     },
     onSuccess: async (res) => {
       const result = await res.json();
-      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
       setShowSendToVendorDialog(false);
       setSendVendorId("");
       if (result.failed > 0) {
@@ -1288,12 +1320,12 @@ export default function WorkOrderDetail() {
       }
     },
     onError: (error: Error, _vars, context) => {
-      if (context?.previousWo) queryClient.setQueryData(["/api/work-orders", id], context.previousWo);
+      if (context?.previousWo) queryClient.setQueryData(queryKeys.workOrder(id!), context.previousWo);
       toast({ title: "Failed to send jobs", description: error.message, variant: "destructive" });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.typingJobsAll });
     },
   });
 
@@ -1302,11 +1334,11 @@ export default function WorkOrderDetail() {
       return apiRequest("POST", `/api/typing-jobs/${jobId}/on-hold`);
     },
     onMutate: async (jobId: string) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
-      const previousWo = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.workOrder(id!) });
+      const previousWo = queryClient.getQueryData<WorkOrderDetail>(queryKeys.workOrder(id!));
       if (previousWo?.typingJobs) {
         queryClient.setQueryData<WorkOrderDetail>(
-          ["/api/work-orders", id],
+          queryKeys.workOrder(id!),
           { ...previousWo, typingJobs: previousWo.typingJobs.map(j => j.id === jobId ? { ...j, status: "OnHold" } : j) },
         );
       }
@@ -1316,11 +1348,11 @@ export default function WorkOrderDetail() {
       toast({ title: "Job placed on hold" });
     },
     onError: (error: Error, _jobId, context) => {
-      if (context?.previousWo) queryClient.setQueryData(["/api/work-orders", id], context.previousWo);
+      if (context?.previousWo) queryClient.setQueryData(queryKeys.workOrder(id!), context.previousWo);
       toast({ title: "Failed to put job on hold", description: error.message, variant: "destructive" });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
     },
   });
 
@@ -1329,11 +1361,11 @@ export default function WorkOrderDetail() {
       return apiRequest("POST", `/api/typing-jobs/${jobId}/resume`);
     },
     onMutate: async (jobId: string) => {
-      await queryClient.cancelQueries({ queryKey: ["/api/work-orders", id] });
-      const previousWo = queryClient.getQueryData<WorkOrderDetail>(["/api/work-orders", id]);
+      await queryClient.cancelQueries({ queryKey: queryKeys.workOrder(id!) });
+      const previousWo = queryClient.getQueryData<WorkOrderDetail>(queryKeys.workOrder(id!));
       if (previousWo?.typingJobs) {
         queryClient.setQueryData<WorkOrderDetail>(
-          ["/api/work-orders", id],
+          queryKeys.workOrder(id!),
           { ...previousWo, typingJobs: previousWo.typingJobs.map(j => j.id === jobId ? { ...j, status: "SubmittedToVendor" } : j) },
         );
       }
@@ -1343,11 +1375,11 @@ export default function WorkOrderDetail() {
       toast({ title: "Job resumed" });
     },
     onError: (error: Error, _jobId, context) => {
-      if (context?.previousWo) queryClient.setQueryData(["/api/work-orders", id], context.previousWo);
+      if (context?.previousWo) queryClient.setQueryData(queryKeys.workOrder(id!), context.previousWo);
       toast({ title: "Failed to resume job", description: error.message, variant: "destructive" });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
     },
   });
 
@@ -1387,8 +1419,8 @@ export default function WorkOrderDetail() {
     }
     
     // Invalidate all typing jobs queries (with or without filters)
-    queryClient.invalidateQueries({ queryKey: ["/api/typing-jobs"] });
-    queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.typingJobsAll });
+    queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
     
     setIsCreatingJobs(false);
     
@@ -1430,8 +1462,8 @@ export default function WorkOrderDetail() {
     const valid = editWorkOrderSchema.safeParse(data);
     if (!valid.success) throw new Error("Validation failed");
     await apiRequest("PUT", `/api/work-orders/${id}`, valid.data);
-    queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-    queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.workOrders });
   }, [id]);
 
   const { status: autosaveStatus, retry: autosaveRetry, resetBaseline: resetAutosaveBaseline, flush: flushAutosave } = useAutosave({
@@ -1446,8 +1478,8 @@ export default function WorkOrderDetail() {
       return apiRequest("PUT", `/api/work-orders/${id}`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders", id] });
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id!) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders });
       setEditDialogOpen(false);
       toast({ title: "Work order updated successfully" });
     },
@@ -1461,7 +1493,7 @@ export default function WorkOrderDetail() {
       return apiRequest("DELETE", `/api/work-orders/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrders });
       toast({ title: "Work order deleted" });
       setLocation("/work-orders");
     },
@@ -1658,45 +1690,35 @@ export default function WorkOrderDetail() {
                 </Dialog>
               </>
             ) : (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5 text-destructive" data-testid="button-delete-wo">
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="rounded-2xl">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Work Order</AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                      <div className="space-y-2">
-                        <p>Are you sure you want to delete work order <strong>{workOrder.woNumber}</strong>? This action cannot be undone.</p>
-                        {((workOrder.typingJobs?.length || 0) > 0 || (workOrder.appointments?.length || 0) > 0) && (
-                          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm space-y-1">
-                            <p className="font-medium text-destructive">The following will also be deleted:</p>
-                            {(workOrder.typingJobs?.length || 0) > 0 && (
-                              <p>• {workOrder.typingJobs!.length} typing job{workOrder.typingJobs!.length > 1 ? "s" : ""}</p>
-                            )}
-                            {(workOrder.appointments?.length || 0) > 0 && (
-                              <p>• {workOrder.appointments!.length} appointment{workOrder.appointments!.length > 1 ? "s" : ""}</p>
-                            )}
-                            <p>• All associated documents, notes, and files</p>
-                          </div>
-                        )}
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      className="rounded-xl bg-destructive text-destructive-foreground"
-                      onClick={() => deleteMutation.mutate()}
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <>
+                <Button variant="outline" size="sm" className="gap-1.5 text-destructive" onClick={() => setShowDeleteDialog(true)} data-testid="button-delete-wo">
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </Button>
+                <ConfirmationDialog
+                  open={showDeleteDialog}
+                  onOpenChange={setShowDeleteDialog}
+                  title="Delete Work Order"
+                  description={`Are you sure you want to delete work order ${workOrder.woNumber}? This action cannot be undone.`}
+                  confirmLabel="Delete"
+                  destructive
+                  onConfirm={() => deleteMutation.mutateAsync()}
+                  loading={deleteMutation.isPending}
+                >
+                  {((workOrder.typingJobs?.length || 0) > 0 || (workOrder.appointments?.length || 0) > 0) && (
+                    <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm space-y-1">
+                      <p className="font-medium text-destructive">The following will also be deleted:</p>
+                      {(workOrder.typingJobs?.length || 0) > 0 && (
+                        <p>• {workOrder.typingJobs!.length} typing job{workOrder.typingJobs!.length > 1 ? "s" : ""}</p>
+                      )}
+                      {(workOrder.appointments?.length || 0) > 0 && (
+                        <p>• {workOrder.appointments!.length} appointment{workOrder.appointments!.length > 1 ? "s" : ""}</p>
+                      )}
+                      <p>• All associated documents, notes, and files</p>
+                    </div>
+                  )}
+                </ConfirmationDialog>
+              </>
             )}
             <div className="flex items-center gap-1">
               <Link href="/work-orders">

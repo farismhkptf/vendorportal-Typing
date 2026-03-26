@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { formatTime12h } from "@/lib/format-date";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,15 +32,6 @@ function nextId() {
   return `msg-${++msgId}`;
 }
 
-const formatTime12h = (time24: string) => {
-  if (!time24) return "";
-  const [hours, minutes] = time24.split(":");
-  const h = parseInt(hours, 10);
-  const m = minutes || "00";
-  const ampm = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 || 12;
-  return `${h12}:${m} ${ampm}`;
-};
 
 export default function SchedulerBot() {
   const { toast } = useToast();
