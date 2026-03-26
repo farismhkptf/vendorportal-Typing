@@ -1,0 +1,130 @@
+You’re right to pause here — this is a core system design issue, not a small UI tweak.
+
+I’ll give you a clear reply you can send, and then my recommendation.
+
+⸻
+
+✅ What you should reply
+
+This makes sense — the issue isn’t that the statuses are wrong, it’s that we currently have two different concepts both labeled as “status,” and they’re being shown inconsistently.
+
+From a system design perspective, these should be clearly separated and named differently:
+	1.	Work Order Status
+This should represent the administrative state of the record itself (Draft, Active, Completed, Cancelled, etc.).
+It should be stable and manually controlled.
+	2.	Pipeline Stage (or Operational Status)
+This should represent the real-time operational progress derived from typing jobs and appointments.
+This is dynamic and calculated.
+
+The problem right now is:
+	•	Both are called “status”
+	•	They are shown in different places inconsistently
+	•	They can contradict each other, which creates confusion
+
+My recommendation:
+	•	Rename “Pipeline status” to something like:
+→ Pipeline Stage / Operational Stage / Progress Stage
+	•	Keep Work Order Status as a separate concept
+	•	Define a clear relationship:
+→ Work Order Status should either:
+A) be driven by the pipeline stage, OR
+B) remain manual but never contradict critical pipeline states (like Needs Attention)
+	•	Standardize visibility:
+→ Work Order list: show both (clearly labeled)
+→ Work Order detail header: show BOTH, not just WO status
+→ Pipeline bar: shows operational stage only
+→ Vendor portal: typing status only (correct)
+
+Goal:
+One glance should never show conflicting meanings.
+The system should clearly communicate:
+	•	“What is this record’s state?” (Work Order Status)
+	•	“What is happening operationally?” (Pipeline Stage)
+
+Happy to help define the exact mapping between them if needed.—
+
+💡 My actual recommendation (important)
+
+Don’t merge them.
+
+You need BOTH
+
+Type	Purpose
+Work Order Status	Administrative / lifecycle
+Pipeline Stage	Operational reality
+
+
+⸻
+
+⚠️ The real problem
+
+Not duplication.
+
+👉 Naming + placement + relationship
+
+⸻
+
+🔥 What I would enforce (strong recommendation)
+
+1. Rename immediately
+	•	❌ Status (for both)
+	•	✅ Work Order Status
+	•	✅ Pipeline Stage
+
+⸻
+
+2. Always show BOTH together (header)
+
+Your current mistake:
+
+Header shows only WO status
+
+👉 Fix:
+Show both side-by-side:
+
+Work Order: Scheduled  
+Pipeline: Needs Attention
+
+This alone removes 70% confusion.
+
+⸻
+
+3. Add one rule (critical)
+
+If pipeline = Needs Attention
+
+Then:
+	•	WO status must NOT look “healthy”
+
+Either:
+	•	auto set WO → “Attention Required”
+OR
+	•	visually override (red highlight)
+
+⸻
+
+4. Stop hiding pipeline
+
+Anywhere you show WO status alone → misleading.
+
+⸻
+
+🎯 Final verdict
+
+Your instinct is correct:
+
+They’re measuring different things.
+
+So don’t merge.
+
+👉 Clarify, don’t simplify incorrectly
+
+⸻
+
+Next move (if you want)
+
+I can define:
+
+→ Exact mapping rules between Pipeline Stage ↔ Work Order Status
+
+This is where systems usually break or become powerful.
