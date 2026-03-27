@@ -4,29 +4,25 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { 
-  ArrowLeft, ArrowRight, Check, Building2, User, Home, 
-  FileText, Copy, Send, Stethoscope, CreditCard, 
-  MapPin, Truck, CheckCircle2, Loader2
+  ArrowLeft, ArrowRight, Check, Home, 
+  FileText, Send, Stethoscope, 
+  CheckCircle2, Loader2
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form } from "@/components/ui/form";
 import { AppLayout } from "@/components/layout/app-layout";
-import { DocumentPanel } from "@/components/documents/document-panel";
 import type { ServiceCategory } from "@/components/documents/document-types";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { toProperCase } from "@/lib/proper-case";
 import type { WorkOrder, Company, Center, Staff, ServiceType, Vendor, JobType } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { WoSelector } from "./components/wo-selector";
+import { QuickCreateWoDialog } from "./components/quick-create-wo-dialog";
+import { JobDetailsStep } from "./components/job-details-step";
+import { EmailPreviewStep } from "./components/email-preview-step";
 
 const typingJobSchema = z.object({
   woId: z.string().min(1, "Work order is required"),
@@ -75,11 +71,9 @@ export default function NewTypingJob() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [showCreateWoModal, setShowCreateWoModal] = useState(false);
   const [emailPreview, setEmailPreview] = useState("");
-  const [messageCopied, setMessageCopied] = useState(false);
   const [isRenewal, setIsRenewal] = useState(false);
   const [initialWoLoaded, setInitialWoLoaded] = useState(false);
 
-  // Get woId from URL query params
   const urlParams = new URLSearchParams(window.location.search);
   const preselectedWoId = urlParams.get("woId");
 
@@ -204,7 +198,6 @@ export default function NewTypingJob() {
     return filtered;
   }, [medicalCenters, centerAuthority, isVip]);
 
-  // Auto-select WO from URL query params
   useEffect(() => {
     if (preselectedWoId && workOrders && companies && !initialWoLoaded) {
       const wo = workOrders.find(w => w.id === preselectedWoId);
@@ -229,19 +222,16 @@ export default function NewTypingJob() {
       form.setValue("isVip", woIsVip);
       form.setValue("hadIdBefore", isRenewalType);
       
-      // Auto-fill medical center based on VIP status
       if (woIsVip && selectedCompany.preferredMedicalCenterVipId) {
         form.setValue("medicalCenterId", selectedCompany.preferredMedicalCenterVipId);
       } else if (!woIsVip && selectedCompany.preferredMedicalCenterId) {
         form.setValue("medicalCenterId", selectedCompany.preferredMedicalCenterId);
       }
       
-      // Auto-fill biometrics center
       if (selectedCompany.preferredBiometricsCenterId) {
         form.setValue("biometricsCenterId", selectedCompany.preferredBiometricsCenterId);
       }
       
-      // Auto-fill delivery address from company
       if (selectedCompany.deliveryAddress) {
         form.setValue("deliveryAddress", selectedCompany.deliveryAddress);
       }
@@ -293,10 +283,10 @@ export default function NewTypingJob() {
     const deliveryAddr = form.getValues("deliveryAddress");
 
     let subject = "Typing Request - ";
-    const jobTypes = [];
-    if (typeMed) jobTypes.push("Medical Application");
-    if (typeEidVal) jobTypes.push("Emirates ID Application");
-    subject += jobTypes.join(" & ");
+    const jobTypeNames = [];
+    if (typeMed) jobTypeNames.push("Medical Application");
+    if (typeEidVal) jobTypeNames.push("Emirates ID Application");
+    subject += jobTypeNames.join(" & ");
     subject += ` - ${selectedWo.woNumber}`;
 
     let body = `Dear Typing Team,
@@ -340,17 +330,6 @@ Best regards,
 The P.R.O. Company™`;
 
     setEmailPreview(`Subject: ${subject}\n\n${body}`);
-  };
-
-  const handleCopyEmail = async () => {
-    try {
-      await navigator.clipboard.writeText(emailPreview);
-      setMessageCopied(true);
-      toast({ title: "Email copied to clipboard" });
-      setTimeout(() => setMessageCopied(false), 2000);
-    } catch (err) {
-      toast({ title: "Failed to copy", variant: "destructive" });
-    }
   };
 
   const submitMutation = useMutation({
@@ -497,435 +476,42 @@ The P.R.O. Company™`;
           <Form {...form}>
             <form onSubmit={form.handleSubmit((data) => submitMutation.mutate(data))}>
               {(mode === "quick" || currentStep === 1) && (
-                <Card className="border border-border/50 shadow-sm mb-6">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      Select Work Order
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {selectedWo ? (
-                      <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                              <User className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-foreground">{selectedWo.woNumber}</p>
-                              <p className="text-sm text-muted-foreground">{toProperCase(selectedWo.applicantName)}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Building2 className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">{selectedCompany?.name}</span>
-                                {selectedWo.isVip && (
-                                  <Badge variant="secondary" className="text-xs">VIP</Badge>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => {
-                              setSelectedWo(null);
-                              setSelectedCompany(null);
-                              form.setValue("woId", "");
-                            }}
-                            data-testid="button-change-wo"
-                          >
-                            Change
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="relative">
-                          <Input
-                            placeholder="Search by WO number or applicant name..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="h-11"
-                            data-testid="input-wo-search"
-                          />
-                        </div>
-                        
-                        {filteredWorkOrders.length > 0 && (
-                          <div className="space-y-1 max-h-60 overflow-y-auto">
-                            {filteredWorkOrders.map((wo) => (
-                              <div
-                                key={wo.id}
-                                onClick={() => handleSelectWo(wo)}
-                                className="flex items-center justify-between gap-2 p-3 rounded-lg hover-elevate cursor-pointer"
-                                data-testid={`wo-option-${wo.id}`}
-                              >
-                                <div className="flex items-center gap-3">
-                                  <span className="font-mono font-medium text-primary">{wo.woNumber}</span>
-                                  <span className="text-sm text-muted-foreground">{toProperCase(wo.applicantName)}</span>
-                                </div>
-                                {wo.isVip && <Badge variant="secondary">VIP</Badge>}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {searchQuery && filteredWorkOrders.length === 0 && (
-                          <div className="text-center py-6">
-                            <p className="text-sm text-muted-foreground mb-3">No work orders found</p>
-                            <Button 
-                              type="button"
-                              variant="outline" 
-                              onClick={() => setShowCreateWoModal(true)}
-                              data-testid="button-create-wo"
-                            >
-                              Create New Work Order
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
+                <WoSelector
+                  selectedWo={selectedWo}
+                  selectedCompany={selectedCompany}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  filteredWorkOrders={filteredWorkOrders}
+                  onSelectWo={handleSelectWo}
+                  onClearWo={() => {
+                    setSelectedWo(null);
+                    setSelectedCompany(null);
+                    form.setValue("woId", "");
+                  }}
+                  onCreateWo={() => setShowCreateWoModal(true)}
+                />
               )}
 
               {(mode === "quick" || currentStep === 2) && selectedWo && (
-                <div className="space-y-6">
-                  <Card className="border border-border/50 shadow-sm bg-muted/30">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        Work Order Details
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground">WO Number</p>
-                          <p className="font-medium text-foreground" data-testid="text-wo-number">{selectedWo.woNumber}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Applicant</p>
-                          <p className="font-medium text-foreground" data-testid="text-applicant-name">{toProperCase(selectedWo.applicantName)}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Company</p>
-                          <p className="font-medium text-foreground" data-testid="text-company-name">{selectedCompany?.name || "-"}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground">Service Type</p>
-                          <p className="font-medium text-foreground" data-testid="text-service-type">
-                            {serviceTypes?.find(st => st.id === selectedWo.serviceTypeId)?.name || "-"}
-                          </p>
-                        </div>
-                        {selectedWo.isVip && (
-                          <div>
-                            <p className="text-xs text-muted-foreground">Status</p>
-                            <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400" data-testid="badge-vip">
-                              VIP
-                            </Badge>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border border-border/50 shadow-sm">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg">Job Type Selection</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex flex-wrap gap-4">
-                        <FormField
-                          control={form.control}
-                          name="typeMedical"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox 
-                                  checked={field.value} 
-                                  onCheckedChange={field.onChange}
-                                  data-testid="checkbox-medical"
-                                />
-                              </FormControl>
-                              <FormLabel className="font-medium cursor-pointer">
-                                Medical Application
-                              </FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="typeEid"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox 
-                                  checked={field.value} 
-                                  onCheckedChange={field.onChange}
-                                  data-testid="checkbox-eid"
-                                />
-                              </FormControl>
-                              <FormLabel className="font-medium cursor-pointer">
-                                Emirates ID Application
-                              </FormLabel>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {typeMedical && (
-                    <Card className="border border-border/50 shadow-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Stethoscope className="h-5 w-5 text-green-600" />
-                          Medical Application
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="isVip"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Medical Type</FormLabel>
-                              <div className="flex gap-2">
-                                <Button
-                                  type="button"
-                                  variant={!field.value ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => field.onChange(false)}
-                                  data-testid="button-normal-medical"
-                                >
-                                  Normal
-                                </Button>
-                                <Button
-                                  type="button"
-                                  variant={field.value ? "default" : "outline"}
-                                  size="sm"
-                                  onClick={() => field.onChange(true)}
-                                  data-testid="button-vip-medical"
-                                >
-                                  VIP
-                                </Button>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="centerAuthority"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Center Type</FormLabel>
-                              <Select value={field.value || ""} onValueChange={field.onChange}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-authority">
-                                    <SelectValue placeholder="Select authority" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="DHA">DHA (Dubai Health Authority)</SelectItem>
-                                  <SelectItem value="EHS">EHS (Emirates Health Services)</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="medicalCenterId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Medical Center</FormLabel>
-                              <Select value={field.value || ""} onValueChange={field.onChange}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-medical-center">
-                                    <SelectValue placeholder="Select medical center" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {filteredMedicalCenters.map((center) => (
-                                    <SelectItem key={center.id} value={center.id}>
-                                      {center.name}
-                                      {center.area && ` (${center.area})`}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormDescription>
-                                {filteredMedicalCenters.length} centers available
-                              </FormDescription>
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {typeEid && (
-                    <Card className="border border-border/50 shadow-sm">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <CreditCard className="h-5 w-5 text-blue-600" />
-                          Emirates ID Application
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="hadIdBefore"
-                          render={({ field }) => (
-                            <FormItem className="flex items-center space-x-3 space-y-0">
-                              <FormControl>
-                                <Checkbox 
-                                  checked={field.value} 
-                                  onCheckedChange={field.onChange}
-                                  disabled={isRenewal}
-                                  data-testid="checkbox-had-id"
-                                />
-                              </FormControl>
-                              <div>
-                                <FormLabel className="font-medium cursor-pointer">
-                                  Had Emirates ID before
-                                </FormLabel>
-                                {isRenewal && (
-                                  <FormDescription>
-                                    Auto-checked for renewal services
-                                  </FormDescription>
-                                )}
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="biometricsCenterId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Biometrics Center</FormLabel>
-                              <Select value={field.value || ""} onValueChange={field.onChange}>
-                                <FormControl>
-                                  <SelectTrigger data-testid="select-biometrics-center">
-                                    <SelectValue placeholder="Select biometrics center" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {eidCenters.map((center) => (
-                                    <SelectItem key={center.id} value={center.id}>
-                                      {center.name}
-                                      {center.area && ` (${center.area})`}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              {selectedCompany?.preferredBiometricsCenterId && (
-                                <FormDescription>
-                                  Company's preferred center pre-selected
-                                </FormDescription>
-                              )}
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="deliveryAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Delivery Address</FormLabel>
-                              <FormControl>
-                                <Textarea 
-                                  {...field}
-                                  placeholder="Enter delivery address for Emirates ID card..."
-                                  className="min-h-[80px]"
-                                  data-testid="textarea-delivery-address"
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Additional Notes</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            {...field}
-                            placeholder="Any special instructions for the vendor..."
-                            className="min-h-[60px]"
-                            data-testid="textarea-notes"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  {selectedWo && (typeMedical || typeEid) && (
-                    <DocumentPanel
-                      woId={selectedWo.id}
-                      serviceCategory={woServiceCategory}
-                      context={docContext}
-                      title={
-                        typeMedical && typeEid
-                          ? "Documents (Medical & EIDA)"
-                          : typeMedical
-                            ? "Documents (Medical)"
-                            : "Documents (EIDA)"
-                      }
-                    />
-                  )}
-                </div>
+                <JobDetailsStep
+                  form={form}
+                  selectedWo={selectedWo}
+                  selectedCompany={selectedCompany}
+                  serviceTypes={serviceTypes}
+                  typeMedical={typeMedical}
+                  typeEid={typeEid}
+                  isVip={isVip}
+                  centerAuthority={centerAuthority}
+                  isRenewal={isRenewal}
+                  filteredMedicalCenters={filteredMedicalCenters}
+                  eidCenters={eidCenters}
+                  woServiceCategory={woServiceCategory}
+                  docContext={docContext}
+                />
               )}
 
               {(mode === "wizard" && currentStep === 3) && (
-                <Card className="border border-border/50 shadow-sm">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Send className="h-5 w-5 text-primary" />
-                      Email Preview
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="p-4 rounded-xl bg-muted/50 border border-border">
-                      <pre className="text-sm whitespace-pre-wrap font-mono text-foreground">
-                        {emailPreview}
-                      </pre>
-                    </div>
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleCopyEmail}
-                        className="gap-2"
-                        data-testid="button-copy-email"
-                      >
-                        {messageCopied ? (
-                          <>
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                            Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="h-4 w-4" />
-                            Copy Email
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                <EmailPreviewStep emailPreview={emailPreview} />
               )}
 
               {mode === "wizard" && (
@@ -986,95 +572,14 @@ The P.R.O. Company™`;
         </div>
       </div>
 
-      <Dialog open={showCreateWoModal} onOpenChange={setShowCreateWoModal}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Create Work Order</DialogTitle>
-          </DialogHeader>
-          <Form {...woForm}>
-            <form onSubmit={woForm.handleSubmit((data) => createWoMutation.mutate(data))} className="space-y-4">
-              <FormField
-                control={woForm.control}
-                name="woNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>WO Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="A12345" data-testid="input-new-wo-number" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={woForm.control}
-                name="applicantName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Applicant Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="Full name" data-testid="input-new-applicant" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={woForm.control}
-                name="companyId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Company</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-new-company">
-                          <SelectValue placeholder="Select company" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {companies?.filter(c => c.active).map((company) => (
-                          <SelectItem key={company.id} value={company.id}>
-                            {company.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={woForm.control}
-                name="isVip"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox 
-                        checked={field.value} 
-                        onCheckedChange={field.onChange}
-                        data-testid="checkbox-new-vip"
-                      />
-                    </FormControl>
-                    <FormLabel>VIP Service</FormLabel>
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setShowCreateWoModal(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createWoMutation.isPending}>
-                  {createWoMutation.isPending ? "Creating..." : "Create"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <QuickCreateWoDialog
+        open={showCreateWoModal}
+        onOpenChange={setShowCreateWoModal}
+        woForm={woForm}
+        companies={companies}
+        onSubmit={(data) => createWoMutation.mutate(data)}
+        isPending={createWoMutation.isPending}
+      />
     </AppLayout>
   );
 }

@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import {
   Wallet, ArrowUpCircle, ArrowDownCircle, RotateCcw,
-  Settings2, Shield, Stethoscope, CreditCard
+  Settings2, Shield, Stethoscope, CreditCard, AlertCircle, RefreshCw
 } from "lucide-react";
 import { formatDateTime } from "@/lib/format-date";
 import { GlassCard, GlassSection, GlassSkeleton, GlassEmpty } from "@/components/vendor-v2/layout";
@@ -44,11 +44,11 @@ function groupByDate(transactions: WalletTransaction[]): { label: string; items:
 }
 
 export default function V2WalletPage() {
-  const { data: balanceData, isLoading: balanceLoading } = useQuery<{ balance: number }>({
+  const { data: balanceData, isLoading: balanceLoading, isError: balanceError, refetch: balanceRefetch } = useQuery<{ balance: number }>({
     queryKey: ["/api/vendor/wallet/balance"],
   });
 
-  const { data: transactions, isLoading: txLoading } = useQuery<WalletTransaction[]>({
+  const { data: transactions, isLoading: txLoading, isError: txError, refetch: txRefetch } = useQuery<WalletTransaction[]>({
     queryKey: ["/api/vendor/wallet/transactions"],
   });
 
@@ -65,6 +65,18 @@ export default function V2WalletPage() {
         <GlassSkeleton className="h-40" />
         <GlassSkeleton className="h-16" />
         {[1, 2, 3].map(i => <GlassSkeleton key={i} className="h-16" />)}
+      </div>
+    );
+  }
+
+  if (balanceError || txError) {
+    return (
+      <div className="max-w-2xl mx-auto pt-12 flex flex-col items-center gap-4">
+        <AlertCircle className="h-10 w-10 text-red-400" />
+        <p className="text-sm text-slate-600 dark:text-white/60">Failed to load wallet data</p>
+        <button onClick={() => { balanceRefetch(); txRefetch(); }} className="glass-btn-primary px-4 py-2 text-sm flex items-center gap-2" data-testid="button-retry-wallet">
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
       </div>
     );
   }

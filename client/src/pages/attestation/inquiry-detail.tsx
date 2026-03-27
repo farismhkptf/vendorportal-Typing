@@ -167,10 +167,29 @@ export default function InquiryDetailPage() {
           <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-900/10">
             <CardContent className="p-4 flex items-center gap-3">
               <CheckCircle2 className="h-5 w-5 text-purple-600" />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-medium text-purple-900 dark:text-purple-200">Converted to Service Request</p>
                 <p className="text-xs text-purple-600 dark:text-purple-400">WO: {inquiry.linkedSr.externalWoNumber} · {inquiry.linkedSr.status}</p>
               </div>
+              <Button variant="outline" size="sm" className="gap-1.5 text-purple-600 border-purple-300 hover:bg-purple-50" onClick={() => setLocation(`/work-orders/${inquiry.linkedSr!.id}`)} data-testid="link-converted-sr">
+                <ExternalLink className="h-3.5 w-3.5" />
+                View SR
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {inquiry.convertedToSrId && !inquiry.linkedSr && (
+          <Card className="border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-900/10">
+            <CardContent className="p-4 flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-purple-600" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-200">Converted to Service Request</p>
+              </div>
+              <Button variant="outline" size="sm" className="gap-1.5 text-purple-600 border-purple-300 hover:bg-purple-50" onClick={() => setLocation(`/work-orders/${inquiry.convertedToSrId}`)} data-testid="link-converted-sr">
+                <ExternalLink className="h-3.5 w-3.5" />
+                View SR
+              </Button>
             </CardContent>
           </Card>
         )}

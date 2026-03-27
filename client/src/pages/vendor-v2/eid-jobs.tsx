@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 import { Shield, Search, FileText, MessageCircle } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format-date";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { GlassCard, GlassSection, GlassSkeleton, GlassEmpty } from "@/components/vendor-v2/layout";
 
 interface Job {
@@ -55,6 +56,8 @@ export default function V2EidJobs() {
     queryKey: ["/api/vendor/jobs"],
   });
 
+  const { toast } = useToast();
+
   const acceptMutation = useMutation({
     mutationFn: async (jobId: string) => {
       await apiRequest("POST", `/api/vendor/jobs/${jobId}/accept`);
@@ -62,6 +65,10 @@ export default function V2EidJobs() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
+      toast({ title: "Job accepted" });
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message || "Failed to accept job", variant: "destructive" });
     },
   });
 

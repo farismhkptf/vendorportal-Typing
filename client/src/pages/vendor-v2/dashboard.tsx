@@ -1,14 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import {
   Shield, Stethoscope, AlertTriangle, Wallet,
   Clock, CheckCircle2, TrendingUp, ArrowRight,
-  Zap, CreditCard, Activity, ChevronRight, Timer
+  Zap, CreditCard, Activity, ChevronRight, Timer,
+  Search, RefreshCw, AlertCircle
 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/format-date";
 import { useVendorAuth } from "@/hooks/use-vendor-auth";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { GlassCard, GlassSection, GlassSkeleton, GlassEmpty } from "@/components/vendor-v2/layout";
 import type { VendorNotification } from "@shared/schema";
 
@@ -107,7 +109,9 @@ export default function V2Dashboard() {
     return () => { document.title = "Keystone"; };
   }, []);
 
-  const { data: dashData, isLoading: dashLoading } = useQuery<DashboardData>({
+  const [woSearch, setWoSearch] = useState("");
+
+  const { data: dashData, isLoading: dashLoading, isError: dashError, refetch: dashRefetch } = useQuery<DashboardData>({
     queryKey: ["/api/vendor/dashboard"],
   });
 
@@ -123,6 +127,8 @@ export default function V2Dashboard() {
     queryKey: ["/api/vendor/notifications"],
   });
 
+  const { toast } = useToast();
+
   const acceptMutation = useMutation({
     mutationFn: async (jobId: string) => {
       await apiRequest("POST", `/api/vendor/jobs/${jobId}/accept`);
@@ -130,6 +136,10 @@ export default function V2Dashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
+      toast({ title: "Job accepted" });
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message || "Failed to accept job", variant: "destructive" });
     },
   });
 
@@ -153,7 +163,7 @@ export default function V2Dashboard() {
     })),
     ...(notifications?.slice(0, 5) || []).map(n => ({
       id: `notif-${n.id}`,
-      type: n.type as any,
+      type: n.type,
       title: n.title || "",
       description: n.message || "",
       timestamp: n.createdAt as string,
@@ -175,6 +185,24 @@ export default function V2Dashboard() {
       </div>
     );
   }
+
+  if (dashError) {
+    return (
+      <div className="max-w-2xl mx-auto pt-12 flex flex-col items-center gap-4">
+        <AlertCircle className="h-10 w-10 text-red-400" />
+        <p className="text-sm text-slate-600 dark:text-white/60">Failed to load dashboard data</p>
+        <button onClick={() => dashRefetch()} className="glass-btn-primary px-4 py-2 text-sm flex items-center gap-2" data-testid="button-retry-dashboard">
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
+      </div>
+    );
+  }
+
+  const filteredWoGrouped = dashData?.woGrouped?.filter(wo => {
+    if (!woSearch) return true;
+    const q = woSearch.toLowerCase();
+    return wo.woNumber.toLowerCase().includes(q) || wo.applicantName.toLowerCase().includes(q);
+  });
 
   return (
     <div className="max-w-2xl mx-auto pt-2 pb-4 space-y-8">
@@ -302,8 +330,19 @@ export default function V2Dashboard() {
 
       {dashData?.woGrouped && dashData.woGrouped.length > 0 && (
         <GlassSection title="Active Work Orders">
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-white/30" />
+            <input
+              type="search"
+              placeholder="Search by WO# or applicant name..."
+              value={woSearch}
+              onChange={(e) => setWoSearch(e.target.value)}
+              className="glass-input w-full pl-10 pr-4 py-2.5 text-sm"
+              data-testid="input-search-dashboard"
+            />
+          </div>
           <div className="space-y-2">
-            {dashData.woGrouped.slice(0, 5).map(wo => (
+            {(filteredWoGrouped || []).slice(0, 5).map(wo => (
               <GlassCard key={wo.woId} className="p-4" data-testid={`wo-group-${wo.woId}`}>
                 <div className="flex items-center gap-3 mb-2">
                   <div className="shrink-0">
