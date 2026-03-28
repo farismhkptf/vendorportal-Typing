@@ -176,6 +176,7 @@ export const appointmentCycles = pgTable("appointment_cycles", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_appointment_cycles_case_id").on(table.caseId),
+  index("idx_appointment_cycles_status").on(table.status),
 ]);
 
 // Medical Appointment Events table — event log per cycle
@@ -368,7 +369,9 @@ export const companies = pgTable("companies", {
   // Delivery address for Emirates ID
   deliveryAddress: text("delivery_address"),
   active: boolean("active").notNull().default(true),
-});
+}, (table) => [
+  index("idx_companies_rm_staff_id").on(table.rmStaffId),
+]);
 
 // Company Emails table (max 3 per company enforced at app level)
 export const companyEmails = pgTable("company_emails", {
@@ -445,7 +448,11 @@ export const workOrders = pgTable("work_orders", {
   notes: text("notes"),
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("idx_work_orders_status").on(table.status),
+  index("idx_work_orders_company_id").on(table.companyId),
+  index("idx_work_orders_created_at").on(table.createdAt),
+]);
 
 // Appointments table
 export const appointments = pgTable("appointments", {
@@ -468,6 +475,8 @@ export const appointments = pgTable("appointments", {
   index("idx_appointments_wo_id").on(table.woId),
   index("idx_appointments_center_id").on(table.centerId),
   index("idx_appointments_assigned_staff_id").on(table.assignedStaffId),
+  index("idx_appointments_status").on(table.status),
+  index("idx_appointments_datetime").on(table.datetime),
 ]);
 
 // Reschedule Requests table
@@ -526,6 +535,7 @@ export const typingJobs = pgTable("typing_jobs", {
 }, (table) => [
   index("idx_typing_jobs_wo_id").on(table.woId),
   index("idx_typing_jobs_vendor_id").on(table.vendorId),
+  index("idx_typing_jobs_status").on(table.status),
 ]);
 
 // Typing Job Results table
@@ -738,6 +748,8 @@ export const auditLog = pgTable("audit_log", {
 }, (table) => [
   index("idx_audit_log_entity_id").on(table.entityId),
   index("idx_audit_log_user_id").on(table.userId),
+  index("idx_audit_log_created_at").on(table.createdAt),
+  index("idx_audit_log_entity_type").on(table.entityType),
 ]);
 
 // Login Audit Log table
