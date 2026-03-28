@@ -6,7 +6,7 @@ import { requireAuth, requireOpsRole, requireRole } from "../middleware/auth";
 import { validateBody } from "../middleware/validation";
 import { ObjectStorageService } from "../replit_integrations/object_storage/objectStorage";
 import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "../zoho-workdrive";
-import { buildAppointmentEmail } from "../email-templates/appointment-confirmation";
+import { loadAppointmentEmailDataById, renderAppointmentEmailHtml } from "../email-templates/preview-data-loader";
 import type { Staff, WoDocument } from "@shared/schema";
 import type { RouteDeps } from "./types";
 
@@ -275,74 +275,11 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/admin/email-preview/appointment/:id", requireRole("Admin"), async (req, res) => {
     try {
-      const appointment = await storage.getAppointmentById(req.params.id);
-      if (!appointment) {
+      const data = await loadAppointmentEmailDataById(req.params.id, req);
+      if (!data) {
         return res.status(404).json({ message: "Appointment not found" });
       }
-
-      const workOrder = await storage.getWorkOrderById(appointment.woId).catch((err) => { console.error("[admin] appointment-email: failed to fetch work order:", err); return undefined; });
-      const company = workOrder?.companyId
-        ? await storage.getCompanyById(workOrder.companyId).catch((err) => { console.error("[admin] appointment-email: failed to fetch company:", err); return undefined; })
-        : undefined;
-      const serviceType = workOrder?.serviceTypeId
-        ? await storage.getServiceTypeById(workOrder.serviceTypeId).catch((err) => { console.error("[admin] appointment-email: failed to fetch service type:", err); return undefined; })
-        : undefined;
-      const center = appointment.centerId
-        ? await storage.getCenterById(appointment.centerId).catch((err) => { console.error("[admin] appointment-email: failed to fetch center:", err); return undefined; })
-        : undefined;
-      const assignedStaff = appointment.assignedStaffId
-        ? await storage.getStaffById(appointment.assignedStaffId).catch((err) => { console.error("[admin] appointment-email: failed to fetch staff:", err); return undefined; })
-        : undefined;
-
-      let rmStaff: Staff | undefined;
-      let rmUserEmail: string | undefined;
-      if (company?.rmStaffId) {
-        rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[admin] appointment-email: failed to fetch RM staff:", err); return undefined; });
-        if (rmStaff?.email) {
-          rmUserEmail = rmStaff.email;
-        }
-      }
-
-      let applicantPhotoUrl: string | undefined;
-      if (workOrder) {
-        try {
-          const docs = await storage.getWoDocuments(workOrder.id);
-          const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
-          if (photo?.fileUrl) {
-            const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
-            applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
-          }
-        } catch (err) {
-          console.error("[admin] appointment-email: failed to fetch applicant photo:", err);
-        }
-      }
-
-      let appLogoUrl: string | undefined;
-      try {
-        const settings = await storage.getAppSettings();
-        if (settings?.logoUrl) {
-          appLogoUrl = settings.logoUrl;
-        }
-      } catch (err) {
-        console.error("[admin] appointment-email: failed to fetch app settings:", err);
-      }
-
-      const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
-
-      const html = buildAppointmentEmail({
-        workOrder,
-        company,
-        serviceType,
-        appointment,
-        center,
-        assignedStaff,
-        rmStaff,
-        rmUserEmail,
-        applicantPhotoUrl,
-        appLogoUrl,
-        appBaseUrl,
-      });
-
+      const html = renderAppointmentEmailHtml(data);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       return res.send(html);
     } catch (error) {

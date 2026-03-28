@@ -9,6 +9,7 @@ import { checkAndMarkDelayedWorkOrders } from "../services/background-jobs";
 import { notifyStaffByRoles, notifyVendorUsers } from "../services/notification-service";
 import { toProperCase } from "../proper-case";
 import { buildAppointmentEmail } from "../email-templates/appointment-confirmation";
+import { loadAppointmentEmailData, loadAppointmentEmailDataById, renderAppointmentEmailHtml } from "../email-templates/preview-data-loader";
 import { sendEmail, isEmailConfigured } from "../email-service";
 import { insertWorkOrderSchema, insertAppointmentSchema, insertWoNoteSchema } from "@shared/schema";
 import type { Staff, AppSettings, WoDocument } from "@shared/schema";
@@ -655,80 +656,29 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
   app.post("/api/appointments/email-preview", requireAuth, async (req, res) => {
     try {
       const { woId, centerId, assignedStaffId, datetime, type, applicationNumber } = req.body;
-
-      const workOrder = woId ? await storage.getWorkOrderById(woId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch work order:", err); return undefined; }) : undefined;
-      const company = workOrder?.companyId ? await storage.getCompanyById(workOrder.companyId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch company:", err); return undefined; }) : undefined;
-      const serviceType = workOrder?.serviceTypeId ? await storage.getServiceTypeById(workOrder.serviceTypeId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch service type:", err); return undefined; }) : undefined;
-      const center = centerId ? await storage.getCenterById(centerId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch center:", err); return undefined; }) : undefined;
-      const assignedStaff = assignedStaffId ? await storage.getStaffById(assignedStaffId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch staff:", err); return undefined; }) : undefined;
-
-      let rmStaff: Staff | undefined;
-      let rmUserEmail: string | undefined;
-      if (company?.rmStaffId) {
-        rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[work-orders] email-preview: failed to fetch RM staff:", err); return undefined; });
-        rmUserEmail = rmStaff?.email || undefined;
-      }
-
-      let applicantPhotoUrl: string | undefined;
-      if (workOrder) {
-        try {
-          const docs = await storage.getWoDocuments(workOrder.id);
-          const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
-          if (photo?.fileUrl) {
-            const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
-            applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
-          }
-        } catch (err) {
-          console.error("[work-orders] email-preview: failed to fetch applicant photo:", err);
-        }
-      }
-
-      let appLogoUrl: string | undefined;
-      try {
-        const settings = await storage.getAppSettings();
-        if (settings?.logoUrl) appLogoUrl = settings.logoUrl;
-      } catch (err) {
-        console.error("[work-orders] email-preview: failed to fetch app settings:", err);
-      }
-
-      const mockAppointment = {
-        id: "preview",
-        woId: woId || "",
-        type: (type || "Medical") as "Medical" | "EID",
-        isVip: false,
-        datetime: datetime ? new Date(datetime) : new Date(),
-        centerId: centerId || null,
-        assignedStaffId: assignedStaffId || null,
-        applicationNumber: applicationNumber || null,
-        notes: null,
-        rescheduleToken: null,
-        status: "Scheduled" as const,
-        emailDraft: null,
-        messageSentAt: null,
-        messageSentBy: null,
-        createdAt: new Date(),
-      };
-
-      const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
-
-      const html = buildAppointmentEmail({
-        workOrder,
-        company,
-        serviceType,
-        appointment: mockAppointment,
-        center,
-        assignedStaff,
-        rmStaff,
-        rmUserEmail,
-        applicantPhotoUrl,
-        appLogoUrl,
-        appBaseUrl,
+      const data = await loadAppointmentEmailData({
+        woId, centerId, assignedStaffId, datetime, type, applicationNumber, req,
       });
-
+      const html = renderAppointmentEmailHtml(data);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       return res.send(html);
     } catch (error) {
       console.error("Email preview generate error:", error);
+      res.status(500).json({ message: "Failed to generate email preview" });
+    }
+  });
+
+  app.get("/api/email-preview/appointment/:id", requireAuth, async (req, res) => {
+    try {
+      const data = await loadAppointmentEmailDataById(req.params.id, req);
+      if (!data) {
+        return res.status(404).json({ message: "Appointment not found" });
+      }
+      const html = renderAppointmentEmailHtml(data);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(html);
+    } catch (error) {
+      console.error("Email preview error:", error);
       res.status(500).json({ message: "Failed to generate email preview" });
     }
   });

@@ -138,18 +138,8 @@ Thank you,
       return;
     }
     const controller = new AbortController();
-    fetch("/api/appointments/email-preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    fetch(`/api/email-preview/appointment/${viewMessagesApt.id}`, {
       signal: controller.signal,
-      body: JSON.stringify({
-        woId: viewMessagesApt.woId,
-        centerId: viewMessagesApt.centerId || undefined,
-        assignedStaffId: viewMessagesApt.assignedStaffId || undefined,
-        datetime: viewMessagesApt.datetime,
-        type: viewMessagesApt.type,
-        applicationNumber: viewMessagesApt.applicationNumber || undefined,
-      }),
     })
       .then(r => r.ok ? r.text() : Promise.reject())
       .then(html => setViewEmailPreviewHtml(html))
@@ -211,18 +201,7 @@ Thank you,
           container.innerHTML = apt.emailDraft;
         } else {
           try {
-            const res = await fetch("/api/appointments/email-preview", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                woId: apt.woId,
-                centerId: apt.centerId || undefined,
-                assignedStaffId: apt.assignedStaffId || undefined,
-                datetime: apt.datetime,
-                type: apt.type,
-                applicationNumber: apt.applicationNumber || undefined,
-              }),
-            });
+            const res = await fetch(`/api/email-preview/appointment/${apt.id}`);
             container.innerHTML = await res.text();
           } catch {
             container.innerHTML = "<p>Email preview unavailable</p>";
