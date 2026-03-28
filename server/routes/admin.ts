@@ -7,6 +7,7 @@ import { validateBody } from "../middleware/validation";
 import { ObjectStorageService } from "../replit_integrations/object_storage/objectStorage";
 import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "../zoho-workdrive";
 import { loadAppointmentEmailDataById, renderAppointmentEmailHtml } from "../email-templates/preview-data-loader";
+import { getTemplateRegistry, getTemplatesWithPreviews, buildTemplatePreview, EMAIL_TEMPLATE_CATEGORIES } from "../email-templates/registry";
 import type { Staff, WoDocument } from "@shared/schema";
 import type { RouteDeps } from "./types";
 
@@ -270,6 +271,35 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     } catch (error) {
       console.error("Seed staff error:", error);
       res.status(500).json({ message: "Failed to seed staff" });
+    }
+  });
+
+  app.get("/api/admin/email-templates", requireRole("Admin"), async (_req, res) => {
+    try {
+      const templates = getTemplatesWithPreviews();
+      res.json({
+        categories: EMAIL_TEMPLATE_CATEGORIES,
+        templates,
+      });
+    } catch (error) {
+      console.error("Email templates list error:", error);
+      res.status(500).json({ message: "Failed to fetch email templates" });
+    }
+  });
+
+  app.get("/api/admin/email-templates/:id/preview", requireRole("Admin"), async (req, res) => {
+    try {
+      const registry = getTemplateRegistry();
+      const exists = registry.some(t => t.id === req.params.id);
+      if (!exists) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      const html = buildTemplatePreview(req.params.id);
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.send(html);
+    } catch (error) {
+      console.error("Email template preview error:", error);
+      res.status(500).json({ message: "Failed to generate template preview" });
     }
   });
 

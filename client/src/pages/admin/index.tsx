@@ -11,6 +11,7 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Inbox,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,6 +34,7 @@ import { PasswordResetRequestsTab } from "./password-reset-requests-tab";
 import { ChangeLogTab } from "./change-log-tab";
 import { WorkDriveBackupSection } from "./workdrive-backup-section";
 import { DeletionRequestsBadge, DeletionRequestsTab } from "./deletion-requests-tab";
+import { EmailTemplatesTab } from "./email-templates-tab";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -57,6 +59,7 @@ export default function AdminPage() {
               {activeSection === "organization" ? "Organization" :
                activeSection === "vendor" ? "Vendor Management" :
                activeSection === "admin" ? "Administration" :
+               activeSection === "communications" ? "Communications" :
                activeSection === "settings" ? "Settings" :
                activeSection === "future" ? "Future Updates" :
                "Admin Console"}
@@ -65,6 +68,7 @@ export default function AdminPage() {
               {activeSection === "organization" ? "Manage companies, centers, staff, and services" :
                activeSection === "vendor" ? "Manage vendors and job types" :
                activeSection === "admin" ? "User accounts, data import/export, and change log" :
+               activeSection === "communications" ? "Email templates and notification management" :
                activeSection === "settings" ? "Email and system configuration" :
                activeSection === "future" ? "Features under development" :
                "System configuration and data management"}
@@ -80,6 +84,7 @@ export default function AdminPage() {
               { key: "organization", icon: Building2, title: "Organization", desc: "Companies, Centers, Staff, Services", defaultTab: "companies", count: null },
               { key: "vendor", icon: Briefcase, title: "Vendor Management", desc: "Vendors, Job Types", defaultTab: "vendors", count: null },
               { key: "admin", icon: UserPlus, title: "Administration", desc: "User Accounts, Import / Export, Change Log", defaultTab: "accounts", count: null },
+              { key: "communications", icon: Mail, title: "Communications", desc: "Email templates and notifications", defaultTab: "email-templates", count: null },
               { key: "settings", icon: Settings, title: "Settings", desc: "Email & system configuration", defaultTab: "settings", count: null },
             ].map((section) => (
               <Card
@@ -135,6 +140,13 @@ export default function AdminPage() {
                     </TabsTrigger>
                   </>
                 )}
+                {activeSection === "communications" && (
+                  <>
+                    <TabsTrigger value="email-templates" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-email-templates">
+                      <Mail className="h-4 w-4 mr-2" /> Email Templates
+                    </TabsTrigger>
+                  </>
+                )}
                 {activeSection === "admin" && (
                   <>
                     <TabsTrigger value="accounts" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-accounts">
@@ -170,6 +182,7 @@ export default function AdminPage() {
                 )}
               </TabsList>
 
+              <TabsContent value="email-templates" className="p-4"><EmailTemplatesTab /></TabsContent>
               <TabsContent value="companies"><AdminCompaniesTab /></TabsContent>
               <TabsContent value="centers"><AdminCentersTab /></TabsContent>
               <TabsContent value="staff"><AdminStaffTab /></TabsContent>
