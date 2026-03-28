@@ -26,7 +26,6 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
-import { NotificationsBell } from "@/components/notifications-bell";
 import { StaffNotificationsBell } from "@/components/staff-notifications-bell";
 import { ThemeSwitcher, getBackgroundSrc } from "@/components/theme-switcher";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
@@ -258,7 +257,6 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Button>
               <ThemeSwitcher compact />
               <StaffNotificationsBell />
-              <NotificationsBell />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button

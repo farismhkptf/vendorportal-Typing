@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, FileText, ClipboardList, Calendar, AlertTriangle, Check } from "lucide-react";
+import { Bell, FileText, ClipboardList, Calendar, AlertTriangle, Check, CheckCircle, XCircle, Stethoscope, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
@@ -20,9 +20,14 @@ interface StaffNotification {
 function getIcon(type: string) {
   switch (type) {
     case "wo_created": return FileText;
-    case "job_returned_from_vendor": return ClipboardList;
-    case "appointment_tomorrow": return Calendar;
+    case "wo_completed": return CheckCircle;
     case "wo_delayed": return AlertTriangle;
+    case "job_returned_from_vendor": return ClipboardList;
+    case "job_rejected_by_vendor": return XCircle;
+    case "appointment_tomorrow": return Calendar;
+    case "retest_required": return Stethoscope;
+    case "medical_failed": return Stethoscope;
+    case "no_show": return Ban;
     default: return FileText;
   }
 }
@@ -147,8 +152,8 @@ export function StaffNotificationsBell() {
                       className={`flex items-start gap-3 px-4 py-3 hover-elevate transition-colors ${!n.isRead ? "bg-primary/5" : ""}`}
                       data-testid={`staff-notification-${n.id}`}
                     >
-                      <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${n.type === "wo_delayed" ? "bg-destructive/10" : "bg-muted/60"}`}>
-                        <Icon className={`h-3.5 w-3.5 ${n.type === "wo_delayed" ? "text-destructive" : "text-muted-foreground"}`} />
+                      <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${["wo_delayed", "job_rejected_by_vendor", "medical_failed", "no_show"].includes(n.type) ? "bg-destructive/10" : n.type === "wo_completed" ? "bg-green-500/10" : "bg-muted/60"}`}>
+                        <Icon className={`h-3.5 w-3.5 ${["wo_delayed", "job_rejected_by_vendor", "medical_failed", "no_show"].includes(n.type) ? "text-destructive" : n.type === "wo_completed" ? "text-green-600" : "text-muted-foreground"}`} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-primary/80">{n.title}</p>
