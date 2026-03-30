@@ -12,7 +12,7 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { StatusBadge } from "@/components/ui/status-badge";
+
 import { toProperCase } from "@/lib/proper-case";
 import { cn, getInitials } from "@/lib/utils";
 
@@ -412,7 +412,7 @@ function VendorWoSection({
                   <span className="font-medium text-foreground text-sm" data-testid={`text-vendor-wo-number-${wo.id}`}>
                     {wo.woNumber}
                   </span>
-                  <StatusBadge status={wo.status} />
+                  <span className="text-[10px] text-muted-foreground">{wo.status}</span>
                   {wo.hasIssue && (
                     <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded-full">
                       Action needed

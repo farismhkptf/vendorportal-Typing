@@ -1,7 +1,6 @@
 import { useLocation } from "wouter";
 import { Star, AlertTriangle, ArrowUpDown, ExternalLink, Copy, StarOff } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SortableHeader } from "@/components/ui/sortable-header";
@@ -18,10 +17,11 @@ import {
 import { toProperCase } from "@/lib/proper-case";
 import { getInitials } from "@/lib/utils";
 import {
-  getMedicalStatus, getEidStatus, needsAttention, getScheduledDisplayStatus,
+  needsAttention,
   getDaysOld, getPipelineInfo, getNextAction,
 } from "@/lib/pipeline-stage";
-import { PipelineStageBadge, NextActionIndicator, TypingStatusPill, AppointmentStatusPill } from "./status-pills";
+import { TrackStatusIconsFromState } from "@/components/track-status-icons";
+import { NextActionIndicator } from "./status-pills";
 import type { WorkOrderEnriched } from "./types";
 import type { SortState } from "@/hooks/use-data-table";
 
@@ -68,22 +68,18 @@ export function WorkOrderTableView({
             {cv("applicant") && <SortableHeader sortKey="applicant" sort={columnSort} onToggle={toggleColumnSort}>Applicant</SortableHeader>}
             {cv("company") && <SortableHeader sortKey="company" sort={columnSort} onToggle={toggleColumnSort} className="hidden sm:table-cell">Company</SortableHeader>}
             {cv("service") && <TableHead className="hidden lg:table-cell">Service</TableHead>}
-            {cv("pipeline") && <TableHead className="w-32">Pipeline</TableHead>}
+            {cv("pipeline") && <TableHead className="w-24">Tracks</TableHead>}
             {cv("status") && <SortableHeader sortKey="status" sort={columnSort} onToggle={toggleColumnSort} className="w-20">Status</SortableHeader>}
-            {cv("medical") && <TableHead className="hidden md:table-cell w-40">Medical</TableHead>}
-            {cv("eid") && <TableHead className="hidden md:table-cell w-40">EID</TableHead>}
             {cv("age") && <SortableHeader sortKey="age" sort={columnSort} onToggle={toggleColumnSort} className="w-16 text-right">Age</SortableHeader>}
             {cv("nextAction") && <TableHead className="hidden lg:table-cell w-48">Next Action</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {items.map((wo) => {
-            const med = getMedicalStatus(wo);
-            const eid = getEidStatus(wo);
             const daysOld = getDaysOld(wo.createdAt);
             const attention = needsAttention(wo);
             const isSelected = selectedIds.has(wo.id);
-            const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+            const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || [], wo.serviceType, wo.isMinor);
             const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
             return (
               <ContextMenu key={wo.id}>
@@ -126,30 +122,10 @@ export function WorkOrderTableView({
                       {wo.serviceType?.name || "-"}
                     </TableCell>}
                     {cv("pipeline") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                      <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
+                      {pipeline.fourTrack && <TrackStatusIconsFromState tracks={pipeline.fourTrack} />}
                     </TableCell>}
                     {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                      <StatusBadge status={getScheduledDisplayStatus(wo)} isDelayed={!!wo.isDelayed} />
-                    </TableCell>}
-                    {cv("medical") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                      {med.hasMedical ? (
-                        <div className="flex items-center gap-1">
-                          <TypingStatusPill status={med.typing} />
-                          <AppointmentStatusPill status={med.appointment} />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/40">--</span>
-                      )}
-                    </TableCell>}
-                    {cv("eid") && <TableCell className={`hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                      {eid.hasEid ? (
-                        <div className="flex items-center gap-1">
-                          <TypingStatusPill status={eid.typing} />
-                          <AppointmentStatusPill status={eid.appointment} />
-                        </div>
-                      ) : (
-                        <span className="text-xs text-muted-foreground/40">--</span>
-                      )}
+                      <span className="text-[10px] text-muted-foreground">{wo.status}</span>
                     </TableCell>}
                     {cv("age") && <TableCell className={`text-right text-xs text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                       {daysOld === 0 ? "Today" : `${daysOld}d`}

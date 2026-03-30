@@ -36,8 +36,7 @@ export default function WorkOrdersList() {
   const woColumns: ColumnDef[] = useMemo(() => [
     { id: "woNumber", label: "WO #" }, { id: "applicant", label: "Applicant" },
     { id: "company", label: "Company" }, { id: "service", label: "Service" },
-    { id: "pipeline", label: "Pipeline" }, { id: "status", label: "Status" },
-    { id: "medical", label: "Medical" }, { id: "eid", label: "EID" },
+    { id: "pipeline", label: "Tracks" }, { id: "status", label: "Status" },
     { id: "age", label: "Age" }, { id: "nextAction", label: "Next Action" },
   ], []);
 

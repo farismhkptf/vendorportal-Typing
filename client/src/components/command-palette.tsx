@@ -145,7 +145,7 @@ export function CommandPalette() {
                       <span className="text-[11px] text-muted-foreground/60 truncate">{toProperCase(wo.companyName)}</span>
                     )}
                   </div>
-                  <span className="ml-auto shrink-0"><StatusBadge status={wo.status as any} className="text-[10px] h-5" /></span>
+                  <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{wo.status}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

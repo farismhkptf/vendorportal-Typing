@@ -4,10 +4,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { DataTableRow } from "@/components/ui/data-table-row";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { TrackStatusIconsFromState } from "@/components/track-status-icons";
+import { getPipelineInfo } from "@/lib/pipeline-stage";
 import { toProperCase } from "@/lib/proper-case";
 import type { WorkOrderEnriched } from "./types";
 
@@ -89,6 +90,7 @@ export function AttentionList({ workOrders, companyMap, isLoading }: AttentionLi
         ) : workOrders.length > 0 ? (
           workOrders.slice(0, 6).map((wo, i) => {
             const hasReturned = wo.typingJobs.some(j => j.status === "Returned" || j.status === "Rejected");
+            const pi = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
             return (
               <Link key={wo.id} href={`/work-orders/${wo.id}`}>
                 <div className="opacity-0 animate-fade-in" style={{ animationDelay: `${i * 50 + 200}ms` }}>
@@ -97,7 +99,7 @@ export function AttentionList({ workOrders, companyMap, isLoading }: AttentionLi
                       <div className="space-y-1 min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-medium text-foreground text-sm" data-testid={`text-wo-number-${wo.id}`}>{wo.woNumber}</span>
-                          <StatusBadge status={wo.status} />
+                          {pi.fourTrack && <TrackStatusIconsFromState tracks={pi.fourTrack} />}
                           {hasReturned && (
                             <Badge variant="destructive" className="text-[10px] px-1.5 py-0 rounded-full">Returned</Badge>
                           )}

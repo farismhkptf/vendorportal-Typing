@@ -4,6 +4,7 @@ import { AlertTriangle, ChevronDown, ChevronRight, Calendar, RotateCcw, XCircle 
 import { toProperCase } from "@/lib/proper-case";
 import { cn } from "@/lib/utils";
 import { getPipelineInfo } from "@/lib/pipeline-stage";
+import { TrackStatusIconsFromState } from "@/components/track-status-icons";
 import { queryKeys } from "@/lib/query-keys";
 import type { WorkOrderEnriched, AppointmentsSummary } from "./types";
 
@@ -113,27 +114,31 @@ export function NeedsAttentionSection({ navigate }: { navigate: (path: string) =
             </div>
           ))}
 
-          {stalledWorkOrders.map((wo) => (
-            <div
-              key={wo.id}
-              className="flex items-center gap-3 p-2.5 rounded-xl bg-white/60 dark:bg-black/10 cursor-pointer hover:bg-white/80 dark:hover:bg-black/20 transition-colors"
-              onClick={() => navigate(`/work-orders/${wo.id}`)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => { if (e.key === "Enter") navigate(`/work-orders/${wo.id}`); }}
-              data-testid={`needs-attention-stalled-${wo.id}`}
-            >
-              <XCircle className="h-4 w-4 text-orange-500 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground">{wo.woNumber}</span>
-                  <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded-full">STALLED</span>
+          {stalledWorkOrders.map((wo) => {
+            const pi = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+            return (
+              <div
+                key={wo.id}
+                className="flex items-center gap-3 p-2.5 rounded-xl bg-white/60 dark:bg-black/10 cursor-pointer hover:bg-white/80 dark:hover:bg-black/20 transition-colors"
+                onClick={() => navigate(`/work-orders/${wo.id}`)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter") navigate(`/work-orders/${wo.id}`); }}
+                data-testid={`needs-attention-stalled-${wo.id}`}
+              >
+                <XCircle className="h-4 w-4 text-orange-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{wo.woNumber}</span>
+                    {pi.fourTrack && <TrackStatusIconsFromState tracks={pi.fourTrack} />}
+                    <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded-full">STALLED</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground truncate">{toProperCase(wo.applicantName)}</p>
                 </div>
-                <p className="text-xs text-muted-foreground truncate">{toProperCase(wo.applicantName)}</p>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
               </div>
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0" />
-            </div>
-          ))}
+            );
+          })}
 
           {missedAppointments.map((apt) => (
             <div

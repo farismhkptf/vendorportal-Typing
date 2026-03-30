@@ -1,11 +1,12 @@
 import { Link } from "wouter";
-import { Building2, Star, AlertTriangle, ArrowRight, Stethoscope, Fingerprint } from "lucide-react";
+import { Building2, Star, AlertTriangle, ArrowRight } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { toProperCase } from "@/lib/proper-case";
 import { getInitials } from "@/lib/utils";
-import { getMedicalStatus, getEidStatus, needsAttention, getCardBorderColor, getPipelineInfo, getNextAction } from "@/lib/pipeline-stage";
-import { PipelineStageBadge, NextActionIndicator, MedEidStatusRow } from "./status-pills";
+import { needsAttention, getCardBorderColor, getPipelineInfo, getNextAction } from "@/lib/pipeline-stage";
+import { TrackStatusIconsFromState } from "@/components/track-status-icons";
+import { NextActionIndicator } from "./status-pills";
 import type { WorkOrderEnriched } from "./types";
 
 const STATUS_ORDER = ["Draft", "AtVendor", "ReadyToSchedule", "Scheduled", "Completed", "Cancelled"] as const;
@@ -29,11 +30,9 @@ export function WorkOrderKanbanView({ groups, photoMap, renderContextMenu }: Wor
           </div>
           <div className="space-y-2 min-h-[200px] p-2 rounded-xl bg-muted/30">
             {groups[status]?.map((wo, index) => {
-              const med = getMedicalStatus(wo);
-              const eid = getEidStatus(wo);
               const borderColor = getCardBorderColor(wo);
               const attention = needsAttention(wo);
-              const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+              const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || [], wo.serviceType, wo.isMinor);
               const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
               return (
                 <div key={wo.id}>
@@ -46,7 +45,7 @@ export function WorkOrderKanbanView({ groups, photoMap, renderContextMenu }: Wor
                   >
                     <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                       <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
-                      <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
+                      {pipeline.fourTrack && <TrackStatusIconsFromState tracks={pipeline.fourTrack} />}
                       {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
                       {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                     </div>
@@ -63,12 +62,6 @@ export function WorkOrderKanbanView({ groups, photoMap, renderContextMenu }: Wor
                       <div className="flex items-center gap-1 text-xs text-muted-foreground/70 mt-0.5">
                         <Building2 className="h-3 w-3" />
                         <span className="truncate">{toProperCase(wo.company.name)}</span>
-                      </div>
-                    )}
-                    {(med.hasMedical || eid.hasEid) && (
-                      <div className="mt-2 pt-2 border-t border-border/30 space-y-1">
-                        <MedEidStatusRow icon={Stethoscope} label="Med" typing={med.typing} appointment={med.appointment} hasData={med.hasMedical} />
-                        <MedEidStatusRow icon={Fingerprint} label="EID" typing={eid.typing} appointment={eid.appointment} hasData={eid.hasEid} />
                       </div>
                     )}
                     {nextAction.variant !== "success" && (

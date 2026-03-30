@@ -20,7 +20,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { TrackStatusIconsFromState } from "@/components/track-status-icons";
+import { getPipelineInfo } from "@/lib/pipeline-stage";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { WorkOrder, ServiceType } from "@shared/schema";
@@ -164,7 +165,11 @@ export function WoDetailHeader({ workOrder, serviceTypes, isCrm, onEdit }: WoDet
         ]}
         actions={
           <div className="flex items-center flex-wrap gap-2">
-            <StatusBadge status={workOrder.status} isDelayed={!!workOrder.isDelayed} />
+            {(() => {
+              const pi = getPipelineInfo(workOrder.typingJobs || [], workOrder.appointments || [], workOrder.serviceType, workOrder.isMinor);
+              return pi.fourTrack ? <TrackStatusIconsFromState tracks={pi.fourTrack} size="md" /> : null;
+            })()}
+            <span className="text-xs text-muted-foreground border border-border/50 rounded-full px-2 py-0.5">{workOrder.status}</span>
             <Button 
               variant="outline" 
               size="sm" 

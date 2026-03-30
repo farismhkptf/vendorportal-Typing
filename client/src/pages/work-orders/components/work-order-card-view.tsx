@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { 
   Building2, Star, Tag, Clock, AlertTriangle, ArrowUpDown,
-  ArrowRight, Stethoscope, Fingerprint, MoreHorizontal,
+  ArrowRight, MoreHorizontal,
   ExternalLink, Copy, StarOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,11 +12,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toProperCase } from "@/lib/proper-case";
 import { getInitials } from "@/lib/utils";
 import {
-  getMedicalStatus, getEidStatus, needsAttention, getProgressPercent,
+  needsAttention, getProgressPercent,
   getCardBorderColor, getDelayedElapsedText, getDaysOld,
   getPipelineInfo, getNextAction,
 } from "@/lib/pipeline-stage";
-import { PipelineStageBadge, NextActionIndicator, MedEidStatusRow, ProgressBar } from "./status-pills";
+import { TrackStatusIconsFromState } from "@/components/track-status-icons";
+import { NextActionIndicator, ProgressBar } from "./status-pills";
 import type { WorkOrderEnriched } from "./types";
 
 interface WorkOrderCardViewProps {
@@ -37,29 +38,16 @@ export function WorkOrderCardView({
   return (
     <div className="space-y-2 stagger-children">
       {items.map((wo, index) => {
-        const med = getMedicalStatus(wo);
-        const eid = getEidStatus(wo);
+        const st = wo.serviceType;
         const daysOld = getDaysOld(wo.createdAt);
         const attention = needsAttention(wo);
         const progress = getProgressPercent(wo);
         const borderColor = getCardBorderColor(wo);
-        const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
+        const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || [], st, wo.isMinor);
         const nextAction = getNextAction(wo.typingJobs || [], wo.appointments || [], pipeline);
         const delayedText = getDelayedElapsedText(wo);
         const isDelayed = !!wo.isDelayed;
         const isComfortable = density === "comfortable";
-
-        const st = wo.serviceType;
-        const showMed = med.hasMedical || (st && (st.requiresMedicalTyping || st.requiresMedicalScheduling));
-        const showEid = eid.hasEid || (st && (st.requiresIdTyping2Years || st.requiresIdTyping1Year || st.requiresIdTyping10Years || st.requiresIdBiometrics));
-
-        const medLabel = showMed
-          ? (med.hasMedical ? (med.appointment === "Completed" ? "Done" : med.appointment ? "Scheduled" : med.typing ? (med.typing === "ReadyForScheduling" || med.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
-          : null;
-        const eidLabel = showEid
-          ? (eid.hasEid ? (eid.appointment === "Completed" ? "Done" : eid.appointment ? "Scheduled" : eid.typing ? (eid.typing === "ReadyForScheduling" || eid.typing === "Returned" ? "Ready" : "Typing") : "Pending") : "Not started")
-          : null;
-
         const isSelected = selectedIds.has(wo.id);
 
         return (
@@ -89,7 +77,7 @@ export function WorkOrderCardView({
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono font-semibold text-sm text-foreground">{wo.woNumber}</span>
-                      <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
+                      {pipeline.fourTrack && <TrackStatusIconsFromState tracks={pipeline.fourTrack} />}
                       {wo.isVip && (
                         <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 rounded-full px-1.5 py-0 text-[10px]">
                           <Star className="h-2.5 w-2.5 mr-0.5 fill-current" />
@@ -123,6 +111,7 @@ export function WorkOrderCardView({
                           <span className="truncate">{st.name}</span>
                         </div>
                       )}
+                      <span className="text-[10px] text-muted-foreground/50">{wo.status}</span>
                     </div>
                     {isDelayed && delayedText && (
                       <div className="flex items-center gap-1 mt-1" data-testid={`delayed-indicator-${wo.woNumber}`}>
@@ -145,28 +134,8 @@ export function WorkOrderCardView({
                   </div>
                 </div>
 
-                {isComfortable && (showMed || showEid) && (
-                  <div className="mt-3 pt-2.5 border-t border-border/30 space-y-1.5">
-                    {showMed && (
-                      <MedEidStatusRow
-                        icon={Stethoscope}
-                        label="Med"
-                        typing={med.typing}
-                        appointment={med.appointment}
-                        hasData={med.hasMedical}
-                        summaryLabel={medLabel}
-                      />
-                    )}
-                    {showEid && (
-                      <MedEidStatusRow
-                        icon={Fingerprint}
-                        label="EID"
-                        typing={eid.typing}
-                        appointment={eid.appointment}
-                        hasData={eid.hasEid}
-                        summaryLabel={eidLabel}
-                      />
-                    )}
+                {isComfortable && progress > 0 && (
+                  <div className="mt-3 pt-2.5 border-t border-border/30">
                     <ProgressBar percent={progress} />
                   </div>
                 )}

@@ -20,6 +20,7 @@ export interface PipelineInfo {
   eid: TrackStatus;
   overall: PipelineStage;
   overallLabel: string;
+  fourTrack?: FourTrackState;
 }
 
 const STAGE_PRIORITY: Record<PipelineStage, number> = {
@@ -101,7 +102,128 @@ function getTrackStatus(
   return { stage: "new", label: "New", typingStatus, appointmentStatus, exists };
 }
 
-export function getPipelineInfo(typingJobs: any[], appointments: any[]): PipelineInfo {
+export type TrackColorState = "gray" | "blue" | "amber" | "green" | "red";
+
+export interface FourTrackState {
+  medTyping: { color: TrackColorState; label: string; detail: string };
+  medAppointment: { color: TrackColorState; label: string; detail: string };
+  eidTyping: { color: TrackColorState; label: string; detail: string };
+  biometrics: { color: TrackColorState; label: string; detail: string };
+}
+
+function typingColorState(status: string | null): { color: TrackColorState; label: string } {
+  if (!status) return { color: "gray", label: "Not Started" };
+  switch (status) {
+    case "Draft": return { color: "gray", label: "Draft" };
+    case "SubmittedToVendor": return { color: "blue", label: "At Vendor" };
+    case "InProcess": return { color: "blue", label: "In Process" };
+    case "ReadyForScheduling": return { color: "amber", label: "Ready for Scheduling" };
+    case "Returned": return { color: "amber", label: "Returned from Vendor" };
+    case "OnHold": return { color: "red", label: "On Hold" };
+    case "Rejected": return { color: "red", label: "Rejected" };
+    case "Aborted": return { color: "gray", label: "Aborted" };
+    default: return { color: "gray", label: status };
+  }
+}
+
+function appointmentColorState(status: string | null): { color: TrackColorState; label: string } {
+  if (!status) return { color: "gray", label: "Not Scheduled" };
+  switch (status) {
+    case "Scheduled": return { color: "blue", label: "Scheduled" };
+    case "Completed": return { color: "green", label: "Completed" };
+    case "FollowUpRequired": return { color: "amber", label: "Follow-Up Required" };
+    case "FollowUpScheduled": return { color: "blue", label: "Follow-Up Scheduled" };
+    case "FollowUpCompleted": return { color: "green", label: "Follow-Up Completed" };
+    case "NoShow": return { color: "red", label: "No Show" };
+    default: return { color: "gray", label: status };
+  }
+}
+
+export function getFourTrackState(
+  typingJobs: any[],
+  appointments: any[],
+  serviceType?: { requiresMedicalTyping?: boolean; requiresMedicalScheduling?: boolean; requiresIdTyping2Years?: boolean; requiresIdTyping1Year?: boolean; requiresIdTyping10Years?: boolean; requiresIdBiometrics?: boolean } | null,
+  isMinor?: boolean,
+): FourTrackState {
+  const medJobs = typingJobs.filter((j: any) => j.jobType?.category === "Medical" && j.status !== "Aborted");
+  const eidJobs = typingJobs.filter((j: any) => j.jobType?.category === "EID" && j.status !== "Aborted");
+  const medApts = appointments.filter((a: any) => a.type === "Medical" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+  const eidApts = appointments.filter((a: any) => a.type === "EID" && a.status !== "Cancelled" && a.status !== "Rescheduled");
+
+  const medTypingRequired = !isMinor && serviceType && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling);
+  const medAptRequired = !isMinor && serviceType && serviceType.requiresMedicalScheduling;
+  const eidTypingRequired = serviceType && (serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years);
+  const bioRequired = serviceType && serviceType.requiresIdBiometrics;
+
+  const latestMedJob = medJobs.length > 0 ? medJobs.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] : null;
+  const latestEidJob = eidJobs.length > 0 ? eidJobs.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] : null;
+  const latestMedApt = medApts.length > 0 ? medApts.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] : null;
+  const latestEidApt = eidApts.length > 0 ? eidApts.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] : null;
+
+  const hasServiceTypeInfo = !!serviceType;
+
+  const medTypingState = latestMedJob
+    ? typingColorState(latestMedJob.status)
+    : (medTypingRequired ? { color: "gray" as TrackColorState, label: "Not Started" } : { color: "gray" as TrackColorState, label: hasServiceTypeInfo ? "Not Required" : "Not Started" });
+
+  const medAptState = latestMedApt
+    ? appointmentColorState(latestMedApt.status)
+    : (medAptRequired ? (latestMedJob && (latestMedJob.status === "ReadyForScheduling" || latestMedJob.status === "Returned") ? { color: "amber" as TrackColorState, label: "Needs Scheduling" } : { color: "gray" as TrackColorState, label: "Not Scheduled" }) : { color: "gray" as TrackColorState, label: hasServiceTypeInfo ? "Not Required" : "Not Started" });
+
+  const eidTypingState = latestEidJob
+    ? typingColorState(latestEidJob.status)
+    : (eidTypingRequired ? { color: "gray" as TrackColorState, label: "Not Started" } : { color: "gray" as TrackColorState, label: hasServiceTypeInfo ? "Not Required" : "Not Started" });
+
+  const bioState = latestEidApt
+    ? appointmentColorState(latestEidApt.status)
+    : (bioRequired ? (latestEidJob && (latestEidJob.status === "ReadyForScheduling" || latestEidJob.status === "Returned") ? { color: "amber" as TrackColorState, label: "Needs Scheduling" } : { color: "gray" as TrackColorState, label: "Not Scheduled" }) : { color: "gray" as TrackColorState, label: hasServiceTypeInfo ? "Not Required" : "Not Started" });
+
+  const medTypingDetail = medTypingState.label === "Not Required"
+    ? "Medical typing is not required for this service type"
+    : medTypingState.label === "Not Started"
+      ? (hasServiceTypeInfo ? "Medical typing job has not been created yet" : "Medical typing — no data available")
+      : `Medical Typing: ${medTypingState.label}`;
+
+  const medAptDetail = medAptState.label === "Not Required"
+    ? "Medical appointment is not required for this service type"
+    : medAptState.label === "Not Started"
+      ? (hasServiceTypeInfo ? "Medical appointment has not been started yet" : "Medical appointment — no data available")
+      : medAptState.label === "Not Scheduled"
+        ? "Medical appointment has not been scheduled yet"
+        : medAptState.label === "Needs Scheduling"
+          ? "Medical typing complete — schedule appointment"
+          : `Medical Appointment: ${medAptState.label}`;
+
+  const eidTypingDetail = eidTypingState.label === "Not Required"
+    ? "EID typing is not required for this service type"
+    : eidTypingState.label === "Not Started"
+      ? (hasServiceTypeInfo ? "EID typing job has not been created yet" : "EID typing — no data available")
+      : `EID Typing: ${eidTypingState.label}`;
+
+  const bioDetail = bioState.label === "Not Required"
+    ? "Biometrics is not required for this service type"
+    : bioState.label === "Not Started"
+      ? (hasServiceTypeInfo ? "Biometrics has not been started yet" : "Biometrics — no data available")
+      : bioState.label === "Not Scheduled"
+        ? "Biometrics appointment has not been scheduled yet"
+        : bioState.label === "Needs Scheduling"
+          ? "EID typing complete — schedule biometrics"
+          : `Biometrics: ${bioState.label}`;
+
+  return {
+    medTyping: { color: medTypingState.color, label: medTypingState.label, detail: medTypingDetail },
+    medAppointment: { color: medAptState.color, label: medAptState.label, detail: medAptDetail },
+    eidTyping: { color: eidTypingState.color, label: eidTypingState.label, detail: eidTypingDetail },
+    biometrics: { color: bioState.color, label: bioState.label, detail: bioDetail },
+  };
+}
+
+export function getPipelineInfo(
+  typingJobs: any[],
+  appointments: any[],
+  serviceType?: { requiresMedicalTyping?: boolean; requiresMedicalScheduling?: boolean; requiresIdTyping2Years?: boolean; requiresIdTyping1Year?: boolean; requiresIdTyping10Years?: boolean; requiresIdBiometrics?: boolean } | null,
+  isMinor?: boolean,
+): PipelineInfo {
   const medical = getTrackStatus(typingJobs, appointments, "Medical");
   const eid = getTrackStatus(typingJobs, appointments, "EID");
 
@@ -117,8 +239,9 @@ export function getPipelineInfo(typingJobs: any[], appointments: any[]): Pipelin
   }
 
   const overallLabel = STAGE_CONFIG[overall].label;
+  const fourTrack = getFourTrackState(typingJobs, appointments, serviceType, isMinor);
 
-  return { medical, eid, overall, overallLabel };
+  return { medical, eid, overall, overallLabel, fourTrack };
 }
 
 export interface WorkOrderEnrichedBase {

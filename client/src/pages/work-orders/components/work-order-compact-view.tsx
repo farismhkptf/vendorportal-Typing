@@ -1,11 +1,11 @@
 import { Link } from "wouter";
-import { Stethoscope, Fingerprint, Star, AlertTriangle } from "lucide-react";
+import { Star, AlertTriangle } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toProperCase } from "@/lib/proper-case";
 import { getInitials } from "@/lib/utils";
-import { getMedicalStatus, getEidStatus, needsAttention, getCardBorderColor, getPipelineInfo } from "@/lib/pipeline-stage";
-import { PipelineStageBadge, TypingStatusPill, AppointmentStatusPill } from "./status-pills";
+import { needsAttention, getCardBorderColor, getPipelineInfo } from "@/lib/pipeline-stage";
+import { TrackStatusIconsFromState } from "@/components/track-status-icons";
 import type { WorkOrderEnriched } from "./types";
 
 interface WorkOrderCompactViewProps {
@@ -25,12 +25,10 @@ export function WorkOrderCompactView({
   return (
     <div className="space-y-1 stagger-children">
       {items.map((wo, index) => {
-        const med = getMedicalStatus(wo);
-        const eid = getEidStatus(wo);
         const attention = needsAttention(wo);
         const borderColor = getCardBorderColor(wo);
+        const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || [], wo.serviceType, wo.isMinor);
         const isSelected = selectedIds.has(wo.id);
-        const pipeline = getPipelineInfo(wo.typingJobs || [], wo.appointments || []);
 
         return (
           <div key={wo.id} className="flex items-center gap-2">
@@ -57,25 +55,9 @@ export function WorkOrderCompactView({
                   </Avatar>
                   <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
                   <span className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</span>
-                  <PipelineStageBadge stage={wo.status === "Completed" ? "complete" : pipeline.overall} />
+                  {pipeline.fourTrack && <TrackStatusIconsFromState tracks={pipeline.fourTrack} />}
                   {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
                   {attention && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {med.hasMedical && (
-                    <div className="flex items-center gap-1">
-                      <Stethoscope className="h-3 w-3 text-muted-foreground" />
-                      <TypingStatusPill status={med.typing} />
-                      <AppointmentStatusPill status={med.appointment} />
-                    </div>
-                  )}
-                  {eid.hasEid && (
-                    <div className="flex items-center gap-1">
-                      <Fingerprint className="h-3 w-3 text-muted-foreground" />
-                      <TypingStatusPill status={eid.typing} />
-                      <AppointmentStatusPill status={eid.appointment} />
-                    </div>
-                  )}
                 </div>
               </div>
             </Link>
