@@ -58,8 +58,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await apiRequest("POST", "/api/auth/quick-login", { userId });
       return res.json() as Promise<AuthUser>;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    onSuccess: (newUser) => {
+      queryClient.setQueryData(["/api/auth/me"], newUser);
+      queryClient.setQueryData(["/api/auth/profile"], undefined);
     },
   });
 

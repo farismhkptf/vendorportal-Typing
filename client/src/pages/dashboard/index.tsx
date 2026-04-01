@@ -31,6 +31,12 @@ export default function Dashboard() {
     return () => { document.title = "Keystone"; };
   }, []);
 
+  useEffect(() => {
+    if (user?.role === "Vendor") {
+      navigate("/vendor/login");
+    }
+  }, [user?.role, navigate]);
+
   const { data: stats, isLoading: statsLoading, isError: statsError, refetch: refetchStats } = useQuery<DashboardStats>({
     queryKey: queryKeys.dashboardStats,
     staleTime: 30000,

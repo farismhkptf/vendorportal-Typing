@@ -33,6 +33,8 @@ function getRedirectForRole(role: string): string {
     case "PRO":
     case "PRO - Temporary":
       return "/medical";
+    case "Vendor":
+      return "/vendor/login";
     default:
       return "/";
   }
