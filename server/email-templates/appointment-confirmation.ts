@@ -1151,7 +1151,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
               <tr>
                 <td colspan="2" style="padding-top:40px;">
                   <div class="section-heading" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">After the Appointment</div>
-                  <div class="after-text" style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;letter-spacing:0.005em;">Results are shared within 24 hours. We handle everything that follows &mdash; no action needed on your end.</div>
+                  <div class="after-text" style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;letter-spacing:0.005em;">Results are typically issued within 24 hours, and all subsequent steps will be managed by our team, with no action required unless DHA requests a follow up.</div>
                 </td>
               </tr>
 
@@ -1168,6 +1168,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                     Powered by <a href="https://www.procompany.ae" style="color:#a1a1a8;text-decoration:none;">The P.R.O. Company</a>
                   </div>
                   <div class="footer-legal" style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;">&copy; ${new Date().getFullYear()} The P.R.O. Company&#8482;. All rights reserved.</div>
+                  <div class="footer-licensed" style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;margin-top:2px;">Licensed under Keystone Business Solutions LLC</div>
                 </td>
               </tr>
 
