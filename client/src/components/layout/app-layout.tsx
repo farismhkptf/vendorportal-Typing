@@ -46,20 +46,37 @@ function getDashboardHref(role?: string): string {
 }
 
 const allNavigation = [
-  { name: "Dashboard", href: "__dashboard__", icon: LayoutDashboard, roles: null },
-  { name: "Work Orders", href: "/work-orders", icon: FileText, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Appointments", href: "/appointments", icon: Stethoscope, roles: null },
-  { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Attestation", href: "/attestation/inquiries", icon: Stamp, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Attestation SRs", href: "/attestation-sr", icon: FileCheck, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Companies", href: "/companies", icon: Building2, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Reports", href: "/reports", icon: BarChart3, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Expiring Docs", href: "/expiring-documents", icon: Clock, roles: ["Admin", "Client Relationship Manager"] as string[] },
-  { name: "Doc Custody", href: "/custody-queue", icon: PackageCheck, roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] as string[] },
-  { name: "Admin Console", href: "/admin", icon: Settings, roles: ["Admin"] as string[] },
+  { name: "Dashboard", href: "__dashboard__", icon: LayoutDashboard, roles: null, group: null },
+  { name: "Work Orders", href: "/work-orders", icon: FileText, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Operations" },
+  { name: "Appointments", href: "/appointments", icon: Stethoscope, roles: null, group: "Operations" },
+  { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Operations" },
+  { name: "Attestation", href: "/attestation/inquiries", icon: Stamp, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Operations" },
+  { name: "Attestation SRs", href: "/attestation-sr", icon: FileCheck, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Operations" },
+  { name: "Companies", href: "/companies", icon: Building2, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Management" },
+  { name: "Vendor Wallet", href: "/vendor-wallet", icon: Wallet, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Management" },
+  { name: "Reports", href: "/reports", icon: BarChart3, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Management" },
+  { name: "Expiring Docs", href: "/expiring-documents", icon: Clock, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Management" },
+  { name: "Doc Custody", href: "/custody-queue", icon: PackageCheck, roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] as string[], group: "Management" },
+  { name: "Admin Console", href: "/admin", icon: Settings, roles: ["Admin"] as string[], group: "Admin" },
 ];
 
+
+type NavItem = typeof allNavigation[number];
+type NavGroup = { label: string | null; items: NavItem[] };
+
+function buildNavGroups(items: NavItem[]): NavGroup[] {
+  const groups: NavGroup[] = [];
+  for (const item of items) {
+    const label = item.group ?? null;
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) {
+      last.items.push(item);
+    } else {
+      groups.push({ label, items: [item] });
+    }
+  }
+  return groups;
+}
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
@@ -125,66 +142,60 @@ export function AppLayout({ children }: AppLayoutProps) {
             </Button>
           </div>
 
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
-              const isActive = location === item.href || 
-                (item.href !== "/" && location.startsWith(item.href));
-              return (
-                <Link key={item.name} href={item.href}>
-                  <div
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-xl text-[14px] font-medium transition-all duration-200 cursor-pointer",
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-sm nav-item-active-pill"
-                        : "text-muted-foreground hover-elevate"
-                    )}
-                    data-testid={`nav-${item.name.toLowerCase().replace(" ", "-")}`}
-                  >
-                    <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-primary-foreground")} />
-                    {item.name}
-                  </div>
-                </Link>
-              );
-            })}
+          <nav className="flex-1 px-3 py-3 overflow-y-auto">
+            {buildNavGroups(navigation).map((group, gi) => (
+              <div key={gi} className={gi > 0 ? "mt-4" : ""}>
+                {group.label && (
+                  <p className="px-3 mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground/60 select-none">
+                    {group.label}
+                  </p>
+                )}
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const isActive = location === item.href ||
+                      (item.href !== "/" && location.startsWith(item.href));
+                    return (
+                      <Link key={item.name} href={item.href}>
+                        <div
+                          className={cn(
+                            "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 cursor-pointer",
+                            isActive
+                              ? "bg-primary text-primary-foreground shadow-sm nav-item-active-pill"
+                              : "text-muted-foreground hover-elevate"
+                          )}
+                          data-testid={`nav-${item.name.toLowerCase().replace(" ", "-")}`}
+                        >
+                          <item.icon className={cn("h-[16px] w-[16px] shrink-0", isActive && "text-primary-foreground")} />
+                          {item.name}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </nav>
 
-          <div className="p-4">
-            <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-muted/30">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center ring-1 ring-primary/10">
-                <span className="text-sm font-semibold text-primary" data-testid="text-user-initial">{userInitial}</span>
+          <div className="px-3 pb-3">
+            <div className="group flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center ring-1 ring-primary/10 shrink-0">
+                <span className="text-xs font-semibold text-primary" data-testid="text-user-initial">{userInitial}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate" data-testid="text-user-name">{user?.name || "User"}</p>
-                <p className="text-xs text-muted-foreground" data-testid="text-user-role">{user?.role || "Unknown"}</p>
+                <p className="text-[13px] font-medium text-foreground truncate leading-tight" data-testid="text-user-name">{user?.name || "User"}</p>
+                <p className="text-[11px] text-muted-foreground leading-tight" data-testid="text-user-role">{user?.role || "Unknown"}</p>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Link href="/account/security">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-xl text-muted-foreground"
-                    data-testid="button-account-security"
-                  >
-                    <Shield className="h-4 w-4" />
+                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-muted-foreground" data-testid="button-account-security">
+                    <Shield className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-xl text-muted-foreground"
-                  onClick={() => setChangePasswordOpen(true)}
-                  data-testid="button-change-password"
-                >
-                  <KeyRound className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-muted-foreground" onClick={() => setChangePasswordOpen(true)} data-testid="button-change-password">
+                  <KeyRound className="h-3.5 w-3.5" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-xl text-muted-foreground"
-                  onClick={logout}
-                  data-testid="button-logout"
-                >
-                  <LogOut className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-muted-foreground" onClick={logout} data-testid="button-logout">
+                  <LogOut className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>

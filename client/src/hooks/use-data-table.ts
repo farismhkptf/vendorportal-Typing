@@ -64,8 +64,8 @@ export function useDataTable<T>(
   const [viewMode, setViewModeState] = useState<string>(() => {
     const stored = loadFromStorage<string | null>(`${storageKey}_viewMode`, null);
     if (stored !== null) return stored;
-    const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
-    return isMobile ? "cards" : defaultViewMode;
+    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
+    return isDesktop ? defaultViewMode : "cards";
   });
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [sort, setSortState] = useState<SortState>(

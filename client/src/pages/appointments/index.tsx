@@ -31,7 +31,7 @@ export default function AppointmentsIndex() {
 
   return (
     <AppLayout>
-      <div className="p-4 lg:p-6 space-y-6 max-w-6xl mx-auto">
+      <div className="px-4 lg:px-6 pt-4 pb-6 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold text-foreground tracking-tight" data-testid="page-title">

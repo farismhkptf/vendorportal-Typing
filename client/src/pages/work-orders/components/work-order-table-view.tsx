@@ -21,6 +21,7 @@ import {
   getDaysOld, getPipelineInfo, getNextAction,
 } from "@/lib/pipeline-stage";
 import { TrackStatusIconsFromState } from "@/components/track-status-icons";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { NextActionIndicator } from "./status-pills";
 import type { WorkOrderEnriched } from "./types";
 import type { SortState } from "@/hooks/use-data-table";
@@ -65,8 +66,7 @@ export function WorkOrderTableView({
               />
             </TableHead>
             {cv("woNumber") && <SortableHeader sortKey="woNumber" sort={columnSort} onToggle={toggleColumnSort} className="w-28">WO #</SortableHeader>}
-            {cv("applicant") && <SortableHeader sortKey="applicant" sort={columnSort} onToggle={toggleColumnSort}>Applicant</SortableHeader>}
-            {cv("company") && <SortableHeader sortKey="company" sort={columnSort} onToggle={toggleColumnSort} className="hidden sm:table-cell">Company</SortableHeader>}
+            {cv("applicant") && <SortableHeader sortKey="applicant" sort={columnSort} onToggle={toggleColumnSort}>Applicant / Company</SortableHeader>}
             {cv("service") && <TableHead className="hidden lg:table-cell">Service</TableHead>}
             {cv("pipeline") && <TableHead className="w-24">Tracks</TableHead>}
             {cv("status") && <SortableHeader sortKey="status" sort={columnSort} onToggle={toggleColumnSort} className="w-20">Status</SortableHeader>}
@@ -104,7 +104,7 @@ export function WorkOrderTableView({
                         {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                       </div>
                     </TableCell>}
-                    {cv("applicant") && <TableCell className={`${cellPadding} max-w-[200px]`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
+                    {cv("applicant") && <TableCell className={`${cellPadding} max-w-[220px]`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                       <div className="flex items-center gap-2">
                         <Avatar className="h-6 w-6 shrink-0" data-testid={`avatar-wo-table-${wo.woNumber}`}>
                           {photoMap?.[wo.id] ? (
@@ -112,11 +112,13 @@ export function WorkOrderTableView({
                           ) : null}
                           <AvatarFallback className="text-[9px] font-medium">{getInitials(wo.applicantName)}</AvatarFallback>
                         </Avatar>
-                        <span className="block truncate">{toProperCase(wo.applicantName)}</span>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium text-sm">{toProperCase(wo.applicantName)}</p>
+                          {wo.company?.name && (
+                            <p className="truncate text-xs text-muted-foreground">{toProperCase(wo.company.name)}</p>
+                          )}
+                        </div>
                       </div>
-                    </TableCell>}
-                    {cv("company") && <TableCell className={`hidden sm:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                      {wo.company?.name ? toProperCase(wo.company.name) : "-"}
                     </TableCell>}
                     {cv("service") && <TableCell className={`hidden lg:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                       {wo.serviceType?.name || "-"}
@@ -125,7 +127,7 @@ export function WorkOrderTableView({
                       {pipeline.fourTrack && <TrackStatusIconsFromState tracks={pipeline.fourTrack} />}
                     </TableCell>}
                     {cv("status") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
-                      <span className="text-[10px] text-muted-foreground">{wo.status}</span>
+                      <StatusBadge status={wo.status} />
                     </TableCell>}
                     {cv("age") && <TableCell className={`text-right text-xs text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                       {daysOld === 0 ? "Today" : `${daysOld}d`}

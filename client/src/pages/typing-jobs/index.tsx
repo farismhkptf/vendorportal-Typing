@@ -13,7 +13,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { QueryErrorState } from "@/components/ui/query-error-state";
 import { queryKeys } from "@/lib/query-keys";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -162,7 +161,7 @@ export default function TypingJobsList() {
   const dt = useDataTable(filteredAndSortedJobs, {
     storageKey: "tj_list",
     defaultPageSize: 25,
-    defaultViewMode: "cards",
+    defaultViewMode: "table",
     getId,
     columns: tjColumns,
   });
@@ -285,7 +284,7 @@ export default function TypingJobsList() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
+      <div className="px-4 lg:px-6 pb-6 space-y-4">
 
         {!isLoading && returnedJobs.length > 0 && (
           <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4 space-y-3" data-testid="section-returned-jobs">
@@ -352,80 +351,82 @@ export default function TypingJobsList() {
           </Button>
         </div>
 
-        <DataTableToolbar
-          search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder="Search by WO#, applicant, or job code..."
-          density={dt.density}
-          onDensityChange={dt.setDensity}
-          totalItems={dt.totalItems}
-          selectedCount={dt.selectedCount}
-          onClearSelection={dt.clearSelection}
-          filters={filterControls}
-          viewModeToggle={viewModeToggle}
-          actions={
-            <ColumnVisibilityDropdown
-              columns={dt.columns}
-              isColumnVisible={dt.isColumnVisible}
-              toggleColumn={dt.toggleColumn}
-              resetColumns={dt.resetColumns}
-            />
-          }
-          activeFilterCount={activeFilterCount}
-          onClearFilters={clearAllFilters}
-          selectionActions={
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-1.5" disabled={bulkAssignVendorMutation.isPending} data-testid="button-bulk-assign-vendor">
-                    {bulkAssignVendorMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                    Assign Vendor
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuLabel>Submit to Vendor</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {vendors && vendors.length > 0 ? vendors.map(v => (
-                    <DropdownMenuItem key={v.id} onClick={() => bulkAssignVendorMutation.mutate({ ids: Array.from(dt.selectedIds), vendorId: v.id })} data-testid={`menu-assign-vendor-${v.id}`}>
-                      {v.name}
-                    </DropdownMenuItem>
-                  )) : (
-                    <DropdownMenuItem disabled>No vendors available</DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                data-testid="button-export-csv"
-                onClick={() => {
-                  const selected = (filteredAndSortedJobs || []).filter(j => dt.selectedIds.has(j.id));
-                  exportToCsv(selected, [
-                    { header: "Job Code", accessor: (j: TypingJobWithRelations) => j.jobCode || "" },
-                    { header: "WO Number", accessor: (j: TypingJobWithRelations) => j.workOrder?.woNumber || "" },
-                    { header: "Applicant", accessor: (j: TypingJobWithRelations) => j.workOrder?.applicantName || "" },
-                    { header: "Job Type", accessor: (j: TypingJobWithRelations) => j.jobType?.name || "" },
-                    { header: "Status", accessor: (j: TypingJobWithRelations) => j.status },
-                    { header: "Appointment", accessor: (j: TypingJobWithRelations) => {
-                      const info = getAppointmentStatus(j);
-                      if (!info) return "";
-                      if (info.status === "none") return "Not Scheduled";
-                      if (info.status === "completed") return "Completed";
-                      if (info.status === "cancelled") return "Cancelled";
-                      return info.appointment?.datetime ? `Scheduled ${new Date(info.appointment.datetime).toLocaleDateString("en-GB")}` : "Scheduled";
-                    }},
-                    { header: "Vendor", accessor: (j: TypingJobWithRelations) => (j.vendorId && vendors ? vendors.find(v => v.id === j.vendorId)?.name : "") || "" },
-                    { header: "Cost", accessor: (j: TypingJobWithRelations) => j.costSnapshot || "" },
-                  ], "typing-jobs-export");
-                }}
-              >
-                <Download className="h-3.5 w-3.5" />
-                Export
-              </Button>
-            </>
-          }
-        />
+        <div className="sticky top-[72px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/80 backdrop-blur-md border-b border-border/30">
+          <DataTableToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search by WO#, applicant, or job code..."
+            density={dt.density}
+            onDensityChange={dt.setDensity}
+            totalItems={dt.totalItems}
+            selectedCount={dt.selectedCount}
+            onClearSelection={dt.clearSelection}
+            filters={filterControls}
+            viewModeToggle={viewModeToggle}
+            actions={
+              <ColumnVisibilityDropdown
+                columns={dt.columns}
+                isColumnVisible={dt.isColumnVisible}
+                toggleColumn={dt.toggleColumn}
+                resetColumns={dt.resetColumns}
+              />
+            }
+            activeFilterCount={activeFilterCount}
+            onClearFilters={clearAllFilters}
+            selectionActions={
+              <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="gap-1.5" disabled={bulkAssignVendorMutation.isPending} data-testid="button-bulk-assign-vendor">
+                      {bulkAssignVendorMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      Assign Vendor
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuLabel>Submit to Vendor</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {vendors && vendors.length > 0 ? vendors.map(v => (
+                      <DropdownMenuItem key={v.id} onClick={() => bulkAssignVendorMutation.mutate({ ids: Array.from(dt.selectedIds), vendorId: v.id })} data-testid={`menu-assign-vendor-${v.id}`}>
+                        {v.name}
+                      </DropdownMenuItem>
+                    )) : (
+                      <DropdownMenuItem disabled>No vendors available</DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  data-testid="button-export-csv"
+                  onClick={() => {
+                    const selected = (filteredAndSortedJobs || []).filter(j => dt.selectedIds.has(j.id));
+                    exportToCsv(selected, [
+                      { header: "Job Code", accessor: (j: TypingJobWithRelations) => j.jobCode || "" },
+                      { header: "WO Number", accessor: (j: TypingJobWithRelations) => j.workOrder?.woNumber || "" },
+                      { header: "Applicant", accessor: (j: TypingJobWithRelations) => j.workOrder?.applicantName || "" },
+                      { header: "Job Type", accessor: (j: TypingJobWithRelations) => j.jobType?.name || "" },
+                      { header: "Status", accessor: (j: TypingJobWithRelations) => j.status },
+                      { header: "Appointment", accessor: (j: TypingJobWithRelations) => {
+                        const info = getAppointmentStatus(j);
+                        if (!info) return "";
+                        if (info.status === "none") return "Not Scheduled";
+                        if (info.status === "completed") return "Completed";
+                        if (info.status === "cancelled") return "Cancelled";
+                        return info.appointment?.datetime ? `Scheduled ${new Date(info.appointment.datetime).toLocaleDateString("en-GB")}` : "Scheduled";
+                      }},
+                      { header: "Vendor", accessor: (j: TypingJobWithRelations) => (j.vendorId && vendors ? vendors.find(v => v.id === j.vendorId)?.name : "") || "" },
+                      { header: "Cost", accessor: (j: TypingJobWithRelations) => j.costSnapshot || "" },
+                    ], "typing-jobs-export");
+                  }}
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  Export
+                </Button>
+              </>
+            }
+          />
+        </div>
 
         <div>
           {isError ? (
@@ -478,7 +479,6 @@ export default function TypingJobsList() {
           />
         )}
       </div>
-      <FloatingActionButton href="/typing-jobs/new" label="New Typing Job" testId="fab-new-typing-job" />
     </AppLayout>
   );
 }

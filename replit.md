@@ -2,7 +2,16 @@
 
 ## Overview
 
-This project is an internal enterprise web application for The P.R.O. Company™, serving as an operations portal and vendor management system. Its primary purpose is to streamline work order processing, appointment scheduling (medical/Emirates ID), and vendor-based typing workflows. The system also includes vendor wallet accounting and file storage integration capabilities. The application aims for a premium, minimal, Apple-inspired glassmorphism UI/UX, optimized for both mobile and desktop, enhancing efficiency and user experience in managing company operations and vendor interactions.
+This project is an internal enterprise web application for The P.R.O. Company™, serving as an operations portal and vendor management system. Its primary purpose is to streamline work order processing, appointment scheduling (medical/Emirates ID), and vendor-based typing workflows. The system also includes vendor wallet accounting and file storage integration capabilities. The application aims for a premium, minimal, Apple-inspired glassmorphism UI/UX, optimized for desktop-first with responsive mobile support.
+
+### Desktop-First Layout Principles (Task 79)
+- **Table-first defaults**: Work Orders, Companies, and Typing Jobs default to table view on desktop (≥1024px), card view on mobile. View preference persists in localStorage.
+- **No mobile FABs on core pages**: FloatingActionButton removed from Work Orders, Companies, and Typing Jobs pages (already hidden on md+ before, now fully removed).
+- **No bottom padding on desktop**: `pb-20` removed from all core list pages (handled at app-layout level on desktop).
+- **Wallet split-pane**: Vendor Wallet uses a flex row on desktop — left pane (380px) with large balance display, top-up button, and stats; right pane with scrollable transaction history.
+- **Sidebar macOS-style**: Tighter nav items (py-2 instead of py-3), smaller icons (16px), grouped sections with `text-xs uppercase` labels (Operations, Management, Admin), user profile card with hover-reveal action icons.
+- **Appointments full-width**: Removed `max-w-6xl mx-auto` constraint from Appointments page container.
+- **Dashboard breathing room**: `space-y-4` → `space-y-6`, stat card grid uses `gap-4`, main 3-col grid uses `gap-6`.
 
 ## User Preferences
 

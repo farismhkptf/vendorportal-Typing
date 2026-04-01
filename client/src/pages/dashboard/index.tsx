@@ -85,7 +85,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-6 pb-6 space-y-4">
+      <div className="px-4 lg:px-6 pb-6 space-y-6">
         {(statsError || typingError || appointmentsError) && (
           <QueryErrorState
             message="Some dashboard data failed to load."
@@ -97,7 +97,7 @@ export default function Dashboard() {
           />
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statsLoading ? (
             <>
               <Skeleton className="h-24 rounded-xl" />
@@ -171,7 +171,7 @@ export default function Dashboard() {
 
         <div className="section-divider" />
 
-        <div className="grid xl:grid-cols-3 gap-4">
+        <div className="grid xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 grid lg:grid-cols-2 gap-4">
             <TypingJobsLane data={typingData} isLoading={typingLoading} photoMap={photoMap} />
             <AppointmentsLane data={appointmentsData} isLoading={appointmentsLoading} photoMap={photoMap} />

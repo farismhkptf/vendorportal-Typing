@@ -8,7 +8,6 @@ import {
   TrendingDown, 
   AlertTriangle, 
   Plus,
-  Calendar,
   ArrowUpRight,
   ArrowDownRight,
   RefreshCw,
@@ -60,11 +59,51 @@ type TopupForm = z.infer<typeof topupSchema>;
 
 type ViewByOption = "none" | "type" | "date";
 
+function LedgerEntry({ entry, index, getEntryIcon, getEntryColor }: {
+  entry: LedgerEntryWithDetails;
+  index: number;
+  getEntryIcon: (type: string) => JSX.Element;
+  getEntryColor: (type: string) => string;
+}) {
+  return (
+    <div
+      className="premium-card p-3 opacity-0 animate-fade-in"
+      style={{ animationDelay: `${index * 0.03}s` }}
+      data-testid={`ledger-entry-${entry.id}`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+            {getEntryIcon(entry.entryType)}
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-medium text-sm text-foreground capitalize">{entry.entryType}</p>
+              {entry.typingJob && (
+                <Badge variant="secondary" className="text-xs rounded-full">{entry.typingJob.woNumber}</Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground truncate">
+              {entry.note || (entry.typingJob ? toProperCase(entry.typingJob.applicantName) : "—")}
+            </p>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
+            {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
+          </p>
+          <RelativeTime date={entry.createdAt} className="text-xs" id={entry.id} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function VendorWallet() {
   const { user } = useAuth();
   const isCrm = user?.role === "Client Relationship Manager";
   const [topupOpen, setTopupOpen] = useState(false);
-  const [viewBy, setViewBy] = useState<ViewByOption>("none");
+  const [viewBy, setViewBy] = useState<ViewByOption>("date");
   const [ledgerSearch, setLedgerSearch] = useState("");
   const [ledgerTypeFilter, setLedgerTypeFilter] = useState<string>("all");
   const [selectedVendorId, setSelectedVendorId] = useState<string>("");
@@ -225,79 +264,10 @@ export default function VendorWallet() {
             </Select>
           </div>
           {!isCrm && (
-          <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gap-1.5" data-testid="button-topup">
-                  <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Top Up</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md rounded-2xl">
-                <DialogHeader>
-                  <DialogTitle>Add Top-Up</DialogTitle>
-                </DialogHeader>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmitTopup)} className="space-y-5">
-                    <FormField
-                      control={form.control}
-                      name="amount"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Amount (AED)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="5000"
-                              {...field}
-                              onChange={(e) => field.onChange(Number(e.target.value))}
-                              className="rounded-xl"
-                              data-testid="input-topup-amount"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="note"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Note (Optional)</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Reference or note"
-                              {...field}
-                              className="rounded-xl"
-                              data-testid="input-topup-note"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex justify-end gap-3 pt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="rounded-xl"
-                        onClick={() => setTopupOpen(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="rounded-xl"
-                        disabled={topupMutation.isPending}
-                        data-testid="button-confirm-topup"
-                      >
-                        {topupMutation.isPending ? "Processing..." : "Add Top-Up"}
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </DialogContent>
-            </Dialog>
+            <Button size="sm" className="gap-1.5 lg:hidden" onClick={() => setTopupOpen(true)} data-testid="button-topup">
+              <Plus className="h-4 w-4" />
+              <span className="hidden sm:inline">Top Up</span>
+            </Button>
           )}
         </div>
       </div>
@@ -331,197 +301,208 @@ export default function VendorWallet() {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid sm:grid-cols-3 gap-3">
-          {summaryLoading ? (
-            <>
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
-              <Skeleton className="h-24 rounded-xl" />
-            </>
-          ) : (
-            <>
-              <StatCard
-                title="Balance"
-                value={`AED ${(summary?.balance || 0).toLocaleString()}`}
-                icon={<Wallet className="h-4 w-4" />}
-                animationDelay={1}
-                onClick={() => document.getElementById("section-ledger")?.scrollIntoView({ behavior: "smooth" })}
-              />
-              <StatCard
-                title="Month Top-ups"
-                value={`AED ${(summary?.monthTopups || 0).toLocaleString()}`}
-                icon={<TrendingUp className="h-4 w-4" />}
-                animationDelay={2}
-                onClick={() => document.getElementById("section-ledger")?.scrollIntoView({ behavior: "smooth" })}
-              />
-              <StatCard
-                title="Month Spend"
-                value={`AED ${(summary?.monthSpend || 0).toLocaleString()}`}
-                icon={<TrendingDown className="h-4 w-4" />}
-                animationDelay={3}
-                onClick={() => document.getElementById("section-ledger")?.scrollIntoView({ behavior: "smooth" })}
-              />
-            </>
-          )}
-        </div>
-
-        {/* Ledger */}
-        <div id="section-ledger" className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-foreground tracking-tight">
-              Transaction Ledger
-              {filteredLedger.length !== (ledger?.length || 0) && (
-                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                  ({filteredLedger.length} of {ledger?.length || 0})
-                </span>
-              )}
-            </h2>
-            <Select value={viewBy} onValueChange={(v) => setViewBy(v as ViewByOption)}>
-              <SelectTrigger className="w-32 rounded-lg text-xs" data-testid="select-view-by">
-                <LayoutGrid className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                <SelectValue placeholder="View by" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl">
-                <SelectItem value="none">No Grouping</SelectItem>
-                <SelectItem value="type">By Type</SelectItem>
-                <SelectItem value="date">By Month</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by WO number, applicant, or note..."
-                value={ledgerSearch}
-                onChange={(e) => setLedgerSearch(e.target.value)}
-                className="pl-9"
-                data-testid="input-ledger-search"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={ledgerTypeFilter} onValueChange={setLedgerTypeFilter}>
-                <SelectTrigger className="w-32 rounded-lg" data-testid="select-ledger-type-filter">
-                  <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="Topup">Top-ups</SelectItem>
-                  <SelectItem value="Debit">Debits</SelectItem>
-                  <SelectItem value="Reversal">Reversals</SelectItem>
-                </SelectContent>
-              </Select>
-              {activeFilterCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1 text-xs text-muted-foreground"
-                  onClick={() => { setLedgerSearch(""); setLedgerTypeFilter("all"); }}
-                  data-testid="button-clear-ledger-filters"
-                >
-                  <X className="h-3 w-3" />
-                  Clear
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-4">
-            {ledgerLoading ? (
+        {/* Desktop split-pane layout */}
+        <div className="flex flex-col lg:flex-row gap-6 lg:items-start">
+          {/* Left pane: balance summary + stats + quick actions */}
+          <div className="lg:w-[380px] lg:shrink-0 lg:sticky lg:top-4 space-y-4">
+            {summaryLoading ? (
               <>
-                <Skeleton className="h-16 rounded-xl" />
-                <Skeleton className="h-16 rounded-xl" />
-                <Skeleton className="h-16 rounded-xl" />
+                <Skeleton className="h-32 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
+                <Skeleton className="h-24 rounded-xl" />
               </>
-            ) : groupedLedger ? (
-              Object.entries(groupedLedger).map(([groupKey, items]) => (
-                <div key={groupKey} className="space-y-2">
-                  <div className="flex items-center gap-2 px-1">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{groupKey}</h3>
-                    <span className="text-xs text-muted-foreground">({items.length})</span>
-                  </div>
-                  <div className="space-y-2">
-                    {items.map((entry, index) => (
-                      <div
-                        key={entry.id}
-                        className="premium-card p-3 opacity-0 animate-fade-in"
-                        style={{ animationDelay: `${index * 0.03}s` }}
-                        data-testid={`ledger-entry-${entry.id}`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-                              {getEntryIcon(entry.entryType)}
-                            </div>
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium text-sm text-foreground capitalize">{entry.entryType}</p>
-                                {entry.typingJob && (
-                                  <Badge variant="secondary" className="text-xs rounded-full">{entry.typingJob.woNumber}</Badge>
+            ) : (
+              <>
+                {/* Balance highlight */}
+                <div className="premium-card p-6 opacity-0 animate-fade-in animate-delay-1">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-2">Current Balance</p>
+                  <p className="text-4xl font-bold tracking-tight text-foreground tabular-nums">
+                    AED {(summary?.balance || 0).toLocaleString()}
+                  </p>
+                  {!isCrm && (
+                    <div className="mt-5">
+                      <Dialog open={topupOpen} onOpenChange={setTopupOpen}>
+                        <DialogTrigger asChild>
+                          <Button className="w-full gap-2 rounded-xl" data-testid="button-topup-pane">
+                            <Plus className="h-4 w-4" />
+                            Top Up Wallet
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md rounded-2xl">
+                          <DialogHeader>
+                            <DialogTitle>Add Top-Up</DialogTitle>
+                          </DialogHeader>
+                          <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmitTopup)} className="space-y-5">
+                              <FormField
+                                control={form.control}
+                                name="amount"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Amount (AED)</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        placeholder="5000"
+                                        {...field}
+                                        onChange={(e) => field.onChange(Number(e.target.value))}
+                                        className="rounded-xl"
+                                        data-testid="input-topup-amount"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
                                 )}
+                              />
+                              <FormField
+                                control={form.control}
+                                name="note"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Note (Optional)</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        placeholder="Reference or note"
+                                        {...field}
+                                        className="rounded-xl"
+                                        data-testid="input-topup-note"
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <div className="flex justify-end gap-3 pt-2">
+                                <Button type="button" variant="outline" className="rounded-xl" onClick={() => setTopupOpen(false)}>Cancel</Button>
+                                <Button type="submit" className="rounded-xl" disabled={topupMutation.isPending} data-testid="button-confirm-topup">
+                                  {topupMutation.isPending ? "Processing..." : "Add Top-Up"}
+                                </Button>
                               </div>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {entry.note || (entry.typingJob ? toProperCase(entry.typingJob.applicantName) : "—")}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
-                              {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
-                            </p>
-                            <RelativeTime date={entry.createdAt} className="text-xs" id={entry.id} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                            </form>
+                          </Form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                  )}
                 </div>
-              ))
-            ) : filteredLedger && filteredLedger.length > 0 ? (
-              <div className="space-y-2">
-                {filteredLedger.map((entry, index) => (
-                  <div
-                    key={entry.id}
-                    className="premium-card p-3 opacity-0 animate-fade-in"
-                    style={{ animationDelay: `${index * 0.03}s` }}
-                    data-testid={`ledger-entry-${entry.id}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-8 w-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-                          {getEntryIcon(entry.entryType)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm text-foreground capitalize">{entry.entryType}</p>
-                            {entry.typingJob && (
-                              <Badge variant="secondary" className="text-xs rounded-full">{entry.typingJob.woNumber}</Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {entry.note || (entry.typingJob ? toProperCase(entry.typingJob.applicantName) : "—")}
-                          </p>
-                        </div>
+                {/* Stats row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <StatCard
+                    title="Month Top-ups"
+                    value={`AED ${(summary?.monthTopups || 0).toLocaleString()}`}
+                    icon={<TrendingUp className="h-4 w-4" />}
+                    animationDelay={2}
+                  />
+                  <StatCard
+                    title="Month Spend"
+                    value={`AED ${(summary?.monthSpend || 0).toLocaleString()}`}
+                    icon={<TrendingDown className="h-4 w-4" />}
+                    animationDelay={3}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Right pane: scrollable transaction history */}
+          <div className="flex-1 min-w-0 premium-card overflow-hidden flex flex-col lg:max-h-[calc(100vh-12rem)]" id="section-ledger">
+            <div className="p-4 space-y-3 flex-1 overflow-y-auto">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Transaction History
+                  {filteredLedger.length !== (ledger?.length || 0) && (
+                    <span className="ml-1.5 normal-case text-xs font-normal">
+                      ({filteredLedger.length} of {ledger?.length || 0})
+                    </span>
+                  )}
+                </h2>
+                <Select value={viewBy} onValueChange={(v) => setViewBy(v as ViewByOption)}>
+                  <SelectTrigger className="w-32 rounded-lg text-xs" data-testid="select-view-by">
+                    <LayoutGrid className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                    <SelectValue placeholder="View by" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    <SelectItem value="none">No Grouping</SelectItem>
+                    <SelectItem value="type">By Type</SelectItem>
+                    <SelectItem value="date">By Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    placeholder="Search by WO number, applicant, or note..."
+                    value={ledgerSearch}
+                    onChange={(e) => setLedgerSearch(e.target.value)}
+                    className="pl-9"
+                    data-testid="input-ledger-search"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select value={ledgerTypeFilter} onValueChange={setLedgerTypeFilter}>
+                    <SelectTrigger className="w-32 rounded-lg" data-testid="select-ledger-type-filter">
+                      <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                      <SelectValue placeholder="Type" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="Topup">Top-ups</SelectItem>
+                      <SelectItem value="Debit">Debits</SelectItem>
+                      <SelectItem value="Reversal">Reversals</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {activeFilterCount > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1 text-xs text-muted-foreground"
+                      onClick={() => { setLedgerSearch(""); setLedgerTypeFilter("all"); }}
+                      data-testid="button-clear-ledger-filters"
+                    >
+                      <X className="h-3 w-3" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="space-y-4">
+                {ledgerLoading ? (
+                  <>
+                    <Skeleton className="h-16 rounded-xl" />
+                    <Skeleton className="h-16 rounded-xl" />
+                    <Skeleton className="h-16 rounded-xl" />
+                  </>
+                ) : groupedLedger ? (
+                  Object.entries(groupedLedger).map(([groupKey, items]) => (
+                    <div key={groupKey} className="space-y-2">
+                      <div className="flex items-center gap-2 px-1">
+                        <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{groupKey}</h3>
+                        <span className="text-xs text-muted-foreground">({items.length})</span>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className={cn("font-semibold text-sm", getEntryColor(entry.entryType))}>
-                          {entry.entryType === "Debit" ? "-" : "+"}AED {Math.abs(entry.amount).toLocaleString()}
-                        </p>
-                        <RelativeTime date={entry.createdAt} className="text-xs" id={entry.id} />
+                      <div className="space-y-2">
+                        {items.map((entry, index) => (
+                          <LedgerEntry key={entry.id} entry={entry} index={index} getEntryIcon={getEntryIcon} getEntryColor={getEntryColor} />
+                        ))}
                       </div>
                     </div>
+                  ))
+                ) : filteredLedger && filteredLedger.length > 0 ? (
+                  <div className="space-y-2">
+                    {filteredLedger.map((entry, index) => (
+                      <LedgerEntry key={entry.id} entry={entry} index={index} getEntryIcon={getEntryIcon} getEntryColor={getEntryColor} />
+                    ))}
                   </div>
-                ))}
+                ) : (
+                  <EmptyState
+                    icon={activeFilterCount > 0 ? <Search className="h-6 w-6" /> : <Wallet className="h-6 w-6" />}
+                    title={activeFilterCount > 0 ? "No matching transactions" : "No transactions yet"}
+                    description={activeFilterCount > 0 ? "Try adjusting your search or filters." : "Add a top-up to get started with the vendor wallet."}
+                  />
+                )}
               </div>
-            ) : (
-              <EmptyState
-                icon={activeFilterCount > 0 ? <Search className="h-6 w-6" /> : <Wallet className="h-6 w-6" />}
-                title={activeFilterCount > 0 ? "No matching transactions" : "No transactions yet"}
-                description={activeFilterCount > 0 ? "Try adjusting your search or filters." : "Add a top-up to get started with the vendor wallet."}
-              />
-            )}
+            </div>
           </div>
         </div>
       </div>

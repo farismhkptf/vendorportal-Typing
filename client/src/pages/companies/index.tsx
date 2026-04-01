@@ -13,7 +13,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { QueryErrorState } from "@/components/ui/query-error-state";
 import { queryKeys } from "@/lib/query-keys";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -146,12 +145,13 @@ export default function CompaniesList() {
     { id: "rm", label: "RM", defaultVisible: true },
     { id: "medicalCenter", label: "Medical Center", defaultVisible: true },
     { id: "emails", label: "Emails", defaultVisible: true },
+    { id: "profile", label: "Profile Status", defaultVisible: true },
   ];
 
   const dt = useDataTable(filteredAndSortedCompanies, {
     storageKey: "co_list",
     defaultPageSize: 25,
-    defaultViewMode: "cards",
+    defaultViewMode: "table",
     getId,
     columns,
   });
@@ -307,7 +307,8 @@ export default function CompaniesList() {
             {cv("name") && <SortableHeader sortKey="name" sort={columnSort} onToggle={toggleColumnSort}>Company Name</SortableHeader>}
             {cv("rm") && <SortableHeader sortKey="rm" sort={columnSort} onToggle={toggleColumnSort} className="hidden md:table-cell">RM</SortableHeader>}
             {cv("medicalCenter") && <SortableHeader sortKey="medicalCenter" sort={columnSort} onToggle={toggleColumnSort} className="hidden lg:table-cell">Medical Center</SortableHeader>}
-            {cv("emails") && <TableHead className="text-right">Emails</TableHead>}
+            {cv("emails") && <TableHead className="text-right hidden sm:table-cell">Emails</TableHead>}
+            {cv("profile") && <TableHead className="w-28 text-right hidden md:table-cell">Profile</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -331,17 +332,17 @@ export default function CompaniesList() {
                 {cv("name") && <TableCell className={cellPadding} onClick={() => navigate(`/companies/${company.id}`)}>
                   <div className="flex items-center gap-2">
                     <CompletenessIndicator company={company} />
-                    <Building2 className="h-4 w-4 text-muted-foreground" />
+                    <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="font-medium text-primary">{toProperCase(company.name)}</span>
                   </div>
                 </TableCell>}
-                {cv("rm") && <TableCell className={`hidden md:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                {cv("rm") && <TableCell className={`hidden md:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
                   {company.rmStaff?.name || "-"}
                 </TableCell>}
-                {cv("medicalCenter") && <TableCell className={`hidden lg:table-cell text-muted-foreground ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                {cv("medicalCenter") && <TableCell className={`hidden lg:table-cell text-muted-foreground text-xs ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
                   {company.preferredMedicalCenter?.name || "-"}
                 </TableCell>}
-                {cv("emails") && <TableCell className={`text-right ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                {cv("emails") && <TableCell className={`text-right hidden sm:table-cell ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
                   {company.emails && company.emails.filter(e => e.active).length > 0 ? (
                     <Badge variant="secondary" className="text-xs">
                       {company.emails.filter(e => e.active).length}
@@ -349,6 +350,28 @@ export default function CompaniesList() {
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
+                </TableCell>}
+                {cv("profile") && <TableCell className={`text-right hidden md:table-cell ${cellPadding}`} onClick={() => navigate(`/companies/${company.id}`)}>
+                  {(() => {
+                    const { complete, missing } = getCompanyCompleteness(company);
+                    return complete ? (
+                      <Badge variant="secondary" className="text-xs bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 border-0">Complete</Badge>
+                    ) : (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="secondary" className="text-xs bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 border-0 cursor-help">
+                            {missing.length} missing
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="max-w-[180px]">
+                          <p className="text-xs font-medium mb-1">Missing fields:</p>
+                          <ul className="text-xs list-disc pl-3 space-y-0.5">
+                            {missing.map((m) => <li key={m}>{m}</li>)}
+                          </ul>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })()}
                 </TableCell>}
               </TableRow>
             );
@@ -420,48 +443,50 @@ export default function CompaniesList() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
-        <DataTableToolbar
-          search={search}
-          onSearchChange={setSearch}
-          searchPlaceholder="Search companies..."
-          density={dt.density}
-          onDensityChange={dt.setDensity}
-          totalItems={dt.totalItems}
-          selectedCount={dt.selectedCount}
-          onClearSelection={dt.clearSelection}
-          filters={sortFilter}
-          viewModeToggle={viewModeToggle}
-          actions={
-            <ColumnVisibilityDropdown
-              columns={dt.columns}
-              isColumnVisible={dt.isColumnVisible}
-              toggleColumn={dt.toggleColumn}
-              resetColumns={dt.resetColumns}
-            />
-          }
-          selectionActions={
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              data-testid="button-export-csv"
-              onClick={() => {
-                const selected = (filteredAndSortedCompanies || []).filter(c => dt.selectedIds.has(c.id));
-                exportToCsv(selected, [
-                  { header: "Name", accessor: (c: CompanyWithRelations) => c.name },
-                  { header: "Trade License", accessor: (c: CompanyWithRelations) => c.tradeLicenseNumber || "" },
-                  { header: "Email", accessor: (c: CompanyWithRelations) => c.emails?.filter(e => e.active).map(e => e.email).join("; ") || "" },
-                  { header: "Coordinator", accessor: (c: CompanyWithRelations) => c.clientCoordinator?.name || "" },
-                  { header: "RM Staff", accessor: (c: CompanyWithRelations) => c.rmStaff?.name || "" },
-                ], "companies-export");
-              }}
-            >
-              <Download className="h-3.5 w-3.5" />
-              Export
-            </Button>
-          }
-        />
+      <div className="px-4 lg:px-6 pb-6 space-y-4">
+        <div className="sticky top-[72px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/80 backdrop-blur-md border-b border-border/30">
+          <DataTableToolbar
+            search={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Search companies..."
+            density={dt.density}
+            onDensityChange={dt.setDensity}
+            totalItems={dt.totalItems}
+            selectedCount={dt.selectedCount}
+            onClearSelection={dt.clearSelection}
+            filters={sortFilter}
+            viewModeToggle={viewModeToggle}
+            actions={
+              <ColumnVisibilityDropdown
+                columns={dt.columns}
+                isColumnVisible={dt.isColumnVisible}
+                toggleColumn={dt.toggleColumn}
+                resetColumns={dt.resetColumns}
+              />
+            }
+            selectionActions={
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                data-testid="button-export-csv"
+                onClick={() => {
+                  const selected = (filteredAndSortedCompanies || []).filter(c => dt.selectedIds.has(c.id));
+                  exportToCsv(selected, [
+                    { header: "Name", accessor: (c: CompanyWithRelations) => c.name },
+                    { header: "Trade License", accessor: (c: CompanyWithRelations) => c.tradeLicenseNumber || "" },
+                    { header: "Email", accessor: (c: CompanyWithRelations) => c.emails?.filter(e => e.active).map(e => e.email).join("; ") || "" },
+                    { header: "Coordinator", accessor: (c: CompanyWithRelations) => c.clientCoordinator?.name || "" },
+                    { header: "RM Staff", accessor: (c: CompanyWithRelations) => c.rmStaff?.name || "" },
+                  ], "companies-export");
+                }}
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export
+              </Button>
+            }
+          />
+        </div>
 
         <div>
           {isError ? (
@@ -511,7 +536,6 @@ export default function CompaniesList() {
           selectedCount={dt.selectedCount}
         />
       </div>
-      <FloatingActionButton href="/companies/new" label="Add Company" testId="fab-add-company" />
     </AppLayout>
   );
 }

@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FloatingActionButton } from "@/components/ui/floating-action-button";
 import { DataTablePagination } from "@/components/ui/data-table-pagination";
 import { DataTableToolbar } from "@/components/ui/data-table-toolbar";
 import { useDataTable, type ColumnDef } from "@/hooks/use-data-table";
@@ -34,14 +33,14 @@ export default function WorkOrdersList() {
 
   const getId = useCallback((wo: WorkOrderEnriched) => wo.id, []);
   const woColumns: ColumnDef[] = useMemo(() => [
-    { id: "woNumber", label: "WO #" }, { id: "applicant", label: "Applicant" },
-    { id: "company", label: "Company" }, { id: "service", label: "Service" },
-    { id: "pipeline", label: "Tracks" }, { id: "status", label: "Status" },
-    { id: "age", label: "Age" }, { id: "nextAction", label: "Next Action" },
+    { id: "woNumber", label: "WO #" }, { id: "applicant", label: "Applicant / Company" },
+    { id: "service", label: "Service" }, { id: "pipeline", label: "Tracks" },
+    { id: "status", label: "Status" }, { id: "age", label: "Age" },
+    { id: "nextAction", label: "Next Action" },
   ], []);
 
   const dt = useDataTable(filteredAndSortedWorkOrders, {
-    storageKey: "wo_list", defaultPageSize: 25, defaultViewMode: "cards", getId, columns: woColumns,
+    storageKey: "wo_list", defaultPageSize: 25, defaultViewMode: "table", getId, columns: woColumns,
   });
 
   const { renderWoContextMenu, renderMobileMenu } = useWoMenus({
@@ -78,26 +77,28 @@ export default function WorkOrdersList() {
         </div>
       </div>
 
-      <div className="px-4 lg:px-6 pb-20 md:pb-6 space-y-4">
+      <div className="px-4 lg:px-6 pb-6 space-y-4">
         <StatTiles stats={stats} specialFilter={specialFilter} setSpecialFilter={setSpecialFilter} />
         <PipelineButtons pipelineCounts={pipelineCounts} pipelineFilter={pipelineFilter} setPipelineFilter={setPipelineFilter} />
 
-        <DataTableToolbar
-          search={search} onSearchChange={setSearch} searchPlaceholder="Search by WO# or applicant..."
-          density={dt.density} onDensityChange={dt.setDensity} totalItems={dt.totalItems}
-          selectedCount={dt.selectedCount} onClearSelection={dt.clearSelection}
-          filters={filterControls}
-          viewModeToggle={<ViewModeToggle viewMode={viewMode} setViewMode={dt.setViewMode} />}
-          activeFilterCount={activeFilterCount} onClearFilters={clearAllFilters}
-          actions={<ColumnVisibilityDropdown columns={dt.columns} isColumnVisible={dt.isColumnVisible} toggleColumn={dt.toggleColumn} resetColumns={dt.resetColumns} />}
-          selectionActions={
-            <BulkActions
-              selectedIds={dt.selectedIds}
-              filteredWorkOrders={filteredAndSortedWorkOrders}
-              bulkStatusMutation={{ isPending: bulkStatusMutation.isPending, mutate: (args) => { bulkStatusMutation.mutate(args); dt.clearSelection(); } }}
-            />
-          }
-        />
+        <div className="sticky top-[72px] z-20 -mx-4 lg:-mx-6 px-4 lg:px-6 py-2 bg-background/80 backdrop-blur-md border-b border-border/30">
+          <DataTableToolbar
+            search={search} onSearchChange={setSearch} searchPlaceholder="Search by WO# or applicant..."
+            density={dt.density} onDensityChange={dt.setDensity} totalItems={dt.totalItems}
+            selectedCount={dt.selectedCount} onClearSelection={dt.clearSelection}
+            filters={filterControls}
+            viewModeToggle={<ViewModeToggle viewMode={viewMode} setViewMode={dt.setViewMode} />}
+            activeFilterCount={activeFilterCount} onClearFilters={clearAllFilters}
+            actions={<ColumnVisibilityDropdown columns={dt.columns} isColumnVisible={dt.isColumnVisible} toggleColumn={dt.toggleColumn} resetColumns={dt.resetColumns} />}
+            selectionActions={
+              <BulkActions
+                selectedIds={dt.selectedIds}
+                filteredWorkOrders={filteredAndSortedWorkOrders}
+                bulkStatusMutation={{ isPending: bulkStatusMutation.isPending, mutate: (args) => { bulkStatusMutation.mutate(args); dt.clearSelection(); } }}
+              />
+            }
+          />
+        </div>
 
         <div>
           {isLoading ? (
@@ -128,7 +129,6 @@ export default function WorkOrdersList() {
         {!isKanban && <DataTablePagination page={dt.page} totalPages={dt.totalPages} pageSize={dt.pageSize} totalItems={dt.totalItems} onPageChange={dt.setPage} onPageSizeChange={dt.setPageSize} />}
       </div>
 
-      <FloatingActionButton href="/work-orders/new" label="New Work Order" icon={<Plus className="h-5 w-5" />} />
     </AppLayout>
   );
 }
