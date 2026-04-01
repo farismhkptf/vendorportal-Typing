@@ -96,11 +96,16 @@ function buildAppleCalendarIcsUrl(title: string, dt: Date, location: string): st
   return `data:text/calendar;charset=utf8,${encodeURIComponent(ics)}`;
 }
 
-const calendarGoogleSvgImg = `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="display:block;"><rect x="3" y="4" width="18" height="17" rx="2" fill="white" stroke="#dadce0"/><rect x="3" y="4" width="18" height="5" rx="2" fill="#4285F4"/><rect x="3" y="7" width="18" height="2" fill="#4285F4"/><rect x="7" y="2" width="2" height="4" rx="1" fill="#4285F4"/><rect x="15" y="2" width="2" height="4" rx="1" fill="#4285F4"/><path d="M10 14.5L11.5 16L14.5 13" stroke="#34A853" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-
-const calendarAppleSvgImg = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="display:block;"><rect x="3" y="4" width="18" height="17" rx="2.5" fill="white" stroke="#d1d1d6" stroke-width="1"/><rect x="3" y="4" width="18" height="6" rx="2.5" fill="#ff3b30"/><rect x="3" y="8" width="18" height="2" fill="#ff3b30"/><rect x="7.5" y="2.5" width="1.5" height="3.5" rx="0.75" fill="#5e5e6a"/><rect x="15" y="2.5" width="1.5" height="3.5" rx="0.75" fill="#5e5e6a"/></svg>`;
-
-const calendarOutlookSvgImg = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="22" height="22" style="display:block;"><rect x="9" y="3" width="13" height="13" rx="1.5" fill="#0078D4"/><rect x="9" y="3" width="13" height="4" rx="1.5" fill="#005fa3"/><rect x="9" y="5" width="13" height="2" fill="#005fa3"/><rect x="12" y="2" width="1.5" height="3" rx="0.75" fill="#0078D4"/><rect x="18" y="2" width="1.5" height="3" rx="0.75" fill="#0078D4"/><rect x="2" y="8" width="11" height="13" rx="1.5" fill="#1d1d1f"/></svg>`;
+function buildCalendarPillButtons(googleUrl: string, appleUrl: string, outlookUrl: string): string {
+  const pillStyle = `display:inline-block;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;text-decoration:none;border:1px solid #e8e8ed;background:#f8f8fc;padding:4px 10px;border-radius:20px;white-space:nowrap;`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;display:inline-table;">
+    <tr>
+      <td style="padding-left:6px;"><a href="${escapeHtml(googleUrl)}" style="${pillStyle}">&#128197; Google</a></td>
+      <td style="padding-left:6px;"><a href="${escapeHtml(appleUrl)}" style="${pillStyle}">&#128197; Apple</a></td>
+      <td style="padding-left:6px;"><a href="${escapeHtml(outlookUrl)}" style="${pillStyle}">&#128197; Outlook</a></td>
+    </tr>
+  </table>`;
+}
 
 export function buildAppointmentEmail(data: AppointmentEmailData): string {
   const appointmentType = data.appointment.type ?? "Medical";
@@ -162,8 +167,8 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
     : `<div class="logo-mark" style="width:34px;height:34px;border-radius:8px;text-align:center;line-height:34px;font-size:15px;font-weight:600;letter-spacing:-0.02em;">${escapeHtml(companyInitial)}</div>`;
 
   const avatarBlock = applicantPhotoUrl
-    ? `<img src="${escapeHtml(applicantPhotoUrl)}" alt="${escapeHtml(applicantName)}" width="72" height="72" style="width:72px;height:72px;border-radius:50%;display:block;object-fit:cover;border:2px solid #ffffff;box-shadow:0 4px 14px rgba(0,0,0,0.07);" class="avatar-photo" />`
-    : `<div class="avatar-applicant" style="width:72px;height:72px;border-radius:50%;text-align:center;line-height:68px;font-size:22px;font-weight:600;letter-spacing:-0.02em;box-shadow:0 4px 14px rgba(0,0,0,0.07);">${escapeHtml(initials)}</div>`;
+    ? `<img src="${escapeHtml(applicantPhotoUrl)}" alt="${escapeHtml(applicantName)}" width="72" height="72" style="width:72px;height:72px;border-radius:50%;display:block;border:2px solid #ffffff;" />`
+    : `<div class="avatar-applicant" style="width:72px;height:72px;border-radius:50%;text-align:center;line-height:68px;font-size:22px;font-weight:600;letter-spacing:-0.02em;">${escapeHtml(initials)}</div>`;
 
   const dotSpan = `<span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin:0 6px;"></span>`;
   const eidServiceTypeMeta = serviceType?.name ?? appointment.type ?? "EID";
@@ -171,8 +176,12 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
   if (applicationNumber) applicantMetaParts.push(escapeHtml(applicationNumber));
   const applicantMetaHtml = applicantMetaParts.join(` ${dotSpan} `);
 
-  const phoneIconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle;margin-right:4px;opacity:0.5;"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z" fill="#5e5e6a"/></svg>`;
-  const emailIconSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle;margin-right:3px;opacity:0.45;"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#5e5e6a"/></svg>`;
+  const eidCalendarTitle = `${appointmentLabel} – ${companyName}`;
+  const eidCalendarLocation = centerAddress ? `${centerName}, ${centerAddress}` : centerName;
+  const eidGoogleUrl = isValidDate ? buildGoogleCalendarUrl(eidCalendarTitle, dt, eidCalendarLocation) : "#";
+  const eidAppleUrl = isValidDate ? buildAppleCalendarIcsUrl(eidCalendarTitle, dt, eidCalendarLocation) : "#";
+  const eidOutlookUrl = isValidDate ? buildOutlookCalendarUrl(eidCalendarTitle, dt, eidCalendarLocation) : "#";
+  const eidCalendarPills = buildCalendarPillButtons(eidGoogleUrl, eidAppleUrl, eidOutlookUrl);
 
   const cardUrl = (appBaseUrl && appointment.rescheduleToken)
     ? `${appBaseUrl}/card/${appointment.rescheduleToken}`
@@ -195,11 +204,13 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
         <table role="presentation" class="card-bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;">
           <tr><td style="padding:18px 22px;">
             <div class="text-secondary" style="font-size:14px;line-height:1.65;margin-bottom:12px;"><span class="reschedule-strong" style="font-size:14px;font-weight:600;color:#1d1d1f;">Need to reschedule?</span> Contact your Relationship Manager and we'll arrange a new slot at no cost.</div>
-            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
-              <span class="reschedule-rm-name" style="font-size:12px;font-weight:500;color:#3a3a3c;letter-spacing:0.005em;">${escapeHtml(rmDisplayName)}</span>
-              ${rmPhone ? `<span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;"></span><a href="tel:${escapeHtml(rmPhone)}" class="reschedule-rm-link" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">${phoneIconSvg}${escapeHtml(rmPhone)}</a>` : ""}
-              ${rmEmail ? `<span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;"></span><a href="mailto:${escapeHtml(rmEmail)}" class="reschedule-rm-link" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">${emailIconSvg}${escapeHtml(rmEmail)}</a>` : ""}
-            </div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="font-size:12px;font-weight:500;color:#3a3a3c;letter-spacing:0.005em;white-space:nowrap;">${escapeHtml(rmDisplayName)}</td>
+                ${rmPhone ? `<td style="padding-left:6px;white-space:nowrap;"><span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin-right:6px;"></span><a href="tel:${escapeHtml(rmPhone)}" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(rmPhone)}</a></td>` : ""}
+                ${rmEmail ? `<td style="padding-left:6px;white-space:nowrap;"><span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin-right:6px;"></span><a href="mailto:${escapeHtml(rmEmail)}" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(rmEmail)}</a></td>` : ""}
+              </tr>
+            </table>
           </td></tr>
         </table>
       </td></tr>`
@@ -215,7 +226,7 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
             </td>
             <td style="vertical-align:top;">
               <div class="text-primary" style="font-size:16px;font-weight:500;letter-spacing:-0.015em;line-height:1.3;margin-bottom:5px;">${escapeHtml(guideName)} <span class="text-label" style="font-size:12px;font-weight:400;letter-spacing:0.01em;">· On-Site Support</span></div>
-              ${guidePhone ? `<div class="text-secondary" style="font-size:13px;margin-bottom:10px;line-height:1.5;">${phoneIconSvg}<a href="tel:${escapeHtml(guidePhone)}" class="text-secondary link-underline" style="text-decoration:none;border-bottom:1px solid #e8e8ed;color:#5e5e6a;">${escapeHtml(guidePhone)}</a></div>` : ""}
+              ${guidePhone ? `<div class="text-secondary" style="font-size:13px;margin-bottom:10px;line-height:1.5;"><a href="tel:${escapeHtml(guidePhone)}" style="text-decoration:none;border-bottom:1px solid #e8e8ed;color:#5e5e6a;">${escapeHtml(guidePhone)}</a></div>` : ""}
             </td>
           </tr>
         </table>
@@ -374,13 +385,7 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                                     <div class="appt-datetime text-primary" style="font-size:20px;font-weight:600;letter-spacing:-0.02em;line-height:1.2;">${escapeHtml(dateStr)} &nbsp;&middot;&nbsp; ${escapeHtml(timeStr)}</div>
                                   </td>
                                   <td style="vertical-align:middle;text-align:right;white-space:nowrap;">
-                                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;display:inline-table;">
-                                      <tr>
-                                        <td style="padding-left:10px;">${calendarGoogleSvgImg}</td>
-                                        <td style="padding-left:10px;">${calendarAppleSvgImg}</td>
-                                        <td style="padding-left:10px;">${calendarOutlookSvgImg}</td>
-                                      </tr>
-                                    </table>
+                                    ${eidCalendarPills}
                                   </td>
                                 </tr>
                               </table>
@@ -411,26 +416,26 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                             <td style="padding:18px 22px;">
                               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                                 <tr>
-                                  <td style="width:32px;vertical-align:top;padding-right:12px;padding-bottom:10px;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.5;margin-top:1px;"><circle cx="12" cy="12" r="9" stroke="#1d1d1f" stroke-width="1.5"/><path d="M12 7v5.5l3 2" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
+                                  <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
+                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.6;">&#8226;</span>
                                   </td>
-                                  <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;line-height:1.6;padding-bottom:14px;">
+                                  <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.6;padding-bottom:12px;">
                                     Arrive at least 10 minutes before your appointment time.
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td style="width:32px;vertical-align:top;padding-right:12px;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.5;margin-top:1px;"><rect x="4" y="3" width="12" height="16" rx="2" stroke="#1d1d1f" stroke-width="1.5"/><path d="M8 8h6M8 12h4" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/><path d="M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
+                                  <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
+                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.6;">&#8226;</span>
                                   </td>
-                                  <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;line-height:1.6;padding-bottom:14px;">
+                                  <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.6;padding-bottom:12px;">
                                     Bring your original passport. No copies or digital versions accepted.
                                   </td>
                                 </tr>
                                 <tr>
-                                  <td style="width:32px;vertical-align:top;padding-right:12px;">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.5;margin-top:1px;"><circle cx="12" cy="12" r="10" stroke="#1d1d1f" stroke-width="1.5"/><path d="M12 8v4l2.5 2.5" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
+                                  <td style="width:16px;vertical-align:top;padding-right:10px;">
+                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.6;">&#8226;</span>
                                   </td>
-                                  <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;line-height:1.6;">
+                                  <td class="text-secondary" style="vertical-align:top;font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.6;">
                                     Your guide will meet you on arrival and handle the queue and registration on your behalf.
                                   </td>
                                 </tr>
@@ -534,8 +539,8 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
     : `<div class="logo" style="width:34px;height:34px;background:#1d1d1f;border-radius:8px;text-align:center;line-height:34px;font-size:15px;font-weight:600;letter-spacing:-0.02em;color:#ffffff;display:inline-block;">${escapeHtml(companyInitial)}</div>`;
 
   const avatarBlock = applicantPhotoUrl
-    ? `<img src="${escapeHtml(applicantPhotoUrl)}" alt="${escapeHtml(applicantName)}" width="64" height="64" style="width:64px;height:64px;border-radius:50%;display:block;object-fit:cover;border:2px solid #ffffff;box-shadow:0 3px 12px rgba(0,0,0,0.08);" />`
-    : `<div class="avatar avatar-a" style="width:64px;height:64px;border-radius:50%;background:#dbeafe;color:#1d4ed8;text-align:center;line-height:60px;font-size:19px;font-weight:700;letter-spacing:-0.02em;border:2px solid #ffffff;box-shadow:0 3px 12px rgba(0,0,0,0.08);display:inline-block;">${escapeHtml(initials)}</div>`;
+    ? `<img src="${escapeHtml(applicantPhotoUrl)}" alt="${escapeHtml(applicantName)}" width="64" height="64" style="width:64px;height:64px;border-radius:50%;display:block;border:2px solid #ffffff;" />`
+    : `<div class="avatar avatar-a" style="width:64px;height:64px;border-radius:50%;background:#dbeafe;color:#1d4ed8;text-align:center;line-height:60px;font-size:19px;font-weight:700;letter-spacing:-0.02em;border:2px solid #ffffff;display:inline-block;">${escapeHtml(initials)}</div>`;
 
   const calendarTitle = `${appointmentLabel} – ${companyName}`;
   const calendarLocation = centerAddress ? `${centerName}, ${centerAddress}` : centerName;
@@ -563,10 +568,6 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
        </tr>`
     : "";
 
-  const phoneIconSvg = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle;margin-right:4px;opacity:0.5;"><path d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24c1.12.37 2.33.57 3.58.57a1 1 0 011 1V20a1 1 0 01-1 1C10.61 21 3 13.39 3 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.58a1 1 0 01-.25 1.01l-2.2 2.2z" fill="#5e5e6a"/></svg>`;
-
-  const emailIconSvg = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline;vertical-align:middle;margin-right:3px;opacity:0.45;"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#5e5e6a"/></svg>`;
-
   const guideSection = guideName
     ? `<tr><td style="padding-top:40px;" colspan="2">
         <div class="section-heading" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Your On-Site Guide</div>
@@ -577,7 +578,7 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
             </td>
             <td style="vertical-align:top;" class="guide-info">
               <div class="guide-name" style="font-size:16px;font-weight:500;color:#1d1d1f;letter-spacing:-0.015em;line-height:1.3;margin-bottom:5px;">${escapeHtml(guideName)} <span class="guide-role-inline" style="font-size:12px;font-weight:400;color:#8e8e98;letter-spacing:0.01em;">· On-Site Support</span></div>
-              ${guidePhone ? `<div class="guide-phone" style="font-size:13px;font-weight:400;color:#5e5e6a;margin-bottom:10px;line-height:1.5;">${phoneIconSvg}<a href="tel:${escapeHtml(guidePhone)}" style="color:#5e5e6a;text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(guidePhone)}</a></div>` : ""}
+              ${guidePhone ? `<div class="guide-phone" style="font-size:13px;font-weight:400;color:#5e5e6a;margin-bottom:10px;line-height:1.5;"><a href="tel:${escapeHtml(guidePhone)}" style="color:#5e5e6a;text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(guidePhone)}</a></div>` : ""}
             </td>
           </tr>
         </table>
@@ -610,14 +611,18 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
 
   const rescheduleBox = hasRmContact
     ? `<tr><td colspan="2">
-        <div class="reschedule-box" style="background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;padding:18px 22px;margin-top:40px;">
-          <div class="reschedule-text" style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.65;margin-bottom:12px;"><strong style="font-size:14px;font-weight:600;color:#1d1d1f;">Need to reschedule?</strong> Contact your Relationship Manager and we&rsquo;ll arrange a new slot at no cost.</div>
-          <div class="reschedule-rm" style="display:flex;align-items:center;flex-wrap:wrap;gap:6px;">
-            <span class="reschedule-rm-name" style="font-size:12px;font-weight:500;color:#3a3a3c;letter-spacing:0.005em;">${escapeHtml(rmDisplayName)}</span>
-            ${rmPhone ? `<span class="reschedule-rm-dot" style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;"></span><a href="tel:${escapeHtml(rmPhone)}" class="reschedule-rm-link" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">${phoneIconSvg}${escapeHtml(rmPhone)}</a>` : ""}
-            ${rmEmail ? `<span class="reschedule-rm-dot" style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;"></span><a href="mailto:${escapeHtml(rmEmail)}" class="reschedule-rm-link" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">${emailIconSvg}${escapeHtml(rmEmail)}</a>` : ""}
-          </div>
-        </div>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;margin-top:40px;">
+          <tr><td style="padding:18px 22px;">
+            <div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.65;margin-bottom:12px;"><strong style="font-size:14px;font-weight:600;color:#1d1d1f;">Need to reschedule?</strong> Contact your Relationship Manager and we&rsquo;ll arrange a new slot at no cost.</div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="font-size:12px;font-weight:500;color:#3a3a3c;letter-spacing:0.005em;white-space:nowrap;">${escapeHtml(rmDisplayName)}</td>
+                ${rmPhone ? `<td style="padding-left:6px;white-space:nowrap;"><span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin-right:6px;"></span><a href="tel:${escapeHtml(rmPhone)}" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(rmPhone)}</a></td>` : ""}
+                ${rmEmail ? `<td style="padding-left:6px;white-space:nowrap;"><span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin-right:6px;"></span><a href="mailto:${escapeHtml(rmEmail)}" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">${escapeHtml(rmEmail)}</a></td>` : ""}
+              </tr>
+            </table>
+          </td></tr>
+        </table>
       </td></tr>`
     : "";
 
@@ -629,11 +634,7 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;">
               <tr>
                 <td style="vertical-align:middle;padding-right:16px;width:44px;">
-                  <svg width="40" height="40" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
-                    <circle cx="30" cy="30" r="30" fill="#006994"/>
-                    <path d="M18 22h24v3H18v-3zm0 6h24v3H18v-3zm0 6h16v3H18v-3z" fill="#ffffff" opacity="0.9"/>
-                    <path d="M30 14l2.5 7.5H40l-6 4.5 2.5 7.5L30 29l-6.5 4.5 2.5-7.5-6-4.5h7.5L30 14z" fill="#f5c518"/>
-                  </svg>
+                  <div style="width:40px;height:40px;background:#006994;border-radius:50%;text-align:center;line-height:40px;font-size:18px;font-weight:700;color:#f5c518;display:inline-block;">&#9733;</div>
                 </td>
                 <td style="vertical-align:middle;">
                   <div style="font-size:12px;font-weight:700;color:#004a6e;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px;">Dubai Health Authority</div>
@@ -720,31 +721,14 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
     <![endif]-->
     <style>
 
-        :root {
-            --black:        #1d1d1f;
-            --gray-dark:    #3a3a3c;
-            --gray-mid:     #5e5e6a;
-            --gray-light:   #8e8e98;
-            --gray-lighter: #a1a1a8;
-            --bg:           #f5f5f7;
-            --white:        #ffffff;
-            --border:       #e8e8ed;
-            --card:         #f8f8fc;
-            --font:         -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
-            --avatar-a-bg:  #dbeafe;
-            --avatar-a-fg:  #1d4ed8;
-            --avatar-s-bg:  #dcfce7;
-            --avatar-s-fg:  #15803d;
-        }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background-color: var(--bg);
-            font-family: var(--font);
+            background-color: #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
             font-size: 15px;
             line-height: 1.6;
-            color: var(--black);
+            color: #1d1d1f;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
             padding: 32px 20px;
@@ -754,39 +738,29 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
         .email {
             max-width: 680px;
             margin: 0 auto;
-            background: var(--white);
+            background: #ffffff;
             border-radius: 24px;
-            box-shadow: 0 20px 48px -8px rgba(0,0,0,0.10);
             overflow: hidden;
         }
 
         .content { padding: 52px 48px 52px; }
 
-        /* ── HEADER ── */
-        .header {
-            display: flex;
-            align-items: center;
-            padding-bottom: 22px;
-            margin-bottom: 40px;
-            border-bottom: 1px solid var(--border);
-        }
-
         .logo {
             width: 34px; height: 34px;
-            background: var(--black);
+            background: #1d1d1f;
             border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            color: var(--white);
+            text-align: center;
+            line-height: 34px;
+            color: #ffffff;
             font-size: 15px; font-weight: 600;
             letter-spacing: -0.02em;
-            flex-shrink: 0;
-            margin-right: 12px;
+            display: inline-block;
         }
 
         .brand-name {
             font-size: 14px;
             font-weight: 500;
-            color: var(--black);
+            color: #1d1d1f;
             letter-spacing: -0.01em;
             line-height: 1.35;
         }
@@ -794,7 +768,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
         .brand-tagline {
             font-size: 11px;
             font-weight: 400;
-            color: var(--gray-light);
+            color: #8e8e98;
             letter-spacing: 0.04em;
             margin-top: 2px;
         }
@@ -805,47 +779,37 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
             font-weight: 600;
             letter-spacing: -0.03em;
             line-height: 1.1;
-            color: var(--black);
+            color: #1d1d1f;
             margin-bottom: 8px;
         }
 
         .service-type {
             font-size: 14px;
             font-weight: 400;
-            color: var(--gray-light);
+            color: #8e8e98;
             letter-spacing: 0.02em;
             margin-bottom: 32px;
-        }
-
-        /* ── APPLICANT ROW ── */
-        .applicant-row {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            padding-bottom: 28px;
-            margin-bottom: 28px;
-            border-bottom: 1px solid var(--border);
         }
 
         .avatar {
             width: 64px; height: 64px;
             border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
+            text-align: center;
+            line-height: 60px;
             font-size: 19px; font-weight: 700;
             letter-spacing: -0.02em;
-            flex-shrink: 0;
-            border: 2px solid var(--white);
-            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            border: 2px solid #ffffff;
+            display: inline-block;
         }
 
-        .avatar-a { background: var(--avatar-a-bg); color: var(--avatar-a-fg); }
+        .avatar-a { background: #dbeafe; color: #1d4ed8; }
 
         .avatar-s {
             width: 46px; height: 46px;
+            line-height: 42px;
             font-size: 14px;
-            background: var(--avatar-s-bg);
-            color: var(--avatar-s-fg);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            background: #dcfce7;
+            color: #15803d;
         }
 
         .applicant-name {
@@ -853,44 +817,19 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
             font-weight: 500;
             letter-spacing: -0.025em;
             line-height: 1.2;
-            color: var(--black);
+            color: #1d1d1f;
             margin-bottom: 6px;
         }
 
-        .applicant-meta {
-            font-size: 12px;
-            font-weight: 400;
-            color: var(--gray-light);
-            display: flex; align-items: center;
-            gap: 7px;
-            letter-spacing: 0.01em;
-        }
-
-        .meta-dot {
-            width: 3px; height: 3px;
-            background: var(--gray-lighter);
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
         /* ── APPOINTMENT CARD ── */
-        .appt-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            overflow: hidden;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-
         .appt-block { padding: 18px 22px; }
 
-        .appt-divider { height: 1px; background: var(--border); }
+        .appt-divider { height: 1px; background: #e8e8ed; }
 
         .data-label {
             font-size: 10px;
             font-weight: 600;
-            color: var(--gray-light);
+            color: #8e8e98;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             margin-bottom: 6px;
@@ -901,35 +840,13 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
             font-weight: 600;
             letter-spacing: -0.025em;
             line-height: 1.2;
-            color: var(--black);
+            color: #1d1d1f;
         }
-
-        .appt-datetime-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .calendar-icons { display: flex; align-items: center; gap: 12px; }
-
-        .calendar-icon {
-            width: 24px; height: 24px;
-            opacity: 0.55;
-            transition: opacity 0.15s;
-            display: flex; align-items: center; justify-content: center;
-            text-decoration: none;
-            flex-shrink: 0;
-        }
-
-        .calendar-icon:hover { opacity: 1; }
-        .calendar-icon svg { width: 100%; height: 100%; }
 
         .appt-location-name {
             font-size: 15px;
             font-weight: 500;
-            color: var(--black);
+            color: #1d1d1f;
             letter-spacing: -0.01em;
             line-height: 1.3;
             margin-bottom: 4px;
@@ -938,7 +855,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
         .appt-location-address {
             font-size: 13px;
             font-weight: 400;
-            color: var(--gray-mid);
+            color: #5e5e6a;
             line-height: 1.55;
             margin-bottom: 9px;
         }
@@ -947,28 +864,17 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
             display: inline-block;
             font-size: 12px;
             font-weight: 400;
-            color: var(--black);
+            color: #1d1d1f;
             text-decoration: none;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid #e8e8ed;
             padding-bottom: 1px;
             letter-spacing: 0.005em;
-            transition: border-color 0.15s;
-        }
-
-        .map-link:hover { border-color: var(--black); }
-
-        .appt-ref-row {
-            padding: 13px 22px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
         }
 
         .appt-ref-value {
             font-size: 12px;
             font-weight: 500;
-            color: var(--gray-mid);
+            color: #5e5e6a;
             letter-spacing: 0.04em;
         }
 
@@ -976,7 +882,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
         .section-heading {
             font-size: 10px;
             font-weight: 600;
-            color: var(--gray-light);
+            color: #8e8e98;
             text-transform: uppercase;
             letter-spacing: 0.1em;
             margin-top: 40px;
@@ -984,18 +890,10 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
         }
 
         /* ── GUIDE ── */
-        .guide-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-        }
-
-        .guide-info { flex: 1; }
-
         .guide-name {
             font-size: 16px;
             font-weight: 500;
-            color: var(--black);
+            color: #1d1d1f;
             letter-spacing: -0.015em;
             line-height: 1.3;
             margin-bottom: 5px;
@@ -1004,172 +902,68 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
         .guide-role-inline {
             font-size: 12px;
             font-weight: 400;
-            color: var(--gray-light);
+            color: #8e8e98;
             letter-spacing: 0.01em;
         }
 
         .guide-phone {
             font-size: 13px;
             font-weight: 400;
-            color: var(--gray-mid);
+            color: #5e5e6a;
             margin-bottom: 10px;
             line-height: 1.5;
         }
 
         .guide-phone a {
-            color: var(--gray-mid);
+            color: #5e5e6a;
             text-decoration: none;
-            border-bottom: 1px solid var(--border);
-            transition: color 0.15s, border-color 0.15s;
+            border-bottom: 1px solid #e8e8ed;
         }
-
-        .guide-phone a:hover { color: var(--black); border-color: var(--black); }
 
         .guide-description {
             font-size: 14px;
             font-weight: 400;
-            color: var(--gray-mid);
+            color: #5e5e6a;
             line-height: 1.7;
             letter-spacing: 0.005em;
-        }
-
-        /* ── BEFORE YOU GO ── */
-        .notice-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 18px 22px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .notice-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--black);
-            line-height: 1.55;
-            letter-spacing: -0.005em;
-        }
-
-        .notice-icon {
-            width: 18px; height: 18px;
-            flex-shrink: 0;
-            margin-top: 2px;
-            opacity: 0.4;
         }
 
         /* ── AFTER APPOINTMENT ── */
         .after-text {
             font-size: 14px;
             font-weight: 400;
-            color: var(--gray-mid);
+            color: #5e5e6a;
             line-height: 1.7;
             letter-spacing: 0.005em;
         }
 
-        /* ── RESCHEDULE ── */
-        .reschedule-box {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 18px 22px;
-            margin-top: 40px;
-        }
-
-        .reschedule-text {
-            font-size: 14px;
-            font-weight: 400;
-            color: var(--gray-mid);
-            line-height: 1.65;
-            margin-bottom: 12px;
-        }
-
-        .reschedule-text strong {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--black);
-        }
-
-        .reschedule-rm {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
-        .reschedule-rm-name {
-            font-size: 12px;
-            font-weight: 500;
-            color: var(--gray-dark);
-            letter-spacing: 0.005em;
-        }
-
-        .reschedule-rm-dot {
-            width: 3px; height: 3px;
-            background: var(--gray-lighter);
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .reschedule-rm-link {
-            font-size: 12px;
-            font-weight: 400;
-            color: var(--gray-light);
-            text-decoration: none;
-            border-bottom: 1px solid var(--border);
-            transition: color 0.15s, border-color 0.15s;
-        }
-
-        .reschedule-rm-link:hover { color: var(--black); border-color: var(--black); }
-
         /* ── FOOTER ── */
-        .footer {
-            margin-top: 48px;
-            padding-top: 24px;
-            border-top: 1px solid var(--border);
-            text-align: center;
-        }
-
         .footer-brand {
             font-size: 12px;
             font-weight: 500;
-            color: var(--black);
+            color: #1d1d1f;
             letter-spacing: -0.01em;
         }
 
-        .footer-brand a { color: var(--black); text-decoration: none; }
-
-        .footer-divider {
-            width: 24px; height: 1px;
-            background: var(--border);
-            margin: 8px auto;
-        }
+        .footer-brand a { color: #1d1d1f; text-decoration: none; }
 
         .footer-powered {
             font-size: 11px;
             font-weight: 400;
-            color: var(--gray-lighter);
+            color: #a1a1a8;
             letter-spacing: 0.01em;
             margin-bottom: 4px;
         }
 
         .footer-powered a {
-            color: var(--gray-lighter);
+            color: #a1a1a8;
             text-decoration: none;
-            border-bottom: 1px solid transparent;
-            transition: color 0.15s, border-color 0.15s;
         }
-
-        .footer-powered a:hover { color: var(--black); border-color: var(--border); }
 
         .footer-legal {
             font-size: 10px;
             font-weight: 400;
-            color: var(--gray-lighter);
+            color: #a1a1a8;
             letter-spacing: 0.015em;
         }
 
@@ -1180,47 +974,30 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
             .applicant-name   { font-size: 21px; }
             .avatar           { width: 56px; height: 56px; font-size: 17px; }
             .appt-datetime    { font-size: 18px; }
-            .appt-datetime-row { flex-direction: column; align-items: flex-start; gap: 10px; }
         }
 
         /* ── DARK MODE ── */
         @media (prefers-color-scheme: dark) {
             body  { background: #000; }
-            .email { background: #1c1c1e; box-shadow: 0 20px 48px -8px rgba(0,0,0,0.5); }
-
-            .header, .applicant-row, .footer { border-color: #2c2c2e; }
+            .email { background: #1c1c1e; }
 
             .brand-name, .company, .applicant-name,
             .appt-datetime, .appt-location-name,
             .guide-name, .footer-brand { color: #f5f5f7; }
 
-            .brand-tagline, .service-type, .applicant-meta,
+            .brand-tagline, .service-type,
             .guide-description, .after-text,
             .footer-powered, .footer-legal { color: #8e8e98; }
 
             .data-label, .section-heading { color: #636366; }
-
-            .appt-card, .notice-card, .reschedule-box {
-                background: #2c2c2e;
-                border-color: #3a3a3c;
-            }
 
             .appt-divider { background: #3a3a3c; }
 
             .appt-location-address, .appt-ref-value,
             .guide-phone, .guide-phone a { color: #8e8e98; }
 
-            .map-link, .footer-brand a, .footer-powered a {
-                color: #f5f5f7; border-color: #3a3a3c;
-            }
+            .map-link { color: #f5f5f7; border-color: #3a3a3c; }
 
-            .notice-item { color: #f5f5f7; }
-            .notice-icon path, .notice-icon circle { stroke: #f5f5f7; }
-
-            .reschedule-text strong, .reschedule-rm-name { color: #f5f5f7; }
-            .reschedule-rm-link { color: #8e8e98; border-color: #3a3a3c; }
-
-            .footer-divider { background: #2c2c2e; }
             .avatar-a { background: #1e3a8a; color: #93c5fd; }
             .avatar-s { background: #14532d; color: #86efac; }
         }
@@ -1295,13 +1072,7 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                               <div class="appt-datetime" style="font-size:22px;font-weight:600;letter-spacing:-0.025em;line-height:1.2;color:#1d1d1f;">${escapeHtml(dateStr)} &nbsp;&middot;&nbsp; ${escapeHtml(timeStr)}</div>
                             </td>
                             <td style="vertical-align:middle;text-align:right;white-space:nowrap;">
-                              <table role="presentation" class="calendar-icons" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;display:inline-table;">
-                                <tr>
-                                  <td style="padding-left:12px;"><a href="${escapeHtml(googleUrl)}" class="calendar-icon" title="Add to Google Calendar" style="display:block;text-decoration:none;opacity:0.55;">${calendarGoogleSvgImg}</a></td>
-                                  <td style="padding-left:12px;"><a href="${escapeHtml(appleUrl)}" class="calendar-icon" title="Add to Apple Calendar" style="display:block;text-decoration:none;opacity:0.55;">${calendarAppleSvgImg}</a></td>
-                                  <td style="padding-left:12px;"><a href="${escapeHtml(outlookUrl)}" class="calendar-icon" title="Add to Outlook Calendar" style="display:block;text-decoration:none;opacity:0.55;">${calendarOutlookSvgImg}</a></td>
-                                </tr>
-                              </table>
+                              ${buildCalendarPillButtons(googleUrl, appleUrl, outlookUrl)}
                             </td>
                           </tr>
                         </table>
@@ -1329,39 +1100,39 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
               <tr>
                 <td style="padding-top:40px;" colspan="2">
                   <div class="section-heading" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Before You Go</div>
-                  <table role="presentation" class="notice-card" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;padding:18px 22px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;">
                     <tr>
                       <td style="padding:18px 22px;">
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                           <tr>
-                            <td style="width:30px;vertical-align:top;padding-right:12px;padding-bottom:14px;">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.4;margin-top:2px;"><circle cx="12" cy="12" r="9" stroke="#1d1d1f" stroke-width="1.5"/><path d="M12 7v5.5l3 2" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
+                              <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">&#8226;</span>
                             </td>
-                            <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:14px;">
+                            <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;">
                               Arrive at least 10 minutes before your appointment time.
                             </td>
                           </tr>
                           <tr>
-                            <td style="width:30px;vertical-align:top;padding-right:12px;">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.4;margin-top:2px;"><rect x="4" y="3" width="12" height="16" rx="2" stroke="#1d1d1f" stroke-width="1.5"/><path d="M8 8h6M8 12h4" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/><path d="M16 8h2a2 2 0 012 2v9a2 2 0 01-2 2H8a2 2 0 01-2-2v-1" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
+                              <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">&#8226;</span>
                             </td>
-                            <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:14px;">
+                            <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;">
                               Bring your original passport. No copies or digital versions accepted.
                             </td>
                           </tr>
                           <tr>
-                            <td style="width:30px;vertical-align:top;padding-right:12px;padding-bottom:14px;">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.4;margin-top:2px;"><path d="M20 12c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/><path d="M16 4l2 2-6 6" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
+                              <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">&#8226;</span>
                             </td>
-                            <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:14px;">
+                            <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;">
                               Dress comfortably &mdash; loose, modest clothing works best. Shoulders and knees must be covered.
                             </td>
                           </tr>
                           <tr>
-                            <td style="width:30px;vertical-align:top;padding-right:12px;">
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="notice-icon" style="display:block;opacity:0.4;margin-top:2px;"><circle cx="12" cy="12" r="9" stroke="#1d1d1f" stroke-width="1.5"/><path d="M12 8v4M12 16h.01" stroke="#1d1d1f" stroke-width="1.5" stroke-linecap="round"/></svg>
+                            <td style="width:16px;vertical-align:top;padding-right:10px;">
+                              <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">&#8226;</span>
                             </td>
-                            <td class="notice-item" style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;">
+                            <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;">
                               Leave jewellery at home. The examination includes an X-ray and metal accessories must be removed.
                             </td>
                           </tr>

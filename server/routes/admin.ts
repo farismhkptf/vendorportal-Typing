@@ -809,7 +809,10 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       if (wo) {
         const docs = await storage.getWoDocuments(wo.id);
         const photoDoc = docs.find(d => d.documentType === "Photo" && d.status === "Uploaded");
-        if (photoDoc) applicantPhotoUrl = photoDoc.fileUrl;
+        if (photoDoc?.fileUrl) {
+          const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+          applicantPhotoUrl = photoDoc.fileUrl.startsWith("/") ? `${baseUrl}${photoDoc.fileUrl}` : photoDoc.fileUrl;
+        }
       }
 
       let serviceTypeName: string | null = null;
@@ -903,7 +906,8 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       const isEID = appointment.type === "EID";
       const passDescription = isEID ? "Emirates ID Biometrics" : "Medical Fitness Appointment";
 
-      const cardUrl = `${req.protocol}://${req.get("host")}/card/${token}`;
+      const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
+      const cardUrl = `${baseUrl}/card/${token}`;
 
       const navyRgb = "rgb(26, 58, 107)";
 
