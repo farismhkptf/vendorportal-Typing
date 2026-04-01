@@ -318,7 +318,31 @@ export const users = pgTable("users", {
   active: boolean("active").notNull().default(true),
   managerPin: text("manager_pin").default("0000"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Employee profile fields
+  phone: text("phone"),
+  whatsapp: text("whatsapp"),
+  personalEmail: text("personal_email"),
+  eidNumber: text("eid_number"),
+  profilePhotoUrl: text("profile_photo_url"),
+  profileCompletedAt: timestamp("profile_completed_at"),
 });
+
+// Magic link tokens table
+export const magicLinkTokens = pgTable("magic_link_tokens", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  tokenHash: text("token_hash").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_magic_link_tokens_token_hash").on(table.tokenHash),
+  index("idx_magic_link_tokens_email").on(table.email),
+]);
+
+export const insertMagicLinkTokenSchema = createInsertSchema(magicLinkTokens).omit({ id: true, createdAt: true });
+export type InsertMagicLinkToken = z.infer<typeof insertMagicLinkTokenSchema>;
+export type MagicLinkToken = typeof magicLinkTokens.$inferSelect;
 
 // Staff table
 export const staff = pgTable("staff", {

@@ -1,7 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PageTransition } from "@/components/ui/page-transition";
@@ -115,6 +115,8 @@ import NewCustodyQueuePage from "@/pages/custody/queue";
 import CustodyDetailPage from "@/pages/custody/detail";
 import AttestationVendorLogin from "@/pages/vendor-attestation/login";
 import AttestationVendorJobsPage from "@/pages/vendor-attestation/jobs";
+import AuthMagic from "@/pages/auth-magic";
+import ProfileComplete from "@/pages/profile-complete";
 
 function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
   return (
@@ -169,6 +171,36 @@ function getRouteRoles(location: string): string[] | null {
   return null;
 }
 
+function ProfileCompletionBanner() {
+  const [, setLocation] = useLocation();
+  const [location] = useLocation();
+  const { user } = useAuth();
+  const INTERNAL_ROLES = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
+  const { data: profile } = useQuery<{ profileCompleted: boolean }>({
+    queryKey: ["/api/auth/profile"],
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    enabled: !!user && INTERNAL_ROLES.includes(user.role),
+  });
+  if (!user || !INTERNAL_ROLES.includes(user.role)) return null;
+  if (!profile || profile.profileCompleted) return null;
+  if (location === "/profile/complete") return null;
+  return (
+    <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between gap-3 text-sm" data-testid="banner-profile-incomplete">
+      <span className="text-amber-600 dark:text-amber-400 font-medium">
+        Your employee profile is incomplete.
+      </span>
+      <button
+        onClick={() => setLocation("/profile/complete")}
+        className="text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:no-underline shrink-0"
+        data-testid="button-complete-profile"
+      >
+        Complete it now
+      </button>
+    </div>
+  );
+}
+
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
@@ -191,7 +223,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     location.startsWith("/card/") ||
     location === "/vendor-attestation/login" ||
     location === "/vendor-attestation/jobs" ||
-    location.startsWith("/vendor-attestation/");
+    location.startsWith("/vendor-attestation/") ||
+    location.startsWith("/auth/");
 
   if (!user && !isPublicPath) {
     return <Redirect to="/login" />;
@@ -374,6 +407,8 @@ function AppRoutes() {
       <Route path="/vendor-attestation/jobs" component={AttestationVendorJobsPage} />
       <Route path="/custody-queue" component={NewCustodyQueuePage} />
       <Route path="/custody/:id" component={CustodyDetailPage} />
+      <Route path="/auth/magic" component={AuthMagic} />
+      <Route path="/profile/complete" component={ProfileComplete} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -386,6 +421,7 @@ function Router() {
   return (
     <AuthGuard>
       <ScrollToTop />
+      <ProfileCompletionBanner />
       {isV2Portal ? <AppRoutes /> : <PageTransition><AppRoutes /></PageTransition>}
     </AuthGuard>
   );

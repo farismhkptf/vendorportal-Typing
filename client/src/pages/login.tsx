@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Lock, Mail, User, ChevronRight, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User, ChevronRight, Loader2, Send, CheckCircle2 } from "lucide-react";
 import { z } from "zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,8 @@ function getRoleLabel(role: string): string {
   }
 }
 
+type LoginTab = "password" | "magic-link";
+
 export default function Login() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
@@ -58,9 +60,25 @@ export default function Login() {
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [loginTab, setLoginTab] = useState<LoginTab>("password");
+  const [magicLinkEmail, setMagicLinkEmail] = useState("");
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
   const { toast } = useToast();
   const { user, isLoading, login, quickLogin } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const magicLinkMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest("POST", "/api/auth/magic-link/request", { email });
+      return res.json();
+    },
+    onSuccess: () => {
+      setMagicLinkSent(true);
+    },
+    onError: () => {
+      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+    },
+  });
 
   const forgotPasswordMutation = useMutation({
     mutationFn: async (email: string) => {
@@ -239,102 +257,180 @@ export default function Login() {
                 </div>
               ) : (
                 <>
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <label className="text-xs font-medium text-white/70 uppercase tracking-wider">
-                              Email
-                            </label>
-                            <FormControl>
-                              <div className="relative mt-1.5">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
-                                <input
-                                  {...field}
-                                  type="email"
-                                  autoComplete="email"
-                                  placeholder="you@company.com"
-                                  className="login-glass-input w-full rounded-md pl-10 pr-3 py-2 h-10 border"
-                                  data-testid="input-email"
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage className="text-red-400" />
-                          </FormItem>
-                        )}
-                      />
+                  <div className="flex rounded-lg overflow-hidden border border-white/10 mb-5" data-testid="login-tabs">
+                    <button
+                      type="button"
+                      onClick={() => { setLoginTab("password"); setMagicLinkSent(false); }}
+                      className={`flex-1 py-2 text-sm font-medium transition-colors ${loginTab === "password" ? "bg-white/15 text-white" : "text-white/50 hover:text-white/80"}`}
+                      data-testid="tab-password"
+                    >
+                      Password
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setLoginTab("magic-link"); setMagicLinkSent(false); }}
+                      className={`flex-1 py-2 text-sm font-medium transition-colors ${loginTab === "magic-link" ? "bg-white/15 text-white" : "text-white/50 hover:text-white/80"}`}
+                      data-testid="tab-magic-link"
+                    >
+                      Email me a link
+                    </button>
+                  </div>
 
-                      <FormField
-                        control={form.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
+                  {loginTab === "password" ? (
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <label className="text-xs font-medium text-white/70 uppercase tracking-wider">
+                                Email
+                              </label>
+                              <FormControl>
+                                <div className="relative mt-1.5">
+                                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+                                  <input
+                                    {...field}
+                                    type="email"
+                                    autoComplete="email"
+                                    placeholder="you@company.com"
+                                    className="login-glass-input w-full rounded-md pl-10 pr-3 py-2 h-10 border"
+                                    data-testid="input-email"
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormMessage className="text-red-400" />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="password"
+                          render={({ field }) => (
+                            <FormItem>
+                              <label className="text-xs font-medium text-white/70 uppercase tracking-wider">
+                                Password
+                              </label>
+                              <FormControl>
+                                <div className="relative mt-1.5">
+                                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+                                  <input
+                                    {...field}
+                                    type={showPassword ? "text" : "password"}
+                                    autoComplete="current-password"
+                                    placeholder="Enter your password"
+                                    className="login-glass-input w-full rounded-md pl-10 pr-10 py-2 h-10 border"
+                                    onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                                    onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
+                                    data-testid="input-password"
+                                  />
+                                  <button
+                                    type="button"
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-white/50 hover:text-white/80 transition-colors"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    data-testid="button-toggle-password"
+                                  >
+                                    {showPassword ? (
+                                      <EyeOff className="h-4 w-4" />
+                                    ) : (
+                                      <Eye className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              </FormControl>
+                              <FormMessage className="text-red-400" />
+                              {capsLockOn && (
+                                <p className="text-xs text-amber-400 mt-1" data-testid="text-caps-lock-warning">
+                                  Caps Lock is on
+                                </p>
+                              )}
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="mt-6">
+                          <button
+                            type="submit"
+                            className="login-brand-button w-full py-2.5 rounded-md"
+                            disabled={isSubmitting}
+                            data-testid="button-login"
+                          >
+                            {isSubmitting ? "Signing in..." : "Sign in"}
+                          </button>
+                        </div>
+
+                        <div className="text-center">
+                          <button
+                            type="button"
+                            onClick={() => setShowForgotPassword(true)}
+                            className="text-sm text-white/50 hover:text-white/80 transition-colors"
+                            data-testid="button-forgot-password"
+                          >
+                            Forgot your password?
+                          </button>
+                        </div>
+                      </form>
+                    </Form>
+                  ) : (
+                    <div className="space-y-4">
+                      {magicLinkSent ? (
+                        <div className="text-center py-4 space-y-3" data-testid="magic-link-sent-confirmation">
+                          <div className="flex justify-center">
+                            <CheckCircle2 className="h-12 w-12 text-green-400" />
+                          </div>
+                          <p className="text-white font-medium">Check your inbox</p>
+                          <p className="text-sm text-white/60">
+                            We sent a login link to <span className="text-white/80">{magicLinkEmail}</span>. It expires in 15 minutes.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => { setMagicLinkSent(false); setMagicLinkEmail(""); }}
+                            className="text-sm text-white/50 hover:text-white/80 transition-colors mt-2"
+                            data-testid="button-resend-magic-link"
+                          >
+                            Send to a different email
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
                             <label className="text-xs font-medium text-white/70 uppercase tracking-wider">
-                              Password
+                              Work Email
                             </label>
-                            <FormControl>
-                              <div className="relative mt-1.5">
-                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
-                                <input
-                                  {...field}
-                                  type={showPassword ? "text" : "password"}
-                                  autoComplete="current-password"
-                                  placeholder="Enter your password"
-                                  className="login-glass-input w-full rounded-md pl-10 pr-10 py-2 h-10 border"
-                                  onKeyDown={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
-                                  onKeyUp={(e) => setCapsLockOn(e.getModifierState("CapsLock"))}
-                                  data-testid="input-password"
-                                />
-                                <button
-                                  type="button"
-                                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-white/50 hover:text-white/80 transition-colors"
-                                  onClick={() => setShowPassword(!showPassword)}
-                                  data-testid="button-toggle-password"
-                                >
-                                  {showPassword ? (
-                                    <EyeOff className="h-4 w-4" />
-                                  ) : (
-                                    <Eye className="h-4 w-4" />
-                                  )}
-                                </button>
-                              </div>
-                            </FormControl>
-                            <FormMessage className="text-red-400" />
-                            {capsLockOn && (
-                              <p className="text-xs text-amber-400 mt-1" data-testid="text-caps-lock-warning">
-                                Caps Lock is on
-                              </p>
+                            <div className="relative mt-1.5">
+                              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+                              <input
+                                type="email"
+                                value={magicLinkEmail}
+                                onChange={(e) => setMagicLinkEmail(e.target.value)}
+                                placeholder="you@company.com"
+                                autoComplete="email"
+                                className="login-glass-input w-full rounded-md pl-10 pr-3 py-2 h-10 border"
+                                data-testid="input-magic-link-email"
+                                onKeyDown={(e) => { if (e.key === "Enter" && magicLinkEmail) magicLinkMutation.mutate(magicLinkEmail); }}
+                              />
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => magicLinkMutation.mutate(magicLinkEmail)}
+                            disabled={!magicLinkEmail || magicLinkMutation.isPending}
+                            className="login-brand-button w-full py-2.5 rounded-md flex items-center justify-center gap-2"
+                            data-testid="button-send-magic-link"
+                          >
+                            {magicLinkMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Send className="h-4 w-4" />
                             )}
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="mt-6">
-                        <button
-                          type="submit"
-                          className="login-brand-button w-full py-2.5 rounded-md"
-                          disabled={isSubmitting}
-                          data-testid="button-login"
-                        >
-                          {isSubmitting ? "Signing in..." : "Sign in"}
-                        </button>
-                      </div>
-
-                      <div className="text-center">
-                        <button
-                          type="button"
-                          onClick={() => setShowForgotPassword(true)}
-                          className="text-sm text-white/50 hover:text-white/80 transition-colors"
-                          data-testid="button-forgot-password"
-                        >
-                          Forgot your password?
-                        </button>
-                      </div>
-                    </form>
-                  </Form>
+                            {magicLinkMutation.isPending ? "Sending..." : "Send login link"}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
 
                   <div className="pt-3 border-t border-white/10 mt-4">
                     <button

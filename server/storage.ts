@@ -13,6 +13,7 @@ import {
   attestationInquiries, attestationInquiryQuotes,
   documentCustodyLog,
   documentCustodyRecords, documentCustodyHandoffs,
+  magicLinkTokens,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -51,6 +52,7 @@ import {
   type DocumentCustodyLog, type InsertDocumentCustodyLog,
   type DocumentCustodyRecord, type InsertDocumentCustodyRecord,
   type DocumentCustodyHandoff, type InsertDocumentCustodyHandoff,
+  type MagicLinkToken, type InsertMagicLinkToken,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
@@ -63,6 +65,12 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
+  
+  // Magic Link Tokens
+  createMagicLinkToken(data: InsertMagicLinkToken): Promise<MagicLinkToken>;
+  getMagicLinkTokenByHash(tokenHash: string): Promise<MagicLinkToken | undefined>;
+  markMagicLinkTokenUsed(id: string): Promise<void>;
+  consumeMagicLinkToken(id: string): Promise<boolean>;
   
   // Staff
   getStaff(): Promise<Staff[]>;
@@ -417,6 +425,30 @@ export class DatabaseStorage implements IStorage {
   async updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined> {
     const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return user || undefined;
+  }
+
+  // Magic Link Tokens
+  async createMagicLinkToken(data: InsertMagicLinkToken): Promise<MagicLinkToken> {
+    const [token] = await db.insert(magicLinkTokens).values(data).returning();
+    return token;
+  }
+
+  async getMagicLinkTokenByHash(tokenHash: string): Promise<MagicLinkToken | undefined> {
+    const [token] = await db.select().from(magicLinkTokens).where(eq(magicLinkTokens.tokenHash, tokenHash));
+    return token || undefined;
+  }
+
+  async markMagicLinkTokenUsed(id: string): Promise<void> {
+    await db.update(magicLinkTokens).set({ usedAt: new Date() }).where(eq(magicLinkTokens.id, id));
+  }
+
+  async consumeMagicLinkToken(id: string): Promise<boolean> {
+    const result = await db
+      .update(magicLinkTokens)
+      .set({ usedAt: new Date() })
+      .where(and(eq(magicLinkTokens.id, id), isNull(magicLinkTokens.usedAt)))
+      .returning();
+    return result.length > 0;
   }
 
   // Staff

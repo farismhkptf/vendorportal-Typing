@@ -2,11 +2,13 @@ import type { Express, Request, Response, NextFunction } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import UAParser from "ua-parser-js";
+import crypto from "crypto";
 import { storage } from "../storage";
 import { loginSchema, ROLE_CATEGORIES } from "@shared/schema";
 import { requireAuth, requireRole, requireOpsRole, loginRateLimit, recordFailedLogin, clearFailedLogins } from "../middleware/auth";
 import { validateBody } from "../middleware/validation";
 import { hashApiKey } from "../external-routes";
+import { sendEmail } from "../email-service";
 
 export function registerAuthRoutes(app: Express): void {
   app.get("/api/auth/accounts", async (_req, res) => {
@@ -887,6 +889,175 @@ export function registerAuthRoutes(app: Express): void {
     } catch (error) {
       console.error("Delete API key error:", error);
       res.status(500).json({ message: "Failed to delete API key" });
+    }
+  });
+
+  const INTERNAL_ROLES = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
+
+  const magicLinkRequestSchema = z.object({
+    email: z.string().email("Valid email is required"),
+  });
+
+  app.post("/api/auth/magic-link/request", async (req, res) => {
+    try {
+      const validation = validateBody(magicLinkRequestSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const { email } = validation.data;
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.active || !INTERNAL_ROLES.includes(user.role)) {
+        return res.json({ success: true, message: "If an account exists, a login link has been sent." });
+      }
+
+      const rawToken = crypto.randomBytes(32).toString("hex");
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+      await storage.createMagicLinkToken({ email, tokenHash, expiresAt, usedAt: null });
+
+      const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+      const magicUrl = `${baseUrl}/auth/magic?token=${rawToken}`;
+
+      await sendEmail({
+        to: email,
+        subject: "Your login link",
+        html: `
+          <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+            <h2 style="color: #1a1a2e;">Sign in to The P.R.O. Company Portal</h2>
+            <p>Click the button below to sign in. This link expires in 15 minutes and can only be used once.</p>
+            <a href="${magicUrl}" style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 16px 0;">Sign In</a>
+            <p style="color: #666; font-size: 13px;">Or copy this link: ${magicUrl}</p>
+            <p style="color: #666; font-size: 12px;">If you did not request this, you can safely ignore this email.</p>
+          </div>
+        `,
+      });
+
+      res.json({ success: true, message: "If an account exists, a login link has been sent." });
+    } catch (error) {
+      console.error("Magic link request error:", error);
+      res.status(500).json({ message: "Failed to send login link" });
+    }
+  });
+
+  app.get("/api/auth/magic-link/verify", async (req, res) => {
+    try {
+      const token = req.query.token as string;
+      if (!token) return res.status(400).json({ message: "Token is required" });
+
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const record = await storage.getMagicLinkTokenByHash(tokenHash);
+
+      if (!record) return res.status(400).json({ message: "Invalid or expired login link" });
+      if (record.usedAt) return res.status(400).json({ message: "This login link has already been used" });
+      if (record.expiresAt < new Date()) return res.status(400).json({ message: "This login link has expired" });
+
+      const user = await storage.getUserByEmail(record.email);
+      if (!user || !user.active || !INTERNAL_ROLES.includes(user.role)) {
+        return res.status(403).json({ message: "Account not found or access denied" });
+      }
+
+      const consumed = await storage.consumeMagicLinkToken(record.id);
+      if (!consumed) {
+        return res.status(400).json({ message: "This login link has already been used" });
+      }
+
+      const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown';
+      await storage.createLoginAuditEntry({
+        userId: user.id,
+        email: user.email,
+        success: true,
+        ipAddress: clientIp,
+        userAgent: req.headers['user-agent'] || 'unknown',
+        portal: 'team',
+      });
+
+      req.session.userId = user.id;
+      req.session.userRole = user.role;
+      req.session.userName = user.name;
+      req.session.staffId = user.staffId || null;
+
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        staffId: user.staffId,
+        profileCompleted: !!user.profileCompletedAt,
+      });
+    } catch (error) {
+      console.error("Magic link verify error:", error);
+      res.status(500).json({ message: "Verification failed" });
+    }
+  });
+
+  const profileUpdateSchema = z.object({
+    name: z.string().min(1, "Name is required").optional(),
+    personalEmail: z.string().email("Invalid email").optional().nullable(),
+    phone: z.string().optional().nullable(),
+    whatsapp: z.string().optional().nullable(),
+    eidNumber: z.string().optional().nullable(),
+    profilePhotoUrl: z.string().optional().nullable(),
+  });
+
+  app.put("/api/auth/profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      const validation = validateBody(profileUpdateSchema, req.body);
+      if ('error' in validation) return res.status(400).json({ message: validation.error });
+      const data = validation.data;
+
+      const updateData: Record<string, unknown> = { ...data };
+      if (!user.profileCompletedAt) {
+        updateData.profileCompletedAt = new Date();
+      }
+
+      const updated = await storage.updateUser(userId, updateData);
+      if (!updated) return res.status(500).json({ message: "Failed to update profile" });
+
+      res.json({
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        staffId: updated.staffId,
+        phone: updated.phone,
+        whatsapp: updated.whatsapp,
+        personalEmail: updated.personalEmail,
+        eidNumber: updated.eidNumber,
+        profilePhotoUrl: updated.profilePhotoUrl,
+        profileCompleted: !!updated.profileCompletedAt,
+      });
+    } catch (error) {
+      console.error("Profile update error:", error);
+      res.status(500).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.get("/api/auth/profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+      res.json({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        staffId: user.staffId,
+        phone: user.phone,
+        whatsapp: user.whatsapp,
+        personalEmail: user.personalEmail,
+        eidNumber: user.eidNumber,
+        profilePhotoUrl: user.profilePhotoUrl,
+        profileCompleted: !!user.profileCompletedAt,
+      });
+    } catch (error) {
+      console.error("Get profile error:", error);
+      res.status(500).json({ message: "Failed to fetch profile" });
     }
   });
 }
