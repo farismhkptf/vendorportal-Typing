@@ -147,7 +147,7 @@ export default function AttestationVendorInquiries() {
                             <input
                               type="number"
                               min="1"
-                              className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-sm text-slate-900 dark:text-white border-0 outline-none focus:ring-2 ring-purple-400/50"
+                              className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-sm text-slate-900 dark:text-white border-0 outline-none focus:ring-2 ring-primary/50"
                               placeholder="e.g. 500"
                               value={quoteForm.amountAed}
                               onChange={e => setQuoteForm(f => ({ ...f, amountAed: e.target.value }))}
@@ -159,7 +159,7 @@ export default function AttestationVendorInquiries() {
                             <input
                               type="number"
                               min="1"
-                              className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-sm text-slate-900 dark:text-white border-0 outline-none focus:ring-2 ring-purple-400/50"
+                              className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-sm text-slate-900 dark:text-white border-0 outline-none focus:ring-2 ring-primary/50"
                               placeholder="e.g. 5"
                               value={quoteForm.timelineDays}
                               onChange={e => setQuoteForm(f => ({ ...f, timelineDays: e.target.value }))}
@@ -170,7 +170,7 @@ export default function AttestationVendorInquiries() {
                         <div>
                           <label className="text-xs text-slate-500 dark:text-white/50 mb-1 block">Notes (optional)</label>
                           <textarea
-                            className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-sm text-slate-900 dark:text-white border-0 outline-none focus:ring-2 ring-purple-400/50 resize-none"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-100 dark:bg-white/10 text-sm text-slate-900 dark:text-white border-0 outline-none focus:ring-2 ring-primary/50 resize-none"
                             rows={2}
                             placeholder="Any additional info..."
                             value={quoteForm.notes}

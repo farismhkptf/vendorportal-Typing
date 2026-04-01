@@ -62,7 +62,7 @@ export function QuickActionsSidebar({ companiesCount, walletBalance, isAdmin, pe
       </div>
 
       {isAdmin && pendingDeletionCount > 0 && (
-        <div className="premium-card p-4 border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-br from-amber-50/50 to-orange-50/30 dark:from-amber-950/20 dark:to-orange-950/10">
+        <div className="premium-card p-4 border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-br from-amber-50/50 to-amber-50/30 dark:from-amber-950/20 dark:to-amber-950/10">
           <div className="flex items-center gap-2 mb-2">
             <Inbox className="h-4 w-4 text-amber-600" />
             <span className="text-sm font-semibold text-foreground">Deletion Requests</span>

@@ -883,7 +883,7 @@ export function JobWizardDialog({
           isVip && "border-amber-400/60 dark:border-amber-500/40"
         )}>
           {isVip && (
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 rounded-t-md" />
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 rounded-t-md" />
           )}
 
           {isUrgent && (
@@ -902,7 +902,7 @@ export function JobWizardDialog({
                   <DialogTitle className="text-lg font-bold leading-tight flex items-center gap-2 flex-wrap">
                     <span data-testid="dialog-wo-number">{job?.workOrder?.woNumber || "Job Wizard"}</span>
                     {isVip && (
-                      <Badge className="no-default-hover-elevate no-default-active-elevate bg-gradient-to-r from-amber-500 to-yellow-400 text-amber-950 border-amber-400 text-[10px]">
+                      <Badge className="no-default-hover-elevate no-default-active-elevate bg-gradient-to-r from-amber-500 to-amber-400 text-amber-950 border-amber-400 text-[10px]">
                         VIP
                       </Badge>
                     )}

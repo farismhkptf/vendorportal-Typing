@@ -68,7 +68,7 @@ export function NeedsAttentionSection({ navigate }: { navigate: (path: string) =
 
   return (
     <div
-      className="premium-card border-red-200/60 dark:border-red-800/30 bg-gradient-to-r from-red-50/80 to-orange-50/40 dark:from-red-950/20 dark:to-orange-950/10 opacity-0 animate-fade-in"
+      className="premium-card border-red-200/60 dark:border-red-800/30 bg-gradient-to-r from-red-50/80 to-amber-50/40 dark:from-red-950/20 dark:to-amber-950/10 opacity-0 animate-fade-in"
       data-testid="section-needs-attention"
     >
       <button

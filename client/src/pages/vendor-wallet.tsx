@@ -306,7 +306,7 @@ export default function VendorWallet() {
         {/* Low Balance Alert */}
         {summary?.lowBalanceWarning && (
           <div 
-            className="premium-card p-3 border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-r from-amber-50 to-orange-50/50 dark:from-amber-950/20 dark:to-orange-950/10 opacity-0 animate-fade-in"
+            className="premium-card p-3 border-amber-200/50 dark:border-amber-800/30 bg-gradient-to-r from-amber-50 to-amber-50/50 dark:from-amber-950/20 dark:to-amber-950/10 opacity-0 animate-fade-in"
             data-testid="alert-low-balance"
           >
             <div className="flex items-center gap-3">

@@ -188,7 +188,7 @@ export default function AttestationSRDetail() {
           </Button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl font-semibold tracking-tight" data-testid="heading-sr-detail">
+              <h1 className="text-2xl font-semibold tracking-tight" data-testid="heading-sr-detail">
                 SR — {sr.externalWoNumber}
               </h1>
               <Badge className={`text-xs ${SR_STATUS_COLORS[sr.status] || ""}`} data-testid="status-badge">

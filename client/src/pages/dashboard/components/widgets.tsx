@@ -115,7 +115,7 @@ export function IdleDraftJobsPanel({ navigate }: { navigate: (path: string) => v
 
   return (
     <div
-      className="premium-card border-amber-200/60 dark:border-amber-800/30 bg-gradient-to-r from-amber-50/80 to-yellow-50/40 dark:from-amber-950/20 dark:to-yellow-950/10 opacity-0 animate-fade-in"
+      className="premium-card border-amber-200/60 dark:border-amber-800/30 bg-gradient-to-r from-amber-50/80 to-amber-50/40 dark:from-amber-950/20 dark:to-amber-950/10 opacity-0 animate-fade-in"
       data-testid="section-idle-draft-jobs"
     >
       <button
