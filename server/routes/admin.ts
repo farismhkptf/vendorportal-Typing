@@ -5,7 +5,7 @@ import { storage } from "../storage";
 import { requireAuth, requireOpsRole, requireRole } from "../middleware/auth";
 import { validateBody } from "../middleware/validation";
 import { ObjectStorageService } from "../replit_integrations/object_storage/objectStorage";
-import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive } from "../zoho-workdrive";
+import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive, buildWorkDriveFileName } from "../zoho-workdrive";
 import { loadAppointmentEmailDataById, renderAppointmentEmailHtml, getPhotoAsDataUrl } from "../email-templates/preview-data-loader";
 import { getTemplateRegistry, getTemplatesWithPreviews, buildTemplatePreview, EMAIL_TEMPLATE_CATEGORIES } from "../email-templates/registry";
 import type { Staff, WoDocument } from "@shared/schema";
@@ -369,11 +369,12 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
             const objectFile = await objectStorageService.getObjectEntityFile(fileUrl);
             const [fileBuffer] = await objectFile.download();
 
+            const workDriveFileName = buildWorkDriveFileName(documentType, wo.applicantName, fileName);
             const result = await syncFileToWorkDrive(
               company.name,
               wo.applicantName,
               fileBuffer,
-              fileName,
+              workDriveFileName,
             );
 
             await storage.updateWoDocument(document.id, {
@@ -582,7 +583,8 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
           const objectFile = await objectStorageService.getObjectEntityFile(doc.fileUrl);
           const [fileBuffer] = await objectFile.download();
 
-          const result = await syncFileToWorkDrive(company.name, wo.applicantName, fileBuffer, doc.fileName);
+          const workDriveFileName = buildWorkDriveFileName(doc.documentType, wo.applicantName, doc.fileName);
+          const result = await syncFileToWorkDrive(company.name, wo.applicantName, fileBuffer, workDriveFileName);
 
           await storage.updateWoDocument(doc.id, {
             workdriveFileId: result.fileId,
@@ -726,11 +728,12 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       const objectFile = await objectStorageService.getObjectEntityFile(document.fileUrl);
       const [fileBuffer] = await objectFile.download();
 
+      const workDriveFileName = buildWorkDriveFileName(document.documentType, wo.applicantName, document.fileName);
       const result = await syncFileToWorkDrive(
         company.name,
         wo.applicantName,
         fileBuffer,
-        document.fileName,
+        workDriveFileName,
       );
 
       const updated = await storage.updateWoDocument(document.id, {

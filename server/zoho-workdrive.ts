@@ -249,6 +249,49 @@ export async function syncFileToWorkDrive(
   return uploadFileToWorkDrive(folderId, fileBuffer, fileName);
 }
 
+const WORKDRIVE_SUFFIX_MAP: Record<string, string> = {
+  PassportCopy: "Passport copy",
+  Photo: "Photo",
+  CurrentResidency: "Expired Residency",
+  CurrentEmiratesId: "Emirates ID Copy",
+  EntryPermit: "Entry Permit",
+  ChangeStatus: "Change Status",
+  OldResidencyOrId: "Old Residency ID Copy",
+  SponsorEmiratesId: "Sponsor Emirates ID Copy",
+  BirthCertificate: "Birth Certificate",
+  LostEmiratesId: "Lost Emirates ID Copy",
+};
+
+const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  PassportCopy: "Passport Copy",
+  Photo: "Photo",
+  EntryPermit: "Entry Permit",
+  ChangeStatus: "Change Status",
+  CurrentResidency: "Current Residency Copy",
+  OldResidencyOrId: "Old Residency/ID Copy",
+  CurrentEmiratesId: "Current Emirates ID Copy",
+  SponsorEmiratesId: "Sponsor Emirates ID Copy",
+  BirthCertificate: "Birth Certificate",
+  LostEmiratesId: "Lost Emirates ID Copy",
+};
+
+export function buildWorkDriveFileName(
+  documentType: string,
+  applicantName: string,
+  originalFileName: string,
+): string {
+  const lastDot = originalFileName.lastIndexOf(".");
+  const ext = lastDot !== -1 ? originalFileName.slice(lastDot) : "";
+
+  const tokens = applicantName.trim().split(/\s+/).filter(Boolean);
+  const prefix = tokens.slice(0, 2).join(" ");
+
+  const suffix = WORKDRIVE_SUFFIX_MAP[documentType] ?? DOCUMENT_TYPE_LABELS[documentType] ?? documentType;
+
+  const base = prefix ? `${prefix} ${suffix}` : suffix;
+  return `${base}${ext}`;
+}
+
 export function isWorkDriveConfigured(): boolean {
   return !!(
     process.env.ZOHO_WORKDRIVE_CLIENT_ID &&
