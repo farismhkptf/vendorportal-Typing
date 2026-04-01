@@ -87,7 +87,7 @@ export function WorkflowActions({
           {(job.status === "Aborted" || job.status === "Rejected") && (
             <>
               <Badge variant="outline" className={job.status === "Rejected"
-                ? "bg-orange-50 text-orange-700 border-orange-200"
+                ? "bg-amber-50 text-amber-700 border-amber-200"
                 : "bg-gray-50 text-gray-600 border-gray-200"
               }>
                 {job.status === "Rejected" ? "Vendor Rejected" : "Job Aborted"}

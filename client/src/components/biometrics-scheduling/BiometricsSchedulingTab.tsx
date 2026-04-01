@@ -198,7 +198,7 @@ function EventTimeline({ events }: { events: BiometricsEvent[] }) {
                 <Badge variant="outline" className="text-[10px] px-1">timer</Badge>
               )}
               {ev.details?.fallback && (
-                <Badge variant="outline" className="text-[10px] px-1 bg-yellow-50 text-yellow-700 border-yellow-200">fallback</Badge>
+                <Badge variant="outline" className="text-[10px] px-1 bg-amber-50 text-amber-700 border-amber-200">fallback</Badge>
               )}
             </div>
             {ev.details && ev.eventType === "STATUS_CHANGED" && ev.details.from && (
@@ -283,7 +283,7 @@ function CycleCard({
                   <StatusChip status={cycle.status} />
                   <CycleTypeBadge type={cycle.cycleType} />
                   {cycle.crmHoldActive && (
-                    <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800 gap-0.5">
+                    <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 gap-0.5">
                       <Shield className="h-2.5 w-2.5" />
                       No-Show Hold
                     </Badge>
@@ -373,7 +373,7 @@ function CycleCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  className={cn("gap-1.5 text-xs", cycle.crmHoldActive && "text-yellow-700 border-yellow-300")}
+                  className={cn("gap-1.5 text-xs", cycle.crmHoldActive && "text-amber-700 border-amber-300")}
                   onClick={() => onAction("crm-hold", cycle.id, { active: !cycle.crmHoldActive })}
                   data-testid={`button-bio-crm-hold-${cycle.id}`}
                 >

@@ -100,7 +100,7 @@ export function WorkOrderTableView({
                     {cv("woNumber") && <TableCell className={cellPadding} onClick={() => navigate(`/work-orders/${wo.id}`)}>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono font-medium text-primary">{wo.woNumber}</span>
-                        {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                        {wo.isVip && <Star className="h-3 w-3 text-amber-500 fill-amber-500" />}
                         {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                       </div>
                     </TableCell>}

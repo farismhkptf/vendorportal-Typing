@@ -262,7 +262,7 @@ export function TjDetailTabs({ job, activities, photoMap }: TjDetailTabsProps) {
                       <div
                         className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
                           comment.authorType === "Vendor"
-                            ? "bg-orange-100 text-orange-600"
+                            ? "bg-amber-100 text-amber-600"
                             : "bg-blue-100 text-blue-600"
                         }`}
                       >

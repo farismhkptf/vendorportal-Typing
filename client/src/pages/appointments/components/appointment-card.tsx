@@ -260,7 +260,7 @@ export function AppointmentCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="gap-1.5 text-orange-600 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-900/20"
+                  className="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900/20"
                   onClick={() => onConfirmDialog("follow_up", apt)}
                   data-testid={`button-follow-up-${apt.id}`}
                 >

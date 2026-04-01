@@ -56,7 +56,7 @@ export function WorkOrderCompactView({
                   <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
                   <span className="text-sm text-muted-foreground truncate">{toProperCase(wo.applicantName)}</span>
                   {pipeline.fourTrack && <TrackStatusIconsFromState tracks={pipeline.fourTrack} />}
-                  {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500 shrink-0" />}
+                  {wo.isVip && <Star className="h-3 w-3 text-amber-500 fill-amber-500 shrink-0" />}
                   {attention && <AlertTriangle className="h-3 w-3 text-red-500 shrink-0" />}
                 </div>
               </div>

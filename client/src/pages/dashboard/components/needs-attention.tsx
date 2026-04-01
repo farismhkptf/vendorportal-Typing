@@ -126,12 +126,12 @@ export function NeedsAttentionSection({ navigate }: { navigate: (path: string) =
                 onKeyDown={(e) => { if (e.key === "Enter") navigate(`/work-orders/${wo.id}`); }}
                 data-testid={`needs-attention-stalled-${wo.id}`}
               >
-                <XCircle className="h-4 w-4 text-orange-500 shrink-0" />
+                <XCircle className="h-4 w-4 text-amber-500 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-foreground">{wo.woNumber}</span>
                     {pi.fourTrack && <TrackStatusIconsFromState tracks={pi.fourTrack} />}
-                    <span className="text-[10px] font-semibold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-1.5 py-0.5 rounded-full">STALLED</span>
+                    <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0.5 rounded-full">STALLED</span>
                   </div>
                   <p className="text-xs text-muted-foreground truncate">{toProperCase(wo.applicantName)}</p>
                 </div>

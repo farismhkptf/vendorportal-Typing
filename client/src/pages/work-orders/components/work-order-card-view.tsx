@@ -79,7 +79,7 @@ export function WorkOrderCardView({
                       <span className="font-mono font-semibold text-sm text-foreground">{wo.woNumber}</span>
                       {pipeline.fourTrack && <TrackStatusIconsFromState tracks={pipeline.fourTrack} />}
                       {wo.isVip && (
-                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 rounded-full px-1.5 py-0 text-[10px]">
+                        <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 rounded-full px-1.5 py-0 text-[10px]">
                           <Star className="h-2.5 w-2.5 mr-0.5 fill-current" />
                           VIP
                         </Badge>

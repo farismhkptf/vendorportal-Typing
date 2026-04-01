@@ -116,9 +116,9 @@ const STATUS_CONFIG: Record<MedicalApptStatus, {
   },
   RESULT_DELAYED: {
     label: "Result Delayed",
-    color: "text-orange-700 dark:text-orange-400",
-    bg: "bg-orange-50 dark:bg-orange-900/20",
-    border: "border-orange-200 dark:border-orange-800",
+    color: "text-amber-700 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-900/20",
+    border: "border-amber-200 dark:border-amber-800",
     icon: <AlertTriangle className="h-3 w-3" />,
   },
   RESULT_ISSUED: {
@@ -300,7 +300,7 @@ function CycleCard({
                   <StatusChip status={cycle.status} />
                   <CycleTypeBadge type={cycle.cycleType} />
                   {cycle.crmHoldActive && (
-                    <Badge variant="outline" className="text-[10px] bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-800 gap-0.5">
+                    <Badge variant="outline" className="text-[10px] bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 gap-0.5">
                       <Shield className="h-2.5 w-2.5" />
                       No-Show Hold
                     </Badge>
@@ -342,7 +342,7 @@ function CycleCard({
                 </span>
               )}
               {cycle.status === "RESULT_DELAYED" && (
-                <span className="text-xs text-orange-600 flex items-center gap-1">
+                <span className="text-xs text-amber-600 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" />
                   Result overdue
                 </span>
@@ -391,7 +391,7 @@ function CycleCard({
                 <Button
                   size="sm"
                   variant="outline"
-                  className={cn("gap-1.5 text-xs", cycle.crmHoldActive && "text-yellow-700 border-yellow-300")}
+                  className={cn("gap-1.5 text-xs", cycle.crmHoldActive && "text-amber-700 border-amber-300")}
                   onClick={() => onAction("crm-hold", cycle.id, { active: !cycle.crmHoldActive })}
                   data-testid={`button-crm-hold-${cycle.id}`}
                 >

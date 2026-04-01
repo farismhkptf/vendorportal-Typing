@@ -46,7 +46,7 @@ export function WorkOrderKanbanView({ groups, photoMap, renderContextMenu }: Wor
                     <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                       <span className="font-mono text-sm font-medium text-foreground">{wo.woNumber}</span>
                       {pipeline.fourTrack && <TrackStatusIconsFromState tracks={pipeline.fourTrack} />}
-                      {wo.isVip && <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />}
+                      {wo.isVip && <Star className="h-3 w-3 text-amber-500 fill-amber-500" />}
                       {attention && <AlertTriangle className="h-3 w-3 text-red-500" />}
                     </div>
                     <div className="flex items-center gap-2">

@@ -69,7 +69,7 @@ export default function WorkOrdersList() {
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <h1 className="text-xl lg:text-2xl font-semibold text-foreground tracking-tight">Work Orders</h1>
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight">Work Orders</h1>
             <p className="text-sm text-muted-foreground mt-1">Track and manage all applicant work orders</p>
           </div>
           <Link href="/work-orders/new">

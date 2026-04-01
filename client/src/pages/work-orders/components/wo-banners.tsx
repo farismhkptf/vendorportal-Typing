@@ -63,20 +63,20 @@ export function WoBanners({ workOrder, expiringOrExpiredDocs, setActiveTab }: Wo
         if (missingLabels.length === 0) return null;
 
         return (
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-orange-50 dark:bg-orange-950/40 border border-orange-300 dark:border-orange-700" data-testid="missing-jobs-banner">
-            <div className="h-10 w-10 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700" data-testid="missing-jobs-banner">
+            <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-orange-700 dark:text-orange-300">Missing Required Typing Job{missingLabels.length > 1 ? "s" : ""}</p>
-              <p className="text-sm text-orange-600/80 dark:text-orange-400/80 mt-0.5">
+              <p className="text-sm font-bold text-amber-700 dark:text-amber-300">Missing Required Typing Job{missingLabels.length > 1 ? "s" : ""}</p>
+              <p className="text-sm text-amber-600/80 dark:text-amber-400/80 mt-0.5">
                 {missingLabels.join(" and ")} {missingLabels.length > 1 ? "are" : "is"} required by this service type but not yet created.
               </p>
             </div>
             <Button
               size="sm"
               variant="outline"
-              className="gap-1.5 shrink-0 border-orange-400 text-orange-700 dark:text-orange-300 hover:bg-orange-100 dark:hover:bg-orange-900/40"
+              className="gap-1.5 shrink-0 border-amber-400 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
               onClick={() => {
                 setActiveTab("typing");
               }}

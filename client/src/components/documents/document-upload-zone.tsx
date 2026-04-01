@@ -501,7 +501,7 @@ export function DocumentUploadZone({
 
 function StatusBadge({ status }: { status: "Pending" | "Uploaded" | "Verified" }) {
   const config = {
-    Pending: { icon: AlertCircle, className: "text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20" },
+    Pending: { icon: AlertCircle, className: "text-amber-600 bg-amber-50 dark:bg-amber-900/20" },
     Uploaded: { icon: CheckCircle, className: "text-blue-600 bg-blue-50 dark:bg-blue-900/20" },
     Verified: { icon: CheckCircle, className: "text-green-600 bg-green-50 dark:bg-green-900/20" },
   };
