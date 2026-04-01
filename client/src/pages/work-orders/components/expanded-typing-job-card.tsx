@@ -69,12 +69,12 @@ export function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId
             <div className="flex items-center gap-3 min-w-0">
               <div className={cn(
                 "h-9 w-9 rounded-lg flex items-center justify-center shrink-0",
-                category === "Medical" ? "bg-rose-50 dark:bg-rose-900/30" : "bg-cyan-50 dark:bg-cyan-900/30"
+                category === "Medical" ? "bg-red-50 dark:bg-red-900/30" : "bg-blue-50 dark:bg-blue-900/30"
               )}>
                 {category === "Medical" ? (
-                  <Stethoscope className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+                  <Stethoscope className="h-4 w-4 text-red-600 dark:text-red-400" />
                 ) : (
-                  <CreditCard className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                  <CreditCard className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 )}
               </div>
               <div className="min-w-0">

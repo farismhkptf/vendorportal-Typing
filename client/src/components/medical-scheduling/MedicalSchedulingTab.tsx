@@ -102,9 +102,9 @@ const STATUS_CONFIG: Record<MedicalApptStatus, {
   },
   IN_PROCESS: {
     label: "In Process",
-    color: "text-violet-700 dark:text-violet-400",
-    bg: "bg-violet-50 dark:bg-violet-900/20",
-    border: "border-violet-200 dark:border-violet-800",
+    color: "text-blue-700 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-900/20",
+    border: "border-blue-200 dark:border-blue-800",
     icon: <Activity className="h-3 w-3" />,
   },
   COMPLETED: {
@@ -123,9 +123,9 @@ const STATUS_CONFIG: Record<MedicalApptStatus, {
   },
   RESULT_ISSUED: {
     label: "Result Issued",
-    color: "text-teal-700 dark:text-teal-400",
-    bg: "bg-teal-50 dark:bg-teal-900/20",
-    border: "border-teal-200 dark:border-teal-800",
+    color: "text-emerald-700 dark:text-emerald-400",
+    bg: "bg-emerald-50 dark:bg-emerald-900/20",
+    border: "border-emerald-200 dark:border-emerald-800",
     icon: <CheckCircle2 className="h-3 w-3" />,
   },
   MEDICAL_FAILED: {
@@ -433,7 +433,7 @@ function CycleCard({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="gap-1.5 text-xs text-teal-700 border-teal-300 dark:text-teal-400 dark:border-teal-800"
+                    className="gap-1.5 text-xs text-emerald-700 border-emerald-300 dark:text-emerald-400 dark:border-emerald-800"
                     onClick={() => onAction("result-issued", cycle.id)}
                     data-testid={`button-result-issued-${cycle.id}`}
                   >

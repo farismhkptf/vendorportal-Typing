@@ -216,7 +216,7 @@ export default function ScheduleMedical() {
             <Button variant="ghost" size="icon" onClick={() => setLocation("/")} data-testid="button-home"><Home className="h-4 w-4" /></Button>
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold tracking-tight" data-testid="text-page-title">{isFollowUp ? "Schedule Follow-Up Medical" : "Schedule Medical"}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-page-title">{isFollowUp ? "Schedule Follow-Up Medical" : "Schedule Medical"}</h1>
             <p className="text-sm text-muted-foreground">{isFollowUp ? "Schedule a follow-up medical retest appointment" : "Create a medical appointment and notify the client"}</p>
           </div>
         </div>

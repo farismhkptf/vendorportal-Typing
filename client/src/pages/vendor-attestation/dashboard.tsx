@@ -91,7 +91,7 @@ export default function AttestationDashboard() {
 
           <GlassCard className="p-4" data-testid="metric-active-jobs">
             <div className="flex items-center gap-2 mb-2">
-              <Briefcase className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+              <Briefcase className="h-4 w-4 text-amber-500 dark:text-amber-400" />
               <span className="text-[11px] font-medium text-slate-400 dark:text-white/50 uppercase tracking-wider">Active Jobs</span>
             </div>
             <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
@@ -117,11 +117,11 @@ export default function AttestationDashboard() {
             {dash.recentActivity.map((item, i) => (
               <div key={item.id} className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors" data-testid={`activity-item-${i}`}>
                 <div className="mt-0.5 shrink-0">
-                  <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${item.type === "inquiry" ? "bg-blue-500/15" : "bg-purple-500/15"}`}>
+                  <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${item.type === "inquiry" ? "bg-blue-500/15" : "bg-amber-500/15"}`}>
                     {item.type === "inquiry" ? (
                       <FileQuestion className="h-3.5 w-3.5 text-blue-500" />
                     ) : (
-                      <Briefcase className="h-3.5 w-3.5 text-purple-500" />
+                      <Briefcase className="h-3.5 w-3.5 text-amber-500" />
                     )}
                   </div>
                 </div>

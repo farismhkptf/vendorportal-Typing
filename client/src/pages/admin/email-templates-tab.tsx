@@ -34,7 +34,7 @@ const CATEGORY_ICONS: Record<string, typeof Mail> = {
 const CATEGORY_COLORS: Record<string, string> = {
   client: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   vendor: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-  crm_staff: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  crm_staff: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   pro_staff: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
   admin: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
   system: "bg-gray-100 text-gray-700 dark:bg-gray-800/50 dark:text-gray-300",

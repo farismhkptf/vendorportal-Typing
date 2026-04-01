@@ -193,7 +193,7 @@ export function AdminStaffTab() {
                       member.status === "Active" ? "bg-green-500/10 text-green-700 border-green-200" :
                       member.status === "OnLeave" ? "bg-amber-500/10 text-amber-700 border-amber-200" :
                       member.status === "Cancelled" ? "bg-red-500/10 text-red-700 border-red-200" :
-                      member.status === "TempActive" ? "bg-cyan-500/10 text-cyan-700 border-cyan-200" :
+                      member.status === "TempActive" ? "bg-blue-500/10 text-blue-700 border-blue-200" :
                       "bg-gray-500/10 text-gray-700 border-gray-200"
                     }`}
                     data-testid={`button-status-${prefix}${member.id}`}

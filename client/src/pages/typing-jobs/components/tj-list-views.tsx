@@ -207,7 +207,7 @@ export function CardsView({ items, density, getAppointmentStatus }: Omit<ViewPro
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="icon-container icon-container-sm shrink-0 !bg-violet-100 dark:!bg-violet-900/30 !text-violet-600 dark:!text-violet-400">
+                  <div className="icon-container icon-container-sm shrink-0 !bg-blue-100 dark:!bg-blue-900/30 !text-blue-600 dark:!text-blue-400">
                     <FileText className="h-4 w-4" />
                   </div>
                   <div className="min-w-0">

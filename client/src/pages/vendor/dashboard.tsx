@@ -214,7 +214,7 @@ export default function VendorDashboard() {
   return (
     <div className="p-5 lg:p-8 max-w-5xl mx-auto" data-testid="vendor-dashboard">
       <div className="mb-8">
-        <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground" data-testid="text-greeting">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground" data-testid="text-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0] || "there"}
         </h1>
         <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
@@ -379,8 +379,8 @@ export default function VendorDashboard() {
           <Card className="h-full cursor-pointer hover:shadow-md transition-shadow duration-200 border-0 shadow-sm" data-testid="metric-wallet">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <div className="h-7 w-7 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center">
-                  <CreditCard className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                <div className="h-7 w-7 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                  <CreditCard className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                 </div>
               </div>
               <p className="text-xl font-bold text-foreground">AED {(balanceData?.balance || 0).toLocaleString()}</p>
@@ -614,8 +614,8 @@ export default function VendorDashboard() {
               <Link href="/wallet">
                 <Card className="border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200" data-testid="nav-wallet">
                   <CardContent className="p-3.5 flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0">
-                      <CreditCard className="h-4.5 w-4.5 text-violet-600 dark:text-violet-400" />
+                    <div className="h-9 w-9 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
+                      <CreditCard className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-foreground">Wallet</p>
@@ -651,7 +651,7 @@ export default function VendorDashboard() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-violet-500" />
+                      <TrendingUp className="h-4 w-4 text-blue-500" />
                       <span className="text-sm text-muted-foreground">Completion Rate</span>
                     </div>
                     <span className="text-sm font-bold text-foreground" data-testid="text-perf-rate">{perfData.completionRate}%</span>
@@ -741,7 +741,7 @@ function NotificationGroup({
             job_update: { icon: Zap, bg: "bg-blue-100 dark:bg-blue-900/40", color: "text-blue-600 dark:text-blue-400" },
             wallet_topup: { icon: ArrowRight, bg: "bg-emerald-100 dark:bg-emerald-900/40", color: "text-emerald-600 dark:text-emerald-400" },
             wallet_deduction: { icon: CreditCard, bg: "bg-red-100 dark:bg-red-900/40", color: "text-red-600 dark:text-red-400" },
-            new_comment: { icon: FileText, bg: "bg-violet-100 dark:bg-violet-900/40", color: "text-violet-600 dark:text-violet-400" },
+            new_comment: { icon: FileText, bg: "bg-blue-100 dark:bg-blue-900/40", color: "text-blue-600 dark:text-blue-400" },
           };
           const style = iconConfig[n.type || ""] || { icon: Bell, bg: "bg-muted", color: "text-muted-foreground" };
           const Icon = style.icon;

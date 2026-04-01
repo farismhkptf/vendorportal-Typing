@@ -35,7 +35,7 @@ const CUSTODY_ACTIONS: Record<string, {
     label: "Hand to Vendor",
     direction: "UsToVendor",
     icon: ArrowUpFromLine,
-    color: "text-purple-600",
+    color: "text-amber-600",
     badgeVariant: "secondary",
   },
   WithVendor_confirm_return: {
@@ -77,7 +77,7 @@ function getNextAction(sr: AttestationSr): typeof CUSTODY_ACTIONS[string] | null
 const CUSTODY_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   WithClient: { label: "With Client", color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" },
   WithUs: { label: "With Our Team", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
-  WithVendor: { label: "With Vendor", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" },
+  WithVendor: { label: "With Vendor", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" },
   ReturnedToClient: { label: "Returned to Client", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" },
 };
 
@@ -177,7 +177,7 @@ export default function CustodyQueuePage() {
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight" data-testid="text-queue-title">
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight" data-testid="text-queue-title">
               Document Custody Queue
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">

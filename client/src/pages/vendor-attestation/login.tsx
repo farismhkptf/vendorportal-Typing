@@ -42,7 +42,7 @@ export default function AttestationVendorLogin() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Attestation Portal</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">Attestation Portal</h1>
           <p className="text-sm text-muted-foreground mt-1">Vendor Access</p>
         </div>
 

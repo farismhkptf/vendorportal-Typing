@@ -208,7 +208,7 @@ export default function VendorWallet() {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 flex items-center gap-3 flex-wrap">
             <div>
-              <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">
+              <h1 className="text-2xl font-semibold text-foreground tracking-tight">
                 Vendor Wallet
               </h1>
               <p className="text-sm text-muted-foreground mt-1">Vendor advance balance and transaction history</p>

@@ -38,7 +38,7 @@ export function CommentsSection({ comments, newComment, setNewComment, onAddComm
           {comments.map(comment => (
             <div
               key={comment.id}
-              className={`p-3 rounded-xl ${comment.authorType === "Vendor" ? "bg-purple-50 dark:bg-purple-500/15 ml-8" : "bg-slate-50 dark:bg-white/5 mr-8"}`}
+              className={`p-3 rounded-xl ${comment.authorType === "Vendor" ? "bg-amber-50 dark:bg-amber-500/15 ml-8" : "bg-slate-50 dark:bg-white/5 mr-8"}`}
               data-testid={`v2-comment-${comment.id}`}
             >
               <div className="flex items-center justify-between gap-2 mb-1">

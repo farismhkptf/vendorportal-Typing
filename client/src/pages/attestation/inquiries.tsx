@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
   QuoteReceived: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   Accepted: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   Rejected: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
-  Converted: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  Converted: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
 };
 
 interface InquiryRow {
@@ -75,7 +75,7 @@ export default function AttestationInquiriesPage() {
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground" data-testid="page-title-inquiries">Attestation Inquiries</h1>
+            <h1 className="text-2xl font-semibold text-foreground" data-testid="page-title-inquiries">Attestation Inquiries</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage attestation service inquiries and vendor quotes</p>
           </div>
           <Button onClick={() => setLocation("/attestation/inquiries/new")} data-testid="button-new-inquiry">

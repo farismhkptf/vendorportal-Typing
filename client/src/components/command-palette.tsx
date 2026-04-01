@@ -201,7 +201,7 @@ export function CommandPalette() {
                   onSelect={() => handleSelect("/staff")}
                   data-testid={`cmd-staff-${s.id}`}
                 >
-                  <Users className="h-4 w-4 text-violet-500/70" />
+                  <Users className="h-4 w-4 text-blue-500/70" />
                   <span>{toProperCase(s.name)}</span>
                   {s.role && <span className="text-xs text-muted-foreground/50">{s.role}</span>}
                 </CommandItem>

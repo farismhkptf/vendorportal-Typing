@@ -207,7 +207,7 @@ export default function V2Dashboard() {
   return (
     <div className="max-w-2xl mx-auto pt-2 pb-4 space-y-8">
       <div data-tour="greeting">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight" data-testid="text-v2-greeting">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight" data-testid="text-v2-greeting">
           Keystone Vendor Dashboard
         </h1>
         <p className="text-slate-500 dark:text-white/50 text-sm">{getGreeting()}, {user?.name?.split(" ")[0]}</p>
@@ -280,7 +280,7 @@ export default function V2Dashboard() {
 
           <GlassCard className="p-4" data-testid="metric-rate">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-purple-500 dark:text-purple-400" />
+              <TrendingUp className="h-4 w-4 text-amber-500 dark:text-amber-400" />
               <span className="text-[11px] font-medium text-slate-400 dark:text-white/50 uppercase tracking-wider">Rate</span>
             </div>
             <p className="text-2xl font-bold text-slate-900 dark:text-white tabular-nums">
@@ -378,7 +378,7 @@ export default function V2Dashboard() {
                         {job.category === "EID" ? (
                           <Shield className="h-3.5 w-3.5 text-amber-500/70 dark:text-amber-400/70" />
                         ) : (
-                          <Stethoscope className="h-3.5 w-3.5 text-teal-500/70 dark:text-teal-400/70" />
+                          <Stethoscope className="h-3.5 w-3.5 text-emerald-500/70 dark:text-emerald-400/70" />
                         )}
                         <span className={`${getStatusClass(job.status)} v2-status-badge`}>
                           {getDisplayStatus(job.status)}
@@ -414,12 +414,12 @@ export default function V2Dashboard() {
                 <div className="mt-0.5 shrink-0">
                   <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${
                     item.category === "EID" ? "bg-amber-500/15" :
-                    item.category === "Medical" ? "bg-teal-500/15" :
+                    item.category === "Medical" ? "bg-emerald-500/15" :
                     item.category === "wallet" ? "bg-emerald-500/15" :
                     "bg-slate-100 dark:bg-white/10"
                   }`}>
                     {item.category === "EID" ? <Shield className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400" /> :
-                     item.category === "Medical" ? <Stethoscope className="h-3.5 w-3.5 text-teal-500 dark:text-teal-400" /> :
+                     item.category === "Medical" ? <Stethoscope className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" /> :
                      item.category === "wallet" ? <CreditCard className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" /> :
                      <Zap className="h-3.5 w-3.5 text-slate-400 dark:text-white/50" />}
                   </div>

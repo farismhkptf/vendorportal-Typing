@@ -120,11 +120,11 @@ export default function V2MedicalJobs() {
   return (
     <div className="max-w-2xl mx-auto pt-2 pb-4">
       <div className="flex items-center gap-3 mb-4">
-        <div className="h-10 w-10 rounded-xl bg-teal-500/15 flex items-center justify-center shrink-0">
-          <Stethoscope className="h-5 w-5 text-teal-500 dark:text-teal-400" />
+        <div className="h-10 w-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+          <Stethoscope className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white" data-testid="text-medical-title">Medical Jobs</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white" data-testid="text-medical-title">Medical Jobs</h1>
           <p className="text-xs text-slate-400 dark:text-white/40">{medJobs.length} total</p>
         </div>
       </div>
@@ -160,7 +160,7 @@ export default function V2MedicalJobs() {
           <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider">New</p>
         </GlassCard>
         <GlassCard className="p-3 text-center" data-testid="stat-active">
-          <p className="text-lg font-bold text-teal-500 dark:text-teal-400">{activeCount}</p>
+          <p className="text-lg font-bold text-emerald-500 dark:text-emerald-400">{activeCount}</p>
           <p className="text-[10px] text-slate-400 dark:text-white/40 uppercase tracking-wider">In Progress</p>
         </GlassCard>
         <GlassCard className="p-3 text-center" data-testid="stat-done">

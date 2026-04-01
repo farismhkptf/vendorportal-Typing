@@ -992,7 +992,7 @@ export function JobWizardDialog({
                   {job.comments && job.comments.length > 0 ? (
                     <div className="space-y-3 max-h-60 overflow-y-auto">
                       {job.comments.map(comment => (
-                        <div key={comment.id} className={cn("p-3 rounded-md", comment.authorType === "Vendor" ? "bg-violet-50 dark:bg-violet-900/20 ml-8" : "bg-muted/50 mr-8")} data-testid={`comment-${comment.id}`}>
+                        <div key={comment.id} className={cn("p-3 rounded-md", comment.authorType === "Vendor" ? "bg-blue-50 dark:bg-blue-900/20 ml-8" : "bg-muted/50 mr-8")} data-testid={`comment-${comment.id}`}>
                           <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
                             <Badge variant="secondary" className="text-xs">{comment.authorType === "Vendor" ? "You" : "Team"}</Badge>
                             <span className="text-xs text-muted-foreground">{comment.createdAt ? formatDateTime(comment.createdAt) : ""}</span>

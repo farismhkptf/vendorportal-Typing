@@ -88,7 +88,7 @@ export default function AttestationVendorInquiries() {
   return (
     <div className="max-w-2xl mx-auto pt-2 pb-4 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white" data-testid="page-title-attest-inquiries">Inquiries</h1>
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white" data-testid="page-title-attest-inquiries">Inquiries</h1>
         <p className="text-slate-500 dark:text-white/50 text-sm">Attestation requests assigned to you</p>
       </div>
 
@@ -224,7 +224,7 @@ export default function AttestationVendorInquiries() {
                       </div>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
                         inquiry.status === "Converted"
-                          ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
                           : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
                       }`}>
                         {STATUS_LABELS[inquiry.status] || inquiry.status}

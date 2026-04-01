@@ -34,14 +34,13 @@ const statusStyles: Record<StatusType, string> = {
   SubmittedToVendor:  AMBER,
   OnHold:             AMBER,
   FollowUpRequired:   AMBER,
-  FollowUpScheduled:  AMBER,
+  InProcess:          AMBER,
+  Medical:            AMBER,
 
   Scheduled:          BLUE,
-  InProcess:          BLUE,
   ReadyToSchedule:    BLUE,
   ReadyForScheduling: BLUE,
   New:                BLUE,
-  Medical:            BLUE,
   EID:                BLUE,
   MedScheduled:       BLUE,
   EIDScheduled:       BLUE,
@@ -49,6 +48,7 @@ const statusStyles: Record<StatusType, string> = {
 
   Completed:          GREEN,
   FollowUpCompleted:  GREEN,
+  FollowUpScheduled:  GREEN,
   Accepted:           GREEN,
   Returned:           GREEN,
 

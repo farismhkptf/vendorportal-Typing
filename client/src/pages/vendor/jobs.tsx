@@ -102,7 +102,7 @@ export default function VendorJobs() {
       {/* Page Header */}
       <div className="gradient-header border-b border-border/50">
         <div className="px-4 lg:px-8 py-6">
-          <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">My Jobs</h1>
+          <h1 className="text-2xl font-semibold text-foreground tracking-tight">My Jobs</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             View and manage your assigned typing jobs
           </p>
@@ -181,8 +181,8 @@ export default function VendorJobs() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+                        <div className="h-12 w-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                          <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">

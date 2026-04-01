@@ -141,7 +141,7 @@ export default function V2WalletPage() {
                               <span className="text-[11px] text-slate-400 dark:text-white/30">{tx.jobInfo.woNumber}</span>
                             )}
                             {tx.jobInfo?.jobCategory && (
-                              <span className={`v2-status-badge text-[10px] ${tx.jobInfo.jobCategory === "EID" ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30" : "bg-teal-500/20 text-teal-600 dark:text-teal-300 border border-teal-500/30"}`}>
+                              <span className={`v2-status-badge text-[10px] ${tx.jobInfo.jobCategory === "EID" ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30" : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30"}`}>
                                 {tx.jobInfo.jobCategory}
                               </span>
                             )}

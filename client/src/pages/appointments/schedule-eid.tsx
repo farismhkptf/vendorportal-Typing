@@ -206,7 +206,7 @@ export default function ScheduleEid() {
             <Button variant="ghost" size="icon" onClick={() => setLocation("/")} data-testid="eid-button-home"><Home className="h-4 w-4" /></Button>
           </div>
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold tracking-tight">{config.pageTitle}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{config.pageTitle}</h1>
             <p className="text-sm text-muted-foreground">{config.pageSubtitle}</p>
           </div>
         </div>

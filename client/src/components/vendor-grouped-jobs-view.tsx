@@ -101,7 +101,7 @@ function VendorJobRow({
             {job.woNumber}
           </span>
           {job.urgent && (
-            <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded-full">
               URGENT
             </span>
           )}

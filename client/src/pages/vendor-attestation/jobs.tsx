@@ -17,7 +17,7 @@ import type { AttestationSr } from "@shared/schema";
 const CUSTODY_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   WithClient: { label: "With Client", color: "bg-slate-100 text-slate-600" },
   WithUs: { label: "With Keystone Team", color: "bg-blue-100 text-blue-700" },
-  WithVendor: { label: "With Your Firm", color: "bg-purple-100 text-purple-700" },
+  WithVendor: { label: "With Your Firm", color: "bg-amber-100 text-amber-700" },
   ReturnedToClient: { label: "Returned to Client", color: "bg-green-100 text-green-700" },
 };
 
@@ -262,7 +262,7 @@ export default function AttestationVendorJobsPage() {
       <header className="sticky top-0 z-30 h-[60px] bg-background/90 backdrop-blur border-b border-border">
         <div className="flex h-full items-center justify-between px-4 max-w-2xl mx-auto">
           <div>
-            <h1 className="font-bold text-foreground text-lg" data-testid="text-portal-title">Attestation Portal</h1>
+            <h1 className="font-semibold text-foreground text-2xl" data-testid="text-portal-title">Attestation Portal</h1>
             {user && (
               <p className="text-xs text-muted-foreground" data-testid="text-vendor-name">{user.name}</p>
             )}

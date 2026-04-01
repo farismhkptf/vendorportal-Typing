@@ -311,7 +311,7 @@ export default function CustodyQueuePage() {
       <div className="px-4 lg:px-6 pt-4 pb-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight" data-testid="text-page-title">
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight" data-testid="text-page-title">
               Document Custody
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">Track original documents from receipt to return</p>

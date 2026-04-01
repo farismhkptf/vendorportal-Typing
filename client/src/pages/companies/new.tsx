@@ -123,7 +123,7 @@ export default function NewCompany() {
               </Link>
             </div>
             <div>
-              <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">Add Company</h1>
+              <h1 className="text-2xl font-semibold text-foreground tracking-tight">Add Company</h1>
               <p className="text-sm text-muted-foreground">Create a new client company</p>
             </div>
           </div>

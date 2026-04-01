@@ -48,9 +48,9 @@ export function CustodyDashboardWidget() {
               <p className="text-xs text-blue-600 dark:text-blue-400">With Us</p>
               <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{summary.withUs}</p>
             </div>
-            <div className="rounded-lg bg-purple-50 dark:bg-purple-900/20 p-2.5" data-testid="widget-with-vendor">
-              <p className="text-xs text-purple-600 dark:text-purple-400">With Vendor</p>
-              <p className="text-xl font-bold text-purple-700 dark:text-purple-300">{summary.withVendor}</p>
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2.5" data-testid="widget-with-vendor">
+              <p className="text-xs text-amber-600 dark:text-amber-400">With Vendor</p>
+              <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{summary.withVendor}</p>
             </div>
             {summary.overdue > 0 && (
               <div className="col-span-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 p-2.5 flex items-center gap-2" data-testid="widget-overdue">

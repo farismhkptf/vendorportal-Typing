@@ -123,7 +123,7 @@ export default function EidJobs() {
             <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground" data-testid="heading-eid">Emirates ID Jobs</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground" data-testid="heading-eid">Emirates ID Jobs</h1>
             <p className="text-sm text-muted-foreground">
               {statusCounts.SubmittedToVendor > 0
                 ? `${statusCounts.SubmittedToVendor} ${statusCounts.SubmittedToVendor === 1 ? "job" : "jobs"} awaiting acceptance`

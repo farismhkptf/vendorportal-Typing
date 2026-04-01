@@ -62,7 +62,7 @@ export default function AccountSecurity() {
               <Shield className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight" data-testid="text-page-title">Account Security</h1>
+              <h1 className="text-2xl font-semibold text-foreground tracking-tight" data-testid="text-page-title">Account Security</h1>
               <p className="text-sm text-muted-foreground">Review your recent login activity</p>
             </div>
           </div>

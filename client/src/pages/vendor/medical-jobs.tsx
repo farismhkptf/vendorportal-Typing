@@ -114,7 +114,7 @@ export default function MedicalJobs() {
             <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground" data-testid="heading-medical">Medical Jobs</h1>
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground" data-testid="heading-medical">Medical Jobs</h1>
             <p className="text-sm text-muted-foreground">
               {statusCounts.SubmittedToVendor > 0
                 ? `${statusCounts.SubmittedToVendor} ${statusCounts.SubmittedToVendor === 1 ? "job" : "jobs"} awaiting acceptance`
@@ -159,8 +159,8 @@ export default function MedicalJobs() {
             >
               <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className="h-7 w-7 rounded-md bg-teal-500/10 flex items-center justify-center shrink-0">
-                    <Zap className="h-3.5 w-3.5 text-teal-600 dark:text-teal-400" />
+                  <div className="h-7 w-7 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <Zap className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <span className="text-xs text-muted-foreground">In Progress</span>
                 </div>

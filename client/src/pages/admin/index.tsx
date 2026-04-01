@@ -55,7 +55,7 @@ export default function AdminPage() {
             </Button>
           )}
           <div>
-            <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight">
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight">
               {activeSection === "organization" ? "Organization" :
                activeSection === "vendor" ? "Vendor Management" :
                activeSection === "admin" ? "Administration" :

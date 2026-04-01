@@ -124,7 +124,7 @@ export default function V2EidJobs() {
           <Shield className="h-5 w-5 text-amber-500 dark:text-amber-400" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white" data-testid="text-eid-title">Emirates ID Jobs</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white" data-testid="text-eid-title">Emirates ID Jobs</h1>
           <p className="text-xs text-slate-400 dark:text-white/40">{eidJobs.length} total</p>
         </div>
       </div>

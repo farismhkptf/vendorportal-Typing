@@ -41,7 +41,7 @@ export function AppointmentCalendar({ calendarWeekDays, onNavigateToWo }: Appoin
                       key={apt.id}
                       className={`p-1.5 rounded-md text-xs cursor-pointer hover:ring-1 hover:ring-primary/30 transition-all ${
                         apt.type === "Medical"
-                          ? "bg-rose-50 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-800/30"
+                          ? "bg-red-50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-800/30"
                           : "bg-blue-50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/30"
                       } ${apt.status === "Completed" ? "opacity-60" : ""}`}
                       onClick={() => onNavigateToWo(apt.woId)}
@@ -49,7 +49,7 @@ export function AppointmentCalendar({ calendarWeekDays, onNavigateToWo }: Appoin
                     >
                       <div className="flex items-center gap-1">
                         {apt.type === "Medical" ? (
-                          <Stethoscope className="h-3 w-3 text-rose-500 shrink-0" />
+                          <Stethoscope className="h-3 w-3 text-red-500 shrink-0" />
                         ) : (
                           <CreditCard className="h-3 w-3 text-blue-500 shrink-0" />
                         )}

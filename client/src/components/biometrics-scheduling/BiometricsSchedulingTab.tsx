@@ -102,9 +102,9 @@ const STATUS_CONFIG: Record<BiometricsApptStatus, {
   },
   IN_PROCESS: {
     label: "In Process",
-    color: "text-violet-700 dark:text-violet-400",
-    bg: "bg-violet-50 dark:bg-violet-900/20",
-    border: "border-violet-200 dark:border-violet-800",
+    color: "text-blue-700 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-900/20",
+    border: "border-blue-200 dark:border-blue-800",
     icon: <Activity className="h-3 w-3" />,
   },
   COMPLETED: {

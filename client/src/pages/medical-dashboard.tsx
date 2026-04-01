@@ -68,8 +68,8 @@ function isThisWeek(datetime: string | Date): boolean {
 function AppointmentItem({ apt, showDate, index }: { apt: AppointmentWithDetails; showDate?: boolean; index: number }) {
   const TypeIcon = apt.type === "Medical" ? Stethoscope : CreditCard;
   const typeColor = apt.type === "Medical"
-    ? "text-rose-500 dark:text-rose-400"
-    : "text-cyan-500 dark:text-cyan-400";
+    ? "text-red-500 dark:text-red-400"
+    : "text-blue-500 dark:text-blue-400";
 
   return (
     <Link href={`/work-orders/${apt.woId}`}>
@@ -83,8 +83,8 @@ function AppointmentItem({ apt, showDate, index }: { apt: AppointmentWithDetails
               <div className={cn(
                 "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
                 apt.type === "Medical"
-                  ? "bg-rose-50 dark:bg-rose-950/40"
-                  : "bg-cyan-50 dark:bg-cyan-950/40"
+                  ? "bg-red-50 dark:bg-red-950/40"
+                  : "bg-blue-50 dark:bg-blue-950/40"
               )}>
                 <TypeIcon className={cn("h-4 w-4", typeColor)} />
               </div>
@@ -257,7 +257,7 @@ export default function MedicalDashboard() {
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <p className="text-sm text-muted-foreground" data-testid="text-greeting">{getGreeting()}</p>
-            <h1 className="text-xl lg:text-2xl font-bold text-foreground tracking-tight" data-testid="text-user-greeting">
+            <h1 className="text-2xl font-semibold text-foreground tracking-tight" data-testid="text-user-greeting">
               Keystone P.R.O. Dashboard
             </h1>
           </div>
@@ -336,8 +336,8 @@ export default function MedicalDashboard() {
                       <DataTableRow>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-rose-50 dark:bg-rose-950/40">
-                              <Stethoscope className="h-4 w-4 text-rose-500 dark:text-rose-400" />
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-red-50 dark:bg-red-950/40">
+                              <Stethoscope className="h-4 w-4 text-red-500 dark:text-red-400" />
                             </div>
                             <div className="space-y-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -383,8 +383,8 @@ export default function MedicalDashboard() {
                       <DataTableRow>
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-cyan-50 dark:bg-cyan-950/40">
-                              <CreditCard className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+                            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-blue-50 dark:bg-blue-950/40">
+                              <CreditCard className="h-4 w-4 text-blue-500 dark:text-blue-400" />
                             </div>
                             <div className="space-y-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">

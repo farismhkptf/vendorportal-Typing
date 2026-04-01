@@ -114,7 +114,7 @@ export default function ReportsPage() {
     <AppLayout>
       <div className="p-4 sm:p-6 lg:p-10 space-y-6 sm:space-y-8">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold tracking-tight" data-testid="text-reports-title">Reports & Analytics</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" data-testid="text-reports-title">Reports & Analytics</h1>
           <p className="text-sm text-muted-foreground mt-1.5">Overview of work orders, typing jobs, and vendor performance</p>
         </div>
 

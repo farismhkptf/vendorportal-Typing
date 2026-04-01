@@ -46,13 +46,13 @@ export function JobHeader({ job, isEid, isVip, isUrgent }: JobHeaderProps) {
           <img src={applicantPhoto.fileUrl} alt="Applicant" className="h-full w-full object-cover" data-testid="img-applicant-photo" />
         </div>
       ) : (
-        <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${isEid ? "bg-amber-500/15" : "bg-teal-500/15"}`}>
+        <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${isEid ? "bg-amber-500/15" : "bg-emerald-500/15"}`}>
           <User className="h-5 w-5 text-slate-400 dark:text-white/50" />
         </div>
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <h1 className="text-xl font-bold text-slate-900 dark:text-white" data-testid="text-v2-wo-number">{job.workOrder?.woNumber || "N/A"}</h1>
+          <h1 className="text-2xl font-semibold text-slate-900 dark:text-white" data-testid="text-v2-wo-number">{job.workOrder?.woNumber || "N/A"}</h1>
           <span className={`${getStatusClass(job.status)} v2-status-badge`}>{getDisplayStatus(job.status)}</span>
           {isVip && <span className="v2-status-badge bg-amber-500/30 text-amber-300 border border-amber-500/40">VIP</span>}
           {isUrgent && <span className="v2-status-badge v2-status-urgent">Urgent</span>}

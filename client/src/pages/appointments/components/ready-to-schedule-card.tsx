@@ -23,7 +23,7 @@ export function ReadyToScheduleCard({ job }: ReadyToScheduleCardProps) {
       <div className="shrink-0">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
           job.jobType?.category === "Medical" 
-            ? "bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400"
+            ? "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
             : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
         }`}>
           {job.jobType?.category === "Medical" ? (

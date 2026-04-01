@@ -29,7 +29,7 @@ export function StatTiles({ stats, specialFilter, setSpecialFilter }: StatTilesP
   const tiles = [
     { label: "Active", value: stats.totalActive, icon: FileText, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-900/30", filter: "all" as SpecialFilter },
     { label: "Needs Action", value: stats.attentionNeeded, icon: AlertTriangle, color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-900/30", filter: "needs_attention" as SpecialFilter },
-    { label: "Awaiting Typing", value: stats.awaitingTyping, icon: SendIcon, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-900/30", filter: "awaiting_typing" as SpecialFilter },
+    { label: "Awaiting Typing", value: stats.awaitingTyping, icon: SendIcon, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/30", filter: "awaiting_typing" as SpecialFilter },
     { label: "Need Scheduling", value: stats.needScheduling, icon: CalendarCheck, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-900/30", filter: "need_scheduling" as SpecialFilter },
     { label: "VIP Cases", value: stats.vipCount, icon: Star, color: "text-yellow-600 dark:text-yellow-400", bg: "bg-yellow-50 dark:bg-yellow-900/30", filter: "vip" as SpecialFilter },
   ];

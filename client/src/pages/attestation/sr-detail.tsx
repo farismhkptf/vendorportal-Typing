@@ -18,14 +18,14 @@ import type { AttestationSr } from "@shared/schema";
 const CUSTODY_STATUS_LABELS: Record<string, { label: string; color: string }> = {
   WithClient: { label: "With Client", color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300" },
   WithUs: { label: "With Our Team", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
-  WithVendor: { label: "With Vendor", color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" },
+  WithVendor: { label: "With Vendor", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300" },
   ReturnedToClient: { label: "Returned to Client", color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" },
 };
 
 const SR_STATUS_COLORS: Record<string, string> = {
   Draft: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
   SentToVendor: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  AcceptedByVendor: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+  AcceptedByVendor: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   InProgress: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   Completed: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   Cancelled: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
@@ -81,7 +81,7 @@ export default function AttestationSrDetailPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-foreground" data-testid="text-sr-number">{sr.srNumber}</h1>
+            <h1 className="text-2xl font-semibold text-foreground" data-testid="text-sr-number">{sr.srNumber}</h1>
             <p className="text-sm text-muted-foreground">Attestation Service Request</p>
           </div>
         </div>

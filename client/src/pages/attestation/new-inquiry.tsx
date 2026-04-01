@@ -103,7 +103,7 @@ export default function NewAttestationInquiry() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-foreground" data-testid="page-title-new-inquiry">New Attestation Inquiry</h1>
+            <h1 className="text-2xl font-semibold text-foreground" data-testid="page-title-new-inquiry">New Attestation Inquiry</h1>
             <p className="text-sm text-muted-foreground">Create an inquiry for attestation services</p>
           </div>
         </div>

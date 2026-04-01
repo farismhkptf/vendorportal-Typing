@@ -47,8 +47,8 @@ export function PipelineBreakdownCard({ breakdown, isLoading }: PipelineBreakdow
           <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{breakdown.scheduled}</p>
           <p className="text-xs text-muted-foreground">Scheduled</p>
         </div>
-        <div className="text-center p-2 rounded-lg bg-purple-50 dark:bg-purple-950/20" data-testid="pipeline-stat-ready">
-          <p className="text-xl font-bold text-purple-600 dark:text-purple-400">{breakdown.readyToSchedule}</p>
+        <div className="text-center p-2 rounded-lg bg-amber-50 dark:bg-amber-950/20" data-testid="pipeline-stat-ready">
+          <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{breakdown.readyToSchedule}</p>
           <p className="text-xs text-muted-foreground">Ready to Schedule</p>
         </div>
         <div className="text-center p-2 rounded-lg bg-green-50 dark:bg-green-950/20" data-testid="pipeline-stat-complete">
