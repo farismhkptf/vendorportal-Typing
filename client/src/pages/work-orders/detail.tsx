@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { getPipelineInfo } from "@/lib/pipeline-stage";
@@ -25,6 +25,8 @@ export default function WorkOrderDetail() {
   const isCrm = user?.role === "Client Relationship Manager";
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("typing");
+  const [openTypingJobForm, setOpenTypingJobForm] = useState(false);
+  const handleTypingJobFormOpened = useCallback(() => setOpenTypingJobForm(false), []);
 
   const { data: workOrder, isLoading } = useQuery<WorkOrderDetailType>({
     queryKey: queryKeys.workOrder(id!),
@@ -122,6 +124,7 @@ export default function WorkOrderDetail() {
           workOrder={workOrder}
           expiringOrExpiredDocs={expiringOrExpiredDocs}
           setActiveTab={setActiveTab}
+          onCreateMissingJobs={() => setOpenTypingJobForm(true)}
         />
 
         {pipeline && (
@@ -163,6 +166,8 @@ export default function WorkOrderDetail() {
           allStaff={allStaff}
           vendors={vendors}
           jobTypes={jobTypes}
+          openTypingJobForm={openTypingJobForm}
+          onTypingJobFormOpened={handleTypingJobFormOpened}
         />
       </div>
 

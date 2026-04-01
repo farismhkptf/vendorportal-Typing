@@ -7,9 +7,10 @@ interface WoBannersProps {
   workOrder: WorkOrderDetail;
   expiringOrExpiredDocs: WoDocument[];
   setActiveTab: (tab: string) => void;
+  onCreateMissingJobs?: () => void;
 }
 
-export function WoBanners({ workOrder, expiringOrExpiredDocs, setActiveTab }: WoBannersProps) {
+export function WoBanners({ workOrder, expiringOrExpiredDocs, setActiveTab, onCreateMissingJobs }: WoBannersProps) {
   return (
     <>
       {!!workOrder.isDelayed && (
@@ -79,6 +80,7 @@ export function WoBanners({ workOrder, expiringOrExpiredDocs, setActiveTab }: Wo
               className="gap-1.5 shrink-0 border-amber-400 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/40"
               onClick={() => {
                 setActiveTab("typing");
+                onCreateMissingJobs?.();
               }}
               data-testid="button-create-missing-job"
             >

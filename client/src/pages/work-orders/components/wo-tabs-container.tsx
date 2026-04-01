@@ -37,6 +37,8 @@ interface WoTabsContainerProps {
   allStaff: Staff[];
   vendors: Vendor[];
   jobTypes?: JobType[];
+  openTypingJobForm?: boolean;
+  onTypingJobFormOpened?: () => void;
 }
 
 export function WoTabsContainer({
@@ -49,6 +51,8 @@ export function WoTabsContainer({
   allStaff,
   vendors,
   jobTypes,
+  openTypingJobForm,
+  onTypingJobFormOpened,
 }: WoTabsContainerProps) {
   const [aptConfirmDialog, setAptConfirmDialog] = useState<AptConfirmDialogState>({ open: false, type: "complete", appointment: null });
 
@@ -164,6 +168,8 @@ export function WoTabsContainer({
             id={id}
             vendors={vendors}
             jobTypes={jobTypes}
+            openNewJobForm={openTypingJobForm}
+            onNewJobFormOpened={onTypingJobFormOpened}
           />
 
           <TabsContent value="notes" className="p-3 sm:p-6">

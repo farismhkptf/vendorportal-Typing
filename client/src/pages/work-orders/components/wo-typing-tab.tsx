@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -28,9 +28,11 @@ interface WoTypingTabProps {
   id: string;
   vendors: Vendor[];
   jobTypes?: JobType[];
+  openNewJobForm?: boolean;
+  onNewJobFormOpened?: () => void;
 }
 
-export function WoTypingTab({ workOrder, id, vendors, jobTypes }: WoTypingTabProps) {
+export function WoTypingTab({ workOrder, id, vendors, jobTypes, openNewJobForm, onNewJobFormOpened }: WoTypingTabProps) {
   const { toast } = useToast();
   const [showNewTypingJobForm, setShowNewTypingJobForm] = useState(false);
   const [typeMedical, setTypeMedical] = useState(true);
@@ -46,6 +48,15 @@ export function WoTypingTab({ workOrder, id, vendors, jobTypes }: WoTypingTabPro
   const existingMedicalJob = workOrder.typingJobs?.find(j => j.jobType?.category === "Medical" && j.status !== "Aborted") || null;
   const existingEidJob = workOrder.typingJobs?.find(j => j.jobType?.category === "EID" && j.status !== "Aborted") || null;
   const canCreateNewJob = !existingMedicalJob || !existingEidJob;
+
+  useEffect(() => {
+    if (openNewJobForm && canCreateNewJob) {
+      setTypeMedical(!existingMedicalJob);
+      setTypeEid(!existingEidJob);
+      setShowNewTypingJobForm(true);
+      onNewJobFormOpened?.();
+    }
+  }, [openNewJobForm, canCreateNewJob, existingMedicalJob, existingEidJob, onNewJobFormOpened]);
 
   const handleRefreshWo = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.workOrder(id) });
