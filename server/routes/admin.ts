@@ -808,7 +808,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       let applicantPhotoUrl: string | null = null;
       if (wo) {
         const docs = await storage.getWoDocuments(wo.id);
-        const photoDoc = docs.find(d => d.documentType === "Photo" && d.status === "Uploaded");
+        const photoDoc = docs.find(d => d.documentType === "Photo" && d.fileUrl);
         if (photoDoc?.fileUrl) {
           const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
           applicantPhotoUrl = photoDoc.fileUrl.startsWith("/") ? `${baseUrl}${photoDoc.fileUrl}` : photoDoc.fileUrl;
