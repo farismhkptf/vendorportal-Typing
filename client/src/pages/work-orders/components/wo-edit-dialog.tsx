@@ -281,7 +281,9 @@ export function WoEditDialog({ workOrder, companies, serviceTypes, open, onOpenC
                     </FormControl>
                     <SelectContent>
                       <SelectItem value="Draft">Draft</SelectItem>
-                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="AtVendor">At Vendor</SelectItem>
+                      <SelectItem value="ReadyToSchedule">Ready to Schedule</SelectItem>
+                      <SelectItem value="Scheduled">Scheduled</SelectItem>
                       <SelectItem value="Completed">Completed</SelectItem>
                       <SelectItem value="Cancelled">Cancelled</SelectItem>
                     </SelectContent>
