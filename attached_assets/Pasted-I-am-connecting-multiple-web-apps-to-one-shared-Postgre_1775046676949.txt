@@ -1,0 +1,149 @@
+I am connecting multiple web apps to one shared PostgreSQL database.
+
+I want you to inspect THIS app only and tell me exactly what this app needs from the database and backend integration side so it can connect properly to a central shared database.
+
+Do not write code yet.
+
+Your job is to ANALYZE this app and produce a structured integration specification under the exact headings below.
+
+IMPORTANT RULES:
+- Focus only on this app.
+- Assume the database is shared with other apps.
+- Assume PostgreSQL.
+- Assume this app should not create random duplicate structures if another app should own the master data.
+- Be conservative. If unsure, flag it clearly instead of assuming.
+- Do not spiral.
+- Do not give generic textbook explanation.
+- Do not design the whole system from scratch.
+- Do not rename headings.
+- Under each heading, be specific and practical.
+- Where relevant, distinguish between:
+  - Read
+  - Create
+  - Update
+  - Delete
+  - Internal-only actions
+  - Cross-app sync requirements
+- Mention if something should be owned by this app or only referenced from another app.
+
+OUTPUT IN THIS EXACT STRUCTURE:
+
+1. APP PURPOSE
+- What this app does operationally
+- What core records it likely needs to read or manage
+
+2. DATABASE ENTITIES THIS APP NEEDS
+For each entity, state:
+- Entity name
+- Why this app needs it
+- Whether this app should:
+  - own it
+  - create it
+  - read it
+  - update it
+  - only reference it
+- Key fields this app would need
+
+3. TABLES / DATA GROUPS NEEDED FROM SHARED DATABASE
+List the likely shared tables or logical data groups this app depends on, such as:
+- companies
+- people
+- work_orders
+- invoices
+- documents
+- reminders
+- users
+- roles
+- tasks
+- statuses
+- activity_logs
+- notifications
+Only include what this app truly needs.
+
+For each one, state:
+- Required or optional
+- Why needed
+- Read / write level
+
+4. RELATIONSHIPS THIS APP DEPENDS ON
+Explain the important relationships this app needs, such as:
+- company to people
+- company to work orders
+- work order to applicant
+- work order to invoice
+- person to documents
+- company to reminders
+Keep this practical.
+
+5. API ENDPOINTS THIS APP WOULD NEED
+List the backend endpoints this app likely needs.
+
+Group them by module, for example:
+- companies
+- people
+- work orders
+- documents
+- invoices
+- reminders
+- auth / users
+- dashboard / summary
+- uploads
+- logs
+
+For each endpoint, mention:
+- Method
+- Suggested route
+- What it does
+- Main inputs
+- Main outputs
+- Whether this app should call it as read-only or write action
+
+6. EVENTS / TRIGGERS / CROSS-APP ACTIONS
+List anything this app may trigger or react to, such as:
+- work order created
+- document uploaded
+- invoice issued
+- reminder due
+- status changed
+- person added
+- company updated
+
+For each one, state:
+- Event name
+- Trigger source
+- What this app should do
+- Whether this should be instant, queued, or manual
+
+7. OWNERSHIP BOUNDARIES
+Clearly state:
+- What this app should own directly
+- What this app should never own and only read from central shared data
+- What data must remain master data managed elsewhere
+
+8. PERMISSIONS / ACCESS REQUIREMENTS
+State what kinds of access this app likely needs:
+- admin
+- manager
+- staff
+- client
+- vendor
+Also mention any row-level restrictions or company-level access logic if relevant.
+
+9. RISKS / CONFLICTS / DUPLICATION WARNINGS
+Identify:
+- possible duplicate tables
+- conflicting ownership risks
+- risky updates
+- fields that should not be edited here
+- sync problems that may happen if this app stores local copies
+
+10. FINAL INTEGRATION CHECKLIST
+Give a clean checklist of what must be confirmed before this app is connected to the central database.
+
+END RULE:
+Finish with a final section called:
+
+11. OPEN QUESTIONS / UNCERTAINTIES
+
+Only include points that genuinely need confirmation.
+Do not invent questions just to fill space.
