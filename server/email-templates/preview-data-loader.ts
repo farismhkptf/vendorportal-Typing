@@ -2,6 +2,21 @@ import type { Request } from "express";
 import { storage } from "../storage";
 import type { Staff, WoDocument } from "@shared/schema";
 import { buildAppointmentEmail, type AppointmentEmailData } from "./appointment-confirmation";
+import { ObjectStorageService } from "../replit_integrations/object_storage/objectStorage";
+
+export async function getPhotoAsDataUrl(fileUrl: string): Promise<string | undefined> {
+  if (!fileUrl) return undefined;
+  try {
+    const objectStorageService = new ObjectStorageService();
+    const file = await objectStorageService.getObjectEntityFile(fileUrl);
+    const [buffer] = await file.download();
+    const [metadata] = await file.getMetadata();
+    const mimeType = (metadata as { contentType?: string }).contentType || "image/jpeg";
+    return `data:${mimeType};base64,${buffer.toString("base64")}`;
+  } catch {
+    return undefined;
+  }
+}
 
 interface PreviewDataParams {
   woId?: string;
@@ -45,8 +60,7 @@ async function loadRelatedData(
       const docs = await storage.getWoDocuments(workOrder.id);
       const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
       if (photo?.fileUrl) {
-        const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
-        applicantPhotoUrl = photo.fileUrl.startsWith("/") ? `${baseUrl}${photo.fileUrl}` : photo.fileUrl;
+        applicantPhotoUrl = await getPhotoAsDataUrl(photo.fileUrl);
       }
     } catch (err) {
       console.warn("[email-preview] failed to load applicant photo:", err);
