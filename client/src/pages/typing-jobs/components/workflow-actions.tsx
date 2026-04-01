@@ -4,6 +4,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { DOCUMENT_TYPE_LABELS } from "@/components/documents/document-types";
 import type { TypingJobWithDetails } from "./job-header";
 
 interface WorkflowActionsProps {
@@ -14,6 +21,8 @@ interface WorkflowActionsProps {
   onAbort: () => void;
   onReassign: () => void;
   resumePending: boolean;
+  missingDocumentTypes?: string[];
+  submitToVendorPending?: boolean;
 }
 
 export function WorkflowActions({
@@ -24,21 +33,60 @@ export function WorkflowActions({
   onAbort,
   onReassign,
   resumePending,
+  missingDocumentTypes = [],
+  submitToVendorPending = false,
 }: WorkflowActionsProps) {
+  const hasMissingDocs = missingDocumentTypes.length > 0;
+
   return (
     <Card className="border border-primary/20 bg-primary/5">
       <CardContent className="py-4">
         <div className="flex flex-wrap items-center gap-3">
           {job.status === "Draft" && (
-            <Button
-              size="sm"
-              className="gap-2"
-              onClick={onSubmitToVendor}
-              data-testid="button-submit-to-vendor"
-            >
-              <UserPlus className="h-4 w-4" />
-              Submit to Vendor
-            </Button>
+            hasMissingDocs ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span tabIndex={0} className="inline-flex">
+                      <Button
+                        size="sm"
+                        className="gap-2"
+                        disabled
+                        data-testid="button-submit-to-vendor"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        Submit to Vendor
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-medium mb-1">Missing required documents:</p>
+                    <ul className="space-y-0.5">
+                      {missingDocumentTypes.map((docType) => (
+                        <li key={docType} className="text-xs">
+                          {DOCUMENT_TYPE_LABELS[docType] || docType}
+                        </li>
+                      ))}
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <Button
+                size="sm"
+                className="gap-2"
+                onClick={onSubmitToVendor}
+                disabled={submitToVendorPending}
+                data-testid="button-submit-to-vendor"
+              >
+                {submitToVendorPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <UserPlus className="h-4 w-4" />
+                )}
+                Submit to Vendor
+              </Button>
+            )
           )}
 
           {job.status === "OnHold" && (

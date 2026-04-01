@@ -2,6 +2,7 @@ export const queryKeys = {
   workOrders: ["/api/work-orders"] as const,
   workOrder: (id: number | string) => ["/api/work-orders", id] as const,
   workOrderDocuments: (woId: number | string) => ["/api/work-orders", woId, "documents"] as const,
+  workOrderDocumentCompleteness: (woId: number | string) => ["/api/work-orders", woId, "document-completeness"] as const,
   workOrderPhotos: ["/api/work-orders/photos"] as const,
 
   companies: ["/api/companies"] as const,

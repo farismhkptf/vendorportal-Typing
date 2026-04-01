@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { DOCUMENT_TYPE_LABELS, type DocumentType } from "./document-types";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryKeys } from "@/lib/query-keys";
 import { ExpiryBadge } from "./document-expiry";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -58,6 +59,7 @@ function ExpiryDateInline({ documentId, woId, currentExpiresAt }: { documentId: 
       apiRequest("PUT", `/api/documents/${documentId}/expiry`, { expiresAt }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders", woId, "documents"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrderDocumentCompleteness(woId) });
       setEditing(false);
     },
   });
@@ -157,6 +159,7 @@ export function DocumentUploadZone({
       apiRequest("POST", `/api/documents/${documentId}/sync-workdrive`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders", woId, "documents"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrderDocumentCompleteness(woId) });
     },
   });
 

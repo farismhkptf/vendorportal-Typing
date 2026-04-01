@@ -486,6 +486,39 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
+  app.get("/api/work-orders/:woId/document-completeness", requireAuth, async (req, res) => {
+    try {
+      const { woId } = req.params;
+      const wo = await storage.getWorkOrderById(woId);
+      if (!wo) {
+        return res.status(404).json({ message: "Work order not found" });
+      }
+      if (!wo.serviceTypeId) {
+        return res.json({ complete: true, missingDocumentTypes: [] });
+      }
+      const serviceType = await storage.getServiceTypeById(wo.serviceTypeId);
+      if (!serviceType?.category) {
+        return res.json({ complete: true, missingDocumentTypes: [] });
+      }
+      const requirements = await storage.getDocumentRequirementsByCategory(serviceType.category);
+      const requiredDocTypes = requirements.filter(r => r.isRequired).map(r => r.documentType);
+      if (requiredDocTypes.length === 0) {
+        return res.json({ complete: true, missingDocumentTypes: [] });
+      }
+      const uploadedDocs = await storage.getWoDocuments(woId);
+      const uploadedTypes = new Set(
+        uploadedDocs
+          .filter(d => d.status === "Uploaded" || d.status === "Verified")
+          .map(d => d.documentType)
+      );
+      const missingDocumentTypes = requiredDocTypes.filter(t => !uploadedTypes.has(t));
+      return res.json({ complete: missingDocumentTypes.length === 0, missingDocumentTypes });
+    } catch (error) {
+      console.error("Document completeness check error:", error);
+      res.status(500).json({ message: "Failed to check document completeness" });
+    }
+  });
+
   app.patch("/api/work-orders/:id/activate", requireOpsRole, async (req, res) => {
     try {
       const { id } = req.params;

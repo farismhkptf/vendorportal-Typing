@@ -80,6 +80,11 @@ export default function TypingJobDetail() {
   const { data: photoMap } = useQuery<Record<string, string>>({
     queryKey: queryKeys.workOrderPhotos,
   });
+
+  const { data: docCompleteness, isLoading: isDocCompletenessLoading } = useQuery<{ complete: boolean; missingDocumentTypes: string[] }>({
+    queryKey: queryKeys.workOrderDocumentCompleteness(job?.woId ?? ""),
+    enabled: !!job?.woId && job?.status === "Draft",
+  });
   
   const invalidateTypingJobQueries = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.typingJob(id!) });
@@ -272,6 +277,8 @@ export default function TypingJobDetail() {
           onAbort={() => setShowAbortDialog(true)}
           onReassign={() => setShowReassignDialog(true)}
           resumePending={resumeMutation.isPending}
+          missingDocumentTypes={docCompleteness?.missingDocumentTypes ?? []}
+          submitToVendorPending={job?.status === "Draft" && !!job?.woId && isDocCompletenessLoading}
         />
 
         <Card className="border border-border/50">

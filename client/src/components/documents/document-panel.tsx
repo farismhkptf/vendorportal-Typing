@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DocumentUploadZone } from "./document-upload-zone";
 import { DOCUMENT_TYPE_LABELS, SERVICE_CATEGORY_LABELS, type DocumentType, type ServiceCategory } from "./document-types";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { queryKeys } from "@/lib/query-keys";
 import { useToast } from "@/hooks/use-toast";
 import { ImageLightbox, type LightboxFile } from "@/components/image-lightbox";
 import { ExpiryBadge, getExpiryStatus } from "./document-expiry";
@@ -151,6 +152,7 @@ export function DocumentPanel({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders", woId, "documents"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrderDocumentCompleteness(woId) });
       toast({ title: "Document uploaded successfully" });
       setUploadingDocType(null);
       setUploadProgress(0);
@@ -167,6 +169,7 @@ export function DocumentPanel({
       apiRequest("DELETE", `/api/documents/${documentId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders", woId, "documents"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workOrderDocumentCompleteness(woId) });
       toast({ title: "Document deleted" });
     },
     onError: () => {
