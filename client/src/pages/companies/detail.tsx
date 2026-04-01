@@ -243,6 +243,7 @@ export default function CompanyDetail() {
       <AppLayout>
         <PageHeader
           title="Loading company…"
+          backHref="/companies"
           breadcrumbs={[{ label: "Companies", href: "/companies" }]}
         />
         <div className="px-4 lg:px-6 pb-8 space-y-6">
@@ -272,6 +273,7 @@ export default function CompanyDetail() {
       <AppLayout>
         <PageHeader
           title="Company Not Found"
+          backHref="/companies"
           breadcrumbs={[{ label: "Companies", href: "/companies" }, { label: "Not Found" }]}
         />
         <div className="px-4 lg:px-6 pt-4 pb-8">
@@ -286,6 +288,7 @@ export default function CompanyDetail() {
       <PageHeader
         title={toProperCase(company.name)}
         subtitle={company.tradeLicenseNumber ? `TL: ${company.tradeLicenseNumber}` : "Company details"}
+        backHref="/companies"
         breadcrumbs={[{ label: "Companies", href: "/companies" }, { label: toProperCase(company.name) }]}
       />
 
