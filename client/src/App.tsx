@@ -102,6 +102,7 @@ import ScheduleEid from "@/pages/appointments/schedule-eid";
 import BotsHub from "@/pages/bots/index";
 import QuickPasteBot from "@/pages/bots/quick-paste-bot";
 import SchedulerBot from "@/pages/bots/scheduler-bot";
+import MessagesPage from "@/pages/messages/index";
 import ManagerConsole from "@/pages/manager-console";
 import ReportsPage from "@/pages/reports";
 import ExpiringDocuments from "@/pages/expiring-documents";
@@ -153,6 +154,7 @@ const ROUTE_ACCESS: Array<{ path: string; exact?: boolean; roles: string[] }> = 
   { path: "/admin", roles: ["Admin"] },
   { path: "/manager-console", roles: OPS_ROLES },
   { path: "/bots", roles: ["Admin", "Client Relationship Manager"] },
+  { path: "/messages", roles: ["Admin", "Client Relationship Manager"] },
   { path: "/attestation", roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] },
   { path: "/custody-queue", roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] },
   { path: "/custody", roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] },
@@ -364,6 +366,7 @@ function AppRoutes() {
       <Route path="/bots" component={BotsHub} />
       <Route path="/bots/quick-paste" component={QuickPasteBot} />
       <Route path="/bots/scheduler" component={SchedulerBot} />
+      <Route path="/messages" component={MessagesPage} />
       <Route path="/card/:token" component={CardPage} />
       <Route path="/attestation/custody-queue" component={CustodyQueuePage} />
       <Route path="/attestation/sr/:id" component={AttestationSrDetailPage} />

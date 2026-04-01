@@ -20,8 +20,10 @@ import {
   FileCheck,
   Stamp,
   PackageCheck,
-  ChevronDown
+  ChevronDown,
+  MessageSquare,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
@@ -57,6 +59,7 @@ const allNavigation = [
   { name: "Reports", href: "/reports", icon: BarChart3, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Management" },
   { name: "Expiring Docs", href: "/expiring-documents", icon: Clock, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Management" },
   { name: "Doc Custody", href: "/custody-queue", icon: PackageCheck, roles: ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"] as string[], group: "Management" },
+  { name: "Messages", href: "/messages", icon: MessageSquare, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Management" },
   { name: "Admin Console", href: "/admin", icon: Settings, roles: ["Admin"] as string[], group: "Admin" },
 ];
 
@@ -82,6 +85,11 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { data: unreadData } = useQuery<{ count: number }>({
+    queryKey: ["/api/messages/unread-count"],
+    refetchInterval: 60000,
+    enabled: !!user && ["Admin", "Client Relationship Manager"].includes(user.role ?? ""),
+  });
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   useSwipeBack();
@@ -154,6 +162,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   {group.items.map((item) => {
                     const isActive = location === item.href ||
                       (item.href !== "/" && location.startsWith(item.href));
+                    const msgCount = item.href === "/messages" ? (unreadData?.count ?? 0) : 0;
                     return (
                       <Link key={item.name} href={item.href}>
                         <div
@@ -166,7 +175,15 @@ export function AppLayout({ children }: AppLayoutProps) {
                           data-testid={`nav-${item.name.toLowerCase().replace(" ", "-")}`}
                         >
                           <item.icon className={cn("h-[16px] w-[16px] shrink-0", isActive && "text-primary-foreground")} />
-                          {item.name}
+                          <span className="flex-1">{item.name}</span>
+                          {msgCount > 0 && (
+                            <span className={cn(
+                              "text-[10px] font-semibold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
+                              isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-amber-500 text-white"
+                            )}>
+                              {msgCount > 99 ? "99+" : msgCount}
+                            </span>
+                          )}
                         </div>
                       </Link>
                     );

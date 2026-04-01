@@ -967,6 +967,38 @@ export class DatabaseStorage implements IStorage {
     return comment;
   }
 
+  async getAllTypingJobComments(limit = 200): Promise<Array<TypingJobComment & { jobCode: string | null; woNumber: string | null; vendorId: string | null; vendorName: string | null; applicantName: string | null }>> {
+    const rows = await db
+      .select({
+        id: typingJobComments.id,
+        typingJobId: typingJobComments.typingJobId,
+        authorType: typingJobComments.authorType,
+        authorUserId: typingJobComments.authorUserId,
+        message: typingJobComments.message,
+        createdAt: typingJobComments.createdAt,
+        jobCode: typingJobs.jobCode,
+        vendorId: typingJobs.vendorId,
+        vendorName: vendors.name,
+        woNumber: workOrders.woNumber,
+        applicantName: workOrders.applicantName,
+      })
+      .from(typingJobComments)
+      .leftJoin(typingJobs, eq(typingJobComments.typingJobId, typingJobs.id))
+      .leftJoin(vendors, eq(typingJobs.vendorId, vendors.id))
+      .leftJoin(workOrders, eq(typingJobs.woId, workOrders.id))
+      .orderBy(desc(typingJobComments.createdAt))
+      .limit(limit);
+    return rows;
+  }
+
+  async getUnreadVendorMessageCount(): Promise<number> {
+    const rows = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(typingJobComments)
+      .where(eq(typingJobComments.authorType, "Vendor"));
+    return Number(rows[0]?.count ?? 0);
+  }
+
   // Files
   async getFilesByRelated(relatedType: string, relatedId: string): Promise<File[]> {
     return db.select().from(files).where(and(eq(files.relatedType, relatedType), eq(files.relatedId, relatedId))).orderBy(desc(files.createdAt));

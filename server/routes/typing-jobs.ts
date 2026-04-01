@@ -550,4 +550,24 @@ app.delete("/api/files/:id", requireAuth, async (req, res) => {
   }
 });
 
+// ========== Messages Inbox ==========
+app.get("/api/messages/inbox", requireAuth, async (req, res) => {
+  try {
+    const comments = await storage.getAllTypingJobComments(300);
+    res.json(comments);
+  } catch (error) {
+    console.error("Messages inbox error:", error);
+    res.status(500).json({ message: "Failed to fetch messages" });
+  }
+});
+
+app.get("/api/messages/unread-count", requireAuth, async (req, res) => {
+  try {
+    const count = await storage.getUnreadVendorMessageCount();
+    res.json({ count });
+  } catch (error) {
+    res.json({ count: 0 });
+  }
+});
+
 }
