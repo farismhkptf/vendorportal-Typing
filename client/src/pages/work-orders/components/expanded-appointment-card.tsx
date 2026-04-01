@@ -83,6 +83,7 @@ export function ExpandedAppointmentCard({
   onComplete,
   onReschedule,
   onCancel,
+  onResendEmail,
 }: { 
   apt: Appointment; 
   centers: Center[];
@@ -90,6 +91,7 @@ export function ExpandedAppointmentCard({
   onComplete: () => void;
   onReschedule: () => void;
   onCancel: () => void;
+  onResendEmail?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [emailDraftOpen, setEmailDraftOpen] = useState(false);
@@ -217,6 +219,18 @@ export function ExpandedAppointmentCard({
                   >
                     <Eye className="h-3.5 w-3.5" />
                     View Email
+                  </Button>
+                )}
+                {onResendEmail && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={onResendEmail}
+                    data-testid={`button-resend-email-${apt.id}`}
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    Resend Email
                   </Button>
                 )}
                 <CollapsibleTrigger asChild>

@@ -40,6 +40,7 @@ export default function ScheduleMedical() {
   const [emailSendStatus, setEmailSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [overrideEmail, setOverrideEmail] = useState<string | null>(null);
+  const [selectedRecipients, setSelectedRecipients] = useState<string[] | null>(null);
 
   const { data: schedulingQueue, isLoading: queueLoading } = useQuery<SchedulingQueueResponse>({ queryKey: ["/api/appointments/scheduling-queue"] });
   const { data: companies } = useQuery<Company[]>({ queryKey: ["/api/companies"] });
@@ -169,16 +170,17 @@ export default function ScheduleMedical() {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/scheduling-queue"] });
       setScheduledApptId(appt.id);
-      const recipient = overrideEmail || selectedQueueItem?.applicantEmail;
-      if (recipient && appt.id) {
+      const effectiveRecipients = selectedRecipients !== null ? selectedRecipients : (overrideEmail ? [overrideEmail] : selectedQueueItem?.applicantEmail ? [selectedQueueItem.applicantEmail] : []);
+      if (effectiveRecipients.length > 0 && appt.id) {
         setEmailSendStatus("sending");
         try {
-          const r = await apiRequest("POST", `/api/appointments/${appt.id}/send-email`, overrideEmail ? { overrideEmail } : undefined);
+          const body = selectedRecipients !== null ? { recipients: selectedRecipients } : overrideEmail ? { overrideEmail } : undefined;
+          const r = await apiRequest("POST", `/api/appointments/${appt.id}/send-email`, body);
           const d = await r.json();
-          setEmailSendStatus("sent"); setEmailSentTo(d.sentTo || recipient);
-          toast({ title: "Appointment scheduled", description: `Confirmation email sent to ${d.sentTo || recipient}.`, variant: "success" });
+          setEmailSendStatus("sent"); setEmailSentTo(d.sentTo || effectiveRecipients.join(", "));
+          toast({ title: "Appointment scheduled", description: `Confirmation email sent to ${d.sentTo || effectiveRecipients.join(", ")}.`, variant: "success" });
         } catch { setEmailSendStatus("failed"); toast({ title: "Appointment scheduled", description: "Email notification could not be sent — use Copy Email as a backup.", variant: "destructive" }); }
-      } else { toast({ title: "Appointment scheduled", description: recipient ? "Appointment created." : "No applicant email on file — notification not sent.", variant: "success" }); }
+      } else { toast({ title: "Appointment scheduled", description: selectedQueueItem?.applicantEmail ? "No recipients selected — email not sent." : "No applicant email on file — notification not sent.", variant: "success" }); }
       setLocation("/appointments");
     },
     onError: (error: Error) => { toast({ title: "Error", description: error.message || "Failed to schedule appointment", variant: "destructive" }); },
@@ -246,10 +248,10 @@ export default function ScheduleMedical() {
               </div>
             )}
             {currentStep === 2 && selectedQueueItem && (
-              <ScheduleConfirmationStep schedulerType="Medical" form={form} selectedQueueItem={selectedQueueItem} selectedCompany={selectedCompany} selectedCenter={selectedCenter} companyAssist={companyMedicalAssist} companyCRM={companyCRM} emailPreview={emailPreview} whatsappPreview={whatsappPreview} previewHtml={previewHtml} scheduledApptId={scheduledApptId} emailSendStatus={emailSendStatus} emailSentTo={emailSentTo} setEmailSentTo={setEmailSentTo} overrideEmail={overrideEmail} setOverrideEmail={setOverrideEmail} setEmailSendStatus={setEmailSendStatus} onEditDetails={() => setCurrentStep(1)} onRegeneratePreviews={generatePreviews} companyEmailsList={companyEmailsList} />
+              <ScheduleConfirmationStep schedulerType="Medical" form={form} selectedQueueItem={selectedQueueItem} selectedCompany={selectedCompany} selectedCenter={selectedCenter} companyAssist={companyMedicalAssist} companyCRM={companyCRM} emailPreview={emailPreview} whatsappPreview={whatsappPreview} previewHtml={previewHtml} scheduledApptId={scheduledApptId} emailSendStatus={emailSendStatus} emailSentTo={emailSentTo} setEmailSentTo={setEmailSentTo} overrideEmail={overrideEmail} setOverrideEmail={setOverrideEmail} setEmailSendStatus={setEmailSendStatus} onEditDetails={() => { setSelectedRecipients(null); setCurrentStep(1); }} onRegeneratePreviews={generatePreviews} companyEmailsList={companyEmailsList} onRecipientsChange={setSelectedRecipients} />
             )}
             <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t mt-6 -mx-6 px-6 py-4 flex justify-between gap-2 z-[9999]">
-              {currentStep > 1 ? <Button variant="outline" onClick={() => setCurrentStep(1)} data-testid="button-back-step"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button> : <div />}
+              {currentStep > 1 ? <Button variant="outline" onClick={() => { setSelectedRecipients(null); setCurrentStep(1); }} data-testid="button-back-step"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button> : <div />}
               {currentStep === 1 ? (
                 <Button onClick={handleNextStep} disabled={!selectedQueueItem} data-testid="button-next">Next<ArrowRight className="h-4 w-4 ml-2" /></Button>
               ) : (

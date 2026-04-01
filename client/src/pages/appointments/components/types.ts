@@ -43,4 +43,5 @@ export interface AppointmentCardRenderProps {
   onViewMessages: (apt: AppointmentWithRelations) => void;
   onDownloadAsJpg: (apt: AppointmentWithRelations, type: "email" | "whatsapp") => void;
   onCopyDetails: (apt: AppointmentWithRelations) => void;
+  onResendEmail: (apt: AppointmentWithRelations) => void;
 }

@@ -44,6 +44,7 @@ export default function ScheduleEid() {
   const [emailSendStatus, setEmailSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [overrideEmail, setOverrideEmail] = useState<string | null>(null);
+  const [selectedRecipients, setSelectedRecipients] = useState<string[] | null>(null);
 
   const { data: schedulingQueue, isLoading: queueLoading } = useQuery<SchedulingQueueResponse>({ queryKey: ["/api/appointments/scheduling-queue"] });
   const { data: companies } = useQuery<Company[]>({ queryKey: ["/api/companies"] });
@@ -144,20 +145,21 @@ export default function ScheduleEid() {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/scheduling-queue"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/appointments-summary"] });
       setScheduledApptId(appointment.id);
-      const recipientEmail = overrideEmail || selectedQueueItem?.applicantEmail;
-      if (recipientEmail && appointment.id) {
+      const effectiveRecipients = selectedRecipients !== null ? selectedRecipients : (overrideEmail ? [overrideEmail] : selectedQueueItem?.applicantEmail ? [selectedQueueItem.applicantEmail] : []);
+      if (effectiveRecipients.length > 0 && appointment.id) {
         setEmailSendStatus("sending");
         try {
-          const emailRes = await apiRequest("POST", `/api/appointments/${appointment.id}/send-email`, overrideEmail ? { overrideEmail } : undefined);
+          const body = selectedRecipients !== null ? { recipients: selectedRecipients } : overrideEmail ? { overrideEmail } : undefined;
+          const emailRes = await apiRequest("POST", `/api/appointments/${appointment.id}/send-email`, body);
           const emailData = await emailRes.json();
-          setEmailSendStatus("sent"); setEmailSentTo(emailData.sentTo || recipientEmail);
-          toast({ title: "Appointment scheduled", description: `Confirmation email sent to ${emailData.sentTo || recipientEmail}.`, variant: "success" });
+          setEmailSendStatus("sent"); setEmailSentTo(emailData.sentTo || effectiveRecipients.join(", "));
+          toast({ title: "Appointment scheduled", description: `Confirmation email sent to ${emailData.sentTo || effectiveRecipients.join(", ")}.`, variant: "success" });
         } catch {
           setEmailSendStatus("failed");
           toast({ title: "Appointment scheduled", description: "Email notification could not be sent — use Copy Email as a backup.", variant: "destructive" });
         }
       } else {
-        toast({ title: "Appointment scheduled", description: recipientEmail ? "Appointment created." : "No applicant email on file — notification not sent.", variant: "success" });
+        toast({ title: "Appointment scheduled", description: selectedQueueItem?.applicantEmail ? "No recipients selected — email not sent." : "No applicant email on file — notification not sent.", variant: "success" });
       }
       setLocation("/appointments");
     },
@@ -247,12 +249,13 @@ export default function ScheduleEid() {
                 emailPreview={emailPreview} whatsappPreview={whatsappPreview} previewHtml={previewHtml}
                 scheduledApptId={scheduledApptId} emailSendStatus={emailSendStatus} setEmailSendStatus={setEmailSendStatus}
                 emailSentTo={emailSentTo} setEmailSentTo={setEmailSentTo} overrideEmail={overrideEmail} setOverrideEmail={setOverrideEmail}
-                onEditDetails={() => setCurrentStep(1)} onRegeneratePreviews={generatePreviews} companyEmailsList={companyEmailsList}
+                onEditDetails={() => { setSelectedRecipients(null); setCurrentStep(1); }} onRegeneratePreviews={generatePreviews} companyEmailsList={companyEmailsList}
+                onRecipientsChange={setSelectedRecipients}
               />
             )}
             <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t mt-6 -mx-6 px-6 py-4 flex justify-between gap-2 z-[9999]">
               {currentStep > 1 ? (
-                <Button variant="outline" onClick={() => setCurrentStep(1)} data-testid="eid-button-back-step"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
+                <Button variant="outline" onClick={() => { setSelectedRecipients(null); setCurrentStep(1); }} data-testid="eid-button-back-step"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button>
               ) : <div />}
               {currentStep < 2 ? (
                 <Button onClick={handleNextStep} disabled={!selectedQueueItem} data-testid="eid-button-next">Next<ArrowRight className="h-4 w-4 ml-2" /></Button>

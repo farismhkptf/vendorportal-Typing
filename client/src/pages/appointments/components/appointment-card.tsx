@@ -41,6 +41,7 @@ interface AppointmentCardProps {
   onViewMessages: (apt: AppointmentWithRelations) => void;
   onDownloadAsJpg: (apt: AppointmentWithRelations, type: "email" | "whatsapp") => void;
   onCopyDetails: (apt: AppointmentWithRelations) => void;
+  onResendEmail: (apt: AppointmentWithRelations) => void;
 }
 
 export function AppointmentCard({
@@ -59,6 +60,7 @@ export function AppointmentCard({
   onViewMessages,
   onDownloadAsJpg,
   onCopyDetails,
+  onResendEmail,
 }: AppointmentCardProps) {
   const [, navigate] = useLocation();
 
@@ -256,6 +258,16 @@ export function AppointmentCard({
                   Messages
                 </Button>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => onResendEmail(apt)}
+                data-testid={`button-resend-email-${apt.id}`}
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Resend Email
+              </Button>
               {apt.status === "Completed" && apt.type === "Medical" && (
                 <Button
                   variant="outline"
@@ -336,6 +348,13 @@ export function AppointmentCard({
         >
           <Copy className="h-4 w-4 mr-2" />
           Copy Details
+        </ContextMenuItem>
+        <ContextMenuItem
+          onClick={() => onResendEmail(apt)}
+          data-testid={`ctx-apt-resend-email-${apt.id}`}
+        >
+          <Mail className="h-4 w-4 mr-2" />
+          Resend Email
         </ContextMenuItem>
         <ContextMenuSeparator />
         {apt.status === "Scheduled" && (

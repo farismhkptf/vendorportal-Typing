@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   Calendar,
@@ -18,7 +19,7 @@ import { WoCustodyPanel } from "@/components/custody/wo-custody-panel";
 import { MedicalSchedulingTab } from "@/components/medical-scheduling/MedicalSchedulingTab";
 import { BiometricsSchedulingTab } from "@/components/biometrics-scheduling/BiometricsSchedulingTab";
 import type { ServiceCategory } from "@/components/documents/document-types";
-import type { ServiceType, Center, Staff, Vendor, JobType } from "@shared/schema";
+import type { ServiceType, Center, Staff, Vendor, JobType, Company, Appointment } from "@shared/schema";
 import { ExpandedAppointmentCard } from "./expanded-appointment-card";
 import { InternalNotesSection } from "./internal-notes-section";
 import { ActivityTimelineSection } from "./activity-timeline-section";
@@ -26,6 +27,8 @@ import { WoTypingTab } from "./wo-typing-tab";
 import { WoAptConfirmDialog } from "./wo-dialogs";
 import type { AptConfirmDialogState } from "./wo-dialogs";
 import type { WorkOrderDetail } from "./types";
+import { ResendEmailDialog } from "../../appointments/components/resend-email-dialog";
+import type { AppointmentWithRelations } from "../../appointments/components/types";
 
 interface WoTabsContainerProps {
   workOrder: WorkOrderDetail;
@@ -55,6 +58,9 @@ export function WoTabsContainer({
   onTypingJobFormOpened,
 }: WoTabsContainerProps) {
   const [aptConfirmDialog, setAptConfirmDialog] = useState<AptConfirmDialogState>({ open: false, type: "complete", appointment: null });
+  const [resendEmailApt, setResendEmailApt] = useState<AppointmentWithRelations | null>(null);
+
+  const { data: companies } = useQuery<Company[]>({ queryKey: ["/api/companies"] });
 
   const existingMedicalJob = workOrder.typingJobs?.find(j => j.jobType?.category === "Medical" && j.status !== "Aborted") || null;
 
@@ -151,6 +157,13 @@ export function WoTabsContainer({
                     onComplete={() => setAptConfirmDialog({ open: true, type: "complete", appointment: apt })}
                     onReschedule={() => setAptConfirmDialog({ open: true, type: "reschedule", appointment: apt })}
                     onCancel={() => setAptConfirmDialog({ open: true, type: "cancel", appointment: apt })}
+                    onResendEmail={() => {
+                      const aptWithRelations: AppointmentWithRelations = {
+                        ...apt,
+                        workOrder: workOrder as AppointmentWithRelations["workOrder"],
+                      };
+                      setResendEmailApt(aptWithRelations);
+                    }}
                   />
                 ))}
               </div>
@@ -216,6 +229,12 @@ export function WoTabsContainer({
         setAptConfirmDialog={setAptConfirmDialog}
         workOrderId={id}
         applicantName={workOrder.applicantName || ""}
+      />
+
+      <ResendEmailDialog
+        appointment={resendEmailApt}
+        onClose={() => setResendEmailApt(null)}
+        companies={companies}
       />
     </>
   );

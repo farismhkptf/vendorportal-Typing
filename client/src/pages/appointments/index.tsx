@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Stethoscope, CreditCard,
@@ -12,6 +13,7 @@ import {
   EmailDraftDialog,
   FullscreenPreviewDialog,
 } from "./components/appointment-dialogs";
+import { ResendEmailDialog } from "./components/resend-email-dialog";
 import { AppointmentStatsRow } from "./components/appointment-stats";
 import { AppointmentCalendar } from "./components/appointment-calendar";
 import { AppointmentToolbar } from "./components/appointment-toolbar";
@@ -19,9 +21,11 @@ import { AppointmentListSections } from "./components/appointment-list-sections"
 import { useAppointmentMessages } from "./components/appointment-messages-handler";
 import { useAppointmentsData } from "./components/use-appointments-data";
 import { useAppointmentActions } from "./components/appointment-action-handlers";
+import type { AppointmentWithRelations } from "./components/types";
 
 export default function AppointmentsIndex() {
   const [, navigate] = useLocation();
+  const [resendEmailApt, setResendEmailApt] = useState<AppointmentWithRelations | null>(null);
   const data = useAppointmentsData();
   const actions = useAppointmentActions();
   const messages = useAppointmentMessages(
@@ -133,6 +137,7 @@ export default function AppointmentsIndex() {
             onViewMessages={messages.setViewMessagesApt}
             onDownloadAsJpg={messages.handleDownloadAsJpg}
             onCopyDetails={actions.handleCopyAptDetails}
+            onResendEmail={setResendEmailApt}
           />
         </>)}
       </div>
@@ -164,6 +169,11 @@ export default function AppointmentsIndex() {
         viewEmailPreviewHtml={messages.viewEmailPreviewHtml}
         messageCopied={messages.messageCopied}
         onCopyMessage={messages.handleCopyViewMessage}
+      />
+      <ResendEmailDialog
+        appointment={resendEmailApt}
+        onClose={() => setResendEmailApt(null)}
+        companies={data.companies}
       />
     </AppLayout>
   );

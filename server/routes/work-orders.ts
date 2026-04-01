@@ -674,6 +674,10 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       if (!data) {
         return res.status(404).json({ message: "Appointment not found" });
       }
+      const { notes } = req.query;
+      if (typeof notes === "string") {
+        data.appointment = { ...data.appointment, notes };
+      }
       const html = renderAppointmentEmailHtml(data);
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       return res.send(html);
@@ -692,15 +696,24 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
   app.post("/api/appointments/:id/send-email", requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
-      const { overrideEmail } = req.body || {};
+      const { overrideEmail, recipients, notes: overrideNotes } = req.body || {};
       const appointment = await storage.getAppointmentById(id);
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
 
       const wo = await storage.getWorkOrderById(appointment.woId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch work order:", err); return undefined; });
       if (!wo) return res.status(404).json({ message: "Work order not found" });
 
-      const recipientEmail = (overrideEmail && overrideEmail.trim()) ? overrideEmail.trim() : wo.applicantEmail;
-      if (!recipientEmail) return res.status(400).json({ message: "Applicant has no email address on record." });
+      let recipientList: string[] = [];
+      if (Array.isArray(recipients) && recipients.length > 0) {
+        recipientList = recipients.map((r: string) => r.trim()).filter(Boolean);
+      } else if (overrideEmail && overrideEmail.trim()) {
+        recipientList = [overrideEmail.trim()];
+      } else if (wo.applicantEmail) {
+        recipientList = [wo.applicantEmail];
+      }
+      if (recipientList.length === 0) return res.status(400).json({ message: "No recipient email address provided." });
+
+      const recipientEmail = recipientList[0];
 
       const company = wo.companyId ? await storage.getCompanyById(wo.companyId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch company:", err); return undefined; }) : undefined;
       const serviceType = wo.serviceTypeId ? await storage.getServiceTypeById(wo.serviceTypeId).catch((err) => { console.error("[work-orders] resend-email: failed to fetch service type:", err); return undefined; }) : undefined;
@@ -732,11 +745,15 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
       const appBaseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
 
+      const appointmentForEmail = (overrideNotes !== undefined && overrideNotes !== null)
+        ? { ...appointment, notes: overrideNotes }
+        : appointment;
+
       const html = buildAppointmentEmail({
         workOrder: wo,
         company,
         serviceType,
-        appointment,
+        appointment: appointmentForEmail,
         center,
         assignedStaff,
         rmStaff,
@@ -747,24 +764,28 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       });
 
       const testRedirect = settings?.testEmailRedirect?.trim() || null;
-      const ccRecipients: string[] = [];
-      if (!testRedirect && settings?.alwaysCc && Array.isArray(settings.alwaysCc)) {
-        ccRecipients.push(...settings.alwaysCc.filter((e: string) => e && e !== recipientEmail));
-      }
+      const alwaysCcList: string[] = (!testRedirect && settings?.alwaysCc && Array.isArray(settings.alwaysCc))
+        ? settings.alwaysCc.filter((e: string) => e && !recipientList.includes(e))
+        : [];
 
       const applicantName = toProperCase(wo.applicantName || "Applicant");
       const apptTypeLabel = appointment.type === "EID" ? "Emirates ID Biometrics" : "Medical Fitness";
+      const subject = `${apptTypeLabel} Appointment - ${applicantName}. ${wo.woNumber}`;
 
-      const result = await sendEmail({
-        to: testRedirect || recipientEmail,
-        cc: testRedirect ? undefined : (ccRecipients.length > 0 ? ccRecipients : undefined),
-        subject: `${apptTypeLabel} Appointment - ${applicantName}. ${wo.woNumber}`,
-        html,
-        from: settings?.fromEmail || undefined,
-      });
+      const sendTargets = testRedirect ? [testRedirect] : recipientList;
+      const results = await Promise.all(sendTargets.map(to =>
+        sendEmail({
+          to,
+          cc: testRedirect ? undefined : (alwaysCcList.length > 0 ? alwaysCcList : undefined),
+          subject,
+          html,
+          from: settings?.fromEmail || undefined,
+        })
+      ));
 
-      if (!result.success) {
-        return res.status(500).json({ message: result.error || "Failed to send email" });
+      const failed = results.filter(r => !r.success);
+      if (failed.length === results.length) {
+        return res.status(500).json({ message: failed[0]?.error || "Failed to send email" });
       }
 
       const user = req.user;
@@ -774,12 +795,14 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         emailDraft: html,
       });
 
+      const sentTo = testRedirect ? testRedirect : recipientList.join(", ");
       res.json({
         success: true,
-        sentTo: testRedirect || recipientEmail,
-        cc: testRedirect ? [] : ccRecipients,
-        messageId: result.messageId,
+        sentTo,
+        sentToList: testRedirect ? [testRedirect] : recipientList,
+        cc: testRedirect ? [] : alwaysCcList,
         testRedirectActive: !!testRedirect,
+        partialFailures: failed.length > 0 ? failed.length : undefined,
       });
     } catch (error: unknown) {
       console.error("Send appointment email error:", error);

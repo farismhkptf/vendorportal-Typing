@@ -45,6 +45,7 @@ function RenderCard({ apt, showDate, showActions, cardProps }: {
       onViewMessages={cardProps.onViewMessages}
       onDownloadAsJpg={cardProps.onDownloadAsJpg}
       onCopyDetails={cardProps.onCopyDetails}
+      onResendEmail={cardProps.onResendEmail}
     />
   );
 }
