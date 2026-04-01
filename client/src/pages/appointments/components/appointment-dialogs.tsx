@@ -220,7 +220,7 @@ export function EmailDraftDialog({
   return (
     <Dialog open={!!viewEmailDraftApt} onOpenChange={(open) => { if (!open) onClose(); }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-hidden p-0">
-        <DialogHeader className={`px-6 py-4 border-b ${viewEmailDraftApt?.type === "Medical" ? "bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d]" : "bg-gradient-to-r from-[#2563eb] to-[#1e40af]"}`}>
+        <DialogHeader className={`px-6 py-4 border-b ${viewEmailDraftApt?.type === "Medical" ? "bg-gradient-to-r from-emerald-700 to-emerald-900" : "bg-gradient-to-r from-blue-600 to-blue-800"}`}>
           <DialogTitle className="text-white flex items-center gap-2">
             {viewEmailDraftApt?.type === "Medical" ? (
               <Stethoscope className="h-5 w-5" />
@@ -302,7 +302,7 @@ export function FullscreenPreviewDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
-        <DialogHeader className={`px-6 py-4 border-b ${viewMessagesApt?.type === "Medical" ? "bg-gradient-to-r from-[#4a7c59] to-[#2d5a3d]" : "bg-gradient-to-r from-[#2563eb] to-[#1e40af]"}`}>
+        <DialogHeader className={`px-6 py-4 border-b ${viewMessagesApt?.type === "Medical" ? "bg-gradient-to-r from-emerald-700 to-emerald-900" : "bg-gradient-to-r from-blue-600 to-blue-800"}`}>
           <DialogTitle className="text-white flex items-center gap-2">
             {viewMessagesApt?.type === "Medical" ? (
               <Stethoscope className="h-5 w-5" />

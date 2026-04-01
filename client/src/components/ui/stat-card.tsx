@@ -69,7 +69,7 @@ export function StatCard({ title, value, icon, trend, className, animationDelay 
           {trend && (
             <p className={cn(
               "text-xs font-medium",
-              trend.positive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
+              trend.positive ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
             )}>
               {trend.positive ? "+" : ""}{trend.value}
             </p>

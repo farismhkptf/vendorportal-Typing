@@ -46,7 +46,7 @@ export function PipelineOverview({ navigate }: { navigate: (path: string) => voi
             new: "bg-slate-400 dark:bg-slate-500",
             at_vendor: "bg-blue-500 dark:bg-blue-400",
             ready_to_schedule: "bg-amber-500 dark:bg-amber-400",
-            scheduled: "bg-purple-500 dark:bg-purple-400",
+            scheduled: "bg-blue-500 dark:bg-blue-400",
             complete: "bg-emerald-500 dark:bg-emerald-400",
           };
           return (
@@ -78,7 +78,7 @@ export function PipelineOverview({ navigate }: { navigate: (path: string) => voi
                 stage === "new" && "bg-slate-400",
                 stage === "at_vendor" && "bg-blue-500",
                 stage === "ready_to_schedule" && "bg-amber-500",
-                stage === "scheduled" && "bg-purple-500",
+                stage === "scheduled" && "bg-blue-500",
                 stage === "complete" && "bg-emerald-500",
                 stage === "needs_attention" && "bg-red-500",
               )} />

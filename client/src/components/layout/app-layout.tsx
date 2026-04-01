@@ -27,10 +27,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { cn } from "@/lib/utils";
 import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { StaffNotificationsBell } from "@/components/staff-notifications-bell";
-import { ThemeSwitcher, getBackgroundSrc } from "@/components/theme-switcher";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useSwipeBack } from "@/hooks/use-swipe-back";
 import { useAuth } from "@/hooks/use-auth";
-import { useTheme } from "@/hooks/use-theme";
 import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 import { InstallPromptBanner } from "@/components/install-prompt-banner";
@@ -88,24 +87,9 @@ export function AppLayout({ children }: AppLayoutProps) {
     .map((item) => item.href === "__dashboard__" ? { ...item, href: dashboardHref } : item);
 
   const userInitial = user?.name?.charAt(0)?.toUpperCase() || "U";
-  const { background } = useTheme();
-  const bgSrc = getBackgroundSrc(background);
-  const hasBg = background !== "none" && !!bgSrc;
 
   return (
-    <div className={cn("min-h-screen", hasBg ? "bg-background/80" : "bg-background")} data-testid="app-layout">
-      {hasBg && (
-        <div className="fixed inset-0 z-0" data-testid="app-background">
-          <img
-            src={bgSrc!}
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-            loading="eager"
-            decoding="async"
-          />
-          <div className="absolute inset-0 bg-background/70 dark:bg-background/80 backdrop-blur-sm" />
-        </div>
-      )}
+    <div className="min-h-screen bg-background" data-testid="app-layout">
       {sidebarOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[2px] lg:hidden transition-opacity duration-300"

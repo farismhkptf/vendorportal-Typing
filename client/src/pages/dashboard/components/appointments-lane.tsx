@@ -22,10 +22,10 @@ export function AppointmentsLane({ data, isLoading, photoMap }: { data?: Appoint
   return (
     <div className="premium-card p-4 opacity-0 animate-fade-in animate-delay-3" data-testid="lane-appointments">
       <LaneHeader
-        icon={<Calendar className="h-4 w-4 text-violet-600 dark:text-violet-400" />}
+        icon={<Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />}
         title="Appointments"
         count={data?.counts.today}
-        color="bg-violet-100 dark:bg-violet-900/40"
+        color="bg-blue-100 dark:bg-blue-900/40"
         action={
           <Link href="/appointments">
             <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground h-7" data-testid="link-view-all-appointments">
@@ -46,8 +46,8 @@ export function AppointmentsLane({ data, isLoading, photoMap }: { data?: Appoint
         <div className="mt-3 space-y-3">
           <div data-testid="section-today-appointments">
             <div className="flex items-center gap-2 mb-2">
-              <div className="h-5 w-5 rounded flex items-center justify-center bg-violet-100 dark:bg-violet-900/40">
-                <CalendarDays className="h-3 w-3 text-violet-600 dark:text-violet-400" />
+              <div className="h-5 w-5 rounded flex items-center justify-center bg-blue-100 dark:bg-blue-900/40">
+                <CalendarDays className="h-3 w-3 text-blue-600 dark:text-blue-400" />
               </div>
               <span className="text-sm font-medium text-foreground">Today's Schedule</span>
               <span className="text-xs font-medium text-muted-foreground tabular-nums bg-muted/50 px-1.5 py-0.5 rounded-full">{data?.counts.today || 0}</span>
@@ -160,8 +160,8 @@ export function AppointmentsLane({ data, isLoading, photoMap }: { data?: Appoint
                   data-testid={`needs-scheduling-${item.woId}`}
                 >
                   <div className="flex gap-1">
-                    {item.types.includes("Medical") && <Stethoscope className="h-3.5 w-3.5 text-rose-500 dark:text-rose-400" />}
-                    {item.types.includes("EID") && <CreditCard className="h-3.5 w-3.5 text-cyan-500 dark:text-cyan-400" />}
+                    {item.types.includes("Medical") && <Stethoscope className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />}
+                    {item.types.includes("EID") && <CreditCard className="h-3.5 w-3.5 text-blue-500 dark:text-blue-400" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

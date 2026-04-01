@@ -64,7 +64,7 @@ export function WeeklyOverviewChart({ data }: { data: WeeklyData[] }) {
           Work Orders
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="h-2 w-2 rounded-full bg-teal-600" />
+          <span className="h-2 w-2 rounded-full bg-blue-500" />
           Appointments
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

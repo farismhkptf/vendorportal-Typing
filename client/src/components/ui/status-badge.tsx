@@ -17,32 +17,42 @@ interface StatusBadgeProps {
   vendorContext?: boolean;
 }
 
+const SLATE  = "bg-slate-100/80 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300";
+const AMBER  = "bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+const BLUE   = "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300";
+const GREEN  = "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300";
+const RED    = "bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300";
+
 const statusStyles: Record<StatusType, string> = {
-  Draft: "bg-slate-100/80 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300",
-  AtVendor: "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700",
-  ReadyToSchedule: "bg-teal-50 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300 border border-teal-200 dark:border-teal-700",
-  Scheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
-  Completed: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
-  Cancelled: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
-  Rescheduled: "bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300",
-  SubmittedToVendor: "bg-indigo-50 text-indigo-600 dark:bg-indigo-900/40 dark:text-indigo-300",
-  InProcess: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
-  Returned: "bg-violet-50 text-violet-600 dark:bg-violet-900/40 dark:text-violet-300",
-  ReadyForScheduling: "bg-teal-50 text-teal-600 dark:bg-teal-900/40 dark:text-teal-300",
-  OnHold: "bg-yellow-50 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
-  Rejected: "bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300",
-  Aborted: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
-  FollowUpRequired: "bg-orange-50 text-orange-600 dark:bg-orange-900/40 dark:text-orange-300",
-  FollowUpScheduled: "bg-purple-50 text-purple-600 dark:bg-purple-900/40 dark:text-purple-300",
-  FollowUpCompleted: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
-  New: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
-  Accepted: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300",
-  Closed: "bg-gray-100/80 text-gray-500 dark:bg-gray-800/60 dark:text-gray-400",
-  Medical: "bg-rose-50 text-rose-600 dark:bg-rose-900/40 dark:text-rose-300",
-  EID: "bg-cyan-50 text-cyan-600 dark:bg-cyan-900/40 dark:text-cyan-300",
-  MedScheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
-  EIDScheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
-  BothScheduled: "bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300",
+  Draft:              SLATE,
+  Cancelled:          SLATE,
+  Aborted:            SLATE,
+  Closed:             SLATE,
+
+  Rescheduled:        AMBER,
+  AtVendor:           AMBER,
+  SubmittedToVendor:  AMBER,
+  OnHold:             AMBER,
+  FollowUpRequired:   AMBER,
+  FollowUpScheduled:  AMBER,
+
+  Scheduled:          BLUE,
+  InProcess:          BLUE,
+  ReadyToSchedule:    BLUE,
+  ReadyForScheduling: BLUE,
+  New:                BLUE,
+  Medical:            BLUE,
+  EID:                BLUE,
+  MedScheduled:       BLUE,
+  EIDScheduled:       BLUE,
+  BothScheduled:      BLUE,
+
+  Completed:          GREEN,
+  FollowUpCompleted:  GREEN,
+  Accepted:           GREEN,
+  Returned:           GREEN,
+
+  Rejected:           RED,
 };
 
 const statusLabels: Record<StatusType, string> = {

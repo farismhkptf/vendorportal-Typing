@@ -10,7 +10,7 @@ interface AttestationLayoutProps {
 
 export function AttestationVendorLayout({ children }: AttestationLayoutProps) {
   const [location] = useLocation();
-  const { theme, setTheme } = useTheme();
+  const { mode, toggleMode } = useTheme();
   const { user, logout } = useAttestationVendorAuth();
   const [showProfile, setShowProfile] = useState(false);
 
@@ -29,8 +29,8 @@ export function AttestationVendorLayout({ children }: AttestationLayoutProps) {
       <div className="relative z-10 flex flex-col h-screen">
         <header className="flex items-center justify-between px-5 pt-4 pb-2 lg:px-8 lg:pt-6">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-purple-100 dark:bg-white/15 backdrop-blur-sm flex items-center justify-center">
-              <span className="text-purple-700 dark:text-white font-bold text-sm">A</span>
+            <div className="h-8 w-8 rounded-xl bg-amber-100 dark:bg-white/15 backdrop-blur-sm flex items-center justify-center">
+              <span className="text-amber-700 dark:text-white font-bold text-sm">A</span>
             </div>
             <span className="text-slate-700 dark:text-white/90 font-medium text-sm hidden sm:block">
               {user?.vendorName || "Attestation Portal"}
@@ -39,11 +39,11 @@ export function AttestationVendorLayout({ children }: AttestationLayoutProps) {
 
           <div className="flex items-center gap-1">
             <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={toggleMode}
               className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               data-testid="button-attest-theme-toggle"
             >
-              {theme === "dark" ? (
+              {mode === "dark" ? (
                 <Sun className="h-4 w-4 text-slate-500 dark:text-white/70" />
               ) : (
                 <Moon className="h-4 w-4 text-slate-500 dark:text-white/70" />
@@ -55,8 +55,8 @@ export function AttestationVendorLayout({ children }: AttestationLayoutProps) {
               className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               data-testid="button-attest-profile"
             >
-              <div className="h-6 w-6 rounded-full bg-purple-100 dark:bg-white/20 flex items-center justify-center">
-                <span className="text-[11px] font-bold text-purple-700 dark:text-white">{user?.name?.charAt(0) || "A"}</span>
+              <div className="h-6 w-6 rounded-full bg-amber-100 dark:bg-white/20 flex items-center justify-center">
+                <span className="text-[11px] font-bold text-amber-700 dark:text-white">{user?.name?.charAt(0) || "A"}</span>
               </div>
             </button>
           </div>
@@ -103,13 +103,13 @@ export function AttestationVendorLayout({ children }: AttestationLayoutProps) {
                   <button
                     className={`v2-dock-item relative flex flex-col items-center gap-0.5 px-5 py-2 rounded-2xl transition-all ${
                       isActive
-                        ? "text-purple-700 dark:text-white v2-dock-item-active"
+                        ? "text-amber-700 dark:text-white v2-dock-item-active"
                         : "text-slate-400 dark:text-white/50 hover:text-slate-600 dark:hover:text-white/80"
                     }`}
                     data-testid={`attest-nav-tab-${tab.label.toLowerCase()}`}
                   >
                     {isActive && (
-                      <div className="absolute inset-0 bg-purple-50 dark:bg-white/15 rounded-2xl" />
+                      <div className="absolute inset-0 bg-amber-50 dark:bg-white/15 rounded-2xl" />
                     )}
                     <div className="relative">
                       <tab.icon className="h-5 w-5" />

@@ -57,7 +57,7 @@ export default function AttestationDashboard() {
   return (
     <div className="max-w-2xl mx-auto pt-2 pb-4 space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight" data-testid="text-attest-greeting">
+        <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight" data-testid="text-attest-greeting">
           {getGreeting()}, {user?.name?.split(" ")[0]}
         </h1>
         <p className="text-slate-500 dark:text-white/50 text-sm mt-1">

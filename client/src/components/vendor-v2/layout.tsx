@@ -103,7 +103,7 @@ const TOUR_STORAGE_KEY = "v2-tour-completed";
 export function V2Layout({ children }: V2LayoutProps) {
   const [location] = useLocation();
   const { user, logout } = useVendorAuth();
-  const { theme, setTheme } = useTheme();
+  const { mode, toggleMode } = useTheme();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showTour, setShowTour] = useState(false);
@@ -165,11 +165,11 @@ export function V2Layout({ children }: V2LayoutProps) {
             <TourHelpButton onClick={() => setShowTour(true)} />
 
             <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              onClick={toggleMode}
               className="p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
               data-testid="button-v2-theme-toggle"
             >
-              {theme === "dark" ? (
+              {mode === "dark" ? (
                 <Sun className="h-4.5 w-4.5 text-slate-500 dark:text-white/70" />
               ) : (
                 <Moon className="h-4.5 w-4.5 text-slate-500 dark:text-white/70" />
@@ -284,7 +284,7 @@ export function GlassCard({
 }: {
   children: ReactNode;
   className?: string;
-  accent?: "amber" | "red" | "blue" | "green" | "teal" | "purple";
+  accent?: "amber" | "red" | "blue" | "green" | "slate";
   onClick?: () => void;
   [key: string]: any;
 }) {
@@ -294,8 +294,7 @@ export function GlassCard({
         red: "border-l-red-400/60",
         blue: "border-l-blue-400/60",
         green: "border-l-emerald-400/60",
-        teal: "border-l-teal-400/60",
-        purple: "border-l-purple-400/60",
+        slate: "border-l-slate-400/60",
       }[accent]
     : "";
 

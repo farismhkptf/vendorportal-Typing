@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 export function TypeIcon({ type, className }: { type: "Medical" | "EID"; className?: string }) {
   return type === "Medical" 
-    ? <Stethoscope className={cn("h-3.5 w-3.5 text-rose-500 dark:text-rose-400", className)} />
-    : <CreditCard className={cn("h-3.5 w-3.5 text-cyan-500 dark:text-cyan-400", className)} />;
+    ? <Stethoscope className={cn("h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400", className)} />
+    : <CreditCard className={cn("h-3.5 w-3.5 text-blue-500 dark:text-blue-400", className)} />;
 }
 
 export function JobRow({ 
@@ -39,7 +39,7 @@ export function JobRow({
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-foreground">{item.woNumber}</span>
           {item.urgent && (
-            <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 px-1.5 py-0.5 rounded-full">URGENT</span>
+            <span className="text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-1.5 py-0.5 rounded-full">URGENT</span>
           )}
         </div>
         <p className="text-xs text-muted-foreground truncate">{toProperCase(item.applicantName)}</p>

@@ -4,10 +4,10 @@ export function TypingStatusPill({ status }: { status: string | null }) {
   if (!status) return <span className="text-[10px] text-muted-foreground/50">--</span>;
   const styles: Record<string, { bg: string; label: string }> = {
     Draft: { bg: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400", label: "Draft" },
-    SubmittedToVendor: { bg: "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/50 dark:text-indigo-300", label: "At Vendor" },
+    SubmittedToVendor: { bg: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300", label: "At Vendor" },
     InProcess: { bg: "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300", label: "In Process" },
-    ReadyForScheduling: { bg: "bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-300", label: "Ready for Scheduling" },
-    Returned: { bg: "bg-violet-100 text-violet-600 dark:bg-violet-900/50 dark:text-violet-300", label: "Returned" },
+    ReadyForScheduling: { bg: "bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300", label: "Ready for Scheduling" },
+    Returned: { bg: "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-300", label: "Returned" },
     Aborted: { bg: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400", label: "Aborted" },
   };
   const s = styles[status] || { bg: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400", label: status };
