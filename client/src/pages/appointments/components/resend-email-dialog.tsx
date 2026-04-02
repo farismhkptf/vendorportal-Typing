@@ -119,7 +119,10 @@ export function ResendEmailDialog({
     const initialNotes = apt.notes || "";
     setNotes(initialNotes);
     const defaultSet = new Set<string>();
-    if (apt.workOrder?.applicantEmail) defaultSet.add(apt.workOrder.applicantEmail);
+    const coordEmail = company?.clientCoordinator?.email;
+    const managerEmail = company?.clientManager?.email;
+    if (coordEmail) defaultSet.add(coordEmail);
+    else if (managerEmail) defaultSet.add(managerEmail);
     setSelectedEmails(defaultSet);
     fetchPreview(initialNotes);
   }, [apt?.id]);

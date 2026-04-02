@@ -81,7 +81,7 @@ export function ScheduleConfirmationStep({
   const [customEmails, setCustomEmails] = useState<string[]>([]);
   const [emailPopoverOpen, setEmailPopoverOpen] = useState(false);
 
-  const defaultEmail = selectedQueueItem?.applicantEmail;
+  const defaultEmail = selectedCompany?.clientCoordinator?.email || selectedCompany?.clientManager?.email || selectedQueueItem?.applicantEmail;
   const [selectedRecipients, setSelectedRecipientsState] = useState<Set<string>>(() => {
     const initial = new Set<string>();
     if (defaultEmail) initial.add(defaultEmail);
@@ -90,7 +90,10 @@ export function ScheduleConfirmationStep({
 
   useEffect(() => {
     const emails = new Set<string>();
-    if (selectedQueueItem?.applicantEmail) emails.add(selectedQueueItem.applicantEmail);
+    const coordEmail = selectedCompany?.clientCoordinator?.email;
+    const managerEmail = selectedCompany?.clientManager?.email;
+    if (coordEmail) emails.add(coordEmail);
+    else if (managerEmail) emails.add(managerEmail);
     setSelectedRecipientsState(emails);
     setCustomEmails([]);
     setCustomEmailInput("");

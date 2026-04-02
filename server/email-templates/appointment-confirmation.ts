@@ -463,9 +463,6 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
                                 <a href="https://www.procompany.ae" class="link-primary" style="text-decoration:none;">The P.R.O. Company&#8482;</a>
                               </div>
                               <div class="footer-divider-line" style="width:32px;height:1px;background:#e8e8ed;margin:6px auto;"></div>
-                              <div class="text-secondary" style="font-size:11px;margin-bottom:4px;">
-                                Powered by <a href="https://www.procompany.ae" class="text-secondary" style="text-decoration:none;">The P.R.O. Company</a>
-                              </div>
                               <div class="text-secondary" style="font-size:10px;letter-spacing:0.01em;">&copy; ${new Date().getFullYear()} The P.R.O. Company&#8482;. All rights reserved.</div>
                             </td>
                           </tr>
@@ -1164,9 +1161,6 @@ function buildEmailHtmlTemplate(p: EmailTemplateParams): string {
                     <a href="https://www.procompany.ae" style="color:#1d1d1f;text-decoration:none;">The P.R.O. Company&#8482;</a>
                   </div>
                   <div class="footer-divider" style="width:24px;height:1px;background:#e8e8ed;margin:8px auto;"></div>
-                  <div class="footer-powered" style="font-size:11px;font-weight:400;color:#a1a1a8;letter-spacing:0.01em;margin-bottom:4px;">
-                    Powered by <a href="https://www.procompany.ae" style="color:#a1a1a8;text-decoration:none;">The P.R.O. Company</a>
-                  </div>
                   <div class="footer-legal" style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;">&copy; ${new Date().getFullYear()} The P.R.O. Company&#8482;. All rights reserved.</div>
                   <div class="footer-licensed" style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;margin-top:2px;">Licensed under Keystone Business Solutions LLC</div>
                 </td>
