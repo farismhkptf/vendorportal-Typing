@@ -1,0 +1,74 @@
+We need to audit and refine the typography, spacing, and responsive scaling of our scheduling email template to ensure perfect rendering across all major environments.
+
+Objective:
+The email must render consistently and predictably across:
+- Outlook Desktop (Windows – primary priority)
+- Outlook on Laptop
+- Mobile devices (iOS Mail, Gmail app, Outlook mobile)
+
+Critical Requirement:
+The appearance in Outlook Desktop must match exactly how the design appears in current preview. No layout shifts, font inconsistencies, spacing issues, or alignment breaks are acceptable.
+
+Scope of Work:
+
+1. Typography System
+- Define a safe, cross-platform font stack (Outlook-safe first, then fallbacks)
+- Ensure font sizes scale correctly across desktop and mobile
+- Maintain clear hierarchy:
+  - Headings
+  - Subheadings
+  - Body text
+  - Labels / metadata
+- Avoid font rendering inconsistencies in Outlook (especially Windows)
+
+2. Layout & Spacing
+- Ensure consistent padding and margins across all sections
+- Fix any spacing collapse issues in Outlook (especially table-based layouts)
+- Maintain visual balance and alignment identical to preview
+
+3. Email Structure (Outlook Compatibility)
+- Convert layout fully into table-based structure where required
+- Eliminate reliance on unsupported CSS (flex, grid, etc.)
+- Ensure all widths are controlled (fixed + responsive hybrid approach)
+
+4. Scaling & Responsiveness
+- Desktop (Outlook): fixed, pixel-perfect layout
+- Mobile:
+  - Proper stacking of sections
+  - Readable font sizes (no zoom required)
+  - Buttons and links are touch-friendly
+- Prevent text shrinking or unexpected resizing in Outlook
+
+5. Cross-Client Consistency
+- Test and optimize for:
+  - Outlook Desktop (highest priority)
+  - Outlook Web
+  - Gmail (web + mobile)
+  - Apple Mail
+- Remove any CSS that causes inconsistent rendering between clients
+
+6. Visual Fidelity
+- Ensure:
+  - Colors render correctly
+  - Line heights are consistent
+  - No unexpected bolding or font substitution
+- Match preview design exactly in Outlook
+
+7. Fallback Handling
+- Define fallbacks for:
+  - Fonts
+  - Buttons (bulletproof buttons for Outlook)
+  - Images (alt text + scaling)
+
+8. Deliverable
+- Final HTML email template
+- Fully tested for Outlook Desktop accuracy
+- Clean, production-ready code (no experimental CSS)
+- Inline CSS only (no external dependencies)
+
+Important:
+Do not redesign the email.
+Do not change the visual style.
+This is strictly a rendering, typography, and scaling correction task.
+
+The goal is pixel-perfect consistency across Outlook and all devices.
