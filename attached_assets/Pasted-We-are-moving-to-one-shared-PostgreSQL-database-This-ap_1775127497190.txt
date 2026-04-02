@@ -1,0 +1,77 @@
+We are moving to one shared PostgreSQL database.
+
+This app is the Vendor Portal.
+It is not the master business app.
+It is the execution app.
+
+This portal has two vendor types:
+- Medical Vendor
+- Attestation Vendor
+
+Architectural direction:
+- Client Portal owns the master business records.
+- Vendor Portal owns execution-side records only.
+
+Client Portal will own:
+- companies
+- people / applicants / employees
+- users and company access model (unless centralized separately)
+- submissions / service requests
+- master work_orders
+- core document metadata
+- quote / billing-side records
+
+Vendor Portal must not own or duplicate those records.
+Vendor Portal should only reference them by foreign key or API.
+
+Vendor Portal should own only its execution-side data, such as:
+- medical jobs / medical cases
+- medical appointment cycles and events
+- attestation inquiries
+- attestation service requests
+- attestation workflow steps
+- execution-specific uploads if required
+- custody / handoff records if this app handles physical documents
+- vendor action logs
+- vendor-side notifications
+- vendor financial or ledger records only if they are truly vendor-execution-specific
+
+Your task:
+Review this app and rewrite its database integration plan based on this final direction.
+
+I need you to identify exactly:
+
+1. Which entities this app must stop owning
+2. Which tables this app should still own
+3. Which current fields must be replaced by references to shared master records from Client Portal
+4. Which separate execution modules should exist for:
+   - Medical Vendor
+   - Attestation Vendor
+5. Which tables can be shared between those two vendor types and which must remain separate
+6. Which API endpoints must change because companies, applicants, and work orders are no longer created here
+7. Which actions this app should be allowed to write back to shared work orders
+8. Which events this app should publish to Client Portal when execution status changes
+9. Which naming, enum, auth, or settings tables could collide in a shared Neon database
+10. What migration steps are required to convert this app from partial ownership to execution-only ownership
+
+Important:
+Do not combine Medical Vendor and Attestation Vendor blindly.
+Separate shared logic from vendor-type-specific logic.
+
+Do not redesign the whole system.
+Do not write code yet.
+Be specific and practical.
+
+Output in this exact structure:
+
+1. ENTITIES VENDOR PORTAL MUST STOP OWNING
+2. EXECUTION ENTITIES VENDOR PORTAL SHOULD OWN
+3. FOREIGN KEY / REFERENCE CHANGES REQUIRED
+4. MEDICAL VENDOR MODULE BOUNDARY
+5. ATTESTATION VENDOR MODULE BOUNDARY
+6. SHARED VS SEPARATE TABLES INSIDE VENDOR PORTAL
+7. ENDPOINTS THAT MUST CHANGE
+8. EVENTS / STATUS UPDATES TO SEND BACK TO CLIENT PORTAL
+9. SHARED DATABASE COLLISION RISKS
+10. REQUIRED MIGRATION STEPS
+11. FINAL RECOMMENDED BOUNDARY FOR VENDOR PORTAL
