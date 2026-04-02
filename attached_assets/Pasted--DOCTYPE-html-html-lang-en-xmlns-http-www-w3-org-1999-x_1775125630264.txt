@@ -1,0 +1,544 @@
+<!DOCTYPE html><html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>RENEW EMPLOYMENT VISA – Nameless L.L.C.</title>
+    <!--[if mso]>
+    <noscript>
+    <xml>
+    <o:OfficeDocumentSettings>
+    <o:PixelsPerInch>96</o:PixelsPerInch>
+    </o:OfficeDocumentSettings>
+    </xml>
+    </noscript>
+    <![endif]-->
+    <style>
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            color: #1d1d1f;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            padding: 32px 20px;
+        }
+
+        /* ── SHELL ── */
+        .email {
+            max-width: 680px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .content { padding: 52px 48px 52px; }
+
+        .logo {
+            width: 34px; height: 34px;
+            background: #1d1d1f;
+            border-radius: 8px;
+            text-align: center;
+            line-height: 34px;
+            color: #ffffff;
+            font-size: 15px; font-weight: 600;
+            letter-spacing: -0.02em;
+            display: inline-block;
+        }
+
+        .brand-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1d1f;
+            letter-spacing: -0.01em;
+            line-height: 1.35;
+        }
+
+        .brand-tagline {
+            font-size: 11px;
+            font-weight: 400;
+            color: #8e8e98;
+            letter-spacing: 0.04em;
+            margin-top: 2px;
+        }
+
+        /* ── HERO ── */
+        .company {
+            font-size: 30px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            color: #1d1d1f;
+            margin-bottom: 8px;
+        }
+
+        .service-type {
+            font-size: 14px;
+            font-weight: 400;
+            color: #8e8e98;
+            letter-spacing: 0.02em;
+            margin-bottom: 32px;
+        }
+
+        .avatar {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 60px;
+            font-size: 19px; font-weight: 700;
+            letter-spacing: -0.02em;
+            border: 2px solid #ffffff;
+            display: inline-block;
+        }
+
+        .avatar-a { background: #dbeafe; color: #1d4ed8; }
+
+        .avatar-s {
+            width: 46px; height: 46px;
+            line-height: 42px;
+            font-size: 14px;
+            background: #dcfce7;
+            color: #15803d;
+        }
+
+        .applicant-name {
+            font-size: 24px;
+            font-weight: 500;
+            letter-spacing: -0.025em;
+            line-height: 1.2;
+            color: #1d1d1f;
+            margin-bottom: 6px;
+        }
+
+        /* ── APPOINTMENT CARD ── */
+        .appt-block { padding: 18px 22px; }
+
+        .appt-divider { height: 1px; background: #e8e8ed; }
+
+        .data-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: #8e8e98;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+        }
+
+        .appt-datetime {
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            line-height: 1.2;
+            color: #1d1d1f;
+        }
+
+        .appt-location-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: #1d1d1f;
+            letter-spacing: -0.01em;
+            line-height: 1.3;
+            margin-bottom: 4px;
+        }
+
+        .appt-location-address {
+            font-size: 13px;
+            font-weight: 400;
+            color: #5e5e6a;
+            line-height: 1.55;
+            margin-bottom: 9px;
+        }
+
+        .map-link {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 400;
+            color: #1d1d1f;
+            text-decoration: none;
+            border-bottom: 1px solid #e8e8ed;
+            padding-bottom: 1px;
+            letter-spacing: 0.005em;
+        }
+
+        .appt-ref-value {
+            font-size: 12px;
+            font-weight: 500;
+            color: #5e5e6a;
+            letter-spacing: 0.04em;
+        }
+
+        /* ── SECTION HEADING ── */
+        .section-heading {
+            font-size: 10px;
+            font-weight: 600;
+            color: #8e8e98;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-top: 40px;
+            margin-bottom: 16px;
+        }
+
+        /* ── GUIDE ── */
+        .guide-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #1d1d1f;
+            letter-spacing: -0.015em;
+            line-height: 1.3;
+            margin-bottom: 5px;
+        }
+
+        .guide-role-inline {
+            font-size: 12px;
+            font-weight: 400;
+            color: #8e8e98;
+            letter-spacing: 0.01em;
+        }
+
+        .guide-phone {
+            font-size: 13px;
+            font-weight: 400;
+            color: #5e5e6a;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        .guide-phone a {
+            color: #5e5e6a;
+            text-decoration: none;
+            border-bottom: 1px solid #e8e8ed;
+        }
+
+        .guide-description {
+            font-size: 14px;
+            font-weight: 400;
+            color: #5e5e6a;
+            line-height: 1.7;
+            letter-spacing: 0.005em;
+        }
+
+        /* ── AFTER APPOINTMENT ── */
+        .after-text {
+            font-size: 14px;
+            font-weight: 400;
+            color: #5e5e6a;
+            line-height: 1.7;
+            letter-spacing: 0.005em;
+        }
+
+        /* ── FOOTER ── */
+        .footer-brand {
+            font-size: 12px;
+            font-weight: 500;
+            color: #1d1d1f;
+            letter-spacing: -0.01em;
+        }
+
+        .footer-brand a { color: #1d1d1f; text-decoration: none; }
+
+        .footer-powered {
+            font-size: 11px;
+            font-weight: 400;
+            color: #a1a1a8;
+            letter-spacing: 0.01em;
+            margin-bottom: 4px;
+        }
+
+        .footer-powered a {
+            color: #a1a1a8;
+            text-decoration: none;
+        }
+
+        .footer-legal {
+            font-size: 10px;
+            font-weight: 400;
+            color: #a1a1a8;
+            letter-spacing: 0.015em;
+        }
+
+        /* ── MOBILE ── */
+        @media only screen and (max-width: 600px) {
+            .content          { padding: 36px 24px 40px; }
+            .company          { font-size: 26px; }
+            .applicant-name   { font-size: 21px; }
+            .avatar           { width: 56px; height: 56px; font-size: 17px; }
+            .appt-datetime    { font-size: 18px; }
+        }
+
+        /* ── DARK MODE ── */
+        @media (prefers-color-scheme: dark) {
+            body  { background: #000; }
+            .email { background: #1c1c1e; }
+
+            .brand-name, .company, .applicant-name,
+            .appt-datetime, .appt-location-name,
+            .guide-name, .footer-brand { color: #f5f5f7; }
+
+            .brand-tagline, .service-type,
+            .guide-description, .after-text,
+            .footer-powered, .footer-legal { color: #8e8e98; }
+
+            .data-label, .section-heading { color: #636366; }
+
+            .appt-divider { background: #3a3a3c; }
+
+            .appt-location-address, .appt-ref-value,
+            .guide-phone, .guide-phone a { color: #8e8e98; }
+
+            .map-link { color: #f5f5f7; border-color: #3a3a3c; }
+
+            .avatar-a { background: #1e3a8a; color: #93c5fd; }
+            .avatar-s { background: #14532d; color: #86efac; }
+        }
+
+    </style>
+</head>
+<body style="margin:0;padding:32px 20px;background-color:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#1d1d1f;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+<table role="presentation" class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;max-width:680px;margin:0 auto;">
+  <tr>
+    <td class="email" style="background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 20px 48px -8px rgba(0,0,0,0.10);">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+        <tr>
+          <td class="content" style="padding:52px 48px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+
+              <!-- HEADER -->
+              <tr>
+                <td class="header" style="padding-bottom:22px;margin-bottom:40px;border-bottom:1px solid #e8e8ed;" colspan="2">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                    <tr>
+                      <td style="vertical-align:middle;padding-right:12px;">
+                        <div class="logo" style="width:34px;height:34px;background:#1d1d1f;border-radius:8px;text-align:center;line-height:34px;font-size:15px;font-weight:600;letter-spacing:-0.02em;color:#ffffff;display:inline-block;">N</div>
+                      </td>
+                      <td style="vertical-align:middle;">
+                        <div class="brand-name" style="font-size:14px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.35;">The P.R.O. Company</div>
+                        <div class="brand-tagline" style="font-size:11px;font-weight:400;color:#8e8e98;letter-spacing:0.04em;margin-top:2px;">Everything. In Order.</div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <tr><td style="height:40px;font-size:0;line-height:0;" colspan="2">&nbsp;</td></tr>
+
+              <!-- HERO -->
+              <tr>
+                <td colspan="2">
+                  <div class="company" style="font-size:30px;font-weight:600;letter-spacing:-0.03em;line-height:1.1;color:#1d1d1f;margin-bottom:8px;">Nameless L.L.C.</div>
+                  <div class="service-type" style="font-size:14px;font-weight:400;color:#8e8e98;letter-spacing:0.02em;margin-bottom:32px;">RENEW EMPLOYMENT VISA</div>
+                </td>
+              </tr>
+
+              <!-- APPLICANT -->
+              <tr>
+                <td class="applicant-row" style="padding-bottom:28px;margin-bottom:28px;border-bottom:1px solid #e8e8ed;" colspan="2">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                    <tr>
+                      <td style="vertical-align:middle;padding-right:18px;">
+                        <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAeAB4AAD/4RDuRXhpZgAATU0AKgAAAAgABAE7AAIAAAAMAAAISodpAAQAAAABAAAIVpydAAEAAAAYAAAQzuocAAcAAAgMAAAAPgAAAAAc6gAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEZhcmlzIFdvcmtzAAAFkAMAAgAAABQAABCkkAQAAgAAABQAABC4kpEAAgAAAAM1MAAAkpIAAgAAAAM1MAAA6hwABwAACAwAAAiYAAAAABzqAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAyMzowNjoxNyAwMjowODo0OQAyMDIzOjA2OjE3IDAyOjA4OjQ5AAAARgBhAHIAaQBzACAAVwBvAHIAawBzAAAA/+ELHmh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8APD94cGFja2V0IGJlZ2luPSfvu78nIGlkPSdXNU0wTXBDZWhpSHpyZVN6TlRjemtjOWQnPz4NCjx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iPjxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+PHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9InV1aWQ6ZmFmNWJkZDUtYmEzZC0xMWRhLWFkMzEtZDMzZDc1MTgyZjFiIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iLz48cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0idXVpZDpmYWY1YmRkNS1iYTNkLTExZGEtYWQzMS1kMzNkNzUxODJmMWIiIHhtbG5zOnhtcD0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wLyI+PHhtcDpDcmVhdGVEYXRlPjIwMjMtMDYtMTdUMDI6MDg6NDkuNTA0PC94bXA6Q3JlYXRlRGF0ZT48L3JkZjpEZXNjcmlwdGlvbj48cmRmOkRlc2NyaXB0aW9uIHJkZjphYm91dD0idXVpZDpmYWY1YmRkNS1iYTNkLTExZGEtYWQzMS1kMzNkNzUxODJmMWIiIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyI+PGRjOmNyZWF0b3I+PHJkZjpTZXEgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj48cmRmOmxpPkZhcmlzIFdvcmtzPC9yZGY6bGk+PC9yZGY6U2VxPg0KCQkJPC9kYzpjcmVhdG9yPjwvcmRmOkRlc2NyaXB0aW9uPjwvcmRmOlJERj48L3g6eG1wbWV0YT4NCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgPD94cGFja2V0IGVuZD0ndyc/Pv/bAEMABwUFBgUEBwYFBggHBwgKEQsKCQkKFQ8QDBEYFRoZGBUYFxseJyEbHSUdFxgiLiIlKCkrLCsaIC8zLyoyJyorKv/bAEMBBwgICgkKFAsLFCocGBwqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKioqKv/AABEIAdMBcwMBIgACEQEDEQH/xAAfAAABBQEBAQEBAQAAAAAAAAAAAQIDBAUGBwgJCgv/xAC1EAACAQMDAgQDBQUEBAAAAX0BAgMABBEFEiExQQYTUWEHInEUMoGRoQgjQrHBFVLR8CQzYnKCCQoWFxgZGiUmJygpKjQ1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4eLj5OXm5+jp6vHy8/T19vf4+fr/xAAfAQADAQEBAQEBAQEBAAAAAAAAAQIDBAUGBwgJCgv/xAC1EQACAQIEBAMEBwUEBAABAncAAQIDEQQFITEGEkFRB2FxEyIygQgUQpGhscEJIzNS8BVictEKFiQ04SXxFxgZGiYnKCkqNTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqCg4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2dri4+Tl5ufo6ery8/T19vf4+fr/2gAMAwEAAhEDEQA/APogY7U8cnNIMdxg04Y7UdQFGe9PFNFOFABj86MUtFACYox6UtFACUUtGKADFIBilooAO1JilooATFGKWkPpQAUUdKY8scY/eOq/U0APNHFVG1Ozj+9cwj/toKE1Wyc4W5iP/AxQOxboIqpJqVnH967hH/AxVabxDpVuuZb6ED/fH+NAWNTFHHWsq38R6Tc/6m+hP/Ax/jVo6nZdftUOP+ugoCxbNGKy5/EWmW5xNeQg9sOD/Wnf2/pmATeQjP8AtigRpdKTrVJdY09z8t7Dz/00H+NWknikXMcqN7qwNAEhoApAc85zS/WgAxRilooAMUYoooAMUmKWigAIpMc0tFACYoxS0UAGOaMUUUAFJilooASjA5paKAIyTngj8qKCwB/+tRSENABGaUCkWnYp9RoUU8UxRzT6ACiiigAooooAKKKKACgnFFBoATJ4x0o3UhNZXiDXrXQNNe7vDhVGcdzQM05JkiTdIwUe5rLufFGlWjYmu4h/wIV4T4o+LV/rEskWmZihzgHoa4aSbUr7c81w7FuvNS2WonvHif4x6bpitDphW4l9ew/KvLNZ+J2r6kzE3LRKf4VauEnUwyEKCX7mse9uyuRk5qbsfKkdDe+MdQdiGun+uaqx+NtRhHyXkh/GuTd2kzubNNC7R3poV0dPJ411SeT57uUj61Kt9famm6WZgnua5LzNp71OmoXAj2RuQv1oC6OlGqTWXEE7jHUinP4u1Bo8R3030rlkaeZ9quSDVyOIREb6YXRpx61qEkm6WWQ/7WaSfWNUkbP2yUAdBmktrhJMLgYFS3Zt1+bK4HpSuxaMqHXtXDZS+mVh0ANdNoPxR8TaSoVbx3UdmauQluIpT+6UgimCN3Xrz7U7sLI9p039oXUYWVL+3Vx3O4mvR/C/xm0TW8RzyLC5/vcfzr5NNtOVJVTx3NRI8tu4KZRwetAWR9+Wt7BewiW1kWRD3U5qcGvk34d/FvUPDVwttqTPNbsQPmOcV9L+HPFGn+JLFLixlU5GSmeRVE2NvPOKWkBpaBBRRRQAUUUUAFFFFABRRRQAUUUUAHSkzS0h4oAbuxRRjNFADFHHTFPFJ9KWjqMcKWgdKKBBRRRQAUUUUAFFFFACUhalJ44rE8QeJ7LQLUyXciq2MgGkNIk8QeILTw/pz3V3IAFGQM9a+bvGfxDvfF15LHFlbVCQMdDUPj/x9deItQljVz9k5C4rmILmCK1VIR8x+9SNIo0bOzH2bfjmrJ/dIFHWmWkheECPirO3O7IycVDNDm9V+WRiOK565iLrkdTW9rAJdsdjWbtDbMjrTSEzJaDawHtTJE21pPEHkOO1QXMJEoQCqMmkZu0s1TxWbyn5QQB1xVmO02yfNV2ABclPujrQFkQJAIVAUY96lgQMSX5AptzOD93gVCsjEhE6mkLQnEiZIA2imNGZyFiy9I/znylGD3NTCVbaMJDy5oARLJUf96QD6CtCG2jXBRcepbmq8aCBfOnO9zyBUckk93kA7V9B2oGW5r+2gYoCGPfFVJLuyuDg4U+tULmARdSWPrVBkPJOaANeSDB3wtvFdL4S8cah4X1COaGRvLBG5CeMVw1tK8bcMcelbKx+dEC3BxzTGfXvgj4iad4ttVEbqlxjlc967POOtfFPhXWrjw5r8FzbysEBBYZr668LeIIdf0eK4hcM20bhTuS0boooWimSKKKKKACiiigAooooAKKKKACg0UhoAbkdzRRRQMRTzzT6Yop9AhaKKKACiiigAooooAKDxRQaAIp5VhgeVzgKCTXzd8TNek13XXht2JjUkDBr2/x3etZeHJShwWGK+fobSTzHndC5zk0mXE5ebTSlvhkyV5rNhKJMMj+LkVv6nftHck7doPUVhTFJbkOvAPaoNDcsjiMFeM1fjfruPNZdtMsUaAmpLq6Cjeh70irGXrrLFMT/AHz0qqLbbHC30zSeIn80wSqeMj+dWTMn2dD6R/rVIlkFvahriTI4AzVSSMyTNIO3FaNq7IJWb+JcCqv+rtmb1JpksrMuYwW4NI6+VZkjjJp9yAYwehFVL24JtowPxpEFaZ8kH+6KltR5UZkb7zdKgdcxE+tWNpdYwvQCmBIoKwlsfMe9JbRBGMsn4VPIcx+Wo54qG+yhVF6Y5oAcJmnuM9lq4D8m1OM9TVK3xHHjuetSiQFCUPOcYpAWHtUMJ2c+pNUfscW4hjk1b8xgoToTUbNGowRz60kMgFqP4VHFLHKYpMOCB0pDc7TjP0pwDTryKYyRnwQ6n5fSvbvgT4lC302n3EuFZRtDH3rw5VK5Vhx2qbTNUvNHvRcWUxjdTnINA7aH3YrA/j6UteX/AAn+I3/CVWItLz/j4jGMnvXp4PIHtVmbHCigcUUCCiiigAooooAKKKKACkNLSGgBMZooI96KQxE9qfTVp1MQUUUUAFFFFABRRRQAUhpaQ0Acf8RYDP4dcA4PFeKRXTWStFKdzY6+tfQPiex+36U0Y/KvEPEWh/ZZmIbbnPBqWaRPP9ZmM12S8Yx2wKwLh/LcFRjmt7UrKTzGIfcPauZ1ESRnByakosHUCIwM80jagxiwTmsYyMexq/Z2sk/IUkGk2kWk2PmuPPgUHnFLDLmMhjVh9LkSMEKar+Q6Z+XFLnHyM0PNDW6Kp5qvekx26KfWo0Z0YZHSpL4GeNCP4apO5DgytdBnkCj0qpcRZtAe+RVouzuHHXGDUiQCWH6CqZnYz1QtakgZx2q9ax7o1JXApbeMJuUjg1bChYAF9am5VipMAt1uQ9qpu5mmZjz7VYdW3kjmnQac7Sbh0ak52KULlIysMkelFqzeYAehNai6RIXIxwTUo0dkkyvYVHtEaKiUBP5k5wOnFRT3Cq2CBWvFpToxJX71VbzTCFLbcUufUPY6GO0u9+FNSrPOOEU4pHIhO3A3fSnpK6cnGPpWq1MXFosRzsy4cHPvTChZsqM077QsiYAGaFDBSRTA6HwP4mufDHiKGeA8MwDLX2Jod+dT0e3u24MiZNfDNjGTqMRyT84/nX2n4EZn8H2O8EERimiJHRilpBS1RIUUUUAFFFFABRRRQAUGikNABRSYHvRQAL7040xaeaACiiigAooooAKKKKACkNLSEZoAjmjWSMhu9edeNbKyEZiIzKxx16V6Sa8k+JEjWupjLYLgkfnSZUdzzDxDFBpyPDGN7Y5Oa87vWaSQ8celdbrl1ukdc5Ynk1ysiNJMI1XJNRsbWuLoelSajeBAmRmvU9K8GxwxqWTnHpTfAXhryYhPInXnmvQUiWPoMcVzydzrhFJHC33h6MSbFTise58NRgnK16HdRDzW9TWTc2+c965pux1Rinoef3OgoFOxeazn0aZARtyK9CltC3RajOnZ6iso1bMp0EzzCXT3gY7oyKSOFlPyivRrrQhP0GfwqmvhNmJKjGa6ViDCWFOKFmHzng1NFpksw2qK7WLwdggtn8q2dO8LCOQbxxUyr3EsPY4Sx8JXM2Pkz+FdVYeCmEYLx4rvbPT4LRBtUH8KuhvbFc8qpvGjY4f/AIRSNVwY8GpB4VhCZKCuykG/gio/KG3BWsedmygji/8AhHE34EYx9Ko3vhddrfIK71oAOi1VuYd3G2mpsORHg/iTw+bWQuq1zqSbG2Mte6674fW7tydozXlHiDSBYyMQOQa76NbocOIpdTJO0/d4NIpYAhhkVVS6CvhxUk2ogLtjWu089GvoUAfV7dT0aQfzr7Q8NwiDw7aIg42Cvirwq7Nrdsz/AN8fzr7Y8Ptu0G1x/cFUjORpgYooFFUSFFFFABRRRQAUUUUAFJS0UARluetFO2jvRQALTqRaWgAooooAKKKKACiiigAoNFFACdK4zxn4Wj1iQXDDJRTXZmquo4GnzH0Q/wAqTHHc+TPEVgLfWLqNRwjEVT8NaUb7WI125G6t/wATMJNXvCoyS5rb+Helo14JWXms2dMTu9M01bO0jjA4xUzxbScVqSRgRgYxgVQlO1TmsmjpiZUyZc1Sli61pSDOaqSrzXFUOumUhBk08WwOARVmNBmrKxg9RXI9zpRSNmu3irNvYjjNWRGMirEagUtwIBbIOoqRIVB4qYpk8U5U9aVhiBBimlDmp8YppXNVYljBHmlKVIqGgrSEVmWq8keTVxxxUBHNC3EUZYAykHpivN/GOhnzjL/CTzXqjx/Ka5jxDpslxaycEjHFa03aRFRc0TwnV9OjglDp0xWa8eRkVv6/A9vI8b9j3rGA+UZ6V7EXdHjyjaR0fgWzF1rltEepcfzr7N0iAWulwxDsgr5d+DFhbXXiyL7TgbeVzX1aihUCr0A4rRGMhwpaBRVEBRRRQAUUUUAFFFFAAaKKSgBNwHWiiigAWnU0ZzmnUAFFFFABRRRQAUUUUAFBoooASs3XLgWuj3Dt0KkfpWl2rkviHcmHw1KFOCx4pMaWp4DqiLcaxOVP3nJrvfBFsIAnGDXG2Nn5tzublia77w8hiZe1QzqidXcN8v4VkXEnWtCckxmsm4Nc82dUUQsagflqczelMzXDNnXBDkA7VYRelQRgVYQ9KwZsicADFSqBUXUU5RSGTAU7pTFBoY80ASUd6Zu4pA1AifPFIWGKiZ8U0SUCByDUJHzVIzZpvU0bMVtBrfdqhf4aBxV2Q44rPuzlGpr4gex474001jOzoO9cX9nPQnGDXrPiK287dgVwF9aBGOBgg16dKWh5lWBvfDa9ktPFloqDGWxX13AxaCM9yOa+O/CEottftJDxtcfzr6/06US6fDIpyGUGu2OxwyVi2KKB0opkBRRRQAUUUUAFFFFABQaKD0oAbmikzjtRQMcKWmg06gQUUUUAFFFFABRRRQAUUUhoAXvXn/xRuF/sxIM4JIP613+a8k+J8ryapFFnjB4/GkyobnG6YmJgccCuw0vLSLt6ZrmNPhdmwq8V2ujWjRgbh71i2diL07bYqypznNa92vyGsmSPdmsJI6IsoO1IM1NLBg8CkSNvSuKZ1w2CMGrEYpscZz0q3HCe4rFmo0CpFOKkWClMWGpDBTTGNSiOlMdMCDrTwtSrDz0qZIKLCKjIajZcCtP7PntUMloT0FGorozScGgnAyKstasD0qCWJ17VI9CuXJaq1wCM56VYdSvNVpW3A5NNCZzWp225mz0rhdVsdsjHFekXUe/Oa5LVYR5pBFdNKTOarE46BJLa8idONrg/rX1t4HuTd+EbGVjkmPmvl6S3zKCBX0X8LJHbwdAHOQoAH616lN3PLqRsdxRQKK1OcKKKKACiiigAooooAKKKKAGYoo/4FRQMF96fTUp3egQUUUUAFFFFABRRRQAUGikNABjNeSfEyBhrUT9iD/OvWs8V578SLYM8Ep6Af1pS2Lg7SOV0KAlhxXbQIEjGODiuX0HazgAV1bABOPSsLM7bqxXuPmGOpqqYQi5bip5pkgiaSQ4AridV8VnzikZwKiS0LizppFQ8g0zag71xP/CTS7euaYPE0hPzNiuSULs6I1LI72F4t/3q0FVCoINefWviFN4y3610thqySoG3ZB96n2ZoqlzoREDgg0yWL0plvMGTIbINWFIJqHGxfMRrD8tCxfNVsYxSBVzmosFxixDNP2gNiopJdrYWqE14wQ44YVcY3JcmjWMiKMGmC5hJxurnLvVhDb/O3JHrWFP4oECkKcmtfZoxc2d688Iz8wrKu71Ax2gYFcU3iFpGByxY9ADUxur2dQfLbb60nTQc7Oge5inQ7WAPpWfI+GPYVlpMBNhpNj+hqyXd1+Y5HqKwlGxtGQkrAnH61h6rag5fFa8uQODxVO/wbUk0QupDntc5GVAHx719B/DS38jwnCB3Ar5/KmS9Vexcfzr6U8IW4tvDVqg6lK9Skzyq5uilpAaCa6jjFooBpDQAtFAooAKKKKACiiigBvHpRRiigAXrTqavSlxQAtFFFABRRRQAUUUUAFIRzS01jjmgCre3sdlEZJT07VwHizxJp+pWvkniQdKXx5qU/wBtSCByoHXFcTrUPmW6Pj5wOTXJKsuax6VPCvk5mbvhvmcEHIrr2OVIPU1xXg0sfvdRXYTSYwa0cupCjqYuslnTyl71yFzoIkkJ9a6m5n33Bz61Q1C6ig4ZxxXLUqdjopw7mFD4TEmcvjNRXPgY8lJTWtH4gtIlw7c08+LdPC7fNXNc6cmzdxgco/h25s2+8SKu2TT27Krsdta/9tWupLiB1POMk4rMvVkik+bkdsHNV7wRjHodRYXxZAoatuC6woya83gv5oJAVGV+tdFYan5yr82KylJmqidgLnNSrOO9Zdm+9cmr+AVqbhykV05blKy5iR8xP1qzeO0Y4NYl1csFLMeKIysHJchvrf7VMMNhPrT4NFssjzAD+NZX2ue6mxbqdo9Kxr3xQdPnmRkZmhG5uDwK3XM9jCTgtzvrfSdPgfcIgT25q/LDF5Q2KoHtXm9t45xHDJcRuElbajBTya3YfEoP3iQMZw3FTKNRbijKmzSvNOhdtwX8arx2+3IzxTU16C54HDemKvRBHi3Dqa522dCXYz5YD+FZepRkW7egFb7Ke9ZmqxA2cmPSnCWopXtY4eyuP+Jqu1N7K3Ar1vS/FGoW9nC042oowFFedeENM+0ajLcP/CeBivS47NDZ7HX5iOK6PauJkqKnud3omrpqlmsin5scitTrivPfB07WuoPATwT0r0Iciu+hU51c8vEU/ZzsKKWkpa6TmCiiigAooooAKKKKAIySDxRSkjPf8qKAFWnU1fenUAFFFFABRRRQAUUUUAFMk4Q0+mSnEbfSk9gW55T4ocS+IXHXFQSWKT2I3D5qTXHz4pkz0J4qxJLhdo/hGK8eb99s+liv3cUivoEYgvWjXit69l2RH1rA02Vv7TORjNbl0u+HA5xXW5XgjhatUZzV5MyPuFcZrdze3V4TCjMo7Cu8ubXd1pbXT7aJXZkBJ9RXP11NkrrQ4nQ/C11qrNLePtTPCk1yfiHT5PDviGbz4WlgdSEyOBzXplzPLaXB+zEgA8AVnzN/bFwV1GBXXHXFbKcEZyoymrHHeAWfUL5bFYGYSSkkkcAGvYPEPhq1htVe1mCuEGVyPSsDSdPt9HZpLOMRk9wK0ZtQMqbZcufWonUi9iqVBxe5ykZH2hopk2ns2OtaVlEI3ABzS3Iid+V+aprGL94Ae1cj3OvY6WwOIhWmp+Ssy1+VRV9c7aQFe6USda53VNvnrCinBPLAV0F1wKpi2DsTgE+9JOw1oT6DBplrxsBYjlmFeZfETQ7231K6uNLBaG5Uh9vpXeyxywsdi1AzvIm2Rdw9CK6YVrHPOlzHnXgvw5rWrXlpDqCn7FbybwG969O8TaBpMtuBEqxzKoAKD2pbOR4ExGAg9Fpk8Mly+TzROtzIVOjy7nH2ml3EN5tLl1B4NdlbQEW6j2p1rpoTlq0Ei2LXI3c6bJGbIpUYNZep/wDHjL9K2boYJNYt/wDNDIo7iiG5L2K/gaPcHHq3P513t1tXy2H0NcP4St5Ybcug/iP867ISrNFhjzVyCG5FpQ2eJMoeCa9IjPyCvNdGDf27z/er0uP/AFYr0cH8J5WO+MdRRRXceeLRRRQAUUUUAFB6UUUANyw6CilNFAAOtLSCloAKKKKACiiigAooooAKjk5Qj2qSmkZpPYaPIfEcRTxA7Hg54qj57POqZ5PWuj8aW6xa2knQEGuOvvMtr0OPuluK8eqmpH0eGkpU0dNbW3lSI/c1pDlT9KzNPuRMIxnPFakfG7NdUF7pyVfj0KssAPaqksTYIWtJzzUZwa557m0NjClsHc5xRFppT+EZ+lbJSkKVztM2vpZmcLL5fnpjQKowBn3rRKE1DJHtzmhFKyMd7YF+R1q1Z22xuRVgRZNTxIFFacuhMmTwkAgVeT7lUYhk1eQYSsmUitcLmoIo238VYmbFNiYZ96lMbROtupHzDNMOno3O2rsSblGKftwau7JuUl0+PHNKLNFHAq4OvNGM0nqTqU1gpXi+Xirm0CmSYC0rBqYN6uENYFwc7q6PUR8hrmbg4L4prcUnY2/B7I0MkTCnz3Hk6kYgc4Pasrw5qUdoku775q3YxPPqL3MvRjxmlIuC6nQaIN+sofevQ0+7XA6DHnWQV6V3w6V6eDXunkY5++Ooopa7jgCiiigAooooAKKKKAGbveikxRQA9elLSL0paACiiigAooooAKKKKACkPTilpDQBwvj6DKxyhckVycVuL2yLSjkDivSvElotzYHd0FcLcqlvbBU4rzsRH3rnsYOp7ljN0MOl+yt0B4rpawtMYG86fjW0Ww1VT2Cp8QPUOeakc1ExGawqbnRDYdnIpAOeaRWpwYZ5rBmqQ8KAuaoXMgL7RUtzciJTVaxC3NyS54qo2uDJI1PGasiE4zU7xxqRt7VIGjPHQ1s7WM09dSO2gq6sRx0qS3iQJnOatxouaw5SnOxj3cJC5xWcGdH4FdFdRqV61VjslfLAce9TylKehFZ3IwA3FX8qy5FZtzamH5lotrk8KaVgtcvHNIKdvBXikPFAtgLYqGZuKkaqssmFpAZmoN+7auXumxI30rpL5so1cxeNhmI6Y71UdWKWxFoNobrUGz90GuvuIiiKkPGK5rwuGDu6nvXXEZUEdSKlp81i4/CaHhJHfUCX7V3grlfCkB3PKR3611XpXr4aPLA8PFO9QXvS0lFdJyi0UCigAooooADTSacaYaYBuNFNyvc80UASKc0tNFOpAFFFFABRRRQAUUUUAFIfalpDQBQ1WPzLNwOeK8y1QO8xUDABr1mRA6FT0NcZrfhud7lpLYZB7YrmrRbO3D1FHRnKWmIJV9a1QSzZqpdaFe2i+fOpAFOhmJQE1jFcqOpyUnoTSuQagLktTZZOag83JrnqM6oLQuI1SMflqkshzT2mG3k1ztmy0K1zmQ1WS6a1YlD+FWZZoo1LMaybm4XYWBpq4rple/8AFN5FcBI4iRn0rTsPEBmAE3yt3rmby9DD5dufXFZxvHS4Vs8Hrit0nYybR6xZ6ojLhXz+NaK6giqSWHSvO9N3zrujl2segzWsEkgUfa5uPrijlsK6OmW/E7EJzWXqesXtoMQjj0xUKataWludhyfXNV01CLUX+bipsylZmjYarcahABMmD9KvxwFW3Yqjp7RhsRjgHFbSldlQ0a7AnApzdKjzg8dKDJms7k7jZG7VSmb5alkky1U5n60AULxjtPPFczqLFY2zwDXRXT8Gue1BPMI9jVU9ZEVHaNzW8MWNxFbea8ZETdDiupt4DMypCpbNbvhDT428NwrMgOR6Vuw6bbW7ZjTBruWG1vc8+WKtokQ6RZ/ZLQKRhj1rS6UD6Utd0VZWPPlJyd2IKKWiqJAUUUUAFFFITQAE00mjNIaADA7rzRTfMxwaKYyRadTRTqQgooooAKKKKACiiigApDS0UAN+tG0Hg0tFG4bGJ4ntxLo0uB90GvN4HMaH616xqcXnadMnqpxXj8rmK5mifghj/OsKq0Oqg9Sy8uRUXmColcY5pjOO1edNHrwZZjkPJNZ2paiIImf0qZpSiHFc5rUrSqY1PXk1lGN2Ob0Kdz4l8yTZk4pkutGSHaOnrWDKim5CKMHPNa9vp0bxA7xz15ro5UjBNlGfUSflUHnvToJmOAecGtddItFUZYE1oabpFiJyzNxVX0LUW2Yg1uS2uoljyMYzU2s+JJX8sbjW7P4QtbqQywOoP1FZlx4Innl/1g2j3FFyfZu4mnXq3cYBatKK8RLtUjbGOtOt/B7W0amKQZ78ii48OTwy71YMSPWpbNEmjo7PUIlU+Ww9TU82uBY8Bh+dcdZ2V/BOQw4PvVXUPtkDMDnFK1xObOwHiTyXBc5XNbltfLdW/mJ3ryW2u5rhTFIehrvNBkK2G3rWc4qI4Subhk6+tVp34pN5Ix0qvK/bNc/U2exVuH4rJVPtOoRRj+J8VPd3G2QjNS+E4DfeLIY+qqQa6qMNbnJXn7p7NpFt9l0yGIdlFXvrTYxsQL6DFOzXrpWR4rd2KKKKKYgooooAKKKKAA03NBpuaAFppNLmmnmgBNtFLsFFAx68Drmn00e1OoEFFFFABRRRQAUUUUAFFFFACUdqWg0ARuu9SteQeN7RtO1jzEUhZO9exHiuF+JemNcaObmJcmMZNRNXRpTlyyPOlujt5pq3eW4rKErFOvsanhI45rz6kT1qcro1RNuU8ZrLubJ5ZS6jjvVxJdoqzazAybWHBrmbszfc5iXQd8pY/Kaoy6dc2822KRintXeXcCSY2DFZhttr4cZFWpjjFGLb2EhwXlY/jWzYaFNcLlJSPxqwLaMLkVp6ddpDhelaqSZorIonQ9Rt2+SUkfWnrbamvBzXRrcI+DupzSqWHOKehXNEworXUsHg1HP9vgfDLnA7106TIB8rVBNCLkkseaWhDsclPqV2AP3eW9qpX1tqF9atIEIOK61tPiQ5PJq1BAXjI24X6Vi52IcUzy+DSr2PDSAjnmu30NDFbgHmr95p6MpwBUNsvkjAFRKbYlGxYmkCe1Z01wPNxmrNw4PWsW+cKwdTURjqVJ6FfUpliLSZ6V13wn0tpZ5tRl78KfxrzbUJmvZ1toTl3OK998EaR/ZPh2CNhhiNx/EV6lGNkeTiJ6HS0Ui/d5pa7DiFFFAooAKKKKACkNBNNJoACaSg0nagANJS0hoANgPc0UbqKVxki06mrTjTEFFFFABRRRQAUUUUAFFFFABRRRQAhGaqapZrfabNbuMh1xVykNAHzPrcEuj61PbyqQN3yg/Wm204dueK7L4xaOUuI7y2Tk/exXm1relogo4Yda5KkbndRk0jpVnG4CrELbrgc4FYUF0pPJ5rStrhWfBbmuGULM9CM7o3UO5jg5FSGFWGP1qrbEbeDmrsbBetYvQ1RC1uQpArEv8A7RbyAxg4rql2kc1HcxQGL51HSnCWoNNnLjWJbeLLE5qmfEl08vBOM1p3GkCcsU6elQW/hvz2weOa36GfKy3Z61KcBSWJrqLHzZoQzZBrN0zw2LUhmGa6SJRHHtArKUi0miE2+CCx5pxbyk4p7kDk1Wlfd06Vjrcsr3cuV4qkJgq5Jp99Nshb6ViPcfuzk/SrSIbsy/PdKxIrmtW1BYmK5p8uohWPPbmucv7n7VdqkYLEtXTTh1OepPodB4Ds/wC1PF0BkXKK4Jr6SijEUKIo4AxXjnw101YNQiZlw3Br2bqK9Gnax5dfsLiiiitjEUUUCg0gEzRmk70GgAPNNpaQ0AIaSlpKACkNLSUwDGelFLg0VIEi9OadTRTqYBRRRQAUUUUAFFFFABRRRQAUUUZoASkY8UFgKYzjbRuM4fx4iXIWJ8HjvXiOqaY+nXzPGPkY81698Qrk293CScA1xuowpdw9AcjrXJOVnY76cLxucQZeeOvapbW7w2GbmkvLNra5bI+Wsq5k8l9yGpcVIpScWdvp2pKcJmt1J1OOa860/UApBJ5reg1peBmuadJnVCoup2W8KoPrUFzLu47Vz6a8TlM/SpodQDwt5jc9qy9m0aqob1smEyvOaktZljucEVg2erlWKb+PrVj7eN5kz0p2ZXMjsYroEY4qQEZ9z0rlLDVhJOMnite71RIUBUjJqeUOYuyuAp39KozziKNnz8tUJ9aR0KbvmxXPXmutho2PFEabbJ51bU1NSv0MGQeK5a51J34T1qnfa0ChRWzWc18m3Oct2rojS01OaVW+xav7jYnGSzcVp+HtEZsXU3rkVX0fTZNTZZbhcIDxmu2ihS2gCqMADFOc+RWQoQ55anS+CVxqgPoK9NHK8V5R4GkaTXHA7D+tepxyYGDXXQ+C5w4he8S4paQEUV0HMLTaUmkzQAUlLSUAKOlIaWkNACUlKabQAUUUUIYnPrRRz2NFAiVTmnUxOKcaAFooooAKKKKACikNGeOaAFo7VC86p0qu90ScdqALZcCoJLgDgdagLn1zSpHv5qrDJI9zHJPFPJHQUY2rTDxzQM87+JsBm0syr96OuE0q+8+xQP8AeHFeq+LrQXWmTIRnK14rYM1veyQNxtavOxCs7nqYdpqxr3tnHNGSRkmuN1PS3hYn+Gu6++ikdKqX1mJozkcVnSq23KqUux5nNLJbvuX7oqaz1MliWOK2tU8PNN80XQdq5vULN7fIAKkV2KUZHHKMomi+oOvzg1YtNbZt0bt06Vy/2hjHtJzinxXWYsqPmHWm4Ji9q0dWureW/JpyeIGZmUHg8VyLXUksJ7EUlrckDc3aodJFquzutO1cwud7dTV+417cwy+QB61542qH+Gg6nKZBu+7U+xRXt2dh/azmWRix74rE1HWScgNyazpNQYdD8pqKKF7iQmNS5bpiq5YxM3KUmSQySykk5JPSum0LQJbl1luAdue9WdC8JnbHNccEnO2u4tLAQqFQDaPasKtVJaHRSoy6jrS3SKBEiXaq9addybYnPYDOauRQ8HsKyNal8u3Ma9XO3864XJykd8UonV/DGPz55bo9N2M16U6EHINch8PdPFlosYxgtya7QjNezSVoo8Su7zZGshHWp1kBFVm+WlXmtjAtfSm5qJZCvWpVZX+tIQtFLjA4pAvrQAUUu30oxQA00lO20bKAGUtPC0YFCBEBQliQeKKm5ooAFp1NXinUALmikJppfFAD84ppcCmEk03FAD99QyOeeac3SoXBNNFETHvSKhdunFBQ7qsRttWjQAiix1FSkbeg4pFyead9aBEdNbvUhFNYfKaTuNGNqcHmxsMZGK8c8S6YdP1jzguFkNe5TxZWuJ8b6IbvSnkRfnj5rCtG8TsoTszh7R1ZQpPNWzCCpB5rI0+TKgn73etiKbIwa8nZnq7opTWyDOBWJquiJdRk7cGuoMW9siiW2yvIyK1jUcTGcLnll14ZdCzIOKypNJmt0OV4r1Wew3Z44qjPpCvHjbmulV0c7w6Z5d5REZG0/lUAgfaRgj8K9HbQFOf3X6VLD4WR/wCCr+sIz+qu55klrL0CMfwq9DplxPgLEx/CvT4PCsaf8swa2LPQoov+WYzWbxFtjRYVHmlj4MubjBlBUeldtofhOCyjBZMt7iupgsQmPlq+lvkdMVzzrSkbRoxiZkdiFAwOnTirsdsFXOOatlFVcY5pjZ2nFc7emp1RKk7iOM54rnIIX1fxFFEgzHGct+daGv36WdvjOWYYA9zW98P9CeGxW9uF/ezkMc+ldFCF2YV58q0O90e2FvaoqjA21q9BUVtHtj9u1TYr146I8WbuyFxxUOdpq2QCKryJVEDlwaXbjpUStjip0ORQAquRwakDg9KaVBFRlCnSkBPuozmoFnAOGHNTBgw4NAhaWkpaADFJS0UAMwfWilx60UBcQHHTmkLGmBtq4o30x2FJJNGB3pm+jdUhYeWC1Gz+lI3NNIpjGtMaiNxillwBVQnLUrlJFjz8mrMA38mqcKb5AB0rUVQigAUxMKMU6imSNIpMU/FJigCF1zVK9tVubaSNxwykfpWkVFRsm5SKlq6LjLlZ4FdWh0zX7q0cYAc7M+laEMYKitf4laW1pqNvqEa8Hhz9TWdZqJ4gyng141ePKz26MuaA8Js6VJ95aURHODQE2GsEa2ZWkiI5NNW3R+c81cdN61WKmNuBV6E2uSLZqOq5qdYI1HC4qNJ2K4qaMlqRVkORVz0qzFDuHAoggB61ejjC9KWhNmtiOOEL96pAvpT8UgQlqTKIWA57mqtzIsEJZjgY71fK4471yXi3Uxa25jU/N04pJXY9lcyEjk8S+LIbdOYo2y2PYg17pp1kttbxxIMKgwK86+FGhlIZNSuE+eQ8Z9xXqkaYI9K9jDwsjysTUu7E6jCilpBS11HAIRTWHFPpppgQeUM5p6Ailb5acjA0AOoxS4opAMeMMOnNVzviPFW+9NIDdaAI0uAeG4NTBgehqtJBn7vBqDdLEeelAGjRVSK7U8GrIcOODxQIOaKUdODRQKxXwaXFLzRS6mnQbRS45pcUwG0xzUjcCoHakOxXnbAqspy1SXByM0y1TzJF+tIroadpFhc1aFJGuxMUopmbFoopaYhMUEUtFAhpFNI49qkpDQgZzPjLSv7T0GdQuWUFx+AryfQLva5tpeHjbaa94njEsLIR94YIrwXxFZvofi2ZlGEdiR+defi4aXPTwdTXlOnMWeVqJ4Seadpt2txCufSrxiB6V5p6bZlhSOKGi3DpV9rU7ulBgIHAo2IKCW2Oaswx4qQRnPNSImDRcdiaJasDmok4p6KaNwsTBeKCFU803B9ar3NwIxye1JgyDUr1baFjnHFeetFPr/iCK3j+YF+fpWn4h1TerIhre+GGhs0z6hcLz/CTXTQjzSM6suWJ6NounJpunRQRrtCrWvGKhjGOKsJXrwVtDxJu7HYopaKszG0UtFADHGVqJRtap8VC/BoGSBqcDUSmlzQMlyKMA1DuNKHIoJJSKY0YbqKTeaA9AyvJbA9BUI8yI1obgaa0avQKxXF5xyOaKebdM/eooCw7PNOpo9adnNLqWtgHWg0opjHmgBshqq7VNIaqyGkUQyc8Va06LDZIqALkitO3j2Rg0A3oT0tApCeaZkLR0ppcDqwpPNT+8KYD6KjM8Y6uPzphuof+eg/OgLE9FRLcxMcKwNS+9ArCEd68w+KOkh/Ku0TBBwSK9Q7Vh+JtMGp6TLFjLbTisqseaBvQnyTR5FotxsZUY9K623YMowa5JLRrS8eMjBU4rpNPYtGK8OWkrHvpXjc0tuRThGO4pFU8VLtqb6iIJIFPRajWEBulWyMUzb81O6KGLHhulS7cA04LzSOetIRWmcquQa5rWb8opAbBrZ1CXYhxXFakzTSEZzzzQldjS0uZ8cD6jfoi5Yu2K9y8PacNO0qGBVClVycd6898B6ILnVFndcrGc16vGvIx9K9XCxseZiqmtieNcCp1pij5RUgrv6nm3uLS4pBS0iRKMUppKAEPFQyipiKilHFA0MBxS5qPNPWgscKDS4opANoFPxTDwaAHClzimilxQAYz/wDqopw5HJNFMRHg96UUp/Kmg0uo0PFMPWnimkUAV5BUDJmrjrmomXApFEAG1quJLhKrhctVpUwtMRXluZB90VRmuLrBxxWk8RNRNBQNGNuunb5pCKUJN3kJ/GtX7NzxSm3A7UgMkxyn+Jvzppgk/vH861WiAphizxTGUrRHSdSWOPrXSRnKA1jrDg1fgkKqAaZDRbPFMZQykNSeZS5BPvQQtGcH4o8OFZjeWwz3YAVl2CgAE/lXpc0SSKwkGVIxiuQv9J+w3ReIZRj09K8zFUeqPTwuI+yxscfGTUyxAiliUBeak7cV56Xc7m9SMxAU0xj0qamnFPQaZCUAqCTAFWJGAFULh+DU6FIx9Xfg81yrDzLoKgyzHArf1Vi2QelHhHRze6yJHGY0Oea0pxvIKkuWB3nhXSl03SULAB3GT+Nbkfyt65pERViCIM7e1PjT+JjivdgrRR4M580mWE4FS9qxNV11dNcKq7iarReLIzjzIyKsyszpKWsiHXrWb+LbV+K8glHyuDQKzLFJikDA9DS5oEFRyjK1JTX+7QNFVVNSqKSnCkWLRRRQAUxutPNMxk0DHClpBS0Ejd4ooKt2oqbsY7HpTM/NTwOOBio/4qfUSHr1pxpq9adTGNZaikHFTGoJDk0hhGuTmrA6VHGMVLTExp5pCKdTTQIYRTGFSU1hQUQMKZUzCo2FIY0UFipyKTpSZpgWoZgwwamB5yKoD1FTRzEcGmJxuWj81Q3Fss8RVh1qVGz0qWpcb7k81noclPGYJTE4wB0poNbmp2PnoWA+YdK5ti0blJOCPWvIxFJxd0eth6imrEzSY6VC8tMJwc1FI1cbTOxIWSWqc8g55zT5HGOtRJDLcSKsaEjPWqjTcmDkooz2tHvZ9kak5PXHSu00DR49MtwB95uTUum6WtsoIQbj1rVWIAV62Hocup5lfEX0DcQMIOvGajuJvJiPPzVKzE/Kox71C1vvPz812tnEtDAuLZ7mUyScntUH9ne1dJ9kGelL9kXPSkXdHOLYFegqRbeaM5Qn866H7KPSmm0HpQF0ZcN5dxfxHFa1rqBkUB159ajNkD2qWK2CUEOxfRwy8U49KhRdo4p5zTItqNPDUCgilFIoKKKKAEakSkNOXgUDEpRS0hoFe4ZNFJlvWii6EP8ArURPzVITxUY5ajqCJFpTTV60rUANdsCoQNzU6Q5p0Y4oKJFHFLQOlAoJYtNIp1JQCG4puKkpMUFETLTClWMU0rQBWKU0pVkpTCtA7lYgilB9anKUxo6B3CGTY3tV1WDjg1n4xTkkZD14oJcbmgQDwaxtZ0tbiFniH7wc1rRSB1pcZYipnBTViYzdOV0edNdmGVop/lZeADSPcfLu65q1470pki+3W4xt+9jtWR4ctpdYRdpyoPLV5U8PLmPbp1ouHMzQtbJr6QAcJ3NdTY2MVmqjH41PZ6WlvGAB0HIqw0OWGeF9K9Cjh4xWpwVa/OyVtqoNvemAZpT6DpSgYro22OVIAKcFFKKcBQJsbtpdtOA5p2KBXGBaXYKdiloFcYUFAUU+jFAXExgUmaU0lACN1pBSmkpDFpDS5pDQAgFOxRRQAhpGpaCKYdSEtzwKKUh88EflRSKHk5FItKaBR1EhwpGbFLmoZG9KAEHzNUyrgVHGtS0AFLSUUALS03migQuaSiigBaKBQaBjSKTbmnUUAN2UhjzTs0ooAhMVMaLirBpKB8xVR2jfmriSh1zVeVQaWHJXApilYr6nbLqNpJbMPkYYJpmi6Rb6XY+TAvGSS1aKR8f0p4THA4HpS0FzPYRvRaiYE1OaYFPenqJEQWnAU8ijFFh3EApwFFLQIKUGjNFAC0maM0lAC5ozTaM0BYXNJRRQMDTadSGkMKKB0ooEFFFFAwoJpaaaELqRE88nmilMQY59aKZQ7PpTh0pnsevtTicCkJCO2BUYGTSk54p6jAoGOUUtIOKdQISiiigQUUUtACUUUUAKKDSUUAFFFFAxp606mnrRmgY41GxwafUMxwKZK3IJZcvgVbt48KCe9Z8Xz3XNbAGFGKAkAGKWiiggaaSlam0DQhopCaBQMdRSUtABRmiigYUmaDSUgCiiigBRRSUUAFFFFAB0FFKelJQAUUUUALSUUUgE+YdOlFJx3NFIY0/epDRRVCQg61IKKKCh1L2oooENpwoopCE70poooASiiimAUUUUAFFFFAxh60D71FFAxw61BPRRQLqVbb/j6rYHSiimTISiiigkRulMoooGhDQKKKTKFooooQBRRRQAUlFFABRRRQAUUUUAFFFFA0L2pBRRTEFFFFAgpaKKkYmKKKKBn//Z" alt="Faris Muhamed Haneefa" width="64" height="64" style="width:64px;height:64px;border-radius:50%;display:block;border:2px solid #ffffff;">
+                      </td>
+                      <td style="vertical-align:middle;">
+                        <div class="applicant-name" style="font-size:24px;font-weight:500;letter-spacing:-0.025em;line-height:1.2;color:#1d1d1f;margin-bottom:6px;">Faris Muhamed Haneefa</div>
+                        <div class="applicant-meta" style="font-size:12px;font-weight:400;color:#8e8e98;letter-spacing:0.01em;">Applicant <span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin:0 6px;"></span> RENEW EMPLOYMENT VISA <span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin:0 6px;"></span> 121212</div>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <tr><td style="height:28px;font-size:0;line-height:0;" colspan="2">&nbsp;</td></tr>
+
+              <!-- APPOINTMENT CARD -->
+              <tr>
+                <td colspan="2">
+                  <table role="presentation" class="appt-card" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.05);margin-bottom:10px;">
+                    <tr>
+                      <td class="appt-block" style="padding:18px 22px;" colspan="2">
+                        <div class="data-label" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Date &amp; Time</div>
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                          <tr>
+                            <td style="vertical-align:middle;">
+                              <div class="appt-datetime" style="font-size:22px;font-weight:600;letter-spacing:-0.025em;line-height:1.2;color:#1d1d1f;">2 April 2026 &nbsp;·&nbsp; 11:00 AM</div>
+                            </td>
+                            <td style="vertical-align:middle;text-align:right;white-space:nowrap;">
+                              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;display:inline-table;">
+    <tr>
+      <td style="padding-left:6px;"><a href="https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=RENEW+EMPLOYMENT+VISA+%E2%80%93+Nameless+L.L.C.&amp;dates=20260402T110000%2F20260402T120000&amp;location=Al+Nahda+Medical+Fitness+Center%2C+Al+Nahda+Center%2C+99%2C+10+Street%2C+Ground+Floor%2C+Al+Qusais%2C+Deira%2C+Dubai" style="display:inline-block;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;text-decoration:none;border:1px solid #e8e8ed;background:#f8f8fc;padding:4px 10px;border-radius:20px;white-space:nowrap;">&#128197; Google</a></td>
+      <td style="padding-left:6px;"><a href="data:text/calendar;charset=utf8,BEGIN%3AVCALENDAR%0D%0AVERSION%3A2.0%0D%0ABEGIN%3AVEVENT%0D%0ADTSTART%3A20260402T110000%0D%0ADTEND%3A20260402T120000%0D%0ASUMMARY%3ARENEW%20EMPLOYMENT%20VISA%20%E2%80%93%20Nameless%20L.L.C.%0D%0ALOCATION%3AAl%20Nahda%20Medical%20Fitness%20Center%2C%20Al%20Nahda%20Center%2C%2099%2C%2010%20Street%2C%20Ground%20Floor%2C%20Al%20Qusais%2C%20Deira%2C%20Dubai%0D%0AEND%3AVEVENT%0D%0AEND%3AVCALENDAR" style="display:inline-block;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;text-decoration:none;border:1px solid #e8e8ed;background:#f8f8fc;padding:4px 10px;border-radius:20px;white-space:nowrap;">&#128197; Apple</a></td>
+      <td style="padding-left:6px;"><a href="https://outlook.live.com/calendar/0/deeplink/compose?subject=RENEW+EMPLOYMENT+VISA+%E2%80%93+Nameless+L.L.C.&amp;startdt=2026-04-02T11%3A00%3A00.000Z&amp;enddt=2026-04-02T12%3A00%3A00.000Z&amp;location=Al+Nahda+Medical+Fitness+Center%2C+Al+Nahda+Center%2C+99%2C+10+Street%2C+Ground+Floor%2C+Al+Qusais%2C+Deira%2C+Dubai&amp;body=RENEW+EMPLOYMENT+VISA+%E2%80%93+Nameless+L.L.C." style="display:inline-block;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;text-decoration:none;border:1px solid #e8e8ed;background:#f8f8fc;padding:4px 10px;border-radius:20px;white-space:nowrap;">&#128197; Outlook</a></td>
+    </tr>
+  </table>
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr><td class="appt-divider" style="height:1px;font-size:0;line-height:0;background:#e8e8ed;" colspan="2">&nbsp;</td></tr>
+                    <tr>
+                      <td class="appt-block" style="padding:18px 22px;" colspan="2">
+                        <div class="data-label" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">Location</div>
+                        <div class="appt-location-name" style="font-size:15px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.3;margin-bottom:4px;">Al Nahda Medical Fitness Center</div>
+                        <div class="appt-location-address" style="font-size:13px;font-weight:400;color:#5e5e6a;line-height:1.55;margin-bottom:9px;">Al Nahda Center, 99, 10 Street, Ground Floor, Al Qusais, Deira, Dubai</div>
+                        <a href="https://maps.app.goo.gl/Xp4vyLrNiS33hB5P7?g_st=iwb" class="map-link" style="display:inline-block;font-size:12px;font-weight:400;color:#1d1d1f;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:1px;letter-spacing:0.005em;">View on Google Maps ↗</a>
+                      </td>
+                    </tr>
+                    <tr><td class="appt-divider" style="height:1px;font-size:0;line-height:0;background:#e8e8ed;" colspan="2">&nbsp;</td></tr>
+       <tr>
+         <td class="appt-ref-row" style="padding:13px 22px;" colspan="2">
+           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+             <tr>
+               <td style="vertical-align:middle;"><div class="data-label" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0;">Medical Application</div></td>
+               <td style="vertical-align:middle;text-align:right;"><div class="appt-ref-value" style="font-size:12px;font-weight:500;color:#5e5e6a;letter-spacing:0.04em;">121212</div></td>
+             </tr>
+           </table>
+         </td>
+       </tr>
+                  </table>
+                </td>
+              </tr>
+
+              <tr><td style="padding-top:40px;" colspan="2">
+        <div class="section-heading" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Your On-Site Guide</div>
+        <table cellpadding="0" cellspacing="0" border="0" role="presentation" class="guide-row" style="border-collapse:collapse;">
+          <tr>
+            <td style="vertical-align:top;width:46px;padding-right:14px;">
+              <div class="avatar avatar-s" style="width:46px;height:46px;border-radius:50%;background:#dcfce7;color:#15803d;text-align:center;line-height:42px;font-size:14px;font-weight:700;letter-spacing:-0.02em;box-shadow:0 2px 8px rgba(0,0,0,0.06);display:inline-block;">SH</div>
+            </td>
+            <td style="vertical-align:top;" class="guide-info">
+              <div class="guide-name" style="font-size:16px;font-weight:500;color:#1d1d1f;letter-spacing:-0.015em;line-height:1.3;margin-bottom:5px;">Shahul Hameed <span class="guide-role-inline" style="font-size:12px;font-weight:400;color:#8e8e98;letter-spacing:0.01em;">· On-Site Support</span></div>
+              <div class="guide-phone" style="font-size:13px;font-weight:400;color:#5e5e6a;margin-bottom:10px;line-height:1.5;"><a href="tel:0568115077" style="color:#5e5e6a;text-decoration:none;border-bottom:1px solid #e8e8ed;">0568115077</a></div>
+            </td>
+          </tr>
+        </table>
+        <div class="guide-description" style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;letter-spacing:0.005em;padding-top:10px;">Our on-site support will meet your employee on site and guide them through the entire process. All required documentation will be checked, registration will be completed, and the queue will be managed on their behalf.</div>
+      </td></tr>
+
+              <tr>
+    <td colspan="2" style="padding-top:36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f0f7ff;border:1px solid #c2daf0;border-radius:16px;">
+        <tr>
+          <td style="padding:18px 22px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;">
+              <tr>
+                <td style="vertical-align:middle;padding-right:16px;width:44px;">
+                  <div style="width:40px;height:40px;background:#006994;border-radius:50%;text-align:center;line-height:40px;font-size:18px;font-weight:700;color:#f5c518;display:inline-block;">★</div>
+                </td>
+                <td style="vertical-align:middle;">
+                  <div style="font-size:12px;font-weight:700;color:#004a6e;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px;">Dubai Health Authority</div>
+                  <div style="font-size:11px;font-weight:400;color:#336a8a;letter-spacing:0.01em;line-height:1.4;">This medical fitness examination is conducted under DHA regulations and standards.</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+              <!-- BEFORE YOU GO -->
+              <tr>
+                <td style="padding-top:40px;" colspan="2">
+                  <div class="section-heading" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Before You Go</div>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;">
+                    <tr>
+                      <td style="padding:18px 22px;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                          <tr>
+                            <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
+                              <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">•</span>
+                            </td>
+                            <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;">
+                              Arrive at least 10 minutes before your appointment time.
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
+                              <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">•</span>
+                            </td>
+                            <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;">
+                              Bring your original passport. No copies or digital versions accepted.
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
+                              <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">•</span>
+                            </td>
+                            <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;">
+                              Dress comfortably — loose, modest clothing works best. Shoulders and knees must be covered.
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="width:16px;vertical-align:top;padding-right:10px;">
+                              <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">•</span>
+                            </td>
+                            <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;">
+                              Leave jewellery at home. The examination includes an X-ray and metal accessories must be removed.
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+
+              
+
+              <tr><td colspan="2" style="padding-top:40px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:linear-gradient(135deg,#1d4ed8 0%,#3b82f6 100%);border-radius:16px;">
+          <tr><td style="padding:24px 28px;text-align:center;">
+            <div style="font-size:13px;font-weight:500;color:rgba(255,255,255,0.75);letter-spacing:0.03em;text-transform:uppercase;margin-bottom:8px;">Your Appointment Card</div>
+            <div style="font-size:14px;font-weight:400;color:rgba(255,255,255,0.85);line-height:1.6;margin-bottom:20px;">Open your digital appointment card on any device. Add it to Apple Wallet for quick access.</div>
+            <a href="https://app.procompany.ae/card/953d94fa-9c06-4d4f-848e-c6b3b122c587" style="display:inline-block;background:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.30);color:#ffffff;font-size:15px;font-weight:600;letter-spacing:-0.01em;text-decoration:none;padding:12px 28px;border-radius:12px;">View Appointment Card ↗</a>
+          </td></tr>
+        </table>
+      </td></tr>
+
+              <!-- AFTER THE APPOINTMENT -->
+              <tr>
+                <td colspan="2" style="padding-top:40px;">
+                  <div class="section-heading" style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">After the Appointment</div>
+                  <div class="after-text" style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;letter-spacing:0.005em;">Results are typically issued within 24 hours, and all subsequent steps will be managed by our team, with no action required unless DHA requests a follow up.</div>
+                </td>
+              </tr>
+
+              <tr><td colspan="2">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;border-radius:16px;margin-top:40px;">
+          <tr><td style="padding:18px 22px;">
+            <div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.65;margin-bottom:12px;"><strong style="font-size:14px;font-weight:600;color:#1d1d1f;">Need to reschedule?</strong> Contact your Relationship Manager and we’ll arrange a new slot at no cost.</div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+              <tr>
+                <td style="font-size:12px;font-weight:500;color:#3a3a3c;letter-spacing:0.005em;white-space:nowrap;">Yasin Aboo</td>
+                <td style="padding-left:6px;white-space:nowrap;"><span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin-right:6px;"></span><a href="tel:0551558435" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">0551558435</a></td>
+                <td style="padding-left:6px;white-space:nowrap;"><span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;border-radius:50%;vertical-align:middle;margin-right:6px;"></span><a href="mailto:yasin@procompany.ae" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;">yasin@procompany.ae</a></td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+      </td></tr>
+
+              <!-- FOOTER -->
+              <tr>
+                <td class="footer" colspan="2" style="margin-top:48px;padding-top:24px;border-top:1px solid #e8e8ed;text-align:center;">
+                  <div class="footer-brand" style="font-size:12px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;">
+                    <a href="https://www.procompany.ae" style="color:#1d1d1f;text-decoration:none;">The P.R.O. Company™</a>
+                  </div>
+                  <div class="footer-divider" style="width:24px;height:1px;background:#e8e8ed;margin:8px auto;"></div>
+                  <div class="footer-legal" style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;">© 2026 The P.R.O. Company™. All rights reserved.</div>
+                  <div class="footer-licensed" style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;margin-top:2px;">Licensed under Keystone Business Solutions LLC</div>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>
