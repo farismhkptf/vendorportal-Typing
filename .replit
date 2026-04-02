@@ -52,7 +52,7 @@ ZOHO_ACCOUNT_DOMAIN = "https://accounts.zoho.com"
 ZOHO_API_DOMAIN = "https://www.zohoapis.com"
 ZOHO_WORKDRIVE_PARENT_FOLDER_ID = "6w86nb32221cc39204b94bfed5893c750049b"
 ZOHO_SMTP_USER = "appointments@procompany.ae"
-APP_BASE_URL = "https://app.procompany.ae"
+APP_BASE_URL = "https://vendor.procompany.ae"
 VITE_APP_BASE_URL = "https://app.procompany.ae"
 
 [postMerge]
