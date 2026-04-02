@@ -251,6 +251,33 @@ export class ObjectStorageService {
     }
   }
 
+  // Gets a signed read URL for an object entity path (e.g. /objects/...).
+  async getSignedReadUrl(objectPath: string, ttlSec: number = 604800): Promise<string> {
+    if (!objectPath.startsWith("/objects/")) {
+      throw new Error("Invalid object path: must start with /objects/");
+    }
+
+    const parts = objectPath.slice(1).split("/");
+    if (parts.length < 2) {
+      throw new Error("Invalid object path");
+    }
+
+    const entityId = parts.slice(1).join("/");
+    let entityDir = this.getPrivateObjectDir();
+    if (!entityDir.endsWith("/")) {
+      entityDir = `${entityDir}/`;
+    }
+    const objectEntityPath = `${entityDir}${entityId}`;
+    const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: "GET",
+      ttlSec,
+    });
+  }
+
   // Checks if the user can access the object entity.
   async canAccessObjectEntity({
     userId,

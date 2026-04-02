@@ -4,15 +4,11 @@ import type { Staff, WoDocument } from "@shared/schema";
 import { buildAppointmentEmail, type AppointmentEmailData } from "./appointment-confirmation";
 import { ObjectStorageService } from "../replit_integrations/object_storage/objectStorage";
 
-export async function getPhotoAsDataUrl(fileUrl: string): Promise<string | undefined> {
+export async function getPhotoAsSignedUrl(fileUrl: string): Promise<string | undefined> {
   if (!fileUrl) return undefined;
   try {
     const objectStorageService = new ObjectStorageService();
-    const file = await objectStorageService.getObjectEntityFile(fileUrl);
-    const [buffer] = await file.download();
-    const [metadata] = await file.getMetadata();
-    const mimeType = (metadata as { contentType?: string }).contentType || "image/jpeg";
-    return `data:${mimeType};base64,${buffer.toString("base64")}`;
+    return await objectStorageService.getSignedReadUrl(fileUrl, 604800);
   } catch {
     return undefined;
   }
@@ -60,7 +56,7 @@ async function loadRelatedData(
       const docs = await storage.getWoDocuments(workOrder.id);
       const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
       if (photo?.fileUrl) {
-        applicantPhotoUrl = await getPhotoAsDataUrl(photo.fileUrl);
+        applicantPhotoUrl = await getPhotoAsSignedUrl(photo.fileUrl);
       }
     } catch (err) {
       console.warn("[email-preview] failed to load applicant photo:", err);

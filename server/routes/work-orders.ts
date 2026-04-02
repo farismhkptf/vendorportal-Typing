@@ -9,7 +9,7 @@ import { checkAndMarkDelayedWorkOrders } from "../services/background-jobs";
 import { notifyStaffByRoles, notifyVendorUsers } from "../services/notification-service";
 import { toProperCase } from "../proper-case";
 import { buildAppointmentEmail } from "../email-templates/appointment-confirmation";
-import { loadAppointmentEmailData, loadAppointmentEmailDataById, renderAppointmentEmailHtml, getPhotoAsDataUrl } from "../email-templates/preview-data-loader";
+import { loadAppointmentEmailData, loadAppointmentEmailDataById, renderAppointmentEmailHtml, getPhotoAsSignedUrl } from "../email-templates/preview-data-loader";
 import { sendEmail, isEmailConfigured } from "../email-service";
 import { insertWorkOrderSchema, insertAppointmentSchema, insertWoNoteSchema } from "@shared/schema";
 import type { Staff, AppSettings, WoDocument } from "@shared/schema";
@@ -765,7 +765,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         const docs = await storage.getWoDocuments(wo.id);
         const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
         if (photo?.fileUrl) {
-          applicantPhotoUrl = await getPhotoAsDataUrl(photo.fileUrl);
+          applicantPhotoUrl = await getPhotoAsSignedUrl(photo.fileUrl);
         }
       } catch (err) {
         console.error("[work-orders] create-appointment: failed to fetch applicant photo:", err);
@@ -932,7 +932,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
               const docs = await storage.getWoDocuments(wo.id);
               const photo = docs.find((d: WoDocument) => d.documentType === "Photo" && d.fileUrl);
               if (photo?.fileUrl) {
-                photoUrl = await getPhotoAsDataUrl(photo.fileUrl);
+                photoUrl = await getPhotoAsSignedUrl(photo.fileUrl);
               }
             } catch (err) {
               console.error("[work-orders] auto-email: failed to fetch applicant photo for appointment", appointment.id, ":", err);

@@ -6,7 +6,7 @@ import { requireAuth, requireOpsRole, requireRole } from "../middleware/auth";
 import { validateBody } from "../middleware/validation";
 import { ObjectStorageService } from "../replit_integrations/object_storage/objectStorage";
 import { syncFileToWorkDrive, isWorkDriveConfigured, testWorkDriveConnection, getOrCreateExportFolder, uploadFileToWorkDrive, buildWorkDriveFileName } from "../zoho-workdrive";
-import { loadAppointmentEmailDataById, renderAppointmentEmailHtml, getPhotoAsDataUrl } from "../email-templates/preview-data-loader";
+import { loadAppointmentEmailDataById, renderAppointmentEmailHtml, getPhotoAsSignedUrl } from "../email-templates/preview-data-loader";
 import { getTemplateRegistry, getTemplatesWithPreviews, buildTemplatePreview, EMAIL_TEMPLATE_CATEGORIES } from "../email-templates/registry";
 import type { Staff, WoDocument } from "@shared/schema";
 import type { RouteDeps } from "./types";
@@ -813,7 +813,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         const docs = await storage.getWoDocuments(wo.id);
         const photoDoc = docs.find(d => d.documentType === "Photo" && d.fileUrl);
         if (photoDoc?.fileUrl) {
-          applicantPhotoUrl = await getPhotoAsDataUrl(photoDoc.fileUrl) || null;
+          applicantPhotoUrl = await getPhotoAsSignedUrl(photoDoc.fileUrl) || null;
         }
       }
 
