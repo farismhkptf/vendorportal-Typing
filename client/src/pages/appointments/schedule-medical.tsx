@@ -37,6 +37,7 @@ export default function ScheduleMedical() {
   const [urlWoProcessed, setUrlWoProcessed] = useState(false);
   const [appNumberAutoFilled, setAppNumberAutoFilled] = useState(false);
   const [scheduledApptId, setScheduledApptId] = useState<string | null>(null);
+  const [scheduledRescheduleToken, setScheduledRescheduleToken] = useState<string | null>(null);
   const [emailSendStatus, setEmailSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [overrideEmail, setOverrideEmail] = useState<string | null>(null);
@@ -170,6 +171,7 @@ export default function ScheduleMedical() {
       queryClient.invalidateQueries({ queryKey: ["/api/work-orders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/scheduling-queue"] });
       setScheduledApptId(appt.id);
+      if (appt.rescheduleToken) setScheduledRescheduleToken(appt.rescheduleToken);
       const effectiveRecipients = selectedRecipients !== null ? selectedRecipients : (overrideEmail ? [overrideEmail] : selectedQueueItem?.applicantEmail ? [selectedQueueItem.applicantEmail] : []);
       if (effectiveRecipients.length > 0 && appt.id) {
         setEmailSendStatus("sending");
@@ -204,6 +206,7 @@ export default function ScheduleMedical() {
 
   const handleSaveAndSend = async () => {
     if (!(await form.trigger())) { toast({ title: "Validation error", description: "Please fill in all required fields.", variant: "destructive" }); return; }
+    setScheduledRescheduleToken(null);
     createAppointmentMutation.mutate(form.getValues());
   };
 
@@ -248,7 +251,7 @@ export default function ScheduleMedical() {
               </div>
             )}
             {currentStep === 2 && selectedQueueItem && (
-              <ScheduleConfirmationStep schedulerType="Medical" form={form} selectedQueueItem={selectedQueueItem} selectedCompany={selectedCompany} selectedCenter={selectedCenter} companyAssist={companyMedicalAssist} companyCRM={companyCRM} emailPreview={emailPreview} whatsappPreview={whatsappPreview} previewHtml={previewHtml} scheduledApptId={scheduledApptId} emailSendStatus={emailSendStatus} emailSentTo={emailSentTo} setEmailSentTo={setEmailSentTo} overrideEmail={overrideEmail} setOverrideEmail={setOverrideEmail} setEmailSendStatus={setEmailSendStatus} onEditDetails={() => { setSelectedRecipients(null); setCurrentStep(1); }} onRegeneratePreviews={generatePreviews} companyEmailsList={companyEmailsList} onRecipientsChange={setSelectedRecipients} />
+              <ScheduleConfirmationStep schedulerType="Medical" form={form} selectedQueueItem={selectedQueueItem} selectedCompany={selectedCompany} selectedCenter={selectedCenter} companyAssist={companyMedicalAssist} companyCRM={companyCRM} emailPreview={emailPreview} whatsappPreview={whatsappPreview} previewHtml={previewHtml} scheduledApptId={scheduledApptId} rescheduleToken={scheduledRescheduleToken} emailSendStatus={emailSendStatus} emailSentTo={emailSentTo} setEmailSentTo={setEmailSentTo} overrideEmail={overrideEmail} setOverrideEmail={setOverrideEmail} setEmailSendStatus={setEmailSendStatus} onEditDetails={() => { setSelectedRecipients(null); setCurrentStep(1); }} onRegeneratePreviews={generatePreviews} companyEmailsList={companyEmailsList} onRecipientsChange={setSelectedRecipients} />
             )}
             <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t mt-6 -mx-6 px-6 py-4 flex justify-between gap-2 z-[9999]">
               {currentStep > 1 ? <Button variant="outline" onClick={() => { setSelectedRecipients(null); setCurrentStep(1); }} data-testid="button-back-step"><ArrowLeft className="h-4 w-4 mr-2" />Back</Button> : <div />}

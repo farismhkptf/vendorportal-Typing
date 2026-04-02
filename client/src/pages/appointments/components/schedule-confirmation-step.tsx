@@ -35,6 +35,7 @@ interface ScheduleConfirmationStepProps {
   whatsappPreview: string;
   previewHtml: string;
   scheduledApptId: string | null;
+  rescheduleToken?: string | null;
   emailSendStatus: "idle" | "sending" | "sent" | "failed";
   setEmailSendStatus: (s: "idle" | "sending" | "sent" | "failed") => void;
   emailSentTo: string | null;
@@ -60,6 +61,7 @@ export function ScheduleConfirmationStep({
   whatsappPreview,
   previewHtml,
   scheduledApptId,
+  rescheduleToken,
   emailSendStatus,
   setEmailSendStatus,
   emailSentTo,
@@ -283,6 +285,36 @@ export function ScheduleConfirmationStep({
           </div>
         </CardContent>
       </Card>
+
+      {scheduledApptId && rescheduleToken && (
+        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border/50 bg-muted/20">
+          <div>
+            <p className="text-sm font-medium">Add to Apple Wallet</p>
+            <p className="text-xs text-muted-foreground">Download the appointment pass to Apple Wallet</p>
+          </div>
+          <a
+            href={`/api/card/${rescheduleToken}/wallet`}
+            download="appointment.pkpass"
+            data-testid="link-add-to-wallet-confirmation"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="148"
+              height="40"
+              viewBox="0 0 148 40"
+              role="img"
+              aria-label="Add to Apple Wallet"
+            >
+              <rect width="148" height="40" rx="8" fill="#000" />
+              <rect x="12" y="12" width="16" height="10" rx="2" fill="none" stroke="white" strokeWidth="1" />
+              <rect x="12" y="17" width="16" height="5" rx="0" fill="white" opacity="0.3" />
+              <rect x="15" y="20" width="3" height="2" rx="0.5" fill="white" />
+              <text x="36" y="17" fill="white" fontSize="7" fontFamily="-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif" fontWeight="300" letterSpacing="0.3">Add to</text>
+              <text x="36" y="28" fill="white" fontSize="11" fontFamily="-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif" fontWeight="600" letterSpacing="-0.2">Apple Wallet</text>
+            </svg>
+          </a>
+        </div>
+      )}
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid w-full grid-cols-2">

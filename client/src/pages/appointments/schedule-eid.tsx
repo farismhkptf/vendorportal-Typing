@@ -41,6 +41,7 @@ export default function ScheduleEid() {
   const [previewHtml, setPreviewHtml] = useState("");
   const [urlWoProcessed, setUrlWoProcessed] = useState(false);
   const [scheduledApptId, setScheduledApptId] = useState<string | null>(null);
+  const [scheduledRescheduleToken, setScheduledRescheduleToken] = useState<string | null>(null);
   const [emailSendStatus, setEmailSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
   const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
   const [overrideEmail, setOverrideEmail] = useState<string | null>(null);
@@ -145,6 +146,7 @@ export default function ScheduleEid() {
       queryClient.invalidateQueries({ queryKey: ["/api/appointments/scheduling-queue"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/appointments-summary"] });
       setScheduledApptId(appointment.id);
+      if (appointment.rescheduleToken) setScheduledRescheduleToken(appointment.rescheduleToken);
       const effectiveRecipients = selectedRecipients !== null ? selectedRecipients : (overrideEmail ? [overrideEmail] : selectedQueueItem?.applicantEmail ? [selectedQueueItem.applicantEmail] : []);
       if (effectiveRecipients.length > 0 && appointment.id) {
         setEmailSendStatus("sending");
@@ -179,6 +181,7 @@ export default function ScheduleEid() {
   const handleSaveAndSend = async () => {
     const isValid = await form.trigger();
     if (!isValid) { toast({ title: "Validation error", description: "Please fill in all required fields.", variant: "destructive" }); return; }
+    setScheduledRescheduleToken(null);
     createAppointmentMutation.mutate(form.getValues());
   };
 
@@ -247,7 +250,8 @@ export default function ScheduleEid() {
                 schedulerType={SCHEDULER_TYPE} form={form} selectedQueueItem={selectedQueueItem} selectedCompany={selectedCompany}
                 selectedCenter={selectedCenter} centers={centers} companyAssist={companyAssist} companyCRM={companyCRM}
                 emailPreview={emailPreview} whatsappPreview={whatsappPreview} previewHtml={previewHtml}
-                scheduledApptId={scheduledApptId} emailSendStatus={emailSendStatus} setEmailSendStatus={setEmailSendStatus}
+                scheduledApptId={scheduledApptId} rescheduleToken={scheduledRescheduleToken}
+                emailSendStatus={emailSendStatus} setEmailSendStatus={setEmailSendStatus}
                 emailSentTo={emailSentTo} setEmailSentTo={setEmailSentTo} overrideEmail={overrideEmail} setOverrideEmail={setOverrideEmail}
                 onEditDetails={() => { setSelectedRecipients(null); setCurrentStep(1); }} onRegeneratePreviews={generatePreviews} companyEmailsList={companyEmailsList}
                 onRecipientsChange={setSelectedRecipients}

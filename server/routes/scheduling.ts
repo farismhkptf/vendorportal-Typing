@@ -1,11 +1,9 @@
 import type { Express } from "express";
 import { z } from "zod";
-import { randomUUID } from "crypto";
 import { storage } from "../storage";
 import { requireAuth } from "../middleware/auth";
 import { checkAndAutoCompleteWorkOrder } from "../services/transition-service";
 import { RESTORE_SNAPSHOT_SQL } from "../restore-snapshot-data";
-import { generateAppointmentPass } from "../apple-pass";
 import { pool } from "../db";
 import type { RouteDeps } from "./types";
 
@@ -1247,57 +1245,6 @@ app.post("/api/admin/restore-db", async (req, res) => {
   } catch (err: unknown) {
     console.error("[restore-db] Error:", err);
     res.status(500).json({ success: false, message: err instanceof Error ? err.message : String(err) });
-  }
-});
-
-// ─── Apple Wallet Pass ──────────────────────────────────────────────────────
-app.get("/api/pass", (req, res, next) => {
-  if (!req.session?.userId && !req.session?.vendorUserId) {
-    return res.status(401).json({ message: "Not authenticated" });
-  }
-  next();
-}, async (req, res) => {
-  const passTypeIdentifier = process.env.APPLE_PASS_TYPE_IDENTIFIER;
-  const teamIdentifier = process.env.APPLE_TEAM_ID;
-
-  if (!passTypeIdentifier) {
-    return res.status(500).json({ message: "APPLE_PASS_TYPE_IDENTIFIER environment variable is not set" });
-  }
-  if (!teamIdentifier) {
-    return res.status(500).json({ message: "APPLE_TEAM_ID environment variable is not set" });
-  }
-
-  try {
-    const buffer = await generateAppointmentPass({
-      passTypeIdentifier,
-      teamIdentifier,
-      serialNumber: randomUUID(),
-      description: "Appointment Pass",
-      organizationName: "The P.R.O. Company",
-      backgroundColor: "rgb(0,0,0)",
-      foregroundColor: "rgb(255,255,255)",
-      labelColor: "rgb(255,255,255)",
-      qrMessage: "TEST123",
-      fields: {
-        primary: [{ key: "name", label: "NAME", value: "Appointment" }],
-        secondary: [
-          { key: "org", label: "ORGANIZATION", value: "The P.R.O. Company" },
-        ],
-        back: [
-          { key: "info", label: "Information", value: "This pass is issued by The P.R.O. Company." },
-        ],
-      },
-    });
-
-    res.set({
-      "Content-Type": "application/vnd.apple.pkpass",
-      "Content-Disposition": `attachment; filename="appointment.pkpass"`,
-      "Content-Length": buffer.length,
-    });
-    res.send(buffer);
-  } catch (err: unknown) {
-    console.error("[apple-pass] Error generating pass:", err);
-    res.status(500).json({ message: err instanceof Error ? err.message : "Failed to generate pass" });
   }
 });
 
