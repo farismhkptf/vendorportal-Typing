@@ -366,7 +366,7 @@ function buildMedicalAppointmentPreview(): string {
       email: "sarah@procompany.ae",
     }),
     rmUserEmail: "sarah@procompany.ae",
-    appBaseUrl: "https://app.procompany.ae",
+    appBaseUrl: process.env.APP_BASE_URL || "https://app.procompany.ae",
   };
   return buildAppointmentEmail(data);
 }
@@ -435,7 +435,7 @@ function buildEidAppointmentPreview(): string {
       email: "aisha@procompany.ae",
     }),
     rmUserEmail: "aisha@procompany.ae",
-    appBaseUrl: "https://app.procompany.ae",
+    appBaseUrl: process.env.APP_BASE_URL || "https://app.procompany.ae",
   };
   return buildAppointmentEmail(data);
 }
