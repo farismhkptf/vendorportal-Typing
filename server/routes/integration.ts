@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { storage } from "../storage";
-import { requireRole, verifyJwtMultiSecret } from "../middleware/auth";
+import { requireRole, verifySharedJwtOnly } from "../middleware/auth";
 import { toProperCase } from "../proper-case";
 import { notifyStaffByRoles } from "../services/notification-service";
 
@@ -263,7 +263,7 @@ export function registerIntegrationRoutes(app: Express): void {
       return res.redirect("/?sso_error=missing_token");
     }
 
-    const payload = verifyJwtMultiSecret(token) as { email?: string; sub?: string; role?: string; name?: string } | null;
+    const payload = verifySharedJwtOnly(token) as { email?: string; sub?: string; role?: string; name?: string } | null;
     if (!payload) {
       console.warn("[integration/auth] Invalid SSO token — failed all secret checks");
       return res.redirect("/?sso_error=invalid_token");
@@ -323,9 +323,8 @@ export function registerIntegrationRoutes(app: Express): void {
   // Accepts: Authorization: Bearer <jwt>
   // Returns: { valid, userId, email, role } or { valid: false, error }
   app.get("/api/integration/auth/verify", requireIntegrationApiKey, async (req: Request, res: Response) => {
-    const hasAnySecret = !!(process.env.SHARED_JWT_SECRET || process.env.JWT_SECRET);
-    if (!hasAnySecret) {
-      return res.status(501).json({ valid: false, error: "No JWT secret configured on this app (set SHARED_JWT_SECRET or JWT_SECRET)" });
+    if (!process.env.SHARED_JWT_SECRET) {
+      return res.status(501).json({ valid: false, error: "SHARED_JWT_SECRET not configured on this app" });
     }
 
     const authHeader = req.headers.authorization;
@@ -334,7 +333,7 @@ export function registerIntegrationRoutes(app: Express): void {
       return res.status(400).json({ valid: false, error: "Missing Bearer token in Authorization header" });
     }
 
-    const payload = verifyJwtMultiSecret(token);
+    const payload = verifySharedJwtOnly(token);
     if (!payload) {
       return res.json({ valid: false, error: "Token invalid or expired" });
     }

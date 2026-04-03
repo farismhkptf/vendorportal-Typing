@@ -50,6 +50,7 @@ export function clearFailedLogins(ip: string) {
 // Attempt to verify a JWT against multiple secrets (dual-secret verification).
 // Tries SHARED_JWT_SECRET (cross-portal tokens) first, then JWT_SECRET (app-specific tokens).
 // Returns the decoded payload, or null if no secret accepts the token.
+// Used by general auth middleware so either secret can authenticate API calls.
 export function verifyJwtMultiSecret(token: string): { email?: string; sub?: string } | null {
   const secrets = [
     process.env.SHARED_JWT_SECRET,
@@ -64,6 +65,18 @@ export function verifyJwtMultiSecret(token: string): { email?: string; sub?: str
     }
   }
   return null;
+}
+
+// Verify a JWT against SHARED_JWT_SECRET only.
+// Used by cross-portal SSO endpoints where only Client Portal tokens should be accepted.
+export function verifySharedJwtOnly(token: string): { email?: string; sub?: string } | null {
+  const secret = process.env.SHARED_JWT_SECRET;
+  if (!secret) return null;
+  try {
+    return jwt.verify(token, secret) as { email?: string; sub?: string };
+  } catch {
+    return null;
+  }
 }
 
 // Verify a Bearer JWT (using dual-secret) and return the matching local staff user.
