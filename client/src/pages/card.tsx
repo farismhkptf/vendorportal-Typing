@@ -225,6 +225,10 @@ export default function CardPage() {
       >
         <style>{`
           @keyframes lift { to { opacity:1; transform:translateY(0); } }
+          @media (max-width: 420px) {
+            .card-section-pad { padding-left: 20px !important; padding-right: 20px !important; }
+            .card-section-margin { margin-left: 16px !important; margin-right: 16px !important; }
+          }
         `}</style>
 
         <div style={{
@@ -235,7 +239,7 @@ export default function CardPage() {
 
         <div style={{ position: "relative", zIndex: 1 }}>
           {/* TOP BAR */}
-          <div style={{ padding: "24px 32px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="card-section-pad" style={{ padding: "24px 32px 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               <div style={{
                 width: "7px", height: "7px", borderRadius: "50%",
@@ -253,7 +257,7 @@ export default function CardPage() {
           </div>
 
           {/* IDENTITY */}
-          <div style={{ padding: "24px 32px 0" }}>
+          <div className="card-section-pad" style={{ padding: "24px 32px 0" }}>
             <div style={{ fontSize: "22px", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.15, color: inkColor, marginBottom: "10px" }}
               data-testid="text-company-name">
               {companyName}
@@ -293,7 +297,7 @@ export default function CardPage() {
           <div style={{ margin: "24px 32px 0", height: "1px", background: "linear-gradient(90deg, rgba(74,144,217,0.20), rgba(74,144,217,0.06) 70%, transparent)" }} />
 
           {/* APPOINTMENT DATETIME */}
-          <div style={{ padding: "22px 32px 0" }}>
+          <div className="card-section-pad" style={{ padding: "22px 32px 0" }}>
             <div style={{ fontSize: "15px", fontWeight: 600, color: inkColor, letterSpacing: "-0.01em", lineHeight: 1.3, marginBottom: "4px" }}
               data-testid="text-appointment-date">
               {dateStr}
@@ -331,7 +335,7 @@ export default function CardPage() {
 
           {/* MEDICAL APPLICATION NO. */}
           {appointment.applicationNumber?.trim() && (
-            <div style={{
+            <div className="card-section-margin" style={{
               margin: "18px 24px 0",
               padding: "14px 16px",
               borderRadius: "12px",
@@ -349,7 +353,7 @@ export default function CardPage() {
           )}
 
           {/* WHAT TO KEEP IN MIND */}
-          <div style={{ padding: "22px 32px 0" }}>
+          <div className="card-section-pad" style={{ padding: "22px 32px 0" }}>
             <div style={{ fontSize: "9px", fontWeight: 600, letterSpacing: "0.14em", textTransform: "uppercase", color: inkSoft, marginBottom: "10px" }}>
               What to keep in mind
             </div>
@@ -386,6 +390,7 @@ export default function CardPage() {
             <a
               href={guidePhone ? `tel:${guidePhone}` : undefined}
               data-testid="link-guide-phone"
+              className="card-section-margin"
               style={{
                 margin: "22px 32px 0",
                 padding: "12px 14px",
@@ -424,10 +429,14 @@ export default function CardPage() {
           )}
 
           {/* APPLE WALLET */}
-          {token && <AppleWalletButton token={token} />}
+          {token && (
+            <div className="card-section-pad" style={{ padding: "0" }}>
+              <AppleWalletButton token={token} />
+            </div>
+          )}
 
           {/* QR CODE + COPY LINK */}
-          <div style={{
+          <div className="card-section-margin" style={{
             margin: "20px 32px 0",
             padding: "14px",
             borderRadius: "14px",
@@ -484,7 +493,7 @@ export default function CardPage() {
           </div>
 
           {/* FOOTER */}
-          <div style={{
+          <div className="card-section-margin" style={{
             margin: "20px 32px 0",
             padding: "16px 0 28px",
             borderTop: "1px solid rgba(74,144,217,0.10)",

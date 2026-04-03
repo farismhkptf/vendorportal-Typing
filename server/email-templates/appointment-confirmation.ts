@@ -96,14 +96,26 @@ function buildAppleCalendarIcsUrl(title: string, dt: Date, location: string): st
   return `data:text/calendar;charset=utf8,${encodeURIComponent(ics)}`;
 }
 
-const PILL_STYLE = `display:inline-block;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;text-decoration:none;border:1px solid #e8e8ed;background:#f8f8fc;padding:4px 10px;white-space:nowrap;`;
+const PILL_TD_STYLE = `font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;border:1px solid #e8e8ed;background-color:#f8f8fc;padding:4px 10px;white-space:nowrap;`;
 
 function buildCalendarPillButtons(googleUrl: string, appleUrl: string, outlookUrl: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right" style="border-collapse:collapse;">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
     <tr>
-      <td style="padding-left:6px;"><a href="${escapeHtml(googleUrl)}" style="${PILL_STYLE}">&#128197; Google</a></td>
-      <td style="padding-left:6px;"><a href="${escapeHtml(appleUrl)}" style="${PILL_STYLE}">&#128197; Apple</a></td>
-      <td style="padding-left:6px;"><a href="${escapeHtml(outlookUrl)}" style="${PILL_STYLE}">&#128197; Outlook</a></td>
+      <td style="padding-left:6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
+          <tr><td style="${PILL_TD_STYLE}"><a href="${escapeHtml(googleUrl)}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;text-decoration:none;">&#128197; Google</a></td></tr>
+        </table>
+      </td>
+      <td style="padding-left:6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
+          <tr><td style="${PILL_TD_STYLE}"><a href="${escapeHtml(appleUrl)}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;text-decoration:none;">&#128197; Apple</a></td></tr>
+        </table>
+      </td>
+      <td style="padding-left:6px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
+          <tr><td style="${PILL_TD_STYLE}"><a href="${escapeHtml(outlookUrl)}" style="font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:500;color:#1d1d1f;text-decoration:none;">&#128197; Outlook</a></td></tr>
+        </table>
+      </td>
     </tr>
   </table>`;
 }
@@ -507,11 +519,11 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
 
   const logoBlock = appLogoUrl
     ? `<img src="${escapeHtml(appLogoUrl)}" alt="Logo" width="34" height="34" style="width:34px;height:34px;display:block;" />`
-    : `<div style="width:34px;height:34px;background:#1d1d1f;text-align:center;line-height:34px;font-size:15px;font-weight:600;letter-spacing:-0.02em;color:#ffffff;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(companyInitial)}</div>`;
+    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;"><tr><td width="34" height="34" style="width:34px;height:34px;background-color:#1d1d1f;text-align:center;vertical-align:middle;font-size:15px;font-weight:600;letter-spacing:-0.02em;color:#ffffff;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(companyInitial)}</td></tr></table>`;
 
   const avatarBlock = (applicantPhotoUrl && applicantPhotoUrl.startsWith("https://"))
     ? `<img src="${escapeHtml(applicantPhotoUrl)}" alt="${escapeHtml(applicantName)}" width="64" height="64" style="width:64px;height:64px;display:block;border:2px solid #ffffff;" />`
-    : `<div style="width:64px;height:64px;background:#dbeafe;color:#1d4ed8;text-align:center;line-height:60px;font-size:19px;font-weight:700;letter-spacing:-0.02em;border:2px solid #ffffff;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(initials)}</div>`;
+    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;"><tr><td width="64" height="64" style="width:64px;height:64px;background-color:#dbeafe;color:#1d4ed8;text-align:center;vertical-align:middle;font-size:19px;font-weight:700;letter-spacing:-0.02em;border:2px solid #ffffff;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(initials)}</td></tr></table>`;
 
   const calendarTitle = `${appointmentLabel} – ${companyName}`;
   const calendarLocation = centerAddress ? `${centerName}, ${centerAddress}` : centerName;
@@ -522,17 +534,16 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
   const serviceTypeMeta = serviceType?.name ?? appointment.type ?? "Medical";
   const applicantMetaParts = ["Applicant", escapeHtml(serviceTypeMeta)];
   if (applicationNumber) applicantMetaParts.push(escapeHtml(applicationNumber));
-  const dotSpan = `<span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;vertical-align:middle;margin:0 6px;"></span>`;
-  const applicantMetaHtml = applicantMetaParts.join(` ${dotSpan} `);
+  const applicantMetaHtml = applicantMetaParts.join(`&nbsp;&middot;&nbsp;`);
 
   const applicationNumberBlock = applicationNumber
-    ? `<tr><td style="height:1px;font-size:0;line-height:0;background:#e8e8ed;" colspan="2">&nbsp;</td></tr>
+    ? `<tr><td style="height:1px;font-size:0;line-height:0;background-color:#e8e8ed;" colspan="2">&nbsp;</td></tr>
        <tr>
          <td style="padding:13px 22px;" colspan="2">
-           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
              <tr>
-               <td style="vertical-align:middle;"><div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Medical Application</div></td>
-               <td style="vertical-align:middle;text-align:right;"><div style="font-size:12px;font-weight:500;color:#5e5e6a;letter-spacing:0.04em;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(applicationNumber)}</div></td>
+               <td style="vertical-align:middle;"><div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;font-family:Arial,Helvetica,sans-serif;">Medical Application</div></td>
+               <td style="vertical-align:middle;text-align:right;"><div style="font-size:12px;font-weight:500;color:#5e5e6a;letter-spacing:0.04em;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(applicationNumber)}</div></td>
              </tr>
            </table>
          </td>
@@ -541,26 +552,26 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
 
   const guideSection = guideName
     ? `<tr><td style="padding-top:40px;" colspan="2">
-        <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Your On-Site Guide</div>
-        <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="border-collapse:collapse;">
+        <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:16px;font-family:Arial,Helvetica,sans-serif;">Your On-Site Guide</div>
+        <table cellpadding="0" cellspacing="0" border="0" role="presentation" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
           <tr>
             <td style="vertical-align:top;width:46px;padding-right:14px;">
-              <div style="width:46px;height:46px;background:#dcfce7;color:#15803d;text-align:center;line-height:42px;font-size:14px;font-weight:700;letter-spacing:-0.02em;border:2px solid #ffffff;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(guideInitials)}</div>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;"><tr><td width="46" height="46" style="width:46px;height:46px;background-color:#dcfce7;color:#15803d;text-align:center;vertical-align:middle;font-size:14px;font-weight:700;letter-spacing:-0.02em;border:2px solid #ffffff;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(guideInitials)}</td></tr></table>
             </td>
             <td style="vertical-align:top;">
-              <div style="font-size:16px;font-weight:500;color:#1d1d1f;letter-spacing:-0.015em;line-height:1.3;margin-bottom:5px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(guideName)} <span style="font-size:12px;font-weight:400;color:#8e8e98;letter-spacing:0.01em;">· On-Site Support</span></div>
-              ${guidePhone ? `<div style="font-size:13px;font-weight:400;color:#5e5e6a;margin-bottom:10px;line-height:1.5;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;"><a href="tel:${escapeHtml(guidePhone)}" style="color:#5e5e6a;text-decoration:none;border-bottom:1px solid #e8e8ed;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(guidePhone)}</a></div>` : ""}
+              <div style="font-size:16px;font-weight:500;color:#1d1d1f;letter-spacing:-0.015em;line-height:1.3;mso-line-height-rule:exactly;padding-bottom:5px;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(guideName)} <span style="font-size:12px;font-weight:400;color:#8e8e98;letter-spacing:0.01em;">· On-Site Support</span></div>
+              ${guidePhone ? `<div style="font-size:13px;font-weight:400;color:#5e5e6a;padding-bottom:10px;line-height:1.5;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;"><a href="tel:${escapeHtml(guidePhone)}" style="color:#5e5e6a;text-decoration:none;border-bottom:1px solid #e8e8ed;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(guidePhone)}</a></div>` : ""}
             </td>
           </tr>
         </table>
-        ${guideDescText ? `<div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;letter-spacing:0.005em;padding-top:10px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${guideDescText}</div>` : ""}
+        ${guideDescText ? `<div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;mso-line-height-rule:exactly;letter-spacing:0.005em;padding-top:10px;font-family:Arial,Helvetica,sans-serif;">${guideDescText}</div>` : ""}
       </td></tr>`
     : "";
 
   const notesBlock = appointment.notes
     ? `<tr><td colspan="2" style="padding-top:40px;">
-        <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Notes</div>
-        <div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;letter-spacing:0.005em;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(appointment.notes)}</div>
+        <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:16px;font-family:Arial,Helvetica,sans-serif;">Notes</div>
+        <div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;mso-line-height-rule:exactly;letter-spacing:0.005em;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(appointment.notes)}</div>
       </td></tr>`
     : "";
 
@@ -570,26 +581,33 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
 
   const cardLinkBlock = cardUrl
     ? `<tr><td colspan="2" style="padding-top:40px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#1d4ed8;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;background-color:#1d4ed8;">
           <tr><td style="padding:24px 28px;text-align:center;">
-            <div style="font-size:13px;font-weight:500;color:#c7d9ff;letter-spacing:0.03em;text-transform:uppercase;margin-bottom:8px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Your Appointment Card</div>
-            <div style="font-size:14px;font-weight:400;color:#dce9ff;line-height:1.6;margin-bottom:20px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Open your digital appointment card on any device. Add it to Apple Wallet for quick access.</div>
-            <a href="${escapeHtml(cardUrl)}" style="display:inline-block;background:#2d5fd4;border:1px solid #4a7be8;color:#ffffff;font-size:15px;font-weight:600;letter-spacing:-0.01em;text-decoration:none;padding:12px 28px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">View Appointment Card &#8599;</a>
+            <div style="font-size:13px;font-weight:500;color:#c7d9ff;letter-spacing:0.03em;text-transform:uppercase;padding-bottom:8px;font-family:Arial,Helvetica,sans-serif;">Your Appointment Card</div>
+            <div style="font-size:14px;font-weight:400;color:#dce9ff;line-height:1.6;mso-line-height-rule:exactly;padding-bottom:20px;font-family:Arial,Helvetica,sans-serif;">Open your digital appointment card on any device. Add it to Apple Wallet for quick access.</div>
+            <!--[if mso]>
+            <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(cardUrl)}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="0%" strokecolor="#4a7be8" fillcolor="#2d5fd4">
+              <w:anchorlock/>
+              <center style="color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:600;">View Appointment Card &#8599;</center>
+            </v:roundrect>
+            <![endif]--><!--[if !mso]><!-->
+            <a href="${escapeHtml(cardUrl)}" style="display:inline-block;background-color:#2d5fd4;border:1px solid #4a7be8;color:#ffffff;font-size:15px;font-weight:600;letter-spacing:-0.01em;text-decoration:none;padding:12px 28px;font-family:Arial,Helvetica,sans-serif;">View Appointment Card &#8599;</a>
+            <!--<![endif]-->
           </td></tr>
         </table>
       </td></tr>`
     : "";
 
   const rescheduleBox = hasRmContact
-    ? `<tr><td colspan="2">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;margin-top:40px;">
+    ? `<tr><td colspan="2" style="padding-top:40px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;background-color:#f8f8fc;border:1px solid #e8e8ed;">
           <tr><td style="padding:18px 22px;">
-            <div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.65;margin-bottom:12px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;"><strong style="font-size:14px;font-weight:600;color:#1d1d1f;">Need to reschedule?</strong> Contact your Relationship Manager and we&rsquo;ll arrange a new slot at no cost.</div>
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+            <div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.65;padding-bottom:12px;font-family:Arial,Helvetica,sans-serif;mso-line-height-rule:exactly;"><span style="font-size:14px;font-weight:600;color:#1d1d1f;">Need to reschedule?</span> Contact your Relationship Manager and we&rsquo;ll arrange a new slot at no cost.</div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
               <tr>
-                <td style="font-size:12px;font-weight:500;color:#3a3a3c;letter-spacing:0.005em;white-space:nowrap;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(rmDisplayName)}</td>
-                ${rmPhone ? `<td style="padding-left:6px;white-space:nowrap;"><span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;vertical-align:middle;margin-right:6px;"></span><a href="tel:${escapeHtml(rmPhone)}" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(rmPhone)}</a></td>` : ""}
-                ${rmEmail ? `<td style="padding-left:6px;white-space:nowrap;"><span style="display:inline-block;width:3px;height:3px;background:#a1a1a8;vertical-align:middle;margin-right:6px;"></span><a href="mailto:${escapeHtml(rmEmail)}" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(rmEmail)}</a></td>` : ""}
+                <td style="font-size:12px;font-weight:500;color:#3a3a3c;letter-spacing:0.005em;white-space:nowrap;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(rmDisplayName)}</td>
+                ${rmPhone ? `<td style="padding-left:6px;white-space:nowrap;">&nbsp;&middot;&nbsp;<a href="tel:${escapeHtml(rmPhone)}" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(rmPhone)}</a></td>` : ""}
+                ${rmEmail ? `<td style="padding-left:6px;white-space:nowrap;">&nbsp;&middot;&nbsp;<a href="mailto:${escapeHtml(rmEmail)}" style="font-size:12px;font-weight:400;color:#8e8e98;text-decoration:none;border-bottom:1px solid #e8e8ed;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(rmEmail)}</a></td>` : ""}
               </tr>
             </table>
           </td></tr>
@@ -599,17 +617,17 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
 
   const dhaBadgeBlock = `<tr>
     <td colspan="2" style="padding-top:36px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f0f7ff;border:1px solid #c2daf0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;background-color:#f0f7ff;border:1px solid #c2daf0;">
         <tr>
           <td style="padding:18px 22px;">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;width:100%;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;width:100%;">
               <tr>
                 <td style="vertical-align:middle;padding-right:16px;width:44px;">
-                  <div style="width:40px;height:40px;background:#006994;text-align:center;line-height:40px;font-size:18px;font-weight:700;color:#f5c518;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">&#9733;</div>
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;"><tr><td width="40" height="40" style="width:40px;height:40px;background-color:#006994;text-align:center;vertical-align:middle;font-size:18px;font-weight:700;color:#f5c518;font-family:Arial,Helvetica,sans-serif;">&#9733;</td></tr></table>
                 </td>
                 <td style="vertical-align:middle;">
-                  <div style="font-size:12px;font-weight:700;color:#004a6e;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:2px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Dubai Health Authority</div>
-                  <div style="font-size:11px;font-weight:400;color:#336a8a;letter-spacing:0.01em;line-height:1.4;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">This medical fitness examination is conducted under DHA regulations and standards.</div>
+                  <div style="font-size:12px;font-weight:700;color:#004a6e;letter-spacing:0.04em;text-transform:uppercase;padding-bottom:2px;font-family:Arial,Helvetica,sans-serif;">Dubai Health Authority</div>
+                  <div style="font-size:11px;font-weight:400;color:#336a8a;letter-spacing:0.01em;line-height:1.4;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">This medical fitness examination is conducted under DHA regulations and standards.</div>
                 </td>
               </tr>
             </table>
@@ -626,40 +644,32 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>${appointmentLabel} – ${escapeHtml(companyName)}</title>
-    <!--[if mso]>
-    <noscript>
-    <xml>
-    <o:OfficeDocumentSettings>
-    <o:PixelsPerInch>96</o:PixelsPerInch>
-    </o:OfficeDocumentSettings>
-    </xml>
-    </noscript>
-    <![endif]-->
+    <!--[if mso]><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml><![endif]-->
     <style>${MEDIA_QUERY_STYLES}</style>
 </head>
-<body style="margin:0;padding:0;background-color:#f5f5f7;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;font-size:15px;line-height:1.6;color:#1d1d1f;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background-color:#f5f5f7;">
+<body style="margin:0;padding:0;background-color:#f5f5f7;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;mso-line-height-rule:exactly;color:#1d1d1f;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;background-color:#f5f5f7;">
   <tr>
     <td style="padding:32px 20px;" align="center">
-      <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" align="center" style="border-collapse:collapse;width:600px;">
+      <table role="presentation" class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" align="center" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;width:600px;">
         <tr>
-          <td style="background:#ffffff;border:1px solid #e8e8ed;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+          <td style="background-color:#ffffff;border:1px solid #e8e8ed;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
               <tr>
                 <td class="email-content" style="padding:52px 48px;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
 
                     <!-- HEADER -->
                     <tr>
                       <td style="padding-bottom:22px;border-bottom:1px solid #e8e8ed;" colspan="2">
-                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
                           <tr>
                             <td style="vertical-align:middle;padding-right:12px;">
                               ${logoBlock}
                             </td>
                             <td style="vertical-align:middle;">
-                              <div style="font-size:14px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.35;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">The P.R.O. Company</div>
-                              <div style="font-size:11px;font-weight:400;color:#8e8e98;letter-spacing:0.04em;margin-top:2px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Everything. In Order.</div>
+                              <div style="font-size:14px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.35;mso-line-height-rule:exactly;font-family:Arial,Helvetica,sans-serif;">The P.R.O. Company</div>
+                              <div style="font-size:11px;font-weight:400;color:#8e8e98;letter-spacing:0.04em;padding-top:2px;font-family:Arial,Helvetica,sans-serif;">Everything. In Order.</div>
                             </td>
                           </tr>
                         </table>
@@ -670,23 +680,27 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
 
                     <!-- HERO -->
                     <tr>
-                      <td colspan="2">
-                        <div class="company-name" style="font-size:28px;font-weight:600;letter-spacing:-0.03em;line-height:1.1;color:#1d1d1f;margin-bottom:8px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(companyName)}</div>
-                        <div style="font-size:14px;font-weight:400;color:#8e8e98;letter-spacing:0.02em;margin-bottom:32px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${appointmentLabel}</div>
+                      <td colspan="2" style="padding-bottom:8px;">
+                        <div class="company-name" style="font-size:28px;font-weight:600;letter-spacing:-0.03em;line-height:1.1;mso-line-height-rule:exactly;color:#1d1d1f;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(companyName)}</div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colspan="2" style="padding-bottom:32px;">
+                        <div style="font-size:14px;font-weight:400;color:#8e8e98;letter-spacing:0.02em;font-family:Arial,Helvetica,sans-serif;">${appointmentLabel}</div>
                       </td>
                     </tr>
 
                     <!-- APPLICANT -->
                     <tr>
                       <td style="padding-bottom:28px;border-bottom:1px solid #e8e8ed;" colspan="2">
-                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
                           <tr>
                             <td style="vertical-align:middle;padding-right:18px;">
                               ${avatarBlock}
                             </td>
                             <td style="vertical-align:middle;">
-                              <div class="applicant-name" style="font-size:24px;font-weight:500;letter-spacing:-0.025em;line-height:1.2;color:#1d1d1f;margin-bottom:6px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(applicantName)}</div>
-                              <div style="font-size:12px;font-weight:400;color:#8e8e98;letter-spacing:0.01em;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${applicantMetaHtml}</div>
+                              <div class="applicant-name" style="font-size:24px;font-weight:500;letter-spacing:-0.025em;line-height:1.2;mso-line-height-rule:exactly;color:#1d1d1f;padding-bottom:6px;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(applicantName)}</div>
+                              <div style="font-size:12px;font-weight:400;color:#8e8e98;letter-spacing:0.01em;font-family:Arial,Helvetica,sans-serif;">${applicantMetaHtml}</div>
                             </td>
                           </tr>
                         </table>
@@ -698,14 +712,14 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
                     <!-- APPOINTMENT CARD -->
                     <tr>
                       <td colspan="2">
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;">
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;background-color:#f8f8fc;border:1px solid #e8e8ed;">
                           <tr>
                             <td style="padding:18px 22px;" colspan="2">
-                              <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Date &amp; Time</div>
-                              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                              <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:6px;font-family:Arial,Helvetica,sans-serif;">Date &amp; Time</div>
+                              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
                                 <tr>
                                   <td style="vertical-align:middle;">
-                                    <div class="appt-datetime" style="font-size:20px;font-weight:600;letter-spacing:-0.025em;line-height:1.2;color:#1d1d1f;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(dateStr)} &nbsp;&middot;&nbsp; ${escapeHtml(timeStr)}</div>
+                                    <div class="appt-datetime" style="font-size:20px;font-weight:600;letter-spacing:-0.025em;line-height:1.2;mso-line-height-rule:exactly;color:#1d1d1f;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(dateStr)} &nbsp;&middot;&nbsp; ${escapeHtml(timeStr)}</div>
                                   </td>
                                   <td style="vertical-align:middle;text-align:right;white-space:nowrap;">
                                     ${buildCalendarPillButtons(googleUrl, appleUrl, outlookUrl)}
@@ -714,13 +728,13 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
                               </table>
                             </td>
                           </tr>
-                          <tr><td style="height:1px;font-size:0;line-height:0;background:#e8e8ed;" colspan="2">&nbsp;</td></tr>
+                          <tr><td style="height:1px;font-size:0;line-height:0;background-color:#e8e8ed;" colspan="2">&nbsp;</td></tr>
                           <tr>
                             <td style="padding:18px 22px;" colspan="2">
-                              <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Location</div>
-                              <div style="font-size:15px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.3;margin-bottom:4px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(centerName)}</div>
-                              ${centerAddress ? `<div style="font-size:13px;font-weight:400;color:#5e5e6a;line-height:1.55;margin-bottom:9px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">${escapeHtml(centerAddress)}</div>` : ""}
-                              <a href="${escapeHtml(mapsUrl)}" style="display:inline-block;font-size:12px;font-weight:400;color:#1d1d1f;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:1px;letter-spacing:0.005em;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">View on Google Maps &#8599;</a>
+                              <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:6px;font-family:Arial,Helvetica,sans-serif;">Location</div>
+                              <div style="font-size:15px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;line-height:1.3;mso-line-height-rule:exactly;padding-bottom:4px;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(centerName)}</div>
+                              ${centerAddress ? `<div style="font-size:13px;font-weight:400;color:#5e5e6a;line-height:1.55;mso-line-height-rule:exactly;padding-bottom:9px;font-family:Arial,Helvetica,sans-serif;">${escapeHtml(centerAddress)}</div>` : ""}
+                              <a href="${escapeHtml(mapsUrl)}" style="display:inline-block;font-size:12px;font-weight:400;color:#1d1d1f;text-decoration:none;border-bottom:1px solid #e8e8ed;padding-bottom:1px;letter-spacing:0.005em;font-family:Arial,Helvetica,sans-serif;">View on Google Maps &#8599;</a>
                             </td>
                           </tr>
                           ${applicationNumberBlock}
@@ -735,40 +749,40 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
                     <!-- BEFORE YOU GO -->
                     <tr>
                       <td style="padding-top:40px;" colspan="2">
-                        <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Before You Go</div>
-                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#f8f8fc;border:1px solid #e8e8ed;">
+                        <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:16px;font-family:Arial,Helvetica,sans-serif;">Before You Go</div>
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;background-color:#f8f8fc;border:1px solid #e8e8ed;">
                           <tr>
                             <td style="padding:18px 22px;">
-                              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;">
                                 <tr>
                                   <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
-                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">&#8226;</span>
+                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.55;mso-line-height-rule:exactly;">&#8226;</span>
                                   </td>
-                                  <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">
+                                  <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;mso-line-height-rule:exactly;letter-spacing:-0.005em;padding-bottom:12px;font-family:Arial,Helvetica,sans-serif;">
                                     Arrive at least 10 minutes before your appointment time.
                                   </td>
                                 </tr>
                                 <tr>
                                   <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
-                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">&#8226;</span>
+                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.55;mso-line-height-rule:exactly;">&#8226;</span>
                                   </td>
-                                  <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">
+                                  <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;mso-line-height-rule:exactly;letter-spacing:-0.005em;padding-bottom:12px;font-family:Arial,Helvetica,sans-serif;">
                                     Bring your original passport. No copies or digital versions accepted.
                                   </td>
                                 </tr>
                                 <tr>
                                   <td style="width:16px;vertical-align:top;padding-right:10px;padding-bottom:12px;">
-                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">&#8226;</span>
+                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.55;mso-line-height-rule:exactly;">&#8226;</span>
                                   </td>
-                                  <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;padding-bottom:12px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">
+                                  <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;mso-line-height-rule:exactly;letter-spacing:-0.005em;padding-bottom:12px;font-family:Arial,Helvetica,sans-serif;">
                                     Dress comfortably &mdash; loose, modest clothing works best. Shoulders and knees must be covered.
                                   </td>
                                 </tr>
                                 <tr>
                                   <td style="width:16px;vertical-align:top;padding-right:10px;">
-                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.55;">&#8226;</span>
+                                    <span style="font-size:14px;color:#a1a1a8;line-height:1.55;mso-line-height-rule:exactly;">&#8226;</span>
                                   </td>
-                                  <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;letter-spacing:-0.005em;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">
+                                  <td style="vertical-align:top;font-size:14px;font-weight:500;color:#1d1d1f;line-height:1.55;mso-line-height-rule:exactly;letter-spacing:-0.005em;font-family:Arial,Helvetica,sans-serif;">
                                     Leave jewellery at home. The examination includes an X-ray and metal accessories must be removed.
                                   </td>
                                 </tr>
@@ -786,8 +800,8 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
                     <!-- AFTER THE APPOINTMENT -->
                     <tr>
                       <td colspan="2" style="padding-top:40px;">
-                        <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">After the Appointment</div>
-                        <div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;letter-spacing:0.005em;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Results are typically issued within 24 hours, and all subsequent steps will be managed by our team, with no action required unless DHA requests a follow up.</div>
+                        <div style="font-size:10px;font-weight:600;color:#8e8e98;text-transform:uppercase;letter-spacing:0.1em;padding-bottom:16px;font-family:Arial,Helvetica,sans-serif;">After the Appointment</div>
+                        <div style="font-size:14px;font-weight:400;color:#5e5e6a;line-height:1.7;mso-line-height-rule:exactly;letter-spacing:0.005em;font-family:Arial,Helvetica,sans-serif;">Results are typically issued within 24 hours, and all subsequent steps will be managed by our team, with no action required unless DHA requests a follow up.</div>
                       </td>
                     </tr>
 
@@ -796,12 +810,12 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
                     <!-- FOOTER -->
                     <tr>
                       <td colspan="2" style="padding-top:48px;border-top:1px solid #e8e8ed;text-align:center;">
-                        <div style="font-size:12px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">
-                          <a href="https://www.procompany.ae" style="color:#1d1d1f;text-decoration:none;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">The P.R.O. Company&#8482;</a>
+                        <div style="font-size:12px;font-weight:500;color:#1d1d1f;letter-spacing:-0.01em;font-family:Arial,Helvetica,sans-serif;">
+                          <a href="https://www.procompany.ae" style="color:#1d1d1f;text-decoration:none;font-family:Arial,Helvetica,sans-serif;">The P.R.O. Company&#8482;</a>
                         </div>
-                        <div style="width:24px;height:1px;background:#e8e8ed;margin:8px auto;font-size:0;line-height:0;">&nbsp;</div>
-                        <div style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">&copy; ${new Date().getFullYear()} The P.R.O. Company&#8482;. All rights reserved.</div>
-                        <div style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;margin-top:2px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Licensed under Keystone Business Solutions LLC</div>
+                        <div style="width:24px;height:1px;background-color:#e8e8ed;margin:8px auto;font-size:0;line-height:0;">&nbsp;</div>
+                        <div style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;font-family:Arial,Helvetica,sans-serif;">&copy; ${new Date().getFullYear()} The P.R.O. Company&#8482;. All rights reserved.</div>
+                        <div style="font-size:10px;font-weight:400;color:#a1a1a8;letter-spacing:0.015em;padding-top:2px;font-family:Arial,Helvetica,sans-serif;">Licensed under Keystone Business Solutions LLC</div>
                       </td>
                     </tr>
 

@@ -937,39 +937,82 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         messageEncoding: "iso-8859-1",
       });
 
-      pass.primaryFields.push({
-        key: "time",
-        label: "Appointment Time",
-        value: timeStr,
-      });
-
-      pass.secondaryFields.push({
-        key: "date",
-        label: "Date",
-        value: dateStr,
-      });
-
       const centerName = center?.name || "—";
       const centerArea = center?.area;
       const centerDisplay = centerArea ? `${centerName} — ${centerArea}` : centerName;
-      pass.auxiliaryFields.push({
-        key: "center",
-        label: isEID ? "Biometrics Center" : "Medical Center",
-        value: centerDisplay,
-      });
 
-      pass.auxiliaryFields.push({
-        key: "applicant",
-        label: "Applicant",
-        value: wo?.applicantName || "—",
-      });
-
-      if (company?.name) {
-        pass.auxiliaryFields.push({
-          key: "company",
-          label: "Company",
-          value: company.name,
+      if (isEID) {
+        // EID layout: time primary, date secondary, center + applicant auxiliary
+        pass.primaryFields.push({
+          key: "time",
+          label: "Appointment Time",
+          value: timeStr,
         });
+
+        pass.secondaryFields.push({
+          key: "date",
+          label: "Date",
+          value: dateStr,
+        });
+
+        pass.auxiliaryFields.push({
+          key: "center",
+          label: "Biometrics Center",
+          value: centerDisplay,
+        });
+
+        pass.auxiliaryFields.push({
+          key: "applicant",
+          label: "Applicant",
+          value: wo?.applicantName || "—",
+        });
+
+        if (company?.name) {
+          pass.auxiliaryFields.push({
+            key: "company",
+            label: "Company",
+            value: company.name,
+          });
+        }
+      } else {
+        // Medical layout: appointment type in header, applicant primary, date + time secondary, center auxiliary
+        pass.headerFields.push({
+          key: "type",
+          label: "Appointment",
+          value: "Medical Fitness",
+        });
+
+        pass.primaryFields.push({
+          key: "applicant",
+          label: "Applicant",
+          value: wo?.applicantName || "—",
+        });
+
+        pass.secondaryFields.push({
+          key: "date",
+          label: "Date",
+          value: dateStr,
+        });
+
+        pass.secondaryFields.push({
+          key: "time",
+          label: "Time",
+          value: timeStr,
+        });
+
+        pass.auxiliaryFields.push({
+          key: "center",
+          label: "Medical Center",
+          value: centerDisplay,
+        });
+
+        if (company?.name) {
+          pass.auxiliaryFields.push({
+            key: "company",
+            label: "Company",
+            value: company.name,
+          });
+        }
       }
 
       pass.backFields.push({
