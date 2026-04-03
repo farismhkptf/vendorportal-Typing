@@ -47,18 +47,36 @@ export function clearFailedLogins(ip: string) {
   loginRateMap.delete(ip);
 }
 
-// Verify a Bearer JWT from SHARED_JWT_SECRET and return the matching local user.
-// Returns null if the secret is not configured, the token is invalid, or no user matches.
+// Attempt to verify a JWT against multiple secrets (dual-secret verification).
+// Tries SHARED_JWT_SECRET (cross-portal tokens) first, then JWT_SECRET (app-specific tokens).
+// Returns the decoded payload, or null if no secret accepts the token.
+export function verifyJwtMultiSecret(token: string): { email?: string; sub?: string } | null {
+  const secrets = [
+    process.env.SHARED_JWT_SECRET,
+    process.env.JWT_SECRET,
+  ].filter(Boolean) as string[];
+
+  for (const secret of secrets) {
+    try {
+      return jwt.verify(token, secret) as { email?: string; sub?: string };
+    } catch {
+      // Try next secret
+    }
+  }
+  return null;
+}
+
+// Verify a Bearer JWT (using dual-secret) and return the matching local staff user.
+// Returns null if no secret is configured, the token is invalid, or no user matches.
 async function resolveJwtUser(req: Request): Promise<User | null> {
-  const sharedSecret = process.env.SHARED_JWT_SECRET;
-  if (!sharedSecret) return null;
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
+  const payload = verifyJwtMultiSecret(token);
+  if (!payload) return null;
+  const email = payload.email || payload.sub;
+  if (!email || !email.includes("@")) return null;
   try {
-    const payload = jwt.verify(token, sharedSecret) as { email?: string; sub?: string };
-    const email = payload.email || payload.sub;
-    if (!email || !email.includes("@")) return null;
     const user = await storage.getUserByEmail(email);
     if (!user || !user.active || user.role === "Vendor") return null;
     return user;

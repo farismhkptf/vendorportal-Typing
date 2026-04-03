@@ -1,10 +1,9 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
-import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { storage } from "../storage";
-import { requireRole } from "../middleware/auth";
+import { requireRole, verifyJwtMultiSecret } from "../middleware/auth";
 import { toProperCase } from "../proper-case";
 import { notifyStaffByRoles } from "../services/notification-service";
 
@@ -253,9 +252,9 @@ export function registerIntegrationRoutes(app: Express): void {
   // The token (signed with SHARED_JWT_SECRET) is verified here, the
   // matching local staff account is looked up, and a session is set.
   app.get("/api/integration/auth/redirect", async (req: Request, res: Response) => {
-    const sharedSecret = process.env.SHARED_JWT_SECRET;
-    if (!sharedSecret) {
-      console.warn("[integration/auth] SHARED_JWT_SECRET not configured");
+    const hasAnySecret = !!(process.env.SHARED_JWT_SECRET || process.env.JWT_SECRET);
+    if (!hasAnySecret) {
+      console.warn("[integration/auth] No JWT secret configured (set SHARED_JWT_SECRET or JWT_SECRET)");
       return res.redirect("/?sso_error=not_configured");
     }
 
@@ -264,11 +263,9 @@ export function registerIntegrationRoutes(app: Express): void {
       return res.redirect("/?sso_error=missing_token");
     }
 
-    let payload: { email?: string; sub?: string; role?: string };
-    try {
-      payload = jwt.verify(token, sharedSecret) as typeof payload;
-    } catch (err) {
-      console.warn("[integration/auth] Invalid SSO token:", (err as Error).message);
+    const payload = verifyJwtMultiSecret(token) as { email?: string; sub?: string; role?: string; name?: string } | null;
+    if (!payload) {
+      console.warn("[integration/auth] Invalid SSO token — failed all secret checks");
       return res.redirect("/?sso_error=invalid_token");
     }
 
@@ -287,9 +284,7 @@ export function registerIntegrationRoutes(app: Express): void {
         // Auto-provision a local staff account for this SSO identity
         const rawRole = typeof payload.role === "string" ? payload.role : "";
         const role: ValidStaffRole = VALID_STAFF_ROLES.includes(rawRole as ValidStaffRole) ? rawRole as ValidStaffRole : "PRO";
-        const name = typeof (payload as { name?: string }).name === "string" && (payload as { name?: string }).name
-          ? (payload as { name: string }).name
-          : email.split("@")[0];
+        const name = typeof payload.name === "string" && payload.name ? payload.name : email.split("@")[0];
         // Random unusable password — account can only be accessed via SSO or admin password reset
         const passwordHash = await bcrypt.hash(randomBytes(24).toString("hex"), 10);
         user = await storage.createUser({ name, email, passwordHash, role, active: true });
@@ -328,9 +323,9 @@ export function registerIntegrationRoutes(app: Express): void {
   // Accepts: Authorization: Bearer <jwt>
   // Returns: { valid, userId, email, role } or { valid: false, error }
   app.get("/api/integration/auth/verify", requireIntegrationApiKey, async (req: Request, res: Response) => {
-    const sharedSecret = process.env.SHARED_JWT_SECRET;
-    if (!sharedSecret) {
-      return res.status(501).json({ valid: false, error: "SHARED_JWT_SECRET not configured on this app" });
+    const hasAnySecret = !!(process.env.SHARED_JWT_SECRET || process.env.JWT_SECRET);
+    if (!hasAnySecret) {
+      return res.status(501).json({ valid: false, error: "No JWT secret configured on this app (set SHARED_JWT_SECRET or JWT_SECRET)" });
     }
 
     const authHeader = req.headers.authorization;
@@ -339,11 +334,9 @@ export function registerIntegrationRoutes(app: Express): void {
       return res.status(400).json({ valid: false, error: "Missing Bearer token in Authorization header" });
     }
 
-    let payload: { email?: string; sub?: string; role?: string };
-    try {
-      payload = jwt.verify(token, sharedSecret) as typeof payload;
-    } catch (err) {
-      return res.json({ valid: false, error: (err as Error).message });
+    const payload = verifyJwtMultiSecret(token);
+    if (!payload) {
+      return res.json({ valid: false, error: "Token invalid or expired" });
     }
 
     const email = payload.email || payload.sub;
@@ -355,6 +348,9 @@ export function registerIntegrationRoutes(app: Express): void {
       const user = await storage.getUserByEmail(email);
       if (!user || !user.active) {
         return res.json({ valid: false, error: "No active staff account for this email" });
+      }
+      if (user.role === "Vendor") {
+        return res.json({ valid: false, error: "Vendor accounts are not permitted for staff SSO" });
       }
       return res.json({ valid: true, userId: user.id, email: user.email, role: user.role });
     } catch (err) {
