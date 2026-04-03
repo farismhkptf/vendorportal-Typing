@@ -965,4 +965,8 @@ BEGIN
   END IF; -- end of UUID type check
 END $$;
 
+-- Ensure external_wo_id column exists on public.work_orders for integration API
+ALTER TABLE public.work_orders
+  ADD COLUMN IF NOT EXISTS external_wo_id TEXT;
+
 COMMIT;

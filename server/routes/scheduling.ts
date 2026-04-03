@@ -1051,6 +1051,26 @@ app.post("/api/biometrics-cycles/:cycleId/complete", requireAuth, async (req, re
     });
 
     res.json(updated);
+
+    // Push biometrics completion status to Client Portal
+    try {
+      const bCase = await storage.getBiometricsCaseById(cycle.caseId);
+      if (bCase?.woId) {
+        const wo = await storage.getWorkOrderById(bCase.woId);
+        if (wo) {
+          pushStatusToClientPortal({
+            eventType: "eid_appointment.completed",
+            workOrderId: bCase.woId,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            companyId: wo.companyId,
+            status: "COMPLETED",
+            details: { cycleId: cycle.id },
+            timestamp: new Date().toISOString(),
+          }).catch((err: unknown) => { console.error("[scheduling-push] biometrics push error:", err); });
+        }
+      }
+    } catch { /* non-critical */ }
   } catch (error) {
     console.error("Biometrics complete error:", error);
     res.status(500).json({ message: "Failed to complete biometrics cycle" });

@@ -34,7 +34,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 function statusBadge(status: string) {
-  if (status === "delivered") return <Badge className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">Delivered</Badge>;
+  if (status === "sent") return <Badge className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0">Sent</Badge>;
   if (status === "failed") return <Badge className="text-xs bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0">Failed</Badge>;
   if (status === "pending") return <Badge className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">Pending</Badge>;
   return <Badge className="text-xs" variant="outline">{status}</Badge>;

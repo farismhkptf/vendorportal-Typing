@@ -63,18 +63,10 @@ export function registerIntegrationRoutes(app: Express): void {
 
       const data = parsed.data;
 
-      const existing = await storage.getWorkOrderByWoNumber(data.woNumber);
-      if (existing) {
-        return res.status(409).json({
-          error: "Work order already exists",
-          workOrderId: existing.id,
-          woNumber: existing.woNumber,
-        });
-      }
-
+      // Upsert company: match by trade license number first, then by name
       let company = (await storage.getCompanies()).find(
-        c => c.name.toLowerCase() === data.companyName.toLowerCase()
-          || (data.companyTradeLicenseNumber && c.tradeLicenseNumber === data.companyTradeLicenseNumber)
+        c => (data.companyTradeLicenseNumber && c.tradeLicenseNumber === data.companyTradeLicenseNumber)
+          || c.name.toLowerCase() === data.companyName.toLowerCase()
       );
       if (!company) {
         company = await storage.createCompany({
@@ -82,6 +74,11 @@ export function registerIntegrationRoutes(app: Express): void {
           tradeLicenseNumber: data.companyTradeLicenseNumber || null,
           active: true,
         });
+      } else if (data.companyTradeLicenseNumber && !company.tradeLicenseNumber) {
+        // Back-fill trade license if we matched by name and now have the number
+        company = await storage.updateCompany(company.id, {
+          tradeLicenseNumber: data.companyTradeLicenseNumber,
+        }) || company;
       }
 
       let serviceTypeId: string | null = null;
@@ -93,41 +90,69 @@ export function registerIntegrationRoutes(app: Express): void {
         serviceTypeId = matched?.id || null;
       }
 
-      const wo = await storage.createWorkOrder({
-        woNumber: data.woNumber,
-        applicantName: toProperCase(data.applicantName),
-        applicantPhone: data.applicantPhone || null,
-        applicantEmail: data.applicantEmail || null,
-        isVip: data.isVip || false,
-        isMinor: data.isMinor || false,
-        companyId: company.id,
-        serviceTypeId,
-        status: "Draft",
-        notes: data.notes || null,
-        externalWoId: data.externalId,
-      });
+      // Upsert work order: match by externalId or woNumber
+      const existingByExternal = data.externalId
+        ? (await storage.getWorkOrders()).find((w: { externalWoId?: string | null }) => w.externalWoId === data.externalId)
+        : null;
+      const existingByWoNum = await storage.getWorkOrderByWoNumber(data.woNumber);
+      const existing = existingByExternal || existingByWoNum;
+
+      let wo: Awaited<ReturnType<typeof storage.createWorkOrder>>;
+      let isUpdate = false;
+      if (existing) {
+        // Update existing work order (allow updating company, service, notes, contact info)
+        wo = await storage.updateWorkOrder(existing.id, {
+          applicantName: toProperCase(data.applicantName),
+          applicantPhone: data.applicantPhone || null,
+          applicantEmail: data.applicantEmail || null,
+          isVip: data.isVip ?? existing.isVip,
+          isMinor: data.isMinor ?? existing.isMinor,
+          companyId: company.id,
+          serviceTypeId: serviceTypeId ?? existing.serviceTypeId,
+          notes: data.notes ?? existing.notes,
+          externalWoId: data.externalId,
+        }) as typeof wo;
+        isUpdate = true;
+      } else {
+        wo = await storage.createWorkOrder({
+          woNumber: data.woNumber,
+          applicantName: toProperCase(data.applicantName),
+          applicantPhone: data.applicantPhone || null,
+          applicantEmail: data.applicantEmail || null,
+          isVip: data.isVip || false,
+          isMinor: data.isMinor || false,
+          companyId: company.id,
+          serviceTypeId,
+          status: "Draft",
+          notes: data.notes || null,
+          externalWoId: data.externalId,
+        });
+      }
 
       await storage.createAuditLog({
         entityType: "work_order",
         entityId: wo.id,
-        action: "received_from_client_portal",
+        action: isUpdate ? "updated_from_client_portal" : "received_from_client_portal",
         userId: null,
         details: { woNumber: wo.woNumber, externalId: data.externalId, source: "integration_api" },
       });
 
-      notifyStaffByRoles(["Admin", "Client Relationship Manager"], {
-        type: "wo_received_integration",
-        title: "New Work Order Received",
-        message: `Work order ${wo.woNumber} received from Client Portal for ${wo.applicantName} (${company.name})`,
-        relatedEntityType: "work_order",
-        relatedEntityId: wo.id,
-      }).catch((err: unknown) => { console.error("[integration] notify error:", err); });
+      if (!isUpdate) {
+        notifyStaffByRoles(["Admin", "Client Relationship Manager"], {
+          type: "wo_received_integration",
+          title: "New Work Order Received",
+          message: `Work order ${wo.woNumber} received from Client Portal for ${wo.applicantName} (${company.name})`,
+          relatedEntityType: "work_order",
+          relatedEntityId: wo.id,
+        }).catch((err: unknown) => { console.error("[integration] notify error:", err); });
+      }
 
-      return res.status(201).json({
+      return res.status(isUpdate ? 200 : 201).json({
         workOrderId: wo.id,
         woNumber: wo.woNumber,
         companyId: company.id,
         status: wo.status,
+        upserted: isUpdate ? "updated" : "created",
       });
     } catch (err) {
       console.error("[integration] inbound WO error:", err);
