@@ -1,0 +1,63 @@
+Good. Before you create the actual implementation plan, refine your answer based on these corrections and constraints.
+
+Important corrections:
+
+1. We are using one shared Neon PostgreSQL database, not separate databases.
+So do not default to plain unlinked reference columns if proper shared foreign keys can exist.
+
+2. The shared core tables already created in Neon are:
+- companies
+- people
+- work_orders
+
+Their id type is UUID.
+So your revised plan must align to:
+- company_id UUID
+- person_id UUID
+- work_order_id UUID
+
+Do not describe them as plain integer references.
+
+3. Do not introduce a separate applicant master concept casually.
+The shared person/master record is currently people.
+So explain how Vendor Portal execution tables should reference people.id.
+
+4. Take a clear position on database access model:
+- which Vendor Portal tables should directly reference shared core tables in the same DB using FK
+- which interactions should still happen through API/webhook/events only
+Do not mix these loosely.
+
+5. Keep the Medical Vendor and Attestation Vendor split.
+That part is correct.
+But be precise about:
+- what is execution-only
+- what remains shared master data
+- what status data is written back to Client Portal vs stored locally
+
+6. Do not go deep into implementation code yet.
+This phase is only about:
+- ownership boundary
+- correct foreign key model
+- schema separation
+- table naming / collision prevention
+- migration direction
+
+7. Your idea of putting Vendor Portal-owned tables under a dedicated Postgres schema such as vendor is valid.
+Keep that in the revised answer, but align it with shared UUID foreign keys to the core public/shared tables.
+
+Now rewrite your answer under this exact structure:
+
+1. FINAL POSITION ON SHARED FOREIGN KEYS VS API-ONLY REFERENCES
+2. TABLES / ENTITIES VENDOR PORTAL MUST STOP OWNING
+3. EXECUTION TABLES VENDOR PORTAL SHOULD OWN
+4. HOW VENDOR PORTAL TABLES SHOULD REFERENCE COMPANIES, PEOPLE, AND WORK_ORDERS
+5. MEDICAL VENDOR MODULE BOUNDARY
+6. ATTESTATION VENDOR MODULE BOUNDARY
+7. WHICH TABLES SHOULD LIVE IN A DEDICATED VENDOR SCHEMA
+8. TABLES / ENUMS THAT MUST BE RENAMED OR PREFIXED TO AVOID COLLISION
+9. MIGRATION ORDER
+10. FINAL RECOMMENDED VENDOR PORTAL BOUNDARY
+
+Be concrete.
+Do not write code yet.
+Do not redesign the whole platform.
