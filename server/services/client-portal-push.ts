@@ -91,20 +91,23 @@ export async function retryFailedPushes(): Promise<number> {
   const config = await getIntegrationConfig();
   if (!config) return 0;
 
-  const allPending = await storage.getPendingCrossPortalEvents(50);
-  const failed: Awaited<ReturnType<typeof storage.getRecentCrossPortalEvents>> = [];
-  const recentAll = await storage.getRecentCrossPortalEvents(200);
-  for (const ev of recentAll) {
-    if (ev.status === "failed" && ev.attemptCount < 5) {
-      failed.push(ev);
-    }
-  }
+  // Fetch pending and failed events directly from DB (bounded, no in-memory scan)
+  const [allPending, allFailed] = await Promise.all([
+    storage.getPendingCrossPortalEvents(50),
+    storage.getFailedCrossPortalEvents(50),
+  ]);
 
-  const toRetry = [...allPending, ...failed];
+  // Deduplicate by id in case an event appears in both lists
+  const seen = new Set<string>();
+  const toRetry = [...allPending, ...allFailed].filter(ev => {
+    if (seen.has(ev.id)) return false;
+    seen.add(ev.id);
+    return true;
+  });
   let retried = 0;
 
   for (const event of toRetry) {
-    const payload = event.payload as StatusPushPayload;
+    const payload = event.payload as unknown as StatusPushPayload;
     try {
       await doHttpPush(config.webhookUrl, config.outboundApiKey, payload);
       await storage.updateCrossPortalEvent(event.id, {

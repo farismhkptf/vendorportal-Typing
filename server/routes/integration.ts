@@ -35,6 +35,19 @@ async function requireIntegrationApiKey(req: Request, res: Response, next: NextF
   }
 }
 
+const VALID_DOCUMENT_TYPES = [
+  "PassportCopy", "Photo", "EntryPermit", "ChangeStatus", "CurrentResidency",
+  "OldResidencyOrId", "CurrentEmiratesId", "SponsorEmiratesId", "BirthCertificate", "LostEmiratesId",
+] as const;
+
+const inboundDocumentSchema = z.object({
+  type: z.enum(VALID_DOCUMENT_TYPES),
+  fileName: z.string().min(1),
+  fileUrl: z.string().url(),
+  mimeType: z.string().optional().nullable(),
+  fileSize: z.number().int().optional().nullable(),
+});
+
 const inboundWorkOrderSchema = z.object({
   externalId: z.string().min(1, "externalId is required"),
   woNumber: z.string().min(1, "woNumber is required"),
@@ -47,6 +60,7 @@ const inboundWorkOrderSchema = z.object({
   companyTradeLicenseNumber: z.string().optional().nullable(),
   serviceTypeName: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  documents: z.array(inboundDocumentSchema).optional().nullable(),
 });
 
 export function registerIntegrationRoutes(app: Express): void {
@@ -129,12 +143,34 @@ export function registerIntegrationRoutes(app: Express): void {
         });
       }
 
+      // Upsert documents: for each document in payload, check if a matching record exists
+      // (same woId + documentType + fileUrl) and create if not — idempotent on re-push
+      if (data.documents && data.documents.length > 0) {
+        const existingDocs = await storage.getWoDocuments(wo.id);
+        for (const doc of data.documents) {
+          const alreadyExists = existingDocs.some(
+            d => d.documentType === doc.type && d.fileUrl === doc.fileUrl
+          );
+          if (!alreadyExists) {
+            await storage.createWoDocument({
+              woId: wo.id,
+              documentType: doc.type,
+              fileName: doc.fileName,
+              fileUrl: doc.fileUrl,
+              mimeType: doc.mimeType || null,
+              fileSize: doc.fileSize || null,
+              status: "Uploaded",
+            });
+          }
+        }
+      }
+
       await storage.createAuditLog({
         entityType: "work_order",
         entityId: wo.id,
         action: isUpdate ? "updated_from_client_portal" : "received_from_client_portal",
         userId: null,
-        details: { woNumber: wo.woNumber, externalId: data.externalId, source: "integration_api" },
+        details: { woNumber: wo.woNumber, externalId: data.externalId, source: "integration_api", documentCount: data.documents?.length || 0 },
       });
 
       if (!isUpdate) {

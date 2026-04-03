@@ -312,6 +312,7 @@ export interface IStorage {
   getPendingCrossPortalEvents(limit?: number): Promise<CrossPortalEvent[]>;
   getRecentCrossPortalEvents(limit?: number): Promise<CrossPortalEvent[]>;
   getFailedCrossPortalEventsCount(): Promise<number>;
+  getFailedCrossPortalEvents(limit?: number): Promise<CrossPortalEvent[]>;
   updateCrossPortalEvent(id: string, data: Partial<CrossPortalEvent>): Promise<CrossPortalEvent | undefined>;
   getLastSuccessfulCrossPortalEvent(): Promise<CrossPortalEvent | undefined>;
 
@@ -2527,6 +2528,13 @@ export class DatabaseStorage implements IStorage {
       .from(crossPortalEvents)
       .where(eq(crossPortalEvents.status, "failed"));
     return Number(row?.count || 0);
+  }
+
+  async getFailedCrossPortalEvents(limit = 100): Promise<CrossPortalEvent[]> {
+    return db.select().from(crossPortalEvents)
+      .where(and(eq(crossPortalEvents.status, "failed"), lt(crossPortalEvents.attemptCount, 5)))
+      .orderBy(crossPortalEvents.createdAt)
+      .limit(limit);
   }
 
   async updateCrossPortalEvent(id: string, data: Partial<CrossPortalEvent>): Promise<CrossPortalEvent | undefined> {

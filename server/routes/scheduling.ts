@@ -138,6 +138,30 @@ app.post("/api/medical-cases/:caseId/cycles", requireAuth, async (req, res) => {
     });
 
     res.json(cycle);
+
+    // Push "medical scheduled" status to Client Portal
+    try {
+      if (medCase?.woId) {
+        const wo = await storage.getWorkOrderById(medCase.woId);
+        if (wo) {
+          pushStatusToClientPortal({
+            eventType: "medical_appointment.scheduled",
+            workOrderId: medCase.woId,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            companyId: wo.companyId,
+            status: "SCHEDULED",
+            details: {
+              cycleId: cycle.id,
+              cycleNumber: cycle.cycleNumber,
+              cycleType,
+              appointmentTime: parsed.data.appointmentTime,
+            },
+            timestamp: new Date().toISOString(),
+          }).catch((err: unknown) => { console.error("[scheduling-push] medical scheduled push error:", err); });
+        }
+      }
+    } catch { /* non-critical */ }
   } catch (error) {
     console.error("Create cycle error:", error);
     res.status(500).json({ message: "Failed to create cycle" });
