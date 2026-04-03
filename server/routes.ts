@@ -16,6 +16,7 @@ import { registerWorkOrderRoutes } from "./routes/work-orders";
 import { registerEntityRoutes } from "./routes/entities";
 import { registerAdminRoutes } from "./routes/admin";
 import { registerAdminImportRoutes } from "./routes/admin-import";
+import { registerIntegrationRoutes } from "./routes/integration";
 import type { RouteDeps } from "./routes/types";
 import { notifyStaffByRoles, notifySingleUser, notifyVendorUsers } from "./services/notification-service";
 import { startBackgroundJobs } from "./services/background-jobs";
@@ -150,8 +151,13 @@ async function runVendorSchemaMigration(): Promise<void> {
     const schemaCheck = await client.query(`
       SELECT schema_name FROM information_schema.schemata WHERE schema_name = 'vendor'
     `);
-    if (schemaCheck.rows.length > 0) {
-      // Schema exists; apply incremental patches for any missing tables or columns
+    // Also check if core tables exist (schema may exist but be empty after a DB migration)
+    const tableCheck = await client.query(`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'vendor' AND table_name = 'vendor_notifications'
+    `);
+    if (schemaCheck.rows.length > 0 && tableCheck.rows.length > 0) {
+      // Schema exists and is populated; apply incremental patches for any missing tables or columns
 
       // ── Notifications: add read_at column ──────────────────────────────────
       await client.query(`ALTER TABLE vendor.vendor_notifications ADD COLUMN IF NOT EXISTS read_at TIMESTAMP`);
@@ -216,6 +222,12 @@ async function runVendorSchemaMigration(): Promise<void> {
       `);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_cross_portal_events_event_type ON vendor.cross_portal_events (event_type)`);
       await client.query(`CREATE INDEX IF NOT EXISTS idx_cross_portal_events_aggregate ON vendor.cross_portal_events (aggregate_type, aggregate_id)`);
+
+      // ── Client Portal integration columns ──────────────────────────────────
+      await client.query(`ALTER TABLE vendor.app_settings ADD COLUMN IF NOT EXISTS vp_client_portal_webhook_url TEXT`);
+      await client.query(`ALTER TABLE vendor.app_settings ADD COLUMN IF NOT EXISTS vp_client_portal_outbound_api_key TEXT`);
+      await client.query(`ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS external_wo_id TEXT`);
+      console.log("[migration] client portal integration columns ensured");
 
       // ── Missing execution tables (added in 0008 update) ─────────────────────
       await client.query(`
@@ -679,6 +691,7 @@ export async function registerRoutes(
   registerAdminImportRoutes(app, routeDeps);
   registerSchedulingRoutes(app, routeDeps);
   registerAttestationRoutes(app, routeDeps);
+  registerIntegrationRoutes(app);
 
   return httpServer;
 }

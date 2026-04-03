@@ -14,6 +14,7 @@ import { sendEmail, isEmailConfigured } from "../email-service";
 import { insertWorkOrderSchema, insertAppointmentSchema, insertWoNoteSchema } from "@shared/schema";
 import type { Staff, AppSettings, WoDocument } from "@shared/schema";
 import type { RouteDeps } from "./types";
+import { pushStatusToClientPortal } from "../services/client-portal-push";
 
 export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
   // ========== Scheduling Queue ==========
@@ -458,6 +459,8 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         }
       }
       
+      const existingWo = await storage.getWorkOrderById(id);
+      const previousWoStatus = existingWo?.status;
       const updateData = {
         ...validation.data,
         ...(validation.data.applicantName && { applicantName: toProperCase(validation.data.applicantName) }),
@@ -474,6 +477,19 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         details: { applicantName: wo.applicantName, woNumber: wo.woNumber },
       });
       res.json(wo);
+
+      if (validation.data.status && validation.data.status !== previousWoStatus) {
+        pushStatusToClientPortal({
+          eventType: "work_order.status_changed",
+          workOrderId: wo.id,
+          woNumber: wo.woNumber,
+          applicantName: wo.applicantName,
+          companyId: wo.companyId,
+          status: wo.status,
+          details: { previousStatus: previousWoStatus, newStatus: wo.status },
+          timestamp: new Date().toISOString(),
+        }).catch((err: unknown) => { console.error("[wo-push] push error:", err); });
+      }
     } catch (error) {
       console.error("Update work order error:", error);
       res.status(500).json({ message: "Failed to update work order" });

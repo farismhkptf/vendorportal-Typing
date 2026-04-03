@@ -6,6 +6,7 @@ import { checkAndAutoCompleteWorkOrder } from "../services/transition-service";
 import { RESTORE_SNAPSHOT_SQL } from "../restore-snapshot-data";
 import { pool } from "../db";
 import type { RouteDeps } from "./types";
+import { pushStatusToClientPortal } from "../services/client-portal-push";
 
 export function registerSchedulingRoutes(app: Express, deps: RouteDeps): void {
   const { notifyStaffByRoles } = deps;
@@ -287,6 +288,25 @@ app.post("/api/appointment-cycles/:cycleId/complete", requireAuth, async (req, r
     });
 
     res.json(updated);
+
+    try {
+      const medCase = await storage.getMedicalCaseById(cycle.caseId);
+      if (medCase?.woId) {
+        const wo = await storage.getWorkOrderById(medCase.woId);
+        if (wo) {
+          pushStatusToClientPortal({
+            eventType: "medical_appointment.completed",
+            workOrderId: medCase.woId,
+            woNumber: wo.woNumber,
+            applicantName: wo.applicantName,
+            companyId: wo.companyId,
+            status: "COMPLETED",
+            details: { cycleId: cycle.id, cycleNumber: cycle.cycleNumber },
+            timestamp: new Date().toISOString(),
+          }).catch((err: unknown) => { console.error("[scheduling-push] push error:", err); });
+        }
+      }
+    } catch { /* non-critical */ }
   } catch (error) {
     console.error("Complete cycle error:", error);
     res.status(500).json({ message: "Failed to complete cycle" });

@@ -12,6 +12,7 @@ import {
   FileSpreadsheet,
   Inbox,
   Mail,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +36,7 @@ import { ChangeLogTab } from "./change-log-tab";
 import { WorkDriveBackupSection } from "./workdrive-backup-section";
 import { DeletionRequestsBadge, DeletionRequestsTab } from "./deletion-requests-tab";
 import { EmailTemplatesTab } from "./email-templates-tab";
+import { IntegrationTab } from "./integration-tab";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -178,6 +180,9 @@ export default function AdminPage() {
                     <TabsTrigger value="attestation-services" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-attestation-services">
                       Attestation Services
                     </TabsTrigger>
+                    <TabsTrigger value="integration" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-integration">
+                      <Link2 className="h-4 w-4 mr-2" /> Integration
+                    </TabsTrigger>
                   </>
                 )}
               </TabsList>
@@ -198,6 +203,7 @@ export default function AdminPage() {
               <TabsContent value="apikeys" className="p-4"><ApiKeysTab /></TabsContent>
               <TabsContent value="deletionrequests" className="p-4"><DeletionRequestsTab /></TabsContent>
               <TabsContent value="attestation-services" className="p-4"><AttestationServicesTab /></TabsContent>
+              <TabsContent value="integration"><IntegrationTab /></TabsContent>
             </Tabs>
           </div>
         )}

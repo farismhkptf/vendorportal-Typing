@@ -46,6 +46,10 @@ export function AdminSettingsSection() {
   const [editLegalOpen, setEditLegalOpen] = useState(false);
   const [legalContent, setLegalContent] = useState("");
   const [legalType, setLegalType] = useState<"privacy" | "terms">("privacy");
+  const [editWebhookUrlOpen, setEditWebhookUrlOpen] = useState(false);
+  const [webhookUrlVal, setWebhookUrlVal] = useState("");
+  const [editOutboundKeyOpen, setEditOutboundKeyOpen] = useState(false);
+  const [outboundKeyVal, setOutboundKeyVal] = useState("");
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -262,7 +266,86 @@ export function AdminSettingsSection() {
             </div>
           </div>
         </div>
+
+        <div>
+          <h3 className="text-base font-semibold text-foreground mb-1">Client Portal Integration</h3>
+          <p className="text-sm text-muted-foreground mb-4">Configure the outbound webhook connection to the Client Portal. Status updates from this portal (work order progress, typing jobs, medical) will be pushed to the Client Portal in real time.</p>
+          <div className="space-y-4">
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-medium text-foreground">Client Portal Webhook URL</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {settings?.clientPortalWebhookUrl ? settings.clientPortalWebhookUrl : "Not configured"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">The endpoint on the Client Portal that receives status push events</p>
+                </div>
+                <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => { setEditWebhookUrlOpen(true); setWebhookUrlVal(settings?.clientPortalWebhookUrl || ""); }} data-testid="button-edit-webhook-url"><Pencil className="h-4 w-4" /></Button>
+              </div>
+            </div>
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/30">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="font-medium text-foreground">Outbound API Key</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {settings?.clientPortalOutboundApiKey ? "••••••••" + settings.clientPortalOutboundApiKey.slice(-4) : "Not configured"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Sent as Bearer token in outbound push requests to the Client Portal</p>
+                </div>
+                <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => { setEditOutboundKeyOpen(true); setOutboundKeyVal(""); }} data-testid="button-edit-outbound-key"><Pencil className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
+
+      <Dialog open={editWebhookUrlOpen} onOpenChange={setEditWebhookUrlOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Client Portal Webhook URL</DialogTitle>
+            <DialogDescription>The Client Portal endpoint that receives work order status updates from this portal.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input value={webhookUrlVal} onChange={(e) => setWebhookUrlVal(e.target.value)} placeholder="https://clientportal.example.com/api/integration/events" className="h-11 rounded-xl" data-testid="input-webhook-url" />
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" className="rounded-xl" onClick={() => setEditWebhookUrlOpen(false)}>Cancel</Button>
+              <Button className="rounded-xl" onClick={async () => {
+                try {
+                  await apiRequest("PUT", "/api/settings", { clientPortalWebhookUrl: webhookUrlVal.trim() || null });
+                  queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+                  toast({ title: "Webhook URL updated" });
+                  setEditWebhookUrlOpen(false);
+                } catch { toast({ title: "Failed to update", variant: "destructive" }); }
+              }} data-testid="button-save-webhook-url">Save</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editOutboundKeyOpen} onOpenChange={setEditOutboundKeyOpen}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Outbound API Key</DialogTitle>
+            <DialogDescription>This key is sent as a Bearer token in push requests to the Client Portal. Enter a new key to replace the existing one.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input value={outboundKeyVal} onChange={(e) => setOutboundKeyVal(e.target.value)} placeholder="Enter new API key..." className="h-11 rounded-xl font-mono" data-testid="input-outbound-key" />
+            <p className="text-xs text-muted-foreground">Leave blank to keep the existing key unchanged.</p>
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" className="rounded-xl" onClick={() => setEditOutboundKeyOpen(false)}>Cancel</Button>
+              <Button className="rounded-xl" onClick={async () => {
+                if (!outboundKeyVal.trim()) { setEditOutboundKeyOpen(false); return; }
+                try {
+                  await apiRequest("PUT", "/api/settings", { clientPortalOutboundApiKey: outboundKeyVal.trim() });
+                  queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+                  toast({ title: "Outbound API key updated" });
+                  setEditOutboundKeyOpen(false);
+                } catch { toast({ title: "Failed to update", variant: "destructive" }); }
+              }} data-testid="button-save-outbound-key">Save</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={editSenderEmailDialogOpen} onOpenChange={setEditSenderEmailDialogOpen}>
         <DialogContent className="rounded-2xl">

@@ -362,7 +362,9 @@ CREATE TABLE IF NOT EXISTS vendor.app_settings (
   vp_terms_of_service_html TEXT,
   vp_vendor_delay_threshold_hours INTEGER NOT NULL DEFAULT 48,
   vp_follow_up_center TEXT,
-  vp_logo_url TEXT
+  vp_logo_url TEXT,
+  vp_client_portal_webhook_url TEXT,
+  vp_client_portal_outbound_api_key TEXT
 );
 
 -- Migrate existing app_settings data from public schema to vendor schema
@@ -618,10 +620,18 @@ CREATE TABLE IF NOT EXISTS vendor.job_types (
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'job_types') THEN
-    INSERT INTO vendor.job_types (id, name, description, cost, active)
-    SELECT id::UUID, name, description, cost, active
-    FROM public.job_types
-    ON CONFLICT (id) DO NOTHING;
+    -- Handle both old schema (with description) and new schema (without description)
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'job_types' AND column_name = 'description') THEN
+      INSERT INTO vendor.job_types (id, name, description, cost, active)
+      SELECT id::UUID, name, description, cost, active
+      FROM public.job_types
+      ON CONFLICT (id) DO NOTHING;
+    ELSE
+      INSERT INTO vendor.job_types (id, name, category, cost, active)
+      SELECT id::UUID, name, COALESCE(category, 'Medical'), cost, active
+      FROM public.job_types
+      ON CONFLICT (id) DO NOTHING;
+    END IF;
   END IF;
 END $$;
 
@@ -718,10 +728,20 @@ END $$;
 -- All enforced with ON DELETE RESTRICT ON UPDATE CASCADE.
 -- These are intentionally NOT declared in Drizzle ORM (which
 -- doesn't support cross-schema FKs) but are enforced in SQL.
+-- Skipped if public.work_orders.id is not UUID (legacy varchar schema).
 -- ============================================================
 
 DO $$
+DECLARE
+  wo_id_type TEXT;
 BEGIN
+  SELECT data_type INTO wo_id_type
+  FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'work_orders' AND column_name = 'id';
+
+  -- Only create FK constraints if types are compatible (UUID in public tables)
+  IF wo_id_type IS NOT NULL AND wo_id_type != 'character varying' THEN
+
   -- vendor.typing_jobs.work_order_id → public.work_orders
   IF NOT EXISTS (
     SELECT 1 FROM information_schema.table_constraints
@@ -941,6 +961,8 @@ BEGIN
       FOREIGN KEY (vendor_id) REFERENCES vendor.vendors(id)
       ON DELETE RESTRICT ON UPDATE CASCADE;
   END IF;
+
+  END IF; -- end of UUID type check
 END $$;
 
 COMMIT;

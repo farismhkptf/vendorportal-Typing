@@ -7,6 +7,10 @@ import { validateBody } from "../middleware/validation";
 import { executeTransition, validateTransition, type TypingJobStatus } from "../typing-job-machine";
 import { checkAndAutoTransitionWorkOrder } from "../services/transition-service";
 import type { RouteDeps } from "./types";
+import { pushStatusToClientPortal } from "../services/client-portal-push";
+
+const PUSH_TYPING_STATUSES = new Set(["ReadyForScheduling", "Returned", "Aborted", "DeliveredToClient"]);
+
 
 export function registerTypingJobRoutes(app: Express, deps: RouteDeps): void {
   const { notifyVendorUsers, notifyStaffByRoles, notifySingleUser } = deps;
@@ -280,6 +284,21 @@ app.put("/api/typing-jobs/:id", requireAuth, async (req, res) => {
       });
       if (job.woId) {
         await checkAndAutoTransitionWorkOrder(job.woId);
+        if (PUSH_TYPING_STATUSES.has(req.body.status)) {
+          const wo = await storage.getWorkOrderById(job.woId);
+          if (wo) {
+            pushStatusToClientPortal({
+              eventType: `typing_job.${req.body.status.toLowerCase()}`,
+              workOrderId: job.woId,
+              woNumber: wo.woNumber,
+              applicantName: wo.applicantName,
+              companyId: wo.companyId,
+              status: req.body.status,
+              details: { typingJobId: id, jobCode: job.jobCode, previousStatus },
+              timestamp: new Date().toISOString(),
+            }).catch((err: unknown) => { console.error("[typing-job-push] push error:", err); });
+          }
+        }
       }
     }
     

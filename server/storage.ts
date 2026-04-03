@@ -310,6 +310,10 @@ export interface IStorage {
   // Cross-Portal Events — Vendor Portal publishes; Client Portal consumer reads and marks processed
   publishCrossPortalEvent(data: InsertCrossPortalEvent): Promise<CrossPortalEvent>;
   getPendingCrossPortalEvents(limit?: number): Promise<CrossPortalEvent[]>;
+  getRecentCrossPortalEvents(limit?: number): Promise<CrossPortalEvent[]>;
+  getFailedCrossPortalEventsCount(): Promise<number>;
+  updateCrossPortalEvent(id: string, data: Partial<CrossPortalEvent>): Promise<CrossPortalEvent | undefined>;
+  getLastSuccessfulCrossPortalEvent(): Promise<CrossPortalEvent | undefined>;
 
   // Seed data
   seedData(): Promise<void>;
@@ -2510,6 +2514,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(crossPortalEvents.status, "pending"))
       .orderBy(crossPortalEvents.createdAt)
       .limit(limit);
+  }
+
+  async getRecentCrossPortalEvents(limit = 50): Promise<CrossPortalEvent[]> {
+    return db.select().from(crossPortalEvents)
+      .orderBy(desc(crossPortalEvents.createdAt))
+      .limit(limit);
+  }
+
+  async getFailedCrossPortalEventsCount(): Promise<number> {
+    const [row] = await db.select({ count: sql<number>`count(*)` })
+      .from(crossPortalEvents)
+      .where(eq(crossPortalEvents.status, "failed"));
+    return Number(row?.count || 0);
+  }
+
+  async updateCrossPortalEvent(id: string, data: Partial<CrossPortalEvent>): Promise<CrossPortalEvent | undefined> {
+    const [row] = await db.update(crossPortalEvents).set(data).where(eq(crossPortalEvents.id, id)).returning();
+    return row || undefined;
+  }
+
+  async getLastSuccessfulCrossPortalEvent(): Promise<CrossPortalEvent | undefined> {
+    const [row] = await db.select().from(crossPortalEvents)
+      .where(eq(crossPortalEvents.status, "sent"))
+      .orderBy(desc(crossPortalEvents.processedAt))
+      .limit(1);
+    return row || undefined;
   }
 
   // Attestation Categories

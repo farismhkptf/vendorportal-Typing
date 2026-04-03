@@ -483,6 +483,7 @@ export const workOrders = pgTable("work_orders", {
   notes: text("notes"),
   createdBy: varchar("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  externalWoId: text("external_wo_id"),
 }, (table) => [
   index("idx_work_orders_status").on(table.status),
   index("idx_work_orders_company_id").on(table.companyId),
@@ -750,6 +751,9 @@ export const appSettings = vendorSchema.table("app_settings", {
   followUpCenter: text("vp_follow_up_center"),
   vendorDelayThresholdHours: integer("vp_vendor_delay_threshold_hours").notNull().default(48),
   logoUrl: text("vp_logo_url"),
+  // Client Portal Integration
+  clientPortalWebhookUrl: text("vp_client_portal_webhook_url"),
+  clientPortalOutboundApiKey: text("vp_client_portal_outbound_api_key"),
 });
 
 // Change notifications table (manager edits for admin review)

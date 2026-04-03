@@ -1,5 +1,6 @@
 import { storage } from "../storage";
 import { notifyStaffByRoles } from "./notification-service";
+import { retryFailedPushes } from "./client-portal-push";
 
 let backgroundJobsStarted = false;
 
@@ -143,6 +144,12 @@ export function startBackgroundJobs(): void {
       console.error("[appt-reminder] Initial check error:", err)
     );
   }, 10000);
+
+  setInterval(() => {
+    retryFailedPushes().catch(err =>
+      console.error("[client-portal-push] Retry interval error:", err)
+    );
+  }, 10 * 60 * 1000);
 
   console.log("[background-jobs] Background jobs started");
 }
