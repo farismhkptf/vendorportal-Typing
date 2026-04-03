@@ -100,6 +100,8 @@ export interface IStorage {
   getCompanies(): Promise<Company[]>;
   getCompaniesByIds(ids: string[]): Promise<Company[]>;
   getCompanyById(id: string): Promise<Company | undefined>;
+  getCompanyByTradeLicenseNumber(tln: string): Promise<Company | undefined>;
+  getCompanyByName(name: string): Promise<Company | undefined>;
   createCompany(data: InsertCompany): Promise<Company>;
   updateCompany(id: string, data: Partial<InsertCompany>): Promise<Company | undefined>;
   getCompanyEmails(companyId: string): Promise<CompanyEmail[]>;
@@ -126,6 +128,7 @@ export interface IStorage {
   getWorkOrderById(id: string): Promise<WorkOrder | undefined>;
   getWorkOrdersByIds(ids: string[]): Promise<WorkOrder[]>;
   getWorkOrderByWoNumber(woNumber: string): Promise<WorkOrder | undefined>;
+  getWorkOrderByExternalId(externalId: string): Promise<WorkOrder | undefined>;
   createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder>;
   updateWorkOrder(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder | undefined>;
   deleteWorkOrder(id: string): Promise<boolean>;
@@ -614,6 +617,17 @@ export class DatabaseStorage implements IStorage {
     return company || undefined;
   }
 
+  async getCompanyByTradeLicenseNumber(tln: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.tradeLicenseNumber, tln));
+    return company || undefined;
+  }
+
+  async getCompanyByName(name: string): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies)
+      .where(sql`lower(${companies.name}) = lower(${name})`);
+    return company || undefined;
+  }
+
   async createCompany(data: InsertCompany): Promise<Company> {
     const [company] = await db.insert(companies).values(data).returning();
     return company;
@@ -765,6 +779,11 @@ export class DatabaseStorage implements IStorage {
 
   async getWorkOrderByWoNumber(woNumber: string): Promise<WorkOrder | undefined> {
     const [wo] = await db.select().from(workOrders).where(eq(workOrders.woNumber, woNumber));
+    return wo || undefined;
+  }
+
+  async getWorkOrderByExternalId(externalId: string): Promise<WorkOrder | undefined> {
+    const [wo] = await db.select().from(workOrders).where(eq(workOrders.externalWoId, externalId));
     return wo || undefined;
   }
 

@@ -77,11 +77,13 @@ export function registerIntegrationRoutes(app: Express): void {
 
       const data = parsed.data;
 
-      // Upsert company: match by trade license number first, then by name
-      let company = (await storage.getCompanies()).find(
-        c => (data.companyTradeLicenseNumber && c.tradeLicenseNumber === data.companyTradeLicenseNumber)
-          || c.name.toLowerCase() === data.companyName.toLowerCase()
-      );
+      // Upsert company: indexed lookup by trade license, then by normalized name
+      let company = data.companyTradeLicenseNumber
+        ? await storage.getCompanyByTradeLicenseNumber(data.companyTradeLicenseNumber)
+        : undefined;
+      if (!company) {
+        company = await storage.getCompanyByName(data.companyName);
+      }
       if (!company) {
         company = await storage.createCompany({
           name: data.companyName,
@@ -104,11 +106,11 @@ export function registerIntegrationRoutes(app: Express): void {
         serviceTypeId = matched?.id || null;
       }
 
-      // Upsert work order: match by externalId or woNumber
+      // Upsert work order: indexed lookup by externalId first, then woNumber
       const existingByExternal = data.externalId
-        ? (await storage.getWorkOrders()).find((w: { externalWoId?: string | null }) => w.externalWoId === data.externalId)
+        ? await storage.getWorkOrderByExternalId(data.externalId)
         : null;
-      const existingByWoNum = await storage.getWorkOrderByWoNumber(data.woNumber);
+      const existingByWoNum = existingByExternal ? null : await storage.getWorkOrderByWoNumber(data.woNumber);
       const existing = existingByExternal || existingByWoNum;
 
       let wo: Awaited<ReturnType<typeof storage.createWorkOrder>>;
