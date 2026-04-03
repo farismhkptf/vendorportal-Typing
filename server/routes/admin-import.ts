@@ -1043,7 +1043,6 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         title: "Job Approved",
         message: `Your submission has been approved. AED ${finalAmount} has been deducted.`,
         relatedJobId: approvalRecord.typingJobId,
-        isRead: false,
       });
       
       res.json({ message: "Approved successfully" });
@@ -1102,7 +1101,6 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         title: "Submission Rejected",
         message: `Your submission was rejected: ${reason}`,
         relatedJobId: approvalRecord.typingJobId,
-        isRead: false,
       });
       
       res.json({ message: "Rejected successfully" });

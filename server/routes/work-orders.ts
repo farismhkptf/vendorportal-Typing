@@ -312,6 +312,9 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
+  // CLIENT PORTAL ONLY — protected by requireOpsRole (Admin | Client Relationship Manager roles)
+  // which checks req.session.userId (Client Portal staff session). Vendor Portal sessions use
+  // req.session.vendorUserId and cannot satisfy requireOpsRole — this route is inaccessible to vendors.
   app.post("/api/work-orders", requireOpsRole, async (req, res) => {
     try {
       const validation = validateBody(insertWorkOrderSchema.omit({ status: true }), req.body);

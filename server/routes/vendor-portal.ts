@@ -22,10 +22,13 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
       }
       
       const { username, password } = validation.data;
-      const user = await storage.getUserByEmail(username);
       const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown';
-      
-      if (!user || user.role !== "Vendor") {
+
+      // vendor.vendor_users is the authoritative identity store for Vendor Portal.
+      // public.users with role="Vendor" is legacy; new vendor accounts are in vendor.vendor_users.
+      const vendorUser = await storage.getVendorUserByEmail(username);
+
+      if (!vendorUser || !vendorUser.active) {
         recordFailedLogin(clientIp);
         await storage.createLoginAuditEntry({
           userId: null,
@@ -38,11 +41,11 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      const validPassword = await bcrypt.compare(password, user.passwordHash);
+      const validPassword = await bcrypt.compare(password, vendorUser.passwordHash);
       if (!validPassword) {
         recordFailedLogin(clientIp);
         await storage.createLoginAuditEntry({
-          userId: user.id,
+          userId: vendorUser.id,
           email: username,
           success: false,
           ipAddress: clientIp,
@@ -53,8 +56,9 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
       }
 
       clearFailedLogins(clientIp);
+      await storage.updateVendorUserLastLogin(vendorUser.id);
       await storage.createLoginAuditEntry({
-        userId: user.id,
+        userId: vendorUser.id,
         email: username,
         success: true,
         ipAddress: clientIp,
@@ -62,24 +66,21 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
         portal: 'vendor',
       });
 
-      req.session.vendorUserId = user.id;
-      req.session.vendorId = user.vendorId;
-      req.session.userRole = user.role;
-      req.session.userName = user.name;
+      req.session.vendorUserId = vendorUser.id;
+      req.session.vendorId = vendorUser.vendorId;
+      req.session.userRole = "Vendor";
+      req.session.userName = vendorUser.name;
 
-      let vendorType = "Typing";
-      if (user.vendorId) {
-        const vendorRecord = await storage.getVendorById(user.vendorId);
-        vendorType = vendorRecord?.vendorType || "Typing";
-      }
+      const vendorRecord = await storage.getVendorById(vendorUser.vendorId);
+      const vendorType = vendorRecord?.vendorType || "Typing";
       req.session.vendorType = vendorType;
 
       res.json({ 
-        id: user.id, 
-        name: user.name, 
-        email: user.email,
-        role: user.role,
-        vendorId: user.vendorId,
+        id: vendorUser.id, 
+        name: vendorUser.name, 
+        email: vendorUser.email,
+        role: "Vendor",
+        vendorId: vendorUser.vendorId,
         vendorType,
       });
     } catch (error) {
@@ -93,26 +94,27 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
       if (!req.session?.vendorUserId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      const user = await storage.getUser(req.session.vendorUserId);
-      if (!user) {
+      // vendor.vendor_users is the authoritative identity store for Vendor Portal sessions
+      const vendorUser = await storage.getVendorUserById(req.session.vendorUserId);
+      if (!vendorUser || !vendorUser.active) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      if (user.vendorId && user.vendorId !== req.session.vendorId) {
-        req.session.vendorId = user.vendorId;
+      if (vendorUser.vendorId && vendorUser.vendorId !== req.session.vendorId) {
+        req.session.vendorId = vendorUser.vendorId;
       }
       let vendorName: string | null = null;
       let vendorType: string | null = null;
-      if (user.vendorId) {
-        const vendor = await storage.getVendorById(user.vendorId);
+      if (vendorUser.vendorId) {
+        const vendor = await storage.getVendorById(vendorUser.vendorId);
         vendorName = vendor?.name || null;
         vendorType = vendor?.vendorType || null;
       }
       res.json({
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        vendorId: user.vendorId,
+        id: vendorUser.id,
+        name: vendorUser.name,
+        email: vendorUser.email,
+        role: "Vendor",
+        vendorId: vendorUser.vendorId,
         vendorName,
         vendorType,
         isAdminViewing: !!req.session.userId && req.session.userId !== req.session.vendorUserId,
@@ -146,23 +148,20 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
       if (!currentPassword || !newPassword || newPassword.length < 4) {
         return res.status(400).json({ message: "Current and new password required (min 4 chars)" });
       }
-      const user = await storage.getUser(req.session.vendorUserId!);
-      if (!user) return res.status(401).json({ message: "Not authenticated" });
+      // Vendor identity is resolved from vendor.vendor_users (not public.users)
+      const vendorUser = await storage.getVendorUserById(req.session.vendorUserId!);
+      if (!vendorUser || !vendorUser.active) return res.status(401).json({ message: "Not authenticated" });
       
-      const isValid = user.passwordHash.startsWith("$2")
-        ? await bcrypt.compare(currentPassword, user.passwordHash)
-        : currentPassword === user.passwordHash;
-      
+      const isValid = await bcrypt.compare(currentPassword, vendorUser.passwordHash);
       if (!isValid) return res.status(401).json({ message: "Current password is incorrect" });
       
       const hash = await bcrypt.hash(newPassword, 10);
-      await storage.updateUser(user.id, { passwordHash: hash });
+      await storage.updateVendorUser(vendorUser.id, { passwordHash: hash });
       
       await storage.createAuditLog({
         action: "password_changed",
-        entityType: "user",
-        entityId: user.id,
-        userId: user.id,
+        entityType: "vendor_user",
+        entityId: vendorUser.id,
         details: { changedBy: "self", portal: "vendor" },
       });
       
@@ -911,6 +910,29 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
       await checkAndAutoTransitionWorkOrder(job.woId);
       await checkAndAutoCompleteWorkOrder(job.woId);
 
+      // Publish cross-portal event so Client Portal can act on job completion
+      try {
+        await storage.publishCrossPortalEvent({
+          idempotencyKey: `typing_job.${jobId}.${newJobStatus}`,
+          sourceApp: "vendor_portal",
+          eventType: "typing_job.completed",
+          aggregateType: "typing_job",
+          aggregateId: jobId,
+          payload: {
+            jobCode: job.jobCode,
+            woId: job.woId,
+            vendorId: job.vendorId,
+            newStatus: newJobStatus,
+            jobTypeName: jobType?.name,
+            completedAt: new Date().toISOString(),
+          },
+          workOrderId: job.woId,
+          createdBy: req.session.vendorUserId || undefined,
+        });
+      } catch (eventErr) {
+        console.error("Failed to publish cross_portal_event for job completion:", eventErr);
+      }
+
       try {
         const wo = await storage.getWorkOrderById(job.woId);
         await storage.createAuditLog({
@@ -1017,6 +1039,29 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
         action: "vendor_biometrics_updated",
         details: { biometricsRequired: data.biometricsRequired, vendorUserId: req.session.vendorUserId },
       });
+
+      // Publish cross-portal event so Client Portal can reflect biometrics requirement
+      try {
+        await storage.publishCrossPortalEvent({
+          idempotencyKey: `typing_job.${jobId}.biometrics_updated.${Date.now()}`,
+          sourceApp: "vendor_portal",
+          eventType: "typing_job.biometrics_updated",
+          aggregateType: "typing_job",
+          aggregateId: jobId,
+          payload: {
+            jobId,
+            woId: job.woId,
+            vendorId: job.vendorId,
+            biometricsRequired: data.biometricsRequired,
+            biometricsDatetime: data.biometricsDatetime ?? null,
+            biometricsCenter: data.biometricsCenter ?? null,
+          },
+          workOrderId: job.woId ?? undefined,
+          createdBy: req.session.vendorUserId ?? undefined,
+        });
+      } catch (eventErr) {
+        console.error("Failed to publish cross_portal_event for biometrics update:", eventErr);
+      }
 
       res.json({ message: "Biometrics data saved" });
     } catch (error) {

@@ -126,13 +126,13 @@ export function VendorHeader() {
                   notifications.slice(0, 20).map((n) => (
                     <Link key={n.id} href={n.relatedJobId ? `/vendor/jobs/${n.relatedJobId}` : "#"}>
                       <div
-                        className={`p-3 border-b border-border/50 hover-elevate cursor-pointer ${!n.isRead ? "bg-primary/5" : ""}`}
-                        onClick={() => { if (!n.isRead) markReadMutation.mutate(n.id); }}
+                        className={`p-3 border-b border-border/50 hover-elevate cursor-pointer ${!n.readAt ? "bg-primary/5" : ""}`}
+                        onClick={() => { if (!n.readAt) markReadMutation.mutate(n.id); }}
                         data-testid={`notification-${n.id}`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <p className={`text-sm ${!n.isRead ? "font-medium" : ""}`}>{n.title}</p>
-                          {!n.isRead && <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+                          <p className={`text-sm ${!n.readAt ? "font-medium" : ""}`}>{n.title}</p>
+                          {!n.readAt && <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
                         <p className="text-xs text-muted-foreground mt-1">

@@ -496,6 +496,32 @@ app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async 
         await checkAndAutoCompleteWorkOrder(wo.id);
       }
     }
+    // Publish cross-portal event so Client Portal can act on attestation SR completion
+    if (status === "Completed" || status === "Cancelled") {
+      try {
+        const wo = sr.externalWoNumber ? await storage.getWorkOrderByWoNumber(sr.externalWoNumber) : undefined;
+        await storage.publishCrossPortalEvent({
+          idempotencyKey: `attestation_sr.${sr.id}.${status.toLowerCase()}`,
+          sourceApp: "vendor_portal",
+          eventType: `attestation_sr.${status.toLowerCase()}`,
+          aggregateType: "attestation_sr",
+          aggregateId: sr.id,
+          payload: {
+            srId: sr.id,
+            status,
+            externalWoNumber: sr.externalWoNumber,
+            vendorId: sr.vendorId,
+            companyId: sr.companyId,
+            completedAt: new Date().toISOString(),
+          },
+          workOrderId: wo?.id ?? undefined,
+          companyId: sr.companyId ?? undefined,
+          createdBy: req.session?.userId ?? undefined,
+        });
+      } catch (eventErr) {
+        console.error(`Failed to publish cross_portal_event for attestation_sr.${status.toLowerCase()}:`, eventErr);
+      }
+    }
     res.json(updated);
   } catch (err) {
     console.error("[attestation] update SR status error:", err);

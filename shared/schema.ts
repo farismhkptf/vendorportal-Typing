@@ -1,14 +1,18 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, json, pgEnum, index, numeric } from "drizzle-orm/pg-core";
+import { pgTable, pgSchema, text, varchar, integer, boolean, timestamp, json, jsonb, pgEnum, index, numeric, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Vendor schema — all Vendor Portal execution tables live here
+export const vendorSchema = pgSchema("vendor");
 
 // Enums
 // User roles organized by category:
 // Our Team: Admin, Client Relationship Manager, PRO, PRO - Temporary
 // Vendors: Vendor
 // Clients: Client Coordinator, Client Manager
-export const userRoleEnum = pgEnum("user_role", [
+// Renamed with vp_ prefix to avoid collision with Client Portal's public schema enum
+export const userRoleEnum = pgEnum("vp_user_role", [
   "Admin",
   "Client Relationship Manager",
   "PRO",
@@ -133,9 +137,10 @@ export const medicalEventTypeEnum = pgEnum("medical_event_type", [
 ]);
 
 // Medical Cases table — links a work order to the medical scheduling scope
-export const medicalCases = pgTable("medical_cases", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  woId: varchar("wo_id").notNull().unique(),
+// Owned by Vendor Portal under vendor schema
+export const medicalCases = vendorSchema.table("medical_cases", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  woId: uuid("work_order_id").notNull().unique(),
   isOpen: boolean("is_open").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -143,15 +148,16 @@ export const medicalCases = pgTable("medical_cases", {
 ]);
 
 // Appointment Cycles table — each scheduling attempt under a medical case
-export const appointmentCycles = pgTable("appointment_cycles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  caseId: varchar("case_id").notNull(),
+// Owned by Vendor Portal under vendor schema
+export const appointmentCycles = vendorSchema.table("appointment_cycles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: uuid("case_id").notNull(),
   cycleNumber: integer("cycle_number").notNull().default(1),
   cycleType: cycleTypeEnum("cycle_type").notNull().default("Initial"),
   status: medicalApptStatusEnum("status").notNull().default("SCHEDULED"),
   appointmentTime: timestamp("appointment_time").notNull(),
-  centerId: varchar("center_id"),
-  assignedProId: varchar("assigned_pro_id"),
+  centerId: uuid("center_id"),
+  assignedProId: uuid("assigned_pro_id"),
   outcome: cycleOutcomeEnum("outcome"),
   // Timer fields
   awaitingMeetingAt: timestamp("awaiting_meeting_at"),
@@ -161,18 +167,18 @@ export const appointmentCycles = pgTable("appointment_cycles", {
   resultIssuedAt: timestamp("result_issued_at"),
   // CRM hold
   crmHoldActive: boolean("crm_hold_active").notNull().default(false),
-  crmHoldSetBy: varchar("crm_hold_set_by"),
+  crmHoldSetBy: uuid("crm_hold_set_by"),
   crmHoldSetAt: timestamp("crm_hold_set_at"),
   // QR / confirmation
   confirmedAt: timestamp("confirmed_at"),
-  confirmedBy: varchar("confirmed_by"),
+  confirmedBy: uuid("confirmed_by"),
   confirmMethod: text("confirm_method"),
   // Admin override
   overrideReason: text("override_reason"),
-  overrideBy: varchar("override_by"),
+  overrideBy: uuid("override_by"),
   overrideAt: timestamp("override_at"),
   // Creation
-  createdBy: varchar("created_by"),
+  createdBy: uuid("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_appointment_cycles_case_id").on(table.caseId),
@@ -180,11 +186,12 @@ export const appointmentCycles = pgTable("appointment_cycles", {
 ]);
 
 // Medical Appointment Events table — event log per cycle
-export const medicalAppointmentEvents = pgTable("medical_appointment_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  cycleId: varchar("cycle_id").notNull(),
+// Owned by Vendor Portal under vendor schema
+export const medicalAppointmentEvents = vendorSchema.table("medical_appointment_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  cycleId: uuid("cycle_id").notNull(),
   eventType: medicalEventTypeEnum("event_type").notNull(),
-  actorId: varchar("actor_id"),
+  actorId: uuid("actor_id"),
   actorRole: text("actor_role"),
   details: json("details"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -221,9 +228,10 @@ export const biometricsEventTypeEnum = pgEnum("biometrics_event_type", [
 ]);
 
 // EID Biometrics Cases — links a work order to the biometrics scheduling scope
-export const biometricsCases = pgTable("biometrics_cases", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  woId: varchar("wo_id").notNull().unique(),
+// Owned by Vendor Portal under vendor schema
+export const biometricsCases = vendorSchema.table("biometrics_cases", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  woId: uuid("work_order_id").notNull().unique(),
   isOpen: boolean("is_open").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -231,15 +239,16 @@ export const biometricsCases = pgTable("biometrics_cases", {
 ]);
 
 // EID Biometrics Appointment Cycles
-export const biometricsAppointmentCycles = pgTable("biometrics_appointment_cycles", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  caseId: varchar("case_id").notNull(),
+// Owned by Vendor Portal under vendor schema
+export const biometricsAppointmentCycles = vendorSchema.table("biometrics_appointment_cycles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  caseId: uuid("case_id").notNull(),
   cycleNumber: integer("cycle_number").notNull().default(1),
   cycleType: biometricsCycleTypeEnum("cycle_type").notNull().default("Initial"),
   status: biometricsApptStatusEnum("status").notNull().default("SCHEDULED"),
   appointmentTime: timestamp("appointment_time").notNull(),
-  centerId: varchar("center_id"),
-  assignedProId: varchar("assigned_pro_id"),
+  centerId: uuid("center_id"),
+  assignedProId: uuid("assigned_pro_id"),
   outcome: biometricsCycleOutcomeEnum("outcome"),
   // Timer fields
   awaitingMeetingAt: timestamp("awaiting_meeting_at"),
@@ -247,32 +256,33 @@ export const biometricsAppointmentCycles = pgTable("biometrics_appointment_cycle
   completedAt: timestamp("completed_at"),
   // CRM hold
   crmHoldActive: boolean("crm_hold_active").notNull().default(false),
-  crmHoldSetBy: varchar("crm_hold_set_by"),
+  crmHoldSetBy: uuid("crm_hold_set_by"),
   crmHoldSetAt: timestamp("crm_hold_set_at"),
   // QR / confirmation
   confirmedAt: timestamp("confirmed_at"),
-  confirmedBy: varchar("confirmed_by"),
+  confirmedBy: uuid("confirmed_by"),
   confirmMethod: text("confirm_method"),
   // Proof image
   proofImageUrl: text("proof_image_url"),
   proofUploadedAt: timestamp("proof_uploaded_at"),
   // Admin override
   overrideReason: text("override_reason"),
-  overrideBy: varchar("override_by"),
+  overrideBy: uuid("override_by"),
   overrideAt: timestamp("override_at"),
   // Creation
-  createdBy: varchar("created_by"),
+  createdBy: uuid("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_biometrics_cycles_case_id").on(table.caseId),
 ]);
 
 // EID Biometrics Appointment Events — event log per cycle
-export const biometricsAppointmentEvents = pgTable("biometrics_appointment_events", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  cycleId: varchar("cycle_id").notNull(),
+// Owned by Vendor Portal under vendor schema
+export const biometricsAppointmentEvents = vendorSchema.table("biometrics_appointment_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  cycleId: uuid("cycle_id").notNull(),
   eventType: biometricsEventTypeEnum("event_type").notNull(),
-  actorId: varchar("actor_id"),
+  actorId: uuid("actor_id"),
   actorRole: text("actor_role"),
   details: json("details"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -358,9 +368,10 @@ export const staff = pgTable("staff", {
   active: boolean("active").notNull().default(true),
 });
 
-// Centers table
-export const centers = pgTable("centers", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// Centers table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const centers = vendorSchema.table("centers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   type: centerTypeEnum("type").notNull(),
   authority: centerAuthorityEnum("authority"), // DHA or EHS
@@ -515,18 +526,20 @@ export const rescheduleRequests = pgTable("reschedule_requests", {
   index("idx_reschedule_requests_appointment_id").on(table.appointmentId),
 ]);
 
-// Job Types table
-export const jobTypes = pgTable("job_types", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// Job Types table — Vendor Portal typing job catalog
+// Owned by Vendor Portal under vendor schema
+export const jobTypes = vendorSchema.table("job_types", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   category: jobCategoryEnum("category").notNull(),
   cost: integer("cost").notNull(),
   active: boolean("active").notNull().default(true),
 });
 
-// Vendors table
-export const vendors = pgTable("vendors", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// Vendors table — future: may be promoted to shared master data
+// Owned by Vendor Portal under vendor schema
+export const vendors = vendorSchema.table("vendors", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   contactPerson: text("contact_person"),
   phone: text("phone"),
@@ -536,14 +549,15 @@ export const vendors = pgTable("vendors", {
   vendorType: vendorTypeEnum("vendor_type").notNull().default("Typing"),
 });
 
-// Typing Jobs table
-export const typingJobs = pgTable("typing_jobs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// Typing Jobs table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const typingJobs = vendorSchema.table("typing_jobs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   jobCode: text("job_code"),
-  woId: varchar("wo_id").notNull(),
-  vendorId: varchar("vendor_id"),
-  jobTypeId: varchar("job_type_id").notNull(),
-  assignedToUserId: varchar("assigned_to_user_id").references(() => users.id, { onDelete: "set null" }),
+  woId: uuid("work_order_id").notNull(),
+  vendorId: uuid("vendor_id"),
+  jobTypeId: uuid("job_type_id").notNull(),
+  assignedToUserId: uuid("assigned_to_user_id"),
   status: typingJobStatusEnum("status").notNull().default("Draft"),
   costSnapshot: integer("cost_snapshot"),
   sentAt: timestamp("sent_at"),
@@ -551,7 +565,7 @@ export const typingJobs = pgTable("typing_jobs", {
   sentToClientAt: timestamp("sent_to_client_at"),
   vendorMistakeAt: timestamp("vendor_mistake_at"),
   vendorMistakeReason: text("vendor_mistake_reason"),
-  createdBy: varchar("created_by"),
+  createdBy: uuid("created_by"),
   previousStatus: typingJobStatusEnum("previous_status"),
   rejectedReason: text("rejected_reason"),
   urgent: boolean("urgent").notNull().default(false),
@@ -562,9 +576,10 @@ export const typingJobs = pgTable("typing_jobs", {
   index("idx_typing_jobs_status").on(table.status),
 ]);
 
-// Typing Job Results table
-export const typingJobResults = pgTable("typing_job_results", {
-  typingJobId: varchar("typing_job_id").primaryKey(),
+// Typing Job Results table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const typingJobResults = vendorSchema.table("typing_job_results", {
+  typingJobId: uuid("typing_job_id").primaryKey(),
   applicationRefNo: text("application_ref_no"),
   centerName: text("center_name"),
   centerArea: text("center_area"),
@@ -575,12 +590,13 @@ export const typingJobResults = pgTable("typing_job_results", {
   vendorNotes: text("vendor_notes"),
 });
 
-// Typing Job Comments table
-export const typingJobComments = pgTable("typing_job_comments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  typingJobId: varchar("typing_job_id").notNull(),
+// Typing Job Comments table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const typingJobComments = vendorSchema.table("typing_job_comments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  typingJobId: uuid("typing_job_id").notNull(),
   authorType: authorTypeEnum("author_type").notNull(),
-  authorUserId: varchar("author_user_id"),
+  authorUserId: uuid("author_user_id"),
   message: text("message").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -636,25 +652,27 @@ export const woNotes = pgTable("wo_notes", {
   index("idx_wo_notes_wo_id").on(table.woId),
 ]);
 
-// Vendor Wallet Ledger table
-export const vendorWalletLedger = pgTable("vendor_wallet_ledger", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vendorId: varchar("vendor_id").notNull(),
+// Vendor Wallet Ledger table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const vendorWalletLedger = vendorSchema.table("vendor_wallet_ledger", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: uuid("vendor_id").notNull(),
   entryType: walletEntryTypeEnum("entry_type").notNull(),
-  typingJobId: varchar("typing_job_id"),
+  typingJobId: uuid("typing_job_id"),
   amount: integer("amount").notNull(),
   note: text("note"),
-  createdBy: varchar("created_by"),
+  createdBy: uuid("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_vendor_wallet_ledger_vendor_id").on(table.vendorId),
   index("idx_vendor_wallet_ledger_typing_job_id").on(table.typingJobId),
 ]);
 
-// Vendor Statements table
-export const vendorStatements = pgTable("vendor_statements", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vendorId: varchar("vendor_id").notNull(),
+// Vendor Statements table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const vendorStatements = vendorSchema.table("vendor_statements", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: uuid("vendor_id").notNull(),
   periodStart: timestamp("period_start").notNull(),
   periodEnd: timestamp("period_end").notNull(),
   generatedAt: timestamp("generated_at").defaultNow().notNull(),
@@ -663,10 +681,11 @@ export const vendorStatements = pgTable("vendor_statements", {
   balanceDelta: integer("balance_delta").notNull().default(0),
 });
 
-// Vendor Invoices table
-export const vendorInvoices = pgTable("vendor_invoices", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vendorId: varchar("vendor_id").notNull(),
+// Vendor Invoices table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const vendorInvoices = vendorSchema.table("vendor_invoices", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: uuid("vendor_id").notNull(),
   periodStart: timestamp("period_start").notNull(),
   periodEnd: timestamp("period_end").notNull(),
   invoiceFileWorkdriveId: text("invoice_file_workdrive_id"),
@@ -675,16 +694,17 @@ export const vendorInvoices = pgTable("vendor_invoices", {
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
 });
 
-// Vendor Approvals table
-export const vendorApprovals = pgTable("vendor_approvals", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  typingJobId: varchar("typing_job_id").notNull(),
-  vendorId: varchar("vendor_id").notNull(),
+// Vendor Approvals table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const vendorApprovals = vendorSchema.table("vendor_approvals", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  typingJobId: uuid("typing_job_id").notNull(),
+  vendorId: uuid("vendor_id").notNull(),
   calculatedAmount: integer("calculated_amount").notNull().default(0),
   adjustedAmount: integer("adjusted_amount"),
   status: approvalStatusEnum("status").notNull().default("Pending"),
   rejectedReason: text("rejected_reason"),
-  approvedBy: varchar("approved_by"),
+  approvedBy: uuid("approved_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   resolvedAt: timestamp("resolved_at"),
 }, (table) => [
@@ -692,41 +712,43 @@ export const vendorApprovals = pgTable("vendor_approvals", {
   index("idx_vendor_approvals_vendor_id").on(table.vendorId),
 ]);
 
-// Vendor Notifications table
-export const vendorNotifications = pgTable("vendor_notifications", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  vendorUserId: varchar("vendor_user_id").notNull(),
-  vendorId: varchar("vendor_id").notNull(),
+// Vendor Notifications table — persistent inbox; null readAt = unread; records never deleted on read
+// Owned by Vendor Portal under vendor schema
+export const vendorNotifications = vendorSchema.table("vendor_notifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorUserId: uuid("vendor_user_id").notNull(),
+  vendorId: uuid("vendor_id").notNull(),
   type: text("type").notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  relatedJobId: varchar("related_job_id"),
-  isRead: boolean("is_read").notNull().default(false),
+  relatedJobId: uuid("related_job_id"),
+  readAt: timestamp("read_at"), // null = unread; set once, never cleared
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_vendor_notifications_vendor_user_id").on(table.vendorUserId),
   index("idx_vendor_notifications_vendor_id").on(table.vendorId),
 ]);
 
-// App Settings table (single row)
-export const appSettings = pgTable("app_settings", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  fromEmail: text("from_email").notNull().default("notifications@procompany.ae"),
-  fromName: text("from_name").notNull().default("The P.R.O. Company"),
-  replyToEmail: text("reply_to_email").notNull().default("operations@procompany.ae"),
-  alwaysCc: json("always_cc").$type<string[]>().default(["faris@procompany.ae", "yasin@procompany.ae"]),
-  testEmailRedirect: text("test_email_redirect"),
-  lowBalanceThreshold: integer("low_balance_threshold").notNull().default(1000),
-  masterPassword: text("master_password"),
-  defaultVendorId: varchar("default_vendor_id"),
-  maintenanceMode: boolean("maintenance_mode").notNull().default(false),
-  maintenanceMessage: text("maintenance_message"),
-  whatsappNumber: text("whatsapp_number").default("+971509161815"),
-  privacyPolicyHtml: text("privacy_policy_html"),
-  termsOfServiceHtml: text("terms_of_service_html"),
-  followUpCenter: text("follow_up_center"),
-  vendorDelayThresholdHours: integer("vendor_delay_threshold_hours").notNull().default(48),
-  logoUrl: text("logo_url"),
+// App Settings table — Vendor Portal configuration; all setting keys use vp_ prefix
+// Owned by Vendor Portal under vendor schema
+export const appSettings = vendorSchema.table("app_settings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  fromEmail: text("vp_from_email").notNull().default("notifications@procompany.ae"),
+  fromName: text("vp_from_name").notNull().default("The P.R.O. Company"),
+  replyToEmail: text("vp_reply_to_email").notNull().default("operations@procompany.ae"),
+  alwaysCc: json("vp_always_cc").$type<string[]>().default(["faris@procompany.ae", "yasin@procompany.ae"]),
+  testEmailRedirect: text("vp_test_email_redirect"),
+  lowBalanceThreshold: integer("vp_low_balance_threshold").notNull().default(1000),
+  masterPassword: text("vp_master_password"),
+  defaultVendorId: uuid("vp_default_vendor_id"),
+  maintenanceMode: boolean("vp_maintenance_mode").notNull().default(false),
+  maintenanceMessage: text("vp_maintenance_message"),
+  whatsappNumber: text("vp_whatsapp_number").default("+971509161815"),
+  privacyPolicyHtml: text("vp_privacy_policy_html"),
+  termsOfServiceHtml: text("vp_terms_of_service_html"),
+  followUpCenter: text("vp_follow_up_center"),
+  vendorDelayThresholdHours: integer("vp_vendor_delay_threshold_hours").notNull().default(48),
+  logoUrl: text("vp_logo_url"),
 });
 
 // Change notifications table (manager edits for admin review)
@@ -760,13 +782,14 @@ export const staffNotifications = pgTable("staff_notifications", {
   index("idx_staff_notifications_user_id").on(table.userId),
 ]);
 
-// Audit Log table
-export const auditLog = pgTable("audit_log", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// Audit Log table — Vendor Portal audit trail
+// Owned by Vendor Portal under vendor schema
+export const auditLog = vendorSchema.table("audit_log", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   action: text("action").notNull(),
   entityType: text("entity_type").notNull(),
-  entityId: varchar("entity_id"),
-  userId: varchar("user_id"),
+  entityId: uuid("entity_id"),
+  userId: uuid("user_id"),
   details: json("details"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -776,10 +799,11 @@ export const auditLog = pgTable("audit_log", {
   index("idx_audit_log_entity_type").on(table.entityType),
 ]);
 
-// Login Audit Log table
-export const loginAuditLog = pgTable("login_audit_log", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id"),
+// Login Audit Log table — Vendor Portal login trail
+// Owned by Vendor Portal under vendor schema
+export const loginAuditLog = vendorSchema.table("login_audit_log", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid("user_id"),
   email: text("email").notNull(),
   success: boolean("success").notNull(),
   ipAddress: text("ip_address"),
@@ -799,16 +823,18 @@ export const passwordResetRequests = pgTable("password_reset_requests", {
 });
 
 // Attestation Categories table — admin-managed, replaces the old enum
-export const attestationCategories = pgTable("attestation_categories", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// Owned by Vendor Portal under vendor schema
+export const attestationCategories = vendorSchema.table("attestation_categories", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull().unique(),
   sortOrder: integer("sort_order").notNull().default(0),
   active: boolean("active").notNull().default(true),
 });
 
-// Attestation Services catalog table
-export const attestationServices = pgTable("attestation_services", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// Attestation Services catalog table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const attestationServices = vendorSchema.table("attestation_services", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   category: text("category").notNull(),
   documentClassApplicability: documentClassEnum("document_class_applicability").notNull().default("Both"),
@@ -819,9 +845,10 @@ export const attestationServices = pgTable("attestation_services", {
 });
 
 // Attestation Service Variants table (e.g. per country/embassy)
-export const attestationServiceVariants = pgTable("attestation_service_variants", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  serviceId: varchar("service_id").notNull().references(() => attestationServices.id, { onDelete: "cascade" }),
+// Owned by Vendor Portal under vendor schema
+export const attestationServiceVariants = vendorSchema.table("attestation_service_variants", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceId: uuid("service_id").notNull(),
   variantLabel: text("variant_label").notNull(),
   priceAed: numeric("price_aed", { precision: 10, scale: 2 }).notNull().default("0"),
   timelineDays: integer("timeline_days"),
@@ -830,10 +857,11 @@ export const attestationServiceVariants = pgTable("attestation_service_variants"
   index("idx_attest_svc_variants_service_id").on(table.serviceId),
 ]);
 
-// Attestation Service Step Definitions table
-export const attestationServiceStepDefinitions = pgTable("attestation_service_step_definitions", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  serviceId: varchar("service_id").notNull().references(() => attestationServices.id, { onDelete: "cascade" }),
+// Attestation Service Step Definitions table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const attestationServiceStepDefinitions = vendorSchema.table("attestation_service_step_definitions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  serviceId: uuid("service_id").notNull(),
   stepOrder: integer("step_order").notNull(),
   stepName: text("step_name").notNull(),
   stepType: text("step_type").notNull(),
@@ -848,21 +876,23 @@ export const handoverDirectionEnum = pgEnum("handover_direction", [
   "ClientToUs", "UsToVendor", "VendorToUs", "UsToClient"
 ]);
 
-// Attestation Service Requests table
+// Attestation Service Requests table — Vendor Portal execution data
 // Supports both catalog-based and inquiry-flow based SRs.
 // attestationServiceId is nullable for inquiry-flow SRs (where service name is stored in serviceName).
-export const attestationServiceRequests = pgTable("attestation_service_requests", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// companyId and assignedProId are cross-schema FKs to public.companies / public.people (ON DELETE RESTRICT ON UPDATE CASCADE)
+// Owned by Vendor Portal under vendor schema
+export const attestationServiceRequests = vendorSchema.table("attestation_service_requests", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   srNumber: varchar("sr_number", { length: 20 }).unique(),
   externalWoNumber: text("external_wo_number"),
-  inquiryId: varchar("inquiry_id"),
-  companyId: varchar("company_id").notNull(),
+  inquiryId: uuid("inquiry_id"),
+  companyId: uuid("company_id").notNull(), // FK → public.companies ON DELETE RESTRICT ON UPDATE CASCADE
   applicantName: text("applicant_name"),
   documentName: text("document_name"),
-  vendorId: varchar("vendor_id"),
-  assignedProId: varchar("assigned_pro_id"),
-  attestationServiceId: varchar("attestation_service_id").references(() => attestationServices.id),
-  serviceVariantId: varchar("service_variant_id").references(() => attestationServiceVariants.id),
+  vendorId: uuid("vendor_id"),
+  assignedProId: uuid("assigned_pro_id"), // FK → public.people ON DELETE RESTRICT ON UPDATE CASCADE
+  attestationServiceId: uuid("attestation_service_id"),
+  serviceVariantId: uuid("service_variant_id"),
   documentType: text("document_type"),
   documentNameDescription: text("document_name_description"),
   documentClass: documentClassEnum("document_class"),
@@ -871,14 +901,14 @@ export const attestationServiceRequests = pgTable("attestation_service_requests"
   status: srStatusEnum("status").notNull().default("Draft"),
   physicalCustodyStatus: physicalCustodyStatusEnum("physical_custody_status").notNull().default("WithClient"),
   currentCustodian: text("current_custodian"),
-  currentResponsibleStaffId: varchar("current_responsible_staff_id"),
+  currentResponsibleStaffId: uuid("current_responsible_staff_id"),
   serviceFeeAed: numeric("service_fee_aed", { precision: 10, scale: 2 }),
   feeSource: text("fee_source"),
   serviceName: text("service_name"),
   serviceNotes: text("service_notes"),
   internalNotes: text("internal_notes"),
   notes: text("notes"),
-  createdBy: varchar("created_by"),
+  createdBy: uuid("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_attestation_sr_company_id").on(table.companyId),
@@ -886,10 +916,11 @@ export const attestationServiceRequests = pgTable("attestation_service_requests"
   index("idx_attestation_sr_assigned_pro_id").on(table.assignedProId),
 ]);
 
-// Attestation SR Steps table
-export const attestationSrSteps = pgTable("attestation_sr_steps", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  srId: varchar("sr_id").notNull().references(() => attestationServiceRequests.id, { onDelete: "cascade" }),
+// Attestation SR Steps table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const attestationSrSteps = vendorSchema.table("attestation_sr_steps", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  srId: uuid("sr_id").notNull(),
   stepOrder: integer("step_order").notNull(),
   stepName: text("step_name").notNull(),
   stepType: text("step_type").notNull(),
@@ -901,16 +932,75 @@ export const attestationSrSteps = pgTable("attestation_sr_steps", {
   index("idx_attest_sr_steps_sr_id").on(table.srId),
 ]);
 
-// Attestation SR Activity Log
-export const attestationSrActivityLog = pgTable("attestation_sr_activity_log", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  srId: varchar("sr_id").notNull().references(() => attestationServiceRequests.id, { onDelete: "cascade" }),
+// Attestation SR Activity Log — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const attestationSrActivityLog = vendorSchema.table("attestation_sr_activity_log", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  srId: uuid("sr_id").notNull(),
   action: text("action").notNull(),
   detail: text("detail"),
-  performedBy: varchar("performed_by").references(() => users.id),
+  performedBy: uuid("performed_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_attest_sr_activity_sr_id").on(table.srId),
+]);
+
+// Vendor Users table — portal-local auth; future shared identity / SSO may replace this table
+// Owned by Vendor Portal under vendor schema
+export const vendorUsers = vendorSchema.table("vendor_users", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  vendorId: uuid("vendor_id").notNull(), // FK → vendor.vendors
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("operator"), // operator | admin
+  active: boolean("active").notNull().default(true),
+  lastLoginAt: timestamp("last_login_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_vendor_users_vendor_id").on(table.vendorId),
+  index("idx_vendor_users_email").on(table.email),
+]);
+
+// Cross-Portal Events table — outbound signals from Vendor Portal to Client Portal
+// Vendor Portal ONLY inserts rows with status='pending'; processed_at and status='sent'
+// may ONLY be set by the Client Portal consumer. This constraint is enforced here via comment
+// and enforced in SQL via the trigger in migration 0008.
+// Owned by Vendor Portal under vendor schema.
+// Strict lifecycle contract:
+//   - Vendor Portal inserts rows with status='pending' (only).
+//   - Client Portal consumer alone sets status='sent'/'failed', processed_at, last_attempt_at.
+//   - No Vendor Portal code may set processed_at or status='sent'.
+export const crossPortalEvents = vendorSchema.table("cross_portal_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  // Idempotency key — TEXT, non-nullable. Caller MUST provide a stable, unique string (e.g. a
+  // deterministic composite key like 'typing_job.<uuid>.completed') to prevent duplicate inserts.
+  // A unique constraint on this column enforces exactly-once delivery semantics.
+  idempotencyKey: text("idempotency_key").notNull().unique(),
+  // Source identifies which Vendor Portal subsystem produced the event
+  sourceApp: text("source_app").notNull().default("vendor_portal"), // 'vendor_portal' always for this bus
+  eventType: text("event_type").notNull(), // e.g. 'typing_job.completed', 'sr.status_changed'
+  // Aggregate root being acted on
+  aggregateType: text("aggregate_type").notNull(), // 'typing_job' | 'attestation_sr' | 'appointment_cycle'
+  aggregateId: uuid("aggregate_id").notNull(),     // the root entity UUID
+  payload: jsonb("payload").notNull().$type<Record<string, unknown>>(),
+  // Cross-schema references (FK constraints enforced in SQL migration, not Drizzle ORM)
+  workOrderId: uuid("work_order_id"), // FK → public.work_orders ON DELETE RESTRICT ON UPDATE CASCADE
+  companyId: uuid("company_id"),      // FK → public.companies ON DELETE RESTRICT ON UPDATE CASCADE
+  // Lifecycle — Vendor Portal sets status='pending' ONLY; Client Portal consumer owns transition
+  status: text("status").notNull().default("pending"), // pending | sent | failed
+  processedAt: timestamp("processed_at"),   // set ONLY by Client Portal consumer
+  attemptCount: integer("attempt_count").notNull().default(0),
+  lastAttemptAt: timestamp("last_attempt_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: uuid("created_by"), // vendor user who triggered the event
+}, (table) => [
+  index("idx_cross_portal_events_status").on(table.status),
+  index("idx_cross_portal_events_work_order_id").on(table.workOrderId),
+  index("idx_cross_portal_events_event_type").on(table.eventType),
+  index("idx_cross_portal_events_created_at").on(table.createdAt),
+  index("idx_cross_portal_events_aggregate").on(table.aggregateType, table.aggregateId),
 ]);
 
 // Insert schemas
@@ -943,6 +1033,8 @@ export const insertVendorNotificationSchema = createInsertSchema(vendorNotificat
 export const insertStaffNotificationSchema = createInsertSchema(staffNotifications).omit({ id: true, createdAt: true });
 export const insertLoginAuditLogSchema = createInsertSchema(loginAuditLog).omit({ id: true, createdAt: true });
 export const insertPasswordResetRequestSchema = createInsertSchema(passwordResetRequests).omit({ id: true, createdAt: true, resolvedAt: true });
+export const insertVendorUserSchema = createInsertSchema(vendorUsers).omit({ id: true, createdAt: true, lastLoginAt: true });
+export const insertCrossPortalEventSchema = createInsertSchema(crossPortalEvents).omit({ id: true, createdAt: true, processedAt: true, attemptCount: true, lastAttemptAt: true, errorMessage: true });
 
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -1002,6 +1094,10 @@ export type InsertStaffNotification = z.infer<typeof insertStaffNotificationSche
 export type StaffNotification = typeof staffNotifications.$inferSelect;
 export type InsertLoginAuditLog = z.infer<typeof insertLoginAuditLogSchema>;
 export type LoginAuditLog = typeof loginAuditLog.$inferSelect;
+export type InsertVendorUser = z.infer<typeof insertVendorUserSchema>;
+export type VendorUser = typeof vendorUsers.$inferSelect;
+export type InsertCrossPortalEvent = z.infer<typeof insertCrossPortalEventSchema>;
+export type CrossPortalEvent = typeof crossPortalEvents.$inferSelect;
 export type InsertPasswordResetRequest = z.infer<typeof insertPasswordResetRequestSchema>;
 export type PasswordResetRequest = typeof passwordResetRequests.$inferSelect;
 
@@ -1128,19 +1224,20 @@ export const custodyDocStageEnum = pgEnum("custody_doc_stage", [
   "WithClient", "WithUs", "WithVendor", "ReturnedToClient"
 ]);
 
-export const documentCustodyRecords = pgTable("document_custody_records", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+// Document Custody Records — Owned by Vendor Portal under vendor schema
+export const documentCustodyRecords = vendorSchema.table("document_custody_records", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   referenceNumber: varchar("reference_number", { length: 20 }).notNull().unique(),
-  companyId: varchar("company_id").notNull(),
-  woId: varchar("wo_id"),
-  srId: varchar("sr_id"),
+  companyId: uuid("company_id").notNull(), // FK → public.companies ON DELETE RESTRICT ON UPDATE CASCADE
+  woId: uuid("work_order_id"),              // FK → public.work_orders ON DELETE RESTRICT ON UPDATE CASCADE
+  srId: uuid("sr_id"),                     // FK → vendor.attestation_sr
   docCategory: custodyDocCategoryEnum("doc_category").notNull(),
   docSubtype: custodyDocSubtypeEnum("doc_subtype").notNull(),
   docCustomName: text("doc_custom_name"),
   custodyStage: custodyDocStageEnum("custody_stage").notNull().default("WithClient"),
   notifyEmail: text("notify_email"),
   notes: text("notes"),
-  createdBy: varchar("created_by"),
+  createdBy: uuid("created_by"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -1149,16 +1246,17 @@ export const documentCustodyRecords = pgTable("document_custody_records", {
   index("idx_doc_custody_records_sr_id").on(table.srId),
 ]);
 
-export const documentCustodyHandoffs = pgTable("document_custody_handoffs", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  recordId: varchar("record_id").notNull(),
+// Document Custody Handoffs — Owned by Vendor Portal under vendor schema
+export const documentCustodyHandoffs = vendorSchema.table("document_custody_handoffs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  recordId: uuid("record_id").notNull(), // FK → vendor.document_custody_records
   fromStage: custodyDocStageEnum("from_stage").notNull(),
   toStage: custodyDocStageEnum("to_stage").notNull(),
   counterpartyName: text("counterparty_name").notNull(),
   counterpartyContact: text("counterparty_contact").notNull(),
   counterpartyIdPhotoUrl: text("counterparty_id_photo_url"),
   notes: text("notes"),
-  performedBy: varchar("performed_by").notNull(),
+  performedBy: uuid("performed_by").notNull(),
   performedAt: timestamp("performed_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_doc_custody_handoffs_record_id").on(table.recordId),
@@ -1271,11 +1369,13 @@ export const attestationDocumentClassEnum = pgEnum("attestation_document_class",
 ]);
 
 // Attestation Inquiries table (pre-SR inquiry + quoting flow)
-export const attestationInquiries = pgTable("attestation_inquiries", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  companyId: varchar("company_id").notNull().references(() => companies.id),
+// Owned by Vendor Portal under vendor schema
+// Cross-schema FKs (company_id → public.companies, vendor_id → vendor.vendors) enforced in SQL migration
+export const attestationInquiries = vendorSchema.table("attestation_inquiries", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyId: uuid("company_id").notNull(), // FK → public.companies ON DELETE RESTRICT ON UPDATE CASCADE
   applicantName: text("applicant_name"),
-  vendorId: varchar("vendor_id").notNull().references(() => vendors.id),
+  vendorId: uuid("vendor_id").notNull(), // FK → vendor.vendors ON DELETE RESTRICT ON UPDATE CASCADE
   documentType: text("document_type").notNull(),
   documentNameDescription: text("document_name_description").notNull(),
   documentClass: attestationDocumentClassEnum("document_class").notNull(),
@@ -1284,8 +1384,8 @@ export const attestationInquiries = pgTable("attestation_inquiries", {
   externalWoNumber: text("external_wo_number"),
   status: attestationInquiryStatusEnum("status").notNull().default("Open"),
   rejectionReason: text("rejection_reason"),
-  convertedToSrId: varchar("converted_to_sr_id"),
-  createdBy: varchar("created_by").references(() => users.id),
+  convertedToSrId: uuid("converted_to_sr_id"), // FK → vendor.attestation_sr
+  createdBy: uuid("created_by"), // FK → public.users ON DELETE SET NULL
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
@@ -1295,11 +1395,12 @@ export const attestationInquiries = pgTable("attestation_inquiries", {
 ]);
 
 // Attestation Inquiry Quotes table (vendor quotes on inquiries)
-export const attestationInquiryQuotes = pgTable("attestation_inquiry_quotes", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  inquiryId: varchar("inquiry_id").notNull().references(() => attestationInquiries.id),
-  vendorId: varchar("vendor_id").notNull().references(() => vendors.id),
-  submittedByVendorUserId: varchar("submitted_by_vendor_user_id").references(() => users.id),
+// Owned by Vendor Portal under vendor schema
+export const attestationInquiryQuotes = vendorSchema.table("attestation_inquiry_quotes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  inquiryId: uuid("inquiry_id").notNull(), // FK → vendor.attestation_inquiries ON DELETE CASCADE
+  vendorId: uuid("vendor_id").notNull(),   // FK → vendor.vendors ON DELETE RESTRICT
+  submittedByVendorUserId: uuid("submitted_by_vendor_user_id"), // FK → vendor.vendor_users
   quoteVersion: integer("quote_version").notNull().default(1),
   amountAed: integer("amount_aed").notNull(),
   timelineDays: integer("timeline_days").notNull(),

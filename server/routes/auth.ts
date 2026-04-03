@@ -72,8 +72,9 @@ export function registerAuthRoutes(app: Express): void {
       if (!adminUser || adminUser.role !== "Admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-      const allUsers = await storage.getUsers();
-      const vendorUser = allUsers.find(u => u.role === "Vendor" && u.active && u.vendorId);
+      // vendor.vendor_users is the authoritative identity store for Vendor Portal
+      const allVendorUsers = await storage.getVendorUsers(true);
+      const vendorUser = allVendorUsers[0]; // pick first active vendor user
       if (!vendorUser) {
         return res.status(404).json({ message: "No vendor accounts found" });
       }
@@ -95,11 +96,11 @@ export function registerAuthRoutes(app: Express): void {
       if (!adminUser || adminUser.role !== "Admin") {
         return res.status(403).json({ message: "Admin access required" });
       }
-      const allUsers = await storage.getUsers();
-      const vendorUsers = allUsers.filter(u => u.role === "Vendor" && u.active && u.vendorId);
+      // vendor.vendor_users is the authoritative identity store for Vendor Portal
+      const allVendorUsers = await storage.getVendorUsers(true);
       let foundUser = null;
-      for (const vu of vendorUsers) {
-        const vendor = await storage.getVendorById(vu.vendorId!);
+      for (const vu of allVendorUsers) {
+        const vendor = await storage.getVendorById(vu.vendorId);
         if (vendor && vendor.vendorType === "Attestation") {
           foundUser = vu;
           break;

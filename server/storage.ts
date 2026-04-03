@@ -14,6 +14,7 @@ import {
   documentCustodyLog,
   documentCustodyRecords, documentCustodyHandoffs,
   magicLinkTokens,
+  vendorUsers, crossPortalEvents,
   type User, type InsertUser, type Staff, type InsertStaff,
   type Center, type InsertCenter, type Company, type InsertCompany,
   type CompanyEmail, type InsertCompanyEmail, type ServiceType, type InsertServiceType,
@@ -53,6 +54,8 @@ import {
   type DocumentCustodyRecord, type InsertDocumentCustodyRecord,
   type DocumentCustodyHandoff, type InsertDocumentCustodyHandoff,
   type MagicLinkToken, type InsertMagicLinkToken,
+  type VendorUser, type InsertVendorUser,
+  type CrossPortalEvent, type InsertCrossPortalEvent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
@@ -295,6 +298,18 @@ export interface IStorage {
   getDeletionRequestById(id: string): Promise<DeletionRequest | undefined>;
   updateDeletionRequest(id: string, data: Partial<DeletionRequest>): Promise<DeletionRequest | undefined>;
   getPendingDeletionRequestCount(): Promise<number>;
+
+  // Vendor Users — vendor.vendor_users is the authoritative identity store for Vendor Portal logins
+  getVendorUserByEmail(email: string): Promise<VendorUser | undefined>;
+  getVendorUserById(id: string): Promise<VendorUser | undefined>;
+  updateVendorUserLastLogin(id: string): Promise<void>;
+  createVendorUser(data: InsertVendorUser): Promise<VendorUser>;
+  updateVendorUser(id: string, data: Partial<VendorUser>): Promise<VendorUser | undefined>;
+  getVendorUsers(activeOnly?: boolean): Promise<VendorUser[]>;
+
+  // Cross-Portal Events — Vendor Portal publishes; Client Portal consumer reads and marks processed
+  publishCrossPortalEvent(data: InsertCrossPortalEvent): Promise<CrossPortalEvent>;
+  getPendingCrossPortalEvents(limit?: number): Promise<CrossPortalEvent[]>;
 
   // Seed data
   seedData(): Promise<void>;
@@ -1952,19 +1967,28 @@ export class DatabaseStorage implements IStorage {
       .from(vendorNotifications)
       .where(and(
         eq(vendorNotifications.vendorUserId, vendorUserId),
-        eq(vendorNotifications.isRead, false)
+        isNull(vendorNotifications.readAt)
       ));
     return result[0]?.count || 0;
   }
 
   async markNotificationRead(id: string): Promise<void> {
-    await db.update(vendorNotifications).set({ isRead: true }).where(eq(vendorNotifications.id, id));
+    // Only update if readAt is not already set (read-once semantics)
+    await db.update(vendorNotifications)
+      .set({ readAt: new Date() })
+      .where(and(
+        eq(vendorNotifications.id, id),
+        isNull(vendorNotifications.readAt)
+      ));
   }
 
   async markAllNotificationsRead(vendorUserId: string): Promise<void> {
     await db.update(vendorNotifications)
-      .set({ isRead: true })
-      .where(eq(vendorNotifications.vendorUserId, vendorUserId));
+      .set({ readAt: new Date() })
+      .where(and(
+        eq(vendorNotifications.vendorUserId, vendorUserId),
+        isNull(vendorNotifications.readAt)
+      ));
   }
 
   async createStaffNotification(data: InsertStaffNotification): Promise<StaffNotification> {
@@ -2433,6 +2457,59 @@ export class DatabaseStorage implements IStorage {
       .from(deletionRequests)
       .where(eq(deletionRequests.status, "pending"));
     return Number(result?.count || 0);
+  }
+
+  // Vendor Users — vendor.vendor_users is the authoritative identity store for Vendor Portal logins
+  async getVendorUserByEmail(email: string): Promise<VendorUser | undefined> {
+    const [row] = await db.select().from(vendorUsers).where(eq(vendorUsers.email, email)).limit(1);
+    return row;
+  }
+
+  async getVendorUserById(id: string): Promise<VendorUser | undefined> {
+    const [row] = await db.select().from(vendorUsers).where(eq(vendorUsers.id, id)).limit(1);
+    return row;
+  }
+
+  async updateVendorUserLastLogin(id: string): Promise<void> {
+    await db.update(vendorUsers)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(vendorUsers.id, id));
+  }
+
+  async createVendorUser(data: InsertVendorUser): Promise<VendorUser> {
+    const [row] = await db.insert(vendorUsers).values(data).returning();
+    return row;
+  }
+
+  async updateVendorUser(id: string, data: Partial<VendorUser>): Promise<VendorUser | undefined> {
+    const [row] = await db.update(vendorUsers)
+      .set(data)
+      .where(eq(vendorUsers.id, id))
+      .returning();
+    return row;
+  }
+
+  async getVendorUsers(activeOnly = false): Promise<VendorUser[]> {
+    if (activeOnly) {
+      return db.select().from(vendorUsers).where(eq(vendorUsers.active, true));
+    }
+    return db.select().from(vendorUsers);
+  }
+
+  // Cross-Portal Events — Vendor Portal publishes; Client Portal consumer reads and marks processed
+  async publishCrossPortalEvent(data: InsertCrossPortalEvent): Promise<CrossPortalEvent> {
+    const [row] = await db.insert(crossPortalEvents).values({
+      ...data,
+      status: "pending", // Vendor Portal ALWAYS inserts as pending; only CP consumer may set status=sent
+    }).returning();
+    return row;
+  }
+
+  async getPendingCrossPortalEvents(limit = 100): Promise<CrossPortalEvent[]> {
+    return db.select().from(crossPortalEvents)
+      .where(eq(crossPortalEvents.status, "pending"))
+      .orderBy(crossPortalEvents.createdAt)
+      .limit(limit);
   }
 
   // Attestation Categories

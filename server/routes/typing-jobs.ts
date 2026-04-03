@@ -319,7 +319,6 @@ app.post("/api/typing-jobs/:id/comments", requireAuth, async (req, res) => {
           title: "New Comment",
           message: `New message on job ${relatedJob.jobCode || ''}`,
           relatedJobId: id,
-          isRead: false,
         });
       }
     }

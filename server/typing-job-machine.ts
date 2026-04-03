@@ -309,7 +309,6 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
                 title: effect.title,
                 message: effect.messageFn(ctx),
                 relatedJobId: jobId,
-                isRead: false,
               });
             }
             break;

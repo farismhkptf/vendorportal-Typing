@@ -32,8 +32,8 @@ function NotificationSheet({ open, onClose }: { open: boolean; onClose: () => vo
     },
   });
 
-  const unread = notifications?.filter(n => !n.isRead) || [];
-  const read = notifications?.filter(n => n.isRead).slice(0, 10) || [];
+  const unread = notifications?.filter(n => !n.readAt) || [];
+  const read = notifications?.filter(n => n.readAt).slice(0, 10) || [];
 
   if (!open) return null;
 

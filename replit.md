@@ -71,7 +71,24 @@ The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API.
 
 ### Database
 
-The PostgreSQL database includes core entities such as Users (with 7 roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor, Client Coordinator, Client Manager), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns (woId, vendorId, typingJobId, centerId, assignedStaffId, etc.) for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records (appointments, typing jobs, results, comments, approvals, documents, notes, messages, files, reschedule requests). Deleting staff or centers nullifies dangling references in appointments and companies before deletion.
+#### Schema Architecture (Task #95: Vendor Portal Execution-Only Schema Migration)
+
+The database uses a **dual-schema architecture** on a shared Neon PostgreSQL instance:
+
+- **`public` schema** — Client Portal master data: `companies`, `work_orders`, `staff`, `service_types`, `users`, `appointments`, `centers`, `files`, `messages`, `audit_log`, etc.
+- **`vendor` schema** — Vendor Portal execution tables: `vendors`, `typing_jobs`, `typing_job_results`, `typing_job_comments`, `vendor_approvals`, `vendor_wallet_ledger`, `vendor_statements`, `vendor_invoices`, `vendor_notifications`, `vendor_users`, `cross_portal_events`, `medical_cases`, `medical_appointment_cycles`, `medical_appointment_events`, `biometrics_cases`, `biometrics_appointment_cycles`, `biometrics_appointment_events`, `attestation_sr`, `attestation_sr_steps`, `attestation_sr_activity_log`, `attestation_categories`, `attestation_services`, `attestation_service_variants`, `attestation_service_step_definitions`, `job_types`, `app_settings`.
+
+**Ownership boundary**: The Vendor Portal (`/vendor/*` routes) may **read** `public` tables (companies, work_orders, staff) but **never writes** to them. All Vendor Portal writes go to `vendor.*` tables. Cross-portal communication flows through `vendor.cross_portal_events`.
+
+**Cross-portal events** (`vendor.cross_portal_events`): Vendor Portal inserts rows with `status='pending'`; only the Client Portal consumer may set `status='sent'` and `processed_at`. This is enforced in code — never bypassed by vendor routes.
+
+**`vendor.vendor_notifications`**: Uses `read_at TIMESTAMP` (null = unread) instead of `is_read BOOLEAN`. Notifications are never deleted on read — they form a persistent inbox.
+
+**`vendor.app_settings`**: All setting keys use the `vp_` prefix in column names.
+
+The core entities include Users (with 7 roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor, Client Coordinator, Client Manager), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records. Deleting staff or centers nullifies dangling references in appointments and companies before deletion.
+
+Migration `0008_vendor_schema_migration.sql` creates the vendor schema and all its tables. Migration `0009_drop_local_master_tables_SAFETY_GATED.sql` (safety-gated) drops public-owned tables once shared data is verified present.
 
 #### Work Order Status Model
 

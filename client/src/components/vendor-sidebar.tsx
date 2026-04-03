@@ -280,18 +280,18 @@ export function VendorTopBar() {
                   notifications.slice(0, 20).map((n) => (
                     <Link key={n.id} href={n.relatedJobId ? ((n as any).jobCategory === "Medical" ? `/medical/${n.relatedJobId}` : `/eid/${n.relatedJobId}`) : "#"}>
                       <div
-                        className={`p-3 border-b border-border/50 hover-elevate cursor-pointer ${!n.isRead ? "bg-primary/5" : ""}`}
-                        onClick={() => { if (!n.isRead) markReadMutation.mutate(n.id); }}
+                        className={`p-3 border-b border-border/50 hover-elevate cursor-pointer ${!n.readAt ? "bg-primary/5" : ""}`}
+                        onClick={() => { if (!n.readAt) markReadMutation.mutate(n.id); }}
                         data-testid={`notification-${n.id}`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <p className={`text-sm ${!n.isRead ? "font-medium" : ""}`}>{n.title}</p>
+                          <p className={`text-sm ${!n.readAt ? "font-medium" : ""}`}>{n.title}</p>
                           {(n as any).jobCategory && (
                             <Badge variant="secondary" className={`text-[10px] shrink-0 no-default-hover-elevate no-default-active-elevate ${(n as any).jobCategory === "EID" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
                               {(n as any).jobCategory}
                             </Badge>
                           )}
-                          {!n.isRead && <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />}
+                          {!n.readAt && <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-1.5" />}
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
                         <p className="text-xs text-muted-foreground mt-1">

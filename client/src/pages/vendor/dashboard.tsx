@@ -146,7 +146,7 @@ export default function VendorDashboard() {
   const activityFeed = data?.activityFeed || [];
   const staleAlerts = data?.staleAlerts;
   const hasStaleAlerts = staleAlerts && staleAlerts.unacceptedJobs > 0;
-  const unreadNotifications = (notifications || []).filter(n => !n.isRead).slice(0, 5);
+  const unreadNotifications = (notifications || []).filter(n => !n.readAt).slice(0, 5);
 
   const awaitingAcceptanceWOs = woGrouped.filter(wo =>
     wo.jobs.some(j => j.status === "SubmittedToVendor")
@@ -751,7 +751,7 @@ function NotificationGroup({
               key={n.id}
               className="px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
               onClick={() => {
-                if (!n.isRead) markReadMutation.mutate(n.id);
+                if (!n.readAt) markReadMutation.mutate(n.id);
                 if (jobUrl) navigate(jobUrl);
               }}
               data-testid={`notification-${n.id}`}
@@ -765,7 +765,7 @@ function NotificationGroup({
                   <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{n.message}</p>
                   <p className="text-[11px] text-muted-foreground/70 mt-1">{n.createdAt ? formatRelativeTime(n.createdAt) : ""}</p>
                 </div>
-                {!n.isRead && (
+                {!n.readAt && (
                   <div className="h-2 w-2 rounded-full bg-primary shrink-0 mt-2" />
                 )}
               </div>
