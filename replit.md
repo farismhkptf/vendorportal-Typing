@@ -73,10 +73,12 @@ The backend utilizes Express.js 5 with TypeScript, providing a RESTful JSON API.
 
 #### Schema Architecture (Task #95: Vendor Portal Execution-Only Schema Migration)
 
-The database uses a **dual-schema architecture** on a shared Neon PostgreSQL instance:
+The database uses a **dual-schema architecture** on a single shared Replit PostgreSQL instance. Both Client Portal and Vendor Portal connect to the same database via `DATABASE_URL` (owned by Client Portal):
 
-- **`public` schema** — Client Portal master data: `companies`, `work_orders`, `staff`, `service_types`, `users`, `appointments`, `centers`, `files`, `messages`, `audit_log`, etc.
-- **`vendor` schema** — Vendor Portal execution tables: `vendors`, `typing_jobs`, `typing_job_results`, `typing_job_comments`, `vendor_approvals`, `vendor_wallet_ledger`, `vendor_statements`, `vendor_invoices`, `vendor_notifications`, `vendor_users`, `cross_portal_events`, `medical_cases`, `medical_appointment_cycles`, `medical_appointment_events`, `biometrics_cases`, `biometrics_appointment_cycles`, `biometrics_appointment_events`, `attestation_sr`, `attestation_sr_steps`, `attestation_sr_activity_log`, `attestation_categories`, `attestation_services`, `attestation_service_variants`, `attestation_service_step_definitions`, `job_types`, `app_settings`.
+- **`public` schema** — Owned and managed by Client Portal: `companies`, `work_orders`, `staff`, `service_types`, `users`, `appointments`, `centers`, `files`, `messages`, `audit_log`, etc.
+- **`vendor` schema** — Owned and managed by Vendor Portal: `vendors`, `typing_jobs`, `typing_job_results`, `typing_job_comments`, `vendor_approvals`, `vendor_wallet_ledger`, `vendor_statements`, `vendor_invoices`, `vendor_notifications`, `vendor_users`, `cross_portal_events`, `medical_cases`, `medical_appointment_cycles`, `medical_appointment_events`, `biometrics_cases`, `biometrics_appointment_cycles`, `biometrics_appointment_events`, `attestation_sr`, `attestation_sr_steps`, `attestation_sr_activity_log`, `attestation_categories`, `attestation_services`, `attestation_service_variants`, `attestation_service_step_definitions`, `job_types`, `app_settings`.
+
+**Connection model**: Vendor Portal connects to the shared Replit Postgres database using Client Portal's `DATABASE_URL`. Access to the `vendor` schema is scoped through a `vendor_portal` role, keeping each portal's write surface isolated within its own schema.
 
 **Ownership boundary**: The Vendor Portal (`/vendor/*` routes) may **read** `public` tables (companies, work_orders, staff) but **never writes** to them. All Vendor Portal writes go to `vendor.*` tables. Cross-portal communication flows through `vendor.cross_portal_events`.
 
@@ -88,7 +90,7 @@ The database uses a **dual-schema architecture** on a shared Neon PostgreSQL ins
 
 The core entities include Users (with 7 roles: Admin, Client Relationship Manager, Medical Support, Medical Support - Temporary, Vendor, Client Coordinator, Client Manager), Companies, Work Orders, Appointments, Typing Jobs, Vendors, and Vendor Wallet Ledgers. It also manages Service Types, Centers, Staff, Files, Messages, and Audit Logs, using `pgEnum` for type-safe enumerations. Database indexes are defined on all major foreign key columns for query performance. Cascade delete logic in `storage.ts` ensures deleting a work order removes all child records. Deleting staff or centers nullifies dangling references in appointments and companies before deletion.
 
-Migration `0008_vendor_schema_migration.sql` creates the vendor schema and all its tables. Migration `0009_drop_local_master_tables_SAFETY_GATED.sql` (safety-gated) drops public-owned tables once shared data is verified present.
+Migration `0008_vendor_schema_migration.sql` creates the vendor schema and all its tables.
 
 #### Work Order Status Model
 
