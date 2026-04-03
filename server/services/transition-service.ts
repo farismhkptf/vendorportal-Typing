@@ -1,5 +1,6 @@
 import { storage } from "../storage";
 import { notifyStaffByRoles } from "./notification-service";
+import { pushStatusToClientPortal } from "./client-portal-push";
 
 export async function checkAndAutoTransitionWorkOrder(woId: string): Promise<void> {
   try {
@@ -55,6 +56,18 @@ export async function checkAndAutoTransitionWorkOrder(woId: string): Promise<voi
         details: { from: wo.status, to: newStatus, applicantName: wo.applicantName, woNumber: wo.woNumber },
       });
       console.log(`[auto-transition] Work order ${wo.woNumber} transitioned ${wo.status} → ${newStatus}`);
+
+      // Push auto-transition event to Client Portal (non-blocking)
+      pushStatusToClientPortal({
+        eventType: "work_order.status_changed",
+        workOrderId: woId,
+        woNumber: wo.woNumber,
+        applicantName: wo.applicantName,
+        companyId: wo.companyId,
+        status: newStatus,
+        details: { previousStatus: wo.status, newStatus, trigger: "auto_transition" },
+        timestamp: new Date().toISOString(),
+      }).catch((err: unknown) => { console.error("[auto-transition] push error:", err); });
     }
   } catch (err) {
     console.error("[auto-transition] Error:", err);
@@ -161,6 +174,18 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
       details: { reason: "All required tracks completed", applicantName: wo.applicantName, woNumber: wo.woNumber },
     });
     console.log(`[auto-complete] Work order ${wo.woNumber} auto-completed`);
+
+    // Push auto-completion event to Client Portal (non-blocking)
+    pushStatusToClientPortal({
+      eventType: "work_order.status_changed",
+      workOrderId: woId,
+      woNumber: wo.woNumber,
+      applicantName: wo.applicantName,
+      companyId: wo.companyId,
+      status: "Completed",
+      details: { previousStatus: wo.status, newStatus: "Completed", trigger: "auto_complete" },
+      timestamp: new Date().toISOString(),
+    }).catch((err: unknown) => { console.error("[auto-complete] push error:", err); });
 
     try {
       const company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
