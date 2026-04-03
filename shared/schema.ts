@@ -57,13 +57,13 @@ export const woStatusEnum = pgEnum("wo_status", ["Draft", "AtVendor", "ReadyToSc
 export const appointmentTypeEnum = pgEnum("appointment_type", ["Medical", "EID"]);
 export const appointmentStatusEnum = pgEnum("appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"]);
 export const rescheduleStatusEnum = pgEnum("reschedule_status", ["New", "Accepted", "Closed"]);
-export const typingJobStatusEnum = pgEnum("typing_job_status", [
+export const typingJobStatusEnum = vendorSchema.enum("typing_job_status", [
   "Draft", "SubmittedToVendor", "InProcess", "Returned",
   "ReadyForScheduling", "OnHold", "Rejected", "Aborted"
 ]);
-export const jobCategoryEnum = pgEnum("job_category", ["Medical", "EID"]);
-export const fileDirectionEnum = pgEnum("file_direction", ["Input", "Output"]);
-export const uploadedByTypeEnum = pgEnum("uploaded_by_type", ["Internal", "Vendor"]);
+export const jobCategoryEnum = vendorSchema.enum("job_category", ["Medical", "EID"]);
+export const fileDirectionEnum = vendorSchema.enum("file_direction", ["Input", "Output"]);
+export const uploadedByTypeEnum = vendorSchema.enum("uploaded_by_type", ["Internal", "Vendor"]);
 export const documentTypeEnum = pgEnum("document_type", [
   "PassportCopy",
   "Photo",
@@ -85,16 +85,16 @@ export const serviceCategoryEnum = pgEnum("service_category", [
   "NewbornDependent",
   "LostReplaceEid"
 ]);
-export const authorTypeEnum = pgEnum("author_type", ["Internal", "Vendor"]);
+export const authorTypeEnum = vendorSchema.enum("author_type", ["Internal", "Vendor"]);
 export const messageChannelEnum = pgEnum("message_channel", ["Email", "WhatsApp"]);
 export const messageStatusEnum = pgEnum("message_status", ["Draft", "MarkedSent", "Failed"]);
 export const walletEntryTypeEnum = pgEnum("wallet_entry_type", ["Topup", "Debit", "Reversal", "Adjustment"]);
 export const staffStatusEnum = pgEnum("staff_status", ["Active", "OnLeave", "Cancelled", "TempActive", "TempInactive"]);
 export const staffTypeEnum = pgEnum("staff_type", ["Permanent", "Temporary"]);
 export const approvalStatusEnum = pgEnum("approval_status", ["Pending", "Approved", "Rejected"]);
-export const changeNotificationStatusEnum = pgEnum("change_notification_status", ["pending", "reviewed", "dismissed"]);
+export const changeNotificationStatusEnum = vendorSchema.enum("change_notification_status", ["pending", "reviewed", "dismissed"]);
 export const passwordResetStatusEnum = pgEnum("password_reset_status", ["pending", "approved", "rejected"]);
-export const deletionRequestStatusEnum = pgEnum("deletion_request_status", ["pending", "approved", "denied"]);
+export const deletionRequestStatusEnum = vendorSchema.enum("deletion_request_status", ["pending", "approved", "denied"]);
 
 // Attestation enums
 export const vendorTypeEnum = pgEnum("vendor_type", ["Typing", "Attestation"]);
@@ -603,8 +603,9 @@ export const typingJobComments = vendorSchema.table("typing_job_comments", {
   index("idx_typing_job_comments_typing_job_id").on(table.typingJobId),
 ]);
 
-// Files table
-export const files = pgTable("files", {
+// Files table — Vendor Portal execution data
+// Owned by Vendor Portal under vendor schema
+export const files = vendorSchema.table("files", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   relatedType: text("related_type").notNull(),
   relatedId: varchar("related_id").notNull(),
@@ -618,7 +619,7 @@ export const files = pgTable("files", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_files_related_id").on(table.relatedId),
+  index("idx_vendor_files_related_id").on(table.relatedId),
 ]);
 
 // Messages table
@@ -752,7 +753,8 @@ export const appSettings = vendorSchema.table("app_settings", {
 });
 
 // Change notifications table (manager edits for admin review)
-export const changeNotifications = pgTable("change_notifications", {
+// Owned by Vendor Portal under vendor schema
+export const changeNotifications = vendorSchema.table("change_notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   entityType: text("entity_type").notNull(),
   entityId: varchar("entity_id").notNull(),
@@ -768,7 +770,8 @@ export const changeNotifications = pgTable("change_notifications", {
 });
 
 // Staff Notifications table
-export const staffNotifications = pgTable("staff_notifications", {
+// Moved to vendor schema as part of vendor boundary enforcement
+export const staffNotifications = vendorSchema.table("staff_notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
   type: text("type").notNull(),
@@ -779,7 +782,7 @@ export const staffNotifications = pgTable("staff_notifications", {
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_staff_notifications_user_id").on(table.userId),
+  index("idx_vendor_staff_notifications_user_id").on(table.userId),
 ]);
 
 // Audit Log table — Vendor Portal audit trail
@@ -1309,7 +1312,8 @@ export const CUSTODY_DOC_SUBTYPES_BY_CATEGORY: Record<string, string[]> = {
   EmbassyAttestation: ["BirthCertificate", "MarriageCertificate", "EmbassyAffidavit", "AcademicCertificate", "PersonalPOA", "TradeLicense", "MOA", "BusinessPOA", "InternalCompanyDocuments", "PassportCopy", "ResidencyCopy", "UtilityBill", "Other"],
 };
 
-export const deletionRequests = pgTable("deletion_requests", {
+// Deletion Requests table — moved to vendor schema as part of vendor boundary enforcement
+export const deletionRequests = vendorSchema.table("deletion_requests", {
   id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   entityType: text("entity_type").notNull(), // e.g. "work_order", "document", "note", "company_email"
   entityId: text("entity_id").notNull(),
