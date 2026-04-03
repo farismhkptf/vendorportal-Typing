@@ -111,8 +111,10 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
   // ========== Settings ==========
   app.get("/api/settings", requireAuth, async (req, res) => {
     try {
+      const user = await storage.getUser(req.session!.userId);
+      const isAdmin = user?.role === "Admin";
       const settings = await storage.getAppSettings();
-      res.json(settings || {
+      const base = settings || {
         fromEmail: "notifications@procompany.ae",
         fromName: "The P.R.O. Company",
         replyToEmail: "operations@procompany.ae",
@@ -120,7 +122,13 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         lowBalanceThreshold: 1000,
         followUpCenter: null,
         vendorDelayThresholdHours: 48,
-      });
+      };
+      // Mask sensitive integration secrets for non-admin users
+      if (!isAdmin) {
+        const { clientPortalOutboundApiKey: _masked, ...safe } = base as Record<string, unknown>;
+        return res.json(safe);
+      }
+      res.json(base);
     } catch (error) {
       console.error("Settings error:", error);
       res.status(500).json({ message: "Failed to fetch settings" });

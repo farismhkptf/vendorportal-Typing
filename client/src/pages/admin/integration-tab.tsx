@@ -153,7 +153,7 @@ export function IntegrationTab() {
             {status.recentEvents.map((ev) => (
               <div key={ev.id} className="flex items-start gap-3 p-3 rounded-xl bg-muted/20 border border-border/20 hover:bg-muted/30 transition-colors" data-testid={`row-integration-event-${ev.id}`}>
                 <div className="mt-0.5">
-                  {ev.status === "delivered" ? (
+                  {ev.status === "sent" ? (
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                   ) : ev.status === "failed" ? (
                     <XCircle className="h-4 w-4 text-red-500 shrink-0" />
