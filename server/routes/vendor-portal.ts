@@ -8,6 +8,7 @@ import { validateBody } from "../middleware/validation";
 import { executeTransition, validateTransition } from "../typing-job-machine";
 import type { TypingJobStatus } from "../typing-job-machine";
 import { checkAndAutoTransitionWorkOrder, checkAndAutoCompleteWorkOrder, revertDelayedWorkOrder } from "../services/transition-service";
+import { pushStatusToClientPortal } from "../services/client-portal-push";
 import type { DocumentRequirement, WoDocument } from "@shared/schema";
 import type { RouteDeps } from "./types";
 
@@ -910,27 +911,28 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
       await checkAndAutoTransitionWorkOrder(job.woId);
       await checkAndAutoCompleteWorkOrder(job.woId);
 
-      // Publish cross-portal event so Client Portal can act on job completion
+      // Push typing completion status to Client Portal via standard push service
       try {
-        await storage.publishCrossPortalEvent({
-          idempotencyKey: `typing_job.${jobId}.${newJobStatus}`,
-          sourceApp: "vendor_portal",
-          eventType: "typing_job.completed",
-          aggregateType: "typing_job",
-          aggregateId: jobId,
-          payload: {
-            jobCode: job.jobCode,
-            woId: job.woId,
-            vendorId: job.vendorId,
-            newStatus: newJobStatus,
-            jobTypeName: jobType?.name,
-            completedAt: new Date().toISOString(),
-          },
-          workOrderId: job.woId,
-          createdBy: req.session.vendorUserId || undefined,
-        });
+        const completedWo = await storage.getWorkOrderById(job.woId);
+        if (completedWo) {
+          pushStatusToClientPortal({
+            eventType: "typing_job.completed",
+            workOrderId: job.woId,
+            woNumber: completedWo.woNumber,
+            applicantName: completedWo.applicantName,
+            companyId: completedWo.companyId,
+            status: newJobStatus,
+            details: {
+              jobId,
+              jobCode: job.jobCode,
+              jobTypeName: jobType?.name,
+              completedAt: new Date().toISOString(),
+            },
+            timestamp: new Date().toISOString(),
+          }).catch((err: unknown) => { console.error("[vendor-portal] push error:", err); });
+        }
       } catch (eventErr) {
-        console.error("Failed to publish cross_portal_event for job completion:", eventErr);
+        console.error("Failed to push typing_job.completed to Client Portal:", eventErr);
       }
 
       try {
@@ -1040,27 +1042,30 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
         details: { biometricsRequired: data.biometricsRequired, vendorUserId: req.session.vendorUserId },
       });
 
-      // Publish cross-portal event so Client Portal can reflect biometrics requirement
+      // Push biometrics update to Client Portal via standard push service
       try {
-        await storage.publishCrossPortalEvent({
-          idempotencyKey: `typing_job.${jobId}.biometrics_updated.${Date.now()}`,
-          sourceApp: "vendor_portal",
-          eventType: "typing_job.biometrics_updated",
-          aggregateType: "typing_job",
-          aggregateId: jobId,
-          payload: {
-            jobId,
-            woId: job.woId,
-            vendorId: job.vendorId,
-            biometricsRequired: data.biometricsRequired,
-            biometricsDatetime: data.biometricsDatetime ?? null,
-            biometricsCenter: data.biometricsCenter ?? null,
-          },
-          workOrderId: job.woId ?? undefined,
-          createdBy: req.session.vendorUserId ?? undefined,
-        });
+        if (job.woId) {
+          const biometricsWo = await storage.getWorkOrderById(job.woId);
+          if (biometricsWo) {
+            pushStatusToClientPortal({
+              eventType: "typing_job.biometrics_updated",
+              workOrderId: job.woId,
+              woNumber: biometricsWo.woNumber,
+              applicantName: biometricsWo.applicantName,
+              companyId: biometricsWo.companyId,
+              status: job.status,
+              details: {
+                jobId,
+                biometricsRequired: data.biometricsRequired,
+                biometricsDatetime: data.biometricsDatetime ?? null,
+                biometricsCenter: data.biometricsCenter ?? null,
+              },
+              timestamp: new Date().toISOString(),
+            }).catch((err: unknown) => { console.error("[vendor-portal] biometrics push error:", err); });
+          }
+        }
       } catch (eventErr) {
-        console.error("Failed to publish cross_portal_event for biometrics update:", eventErr);
+        console.error("Failed to push typing_job.biometrics_updated to Client Portal:", eventErr);
       }
 
       res.json({ message: "Biometrics data saved" });

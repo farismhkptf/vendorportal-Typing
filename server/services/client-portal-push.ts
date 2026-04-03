@@ -107,7 +107,15 @@ export async function retryFailedPushes(): Promise<number> {
   let retried = 0;
 
   for (const event of toRetry) {
-    const payload = event.payload as unknown as StatusPushPayload;
+    const rawPayload = event.payload as Record<string, unknown>;
+    // Only process events with the standard StatusPushPayload shape;
+    // skip legacy events that were written directly to cross_portal_events
+    // with non-conformant payload fields (e.g. jobCode/woId without eventType/workOrderId)
+    if (!rawPayload?.eventType || !rawPayload?.workOrderId || !rawPayload?.timestamp) {
+      console.warn(`[client-portal-push] Skipping event ${event.id}: non-standard payload shape (eventType/workOrderId/timestamp missing)`);
+      continue;
+    }
+    const payload = rawPayload as unknown as StatusPushPayload;
     try {
       await doHttpPush(config.webhookUrl, config.outboundApiKey, payload);
       await storage.updateCrossPortalEvent(event.id, {
