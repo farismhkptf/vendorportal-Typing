@@ -290,7 +290,7 @@ export function AdminSettingsSection() {
                   <p className="text-sm text-muted-foreground mt-1">
                     {settings?.clientPortalOutboundApiKey ? "••••••••" + settings.clientPortalOutboundApiKey.slice(-4) : "Not configured"}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Sent as Bearer token in outbound push requests to the Client Portal</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Sent as X-Api-Key header in outbound push requests to the Client Portal</p>
                 </div>
                 <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => { setEditOutboundKeyOpen(true); setOutboundKeyVal(""); }} data-testid="button-edit-outbound-key"><Pencil className="h-4 w-4" /></Button>
               </div>
@@ -326,7 +326,7 @@ export function AdminSettingsSection() {
         <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>Outbound API Key</DialogTitle>
-            <DialogDescription>This key is sent as a Bearer token in push requests to the Client Portal. Enter a new key to replace the existing one.</DialogDescription>
+            <DialogDescription>This key is sent as an X-Api-Key header in push requests to the Client Portal. Enter a new key to replace the existing one.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <Input value={outboundKeyVal} onChange={(e) => setOutboundKeyVal(e.target.value)} placeholder="Enter new API key..." className="h-11 rounded-xl font-mono" data-testid="input-outbound-key" />
