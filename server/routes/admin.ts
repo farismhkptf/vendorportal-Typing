@@ -123,12 +123,16 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         followUpCenter: null,
         vendorDelayThresholdHours: 48,
       };
+      const withDerived = {
+        ...base,
+        sharedJwtSecretConfigured: !!process.env.SHARED_JWT_SECRET,
+      };
       // Mask sensitive integration secrets for non-admin users
       if (!isAdmin) {
-        const { clientPortalOutboundApiKey: _masked, ...safe } = base as Record<string, unknown>;
+        const { clientPortalOutboundApiKey: _masked, ...safe } = withDerived as Record<string, unknown>;
         return res.json(safe);
       }
-      res.json(base);
+      res.json(withDerived);
     } catch (error) {
       console.error("Settings error:", error);
       res.status(500).json({ message: "Failed to fetch settings" });

@@ -295,6 +295,18 @@ export function AdminSettingsSection() {
                 <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => { setEditOutboundKeyOpen(true); setOutboundKeyVal(""); }} data-testid="button-edit-outbound-key"><Pencil className="h-4 w-4" /></Button>
               </div>
             </div>
+            <div className="p-4 rounded-xl bg-muted/30 border border-border/30" data-testid="row-shared-jwt-secret">
+              <div className="flex items-center gap-3">
+                <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${(settings as any)?.sharedJwtSecretConfigured ? "bg-emerald-500" : "bg-slate-400"}`} />
+                <div>
+                  <p className="font-medium text-foreground">Shared JWT Secret</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {(settings as any)?.sharedJwtSecretConfigured ? "Configured — SSO redirect login is active" : "Not configured — set the SHARED_JWT_SECRET environment variable to enable SSO"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Both apps must share the same secret for cross-portal silent login to work</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
