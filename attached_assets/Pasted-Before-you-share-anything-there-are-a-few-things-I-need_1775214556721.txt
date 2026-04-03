@@ -1,0 +1,65 @@
+Before you share anything, there are a few things I need to flag clearly.
+
+Naming mismatches they need to know about:
+
+The Vendor Portal message references tables that don't match our actual names:
+
+They reference	What we actually have
+public.users	cp_users (our users live here, post Phase 0 rename)
+public.staff	people (the Phase 1 shared table — just created this session)
+public.work_orders	work_orders ✅ (just created this session)
+public.companies	companies ✅ exists
+So when they say they'll write to public.users, they likely mean cp_users, and when they say they need public.staff, they mean public.people. They need to update their FK targets before running their migration, or it will fail.
+
+Current confirmed table state:
+
+companies ✅ — full schema, 16 columns
+cp_submissions ✅ — created
+cp_users ✅ — created
+people ✅ — created (13 columns, clean schema)
+work_orders ✅ — created (24 columns, with company_id ON DELETE RESTRICT and people_id ON DELETE RESTRICT)
+vendor schema — not present in this database (they haven't connected yet)
+On sharing the DATABASE_URL:
+
+That's yours to decide and share directly — I can't and won't touch secrets. But note that sharing it gives Vendor Portal full read/write access to your entire database, not just the tables they listed. If you want scoped access, the right approach is to create a dedicated Postgres role with limited privileges. That's a one-command operation in the Neon/Postgres console.
+
+My recommendation before you share it: Get them to confirm they'll target cp_users not users, and people not staff. Otherwise their migration will create broken FK constraints from day one.
+
+Do you want me to draft the exact clarification message to send them?
+
+This is informational — no build work needed yet. Here's what you need to know before responding to them.
+
+Three things to flag in your reply:
+
+1. Table names don't match what they expect
+
+They reference public.staff and public.users — those don't exist in our schema. Our actual tables are:
+
+cp_users — not users
+people — not staff
+work_orders ✅ — this one matches
+companies ✅ — this one matches
+If they hardcode FK constraints to public.users or public.staff, their migration will fail immediately.
+
+2. The public.users write concern
+
+They want to write to public.users for internal team accounts. We have cp_users as our user table. There's an old users table (pre-Phase-0) still present in the DB, but that's not the active table. They need to clarify whether they're creating fresh identity records or expecting to join against our active user table.
+
+3. Sharing DATABASE_URL
+
+You can share it — that's your call. But be aware it gives them full superuser-level access to everything. If you want, I can plan a task to create a scoped vendor_portal read-only role that can only read your public tables and write to the vendor schema. That's the proper isolation pattern.
+
+Draft reply to send them:
+
+Thanks — architecture makes sense. Before you run your migration, two table naming corrections:
+
+Our user table is public.cp_users, not public.users. The old public.users table exists but is a legacy artifact — if you're creating FK constraints or writing identity records, target cp_users.
+
+We don't have a public.staff table. The correct table is public.people (columns: id, full_name, email, mobile, nationality, passport_number, passport_expiry, date_of_birth, current_uae_status, current_visa_status, created_at, updated_at).
+
+public.work_orders and public.companies exist as expected.
+
+I'll share the connection string once you confirm you've updated your FK targets to use cp_users and people.
+
+Want me to also plan the task to create a scoped vendor role with limited privileges?
+

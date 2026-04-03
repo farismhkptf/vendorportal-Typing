@@ -1,0 +1,39 @@
+#59 - Create Scoped Vendor Portal DB Role
+What & Why
+The Vendor Portal app will share the Replit Postgres database. Instead of connecting as the superuser, it should connect through a limited vendor_portal role. This role gets read-only access to all public schema tables (so it can read work_orders, companies, people, cp_users, etc.) and full write access to the vendor schema (where Vendor Portal creates all its own tables). This is the correct isolation pattern — Vendor Portal can never accidentally modify Client Portal data.
+
+Done looks like
+A vendor_portal PostgreSQL role exists in the database
+The role has CONNECT on the database and USAGE on the public schema
+The role has SELECT on all existing tables in public (and a default privilege so future tables are also readable)
+The role has USAGE, CREATE on the vendor schema (Vendor Portal creates this schema before connecting)
+The role has ALL PRIVILEGES on all tables in the vendor schema (and a default privilege for future tables)
+The vendor_portal role has a secure password set
+A VENDOR_PORTAL_DB_URL environment variable is documented (not added to our app — this is the credential the Vendor Portal team will use)
+The role creation SQL is committed to the codebase as a comment block in server/db.ts so it can be re-applied if the database is reset
+Out of scope
+Any application code changes to read from the vendor schema — that is a separate future task
+Creating or defining the vendor schema (Vendor Portal does that with their own migration)
+Storing the vendor portal connection string in our own Secrets
+Tasks
+Create the vendor_portal role — Run the following SQL (as superuser/postgres) to create the role with a secure password, grant connect on the database, grant usage on the public schema, grant select on all current public tables, and set default privileges so future public tables are also readable by the role. Exact SQL:
+
+CREATE ROLE vendor_portal WITH LOGIN PASSWORD '<secure-password>';
+GRANT CONNECT ON DATABASE postgres TO vendor_portal;
+GRANT USAGE ON SCHEMA public TO vendor_portal;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO vendor_portal;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO vendor_portal;
+Grant vendor schema access — Once the Vendor Portal creates the vendor schema, grant the vendor_portal role full access to it. Add this SQL to server/db.ts in the migration bootstrap, wrapped in a DO block with EXCEPTION handling so it silently skips if the vendor schema does not yet exist:
+
+DO $$ BEGIN
+  GRANT USAGE, CREATE ON SCHEMA vendor TO vendor_portal;
+  GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA vendor TO vendor_portal;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA vendor GRANT ALL ON TABLES TO vendor_portal;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+Document the connection string — Add a comment block in server/db.ts near the top, after the existing pool definition, that documents the vendor_portal connection string format: postgresql://vendor_portal:<password>@<host>/<database>. This is for reference only — the actual credential is shared with the Vendor Portal team directly and never stored in our Secrets.
+
+Store the role creation SQL as a runnable comment — Commit the full role-creation SQL (Task 1) as a comment block in server/db.ts under a header /* vendor_portal role setup — run once as superuser */. This ensures the role can be recreated if the database is ever reset.
+
+Relevant files
+server/db.ts

@@ -1,0 +1,24 @@
+Now I have the complete picture. Let me explain everything clearly before proposing tasks.
+
+Here's exactly what happened and what the current state is:
+
+Database journey:
+
+Started: Replit Postgres → Planned Neon → Back to Replit Postgres (with Vendor Portal sharing it)
+What is fine — nothing changes:
+
+Tasks #53–#58 (Phases 2–6a) are 100% unaffected. They're structural improvements to the app's own data model that have nothing to do with which database server hosts it. They proceed unchanged, in order.
+people ✅ and work_orders ✅ were created directly in the Replit DB this session — with the correct schemas and ON DELETE RESTRICT FK constraints you asked about.
+What is the problem:
+
+Task #52 (Phase 1) is marked "Ready to merge" — but it was implemented for the Neon architecture. It contains code that creates a separate connection to Neon. If you merge it as-is, it will add dead Neon connection code to the app and could break things.
+Two things I need to plan:
+
+Phase 1 Revision — Cancel the Neon-targeted implementation and replace it with a minimal revised plan: the shared tables already exist in the Replit DB, so Phase 1 now just needs to (a) clean up any Neon references from server/db.ts and shared/neon-schema.ts, (b) add proper Drizzle schema references for people and work_orders so Phases 2–6a can build on them, and (c) confirm people/work_orders are in migration bootstrap so they survive restarts.
+
+Vendor Portal Scoped Role — Create a PostgreSQL vendor_portal role with SELECT on all public.* tables and full access on the vendor schema. This lets Vendor Portal connect through a limited role instead of as superuser.
+
+Also for Vendor Portal — there's one more thing to flag back to them: they mentioned "PRO roles" for their staff accounts. Our cp_user_role enum has: admin, crm, accountant, client_coordinator, client_manager, client_accountant. There is no pro role. They need to clarify which existing role their PRO staff should use, or we need to add a new value to the enum.
+
+Let me write the two plan files now:
+
