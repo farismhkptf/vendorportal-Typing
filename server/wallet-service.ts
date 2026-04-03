@@ -84,7 +84,13 @@ export class WalletService {
   async debit(params: WalletDebitParams): Promise<VendorWalletLedger> {
     const { vendorId, amount, typingJobId, jobCode, note, createdBy } = params;
 
-    const debitAmount = amount > 0 ? -amount : amount;
+    const debitAbs = Math.abs(amount);
+    const currentBalance = await this.storage.getWalletBalance(vendorId);
+    if (currentBalance < debitAbs) {
+      throw new Error(`Insufficient wallet balance: current balance is AED ${currentBalance}, required AED ${debitAbs}`);
+    }
+
+    const debitAmount = -debitAbs;
 
     const entry = await this.storage.createWalletEntry({
       vendorId,

@@ -17,6 +17,10 @@ export const getTomorrow = () => {
   return tomorrow.toISOString().split("T")[0];
 };
 
+export const getTodayUAE = () => {
+  return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Dubai" });
+};
+
 export const appointmentSchema = z.object({
   woId: z.string().min(1, "Work order is required"),
   isVip: z.boolean().default(false),
@@ -26,6 +30,19 @@ export const appointmentSchema = z.object({
   appointmentTime: z.string().min(1, "Time is required"),
   assignedStaffId: z.string().optional(),
   notes: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (!data.appointmentDate || !data.appointmentTime) return;
+  const todayUAE = getTodayUAE();
+  if (data.appointmentDate < todayUAE) {
+    ctx.addIssue({ code: "custom", path: ["appointmentDate"], message: "Appointment date cannot be in the past" });
+    return;
+  }
+  if (data.appointmentDate === todayUAE) {
+    const nowUAE = new Date().toLocaleTimeString("en-GB", { timeZone: "Asia/Dubai", hour: "2-digit", minute: "2-digit" });
+    if (data.appointmentTime <= nowUAE) {
+      ctx.addIssue({ code: "custom", path: ["appointmentTime"], message: "Appointment time cannot be in the past" });
+    }
+  }
 });
 
 export type AppointmentForm = z.infer<typeof appointmentSchema>;

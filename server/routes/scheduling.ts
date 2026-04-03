@@ -14,19 +14,21 @@ export function registerSchedulingRoutes(app: Express, deps: RouteDeps): void {
 
 const FINAL_STATUSES = ["RESULT_ISSUED", "MEDICAL_FAILED", "CLOSED_ADMIN_OVERRIDE", "NO_SHOW", "RETEST_REQUIRED"];
 
-// Valid transitions map
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   SCHEDULED: ["AWAITING_MEETING"],
   AWAITING_MEETING: ["IN_PROCESS", "NO_SHOW"],
   IN_PROCESS: ["COMPLETED"],
   COMPLETED: ["RESULT_DELAYED", "RESULT_ISSUED", "MEDICAL_FAILED", "RETEST_REQUIRED"],
   RESULT_DELAYED: ["RESULT_ISSUED", "MEDICAL_FAILED", "RETEST_REQUIRED"],
-  RETEST_REQUIRED: [], // terminal — new cycle must be created
+  RETEST_REQUIRED: [],
   RESULT_ISSUED: [],
   MEDICAL_FAILED: [],
-  NO_SHOW: [],
+  NO_SHOW: ["SCHEDULED_NEW_CYCLE"],
   CLOSED_ADMIN_OVERRIDE: [],
 };
+
+// "SCHEDULED_NEW_CYCLE" is a pseudo-status: reschedule creates a new SCHEDULED cycle.
+const RESCHEDULE_FROM_NO_SHOW = "SCHEDULED_NEW_CYCLE";
 
 function canTransition(from: string, to: string): boolean {
   return (ALLOWED_TRANSITIONS[from] || []).includes(to);
@@ -446,6 +448,65 @@ app.post("/api/appointment-cycles/:cycleId/admin-override", requireAuth, async (
   } catch (error) {
     console.error("Admin override error:", error);
     res.status(500).json({ message: "Failed to apply admin override" });
+  }
+});
+
+// POST /api/appointment-cycles/:cycleId/reschedule
+app.post("/api/appointment-cycles/:cycleId/reschedule", requireAuth, async (req, res) => {
+  try {
+    const user = await storage.getUser(req.session!.userId);
+    if (!user) return res.status(401).json({ message: "Not authenticated" });
+
+    const cycle = await storage.getCycleById(req.params.cycleId);
+    if (!cycle) return res.status(404).json({ message: "Cycle not found" });
+
+    if (!canTransition(cycle.status, RESCHEDULE_FROM_NO_SHOW)) {
+      return res.status(400).json({ message: "Only NO_SHOW cycles can be rescheduled via this endpoint" });
+    }
+
+    const medCase = await storage.getMedicalCaseById(cycle.caseId);
+    if (!medCase) return res.status(404).json({ message: "Medical case not found" });
+    if (!medCase.isOpen) return res.status(400).json({ message: "Medical case is closed" });
+
+    const existingCycles = await storage.getCyclesByCase(cycle.caseId);
+    const activeCycle = existingCycles.find(c => !FINAL_STATUSES.includes(c.status) && c.id !== cycle.id);
+    if (activeCycle) {
+      return res.status(409).json({
+        message: "A rescheduled cycle is already active for this case. Cancel it first.",
+        activeCycleId: activeCycle.id,
+      });
+    }
+
+    const bodySchema = z.object({
+      appointmentTime: z.string(),
+      centerId: z.string().optional(),
+      assignedProId: z.string().optional(),
+    });
+    const parsed = bodySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
+
+    const cycleNumber = existingCycles.length + 1;
+
+    const newCycle = await storage.createRescheduleCycle(
+      cycle.id,
+      {
+        caseId: cycle.caseId,
+        cycleNumber,
+        cycleType: "Reschedule",
+        status: "SCHEDULED",
+        appointmentTime: new Date(parsed.data.appointmentTime),
+        centerId: parsed.data.centerId || null,
+        assignedProId: parsed.data.assignedProId || null,
+        createdBy: user.id,
+      },
+      user.id,
+      user.role
+    );
+
+    res.json(newCycle);
+  } catch (error) {
+    console.error("Reschedule no-show error:", error);
+    res.status(500).json({ message: "Failed to reschedule" });
   }
 });
 

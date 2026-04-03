@@ -15,7 +15,7 @@ import { cn, getInitials } from "@/lib/utils";
 import { formatTime12h } from "@/lib/format-date";
 import { toProperCase } from "@/lib/proper-case";
 import type { Center, Staff, Company } from "@shared/schema";
-import { TIME_SLOTS, getSchedulerConfig, getPreferredCenterId } from "./schedule-shared-types";
+import { TIME_SLOTS, getSchedulerConfig, getPreferredCenterId, getTodayUAE } from "./schedule-shared-types";
 import type { AppointmentForm, SchedulingQueueItem, SchedulerType } from "./schedule-shared-types";
 
 interface ScheduleAppointmentFormProps {
@@ -211,6 +211,7 @@ export function ScheduleAppointmentForm({
                 <FormControl>
                   <Input
                     type="date"
+                    min={getTodayUAE()}
                     {...field}
                     data-testid={`${prefix}input-date`}
                   />

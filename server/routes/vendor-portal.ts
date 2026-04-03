@@ -5,7 +5,8 @@ import { storage } from "../storage";
 import { vendorLoginSchema } from "../route-schemas";
 import { requireVendorAuth, requireTypingVendor, loginRateLimit, recordFailedLogin, clearFailedLogins } from "../middleware/auth";
 import { validateBody } from "../middleware/validation";
-import { executeTransition } from "../typing-job-machine";
+import { executeTransition, validateTransition } from "../typing-job-machine";
+import type { TypingJobStatus } from "../typing-job-machine";
 import { checkAndAutoTransitionWorkOrder, checkAndAutoCompleteWorkOrder, revertDelayedWorkOrder } from "../services/transition-service";
 import type { DocumentRequirement, WoDocument } from "@shared/schema";
 import type { RouteDeps } from "./types";
@@ -875,27 +876,36 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
       const jobType = job.jobTypeId ? await storage.getJobTypeById(job.jobTypeId) : null;
       const deductionAmount = job.costSnapshot || jobType?.cost || 0;
 
-      const result = await executeTransition({
-        action: "complete",
-        jobId,
-        actor: "vendor",
-        actorId: req.session.vendorUserId || undefined,
-        storage,
-        notifyVendorUsers,
-        notifyStaffByRoles,
-        notifySingleUser,
-      });
-      if (!result.success) return res.status(400).json({ message: result.error });
+      // Validate the state machine transition before any writes
+      const transitionValidation = validateTransition("complete", job.status as TypingJobStatus, "vendor");
+      if (!transitionValidation.valid) {
+        return res.status(400).json({ message: transitionValidation.error });
+      }
+      const newJobStatus = transitionValidation.newStatus!;
 
       if (deductionAmount > 0 && job.vendorId) {
-        await walletService.debit({
-          vendorId: job.vendorId,
-          amount: deductionAmount,
-          typingJobId: jobId,
-          jobCode: job.jobCode || undefined,
-          createdBy: req.session.vendorUserId || undefined,
-        });
+        // Atomically: re-check balance + update job status + insert wallet debit (one DB transaction)
+        try {
+          await storage.completeJobAndDebit(jobId, newJobStatus, {
+            vendorId: job.vendorId,
+            entryType: "Debit",
+            typingJobId: jobId,
+            amount: -deductionAmount,
+            note: `Job completed - deduction for ${job.jobCode || jobId}`,
+            createdBy: req.session.vendorUserId || undefined,
+          });
+        } catch (txErr: unknown) {
+          const msg = txErr instanceof Error ? txErr.message : "Job completion failed";
+          return res.status(402).json({ message: msg });
+        }
+      } else {
+        // No wallet debit needed — just update the job status
+        await storage.updateTypingJob(jobId, { status: newJobStatus as typeof job.status });
       }
+
+      // Run non-transactional side effects (notifications, audit, WO transitions)
+      const completedJob = await storage.getTypingJobById(jobId);
+      if (!completedJob) return res.status(404).json({ message: "Job not found after completion" });
 
       await revertDelayedWorkOrder(job.woId);
       await checkAndAutoTransitionWorkOrder(job.woId);
@@ -927,7 +937,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
         console.error("Failed to create team notification audit:", auditErr);
       }
 
-      res.json(result.job);
+      res.json(completedJob);
     } catch (error) {
       console.error("Vendor complete error:", error);
       res.status(500).json({ message: "Failed to complete job" });

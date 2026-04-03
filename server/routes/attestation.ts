@@ -520,6 +520,17 @@ app.patch("/api/attestation/service-requests/:id", requireOpsRole, async (req, r
     if (sr.status === "Cancelled" || sr.status === "Completed") {
       return res.status(400).json({ message: "Cannot edit a completed or cancelled service request" });
     }
+
+    // For attestation vendors, physicalCustodyStatus can only be changed via the /handoff endpoint
+    if (physicalCustodyStatus !== undefined) {
+      const vendor = await storage.getVendorById(sr.vendorId);
+      if (vendor?.vendorType === "Attestation") {
+        return res.status(400).json({
+          message: "Physical custody status for attestation service requests must be updated via the /handoff endpoint",
+        });
+      }
+    }
+
     const updateData: Record<string, unknown> = {};
     const userId = req.session?.userId;
     if (internalNotes !== undefined) {

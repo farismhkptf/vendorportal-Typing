@@ -75,6 +75,11 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
 
     const terminalJobStatuses = ["ReadyForScheduling", "Returned"];
     const terminalApptStatuses = ["Completed", "FollowUpCompleted"];
+    const blockingApptStatuses = ["FollowUpRequired"];
+
+    // Block auto-complete if any appointment is in a follow-up-required state
+    const blockingAppt = appts.find(a => blockingApptStatuses.includes(a.status));
+    if (blockingAppt) return false;
 
     const needsMedical = serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling;
     const needsEid = serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years || serviceType.requiresIdBiometrics;

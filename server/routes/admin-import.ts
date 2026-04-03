@@ -1002,26 +1002,34 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         : undefined;
       
       const finalAmount = adjustedAmount ?? approvalRecord.calculatedAmount;
-      
-      await storage.updateVendorApproval(approvalId, {
-        status: "Approved",
-        adjustedAmount: adjustedAmount !== undefined ? adjustedAmount : null,
-        approvedBy: req.session.userId,
-        resolvedAt: new Date(),
-      });
-      
-      await storage.updateTypingJob(approvalRecord.typingJobId, {
-        status: "ReadyForScheduling",
-        sentToClientAt: new Date(),
-      });
-      
-      if (finalAmount > 0) {
-        await walletService.debit({
-          vendorId: approvalRecord.vendorId,
-          amount: finalAmount,
-          typingJobId: approvalRecord.typingJobId,
-          createdBy: req.session.userId,
-        });
+
+      // Atomically: update approval + job status + insert wallet debit in one DB transaction.
+      // Balance is re-checked inside the transaction to close the TOCTOU window.
+      try {
+        await storage.approveJobAndDebit(
+          approvalId,
+          {
+            status: "Approved",
+            adjustedAmount: adjustedAmount !== undefined ? adjustedAmount : null,
+            approvedBy: req.session.userId,
+            resolvedAt: new Date(),
+          },
+          approvalRecord.typingJobId,
+          { status: "ReadyForScheduling", sentToClientAt: new Date() },
+          finalAmount > 0
+            ? {
+                vendorId: approvalRecord.vendorId,
+                entryType: "Debit",
+                typingJobId: approvalRecord.typingJobId,
+                amount: -finalAmount,
+                note: `Job approved - deduction for ${approvalRecord.typingJobId}`,
+                createdBy: req.session.userId || undefined,
+              }
+            : null
+        );
+      } catch (txErr: unknown) {
+        const msg = txErr instanceof Error ? txErr.message : "Approval failed";
+        return res.status(402).json({ message: msg });
       }
       
       await storage.createAuditLog({

@@ -328,8 +328,19 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         return res.status(400).json({ message: `Work order ${validation.data.woNumber} already exists` });
       }
 
-      const duplicateCount = await storage.countDuplicateApplicants(validation.data.applicantName);
-      
+      const duplicateWos = await storage.getWorkOrders(validation.data.applicantName);
+      const activeMatch = duplicateWos.find(
+        wo => wo.applicantName.toLowerCase() === validation.data.applicantName.toLowerCase() &&
+          wo.status !== "Completed" && wo.status !== "Cancelled"
+      );
+      if (activeMatch) {
+        return res.status(409).json({
+          message: `An active work order for this applicant already exists`,
+          existingWorkOrderId: activeMatch.id,
+          existingWoNumber: activeMatch.woNumber,
+        });
+      }
+
       const wo = await storage.createWorkOrder({
         ...validation.data,
         applicantName: toProperCase(validation.data.applicantName),
@@ -416,13 +427,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         console.error("Failed to auto-create typing jobs for WO:", typingJobError);
       }
       
-      const responseData = { ...wo, autoCreatedJobs } as typeof wo & { autoCreatedJobs: typeof autoCreatedJobs; duplicateWarning?: { message: string; count: number } };
-      if (duplicateCount > 0) {
-        responseData.duplicateWarning = {
-          message: "An active work order for this applicant already exists",
-          count: duplicateCount,
-        };
-      }
+      const responseData = { ...wo, autoCreatedJobs };
       
       res.status(201).json(responseData);
     } catch (error) {
@@ -854,60 +859,101 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
       }
-      
-      const existingActive = await storage.getActiveAppointmentByWoAndType(
-        validation.data.woId,
-        validation.data.type
-      );
-      if (existingActive) {
-        return res.status(409).json({ 
-          message: `This work order already has a ${validation.data.type} appointment that is ${existingActive.status.toLowerCase()}.`,
-          existingAppointmentId: existingActive.id
+
+      // Guard: appointment must be today or in the future (UAE/Dubai timezone).
+      // Uses raw body string before Zod conversion to avoid server-tz shift.
+      if (req.body.datetime) {
+        const rawStr = String(req.body.datetime);
+
+        // Treat offset-free strings as Dubai wall-clock time (+04:00).
+        // Accept Z, +HH:MM, -HH:MM as already-offset strings.
+        const hasOffset = /Z$/.test(rawStr) || /[+-]\d{2}:?\d{2}$/.test(rawStr);
+        const isoWithOffset = hasOffset ? rawStr : `${rawStr}+04:00`;
+        const apptInstant = new Date(isoWithOffset);
+
+        if (isNaN(apptInstant.getTime())) {
+          return res.status(400).json({ message: "Invalid appointment datetime" });
+        }
+
+        const dubaiFormatter = new Intl.DateTimeFormat("en-US", {
+          timeZone: "Asia/Dubai",
+          year: "numeric", month: "2-digit", day: "2-digit",
+          hour: "2-digit", minute: "2-digit", hour12: false,
         });
+
+        const extractParts = (d: Date) => {
+          const p = Object.fromEntries(dubaiFormatter.formatToParts(d).map(x => [x.type, x.value]));
+          const dateKey = `${p.year}-${p.month}-${p.day}`;
+          const hour = parseInt(p.hour === "24" ? "0" : p.hour, 10);
+          return { dateKey, totalMinutes: hour * 60 + parseInt(p.minute, 10) };
+        };
+
+        const nowParts = extractParts(new Date());
+        const apptParts = extractParts(apptInstant);
+
+        if (apptParts.dateKey < nowParts.dateKey) {
+          return res.status(400).json({ message: "Appointment date cannot be in the past" });
+        }
+        if (apptParts.dateKey === nowParts.dateKey && apptParts.totalMinutes <= nowParts.totalMinutes) {
+          return res.status(400).json({ message: "Appointment time cannot be in the past" });
+        }
       }
 
       const allAppts = await storage.getAppointmentsByWoId(validation.data.woId);
+      // Allow follow-up scheduling when FollowUpRequired exists for this track.
       const followUpAppt = allAppts.find(
         (a: { type: string; status: string }) => a.type === validation.data.type && a.status === "FollowUpRequired"
       );
-      if (followUpAppt) {
-        await storage.updateAppointment(followUpAppt.id, { status: "FollowUpScheduled" });
+
+      if (!followUpAppt) {
+        const existingActive = await storage.getActiveAppointmentByWoAndType(
+          validation.data.woId,
+          validation.data.type
+        );
+        if (existingActive) {
+          return res.status(409).json({ 
+            message: `This work order already has a ${validation.data.type} appointment that is ${existingActive.status.toLowerCase()}.`,
+            existingAppointmentId: existingActive.id
+          });
+        }
+      }
+
+      // Determine new WO status before creating the appointment
+      let newWoStatus: string | null = null;
+      const woForAppt = await storage.getWorkOrderById(validation.data.woId);
+      if (woForAppt && (woForAppt.status === "ReadyToSchedule" || woForAppt.status === "Draft" || woForAppt.status === "AtVendor")) {
+        const serviceType = woForAppt.serviceTypeId
+          ? await storage.getServiceTypeById(woForAppt.serviceTypeId)
+          : null;
+        // Include the new appointment in the count
+        const activeAppts = allAppts.filter(a => a.status !== "Cancelled" && a.status !== "Rescheduled");
+
+        const needsMed = serviceType
+          ? (!woForAppt.isMinor && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling))
+          : false;
+        const needsEid = serviceType
+          ? (serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years || serviceType.requiresIdBiometrics)
+          : false;
+
+        const newApptType = validation.data.type;
+        const hasMedAppt = activeAppts.some(a => a.type === "Medical") || newApptType === "Medical";
+        const hasEidAppt = activeAppts.some(a => a.type === "EID") || newApptType === "EID";
+
+        const medSatisfied = !needsMed || hasMedAppt;
+        const eidSatisfied = !needsEid || hasEidAppt;
+        const anyApptBooked = hasMedAppt || hasEidAppt;
+
+        if (anyApptBooked && medSatisfied && eidSatisfied) {
+          newWoStatus = "Scheduled";
+        }
       }
 
       const rescheduleToken = randomUUID();
-      const appointment = await storage.createAppointment({
-        ...validation.data,
-        rescheduleToken,
-      });
-      
-      if (appointment.woId) {
-        const woForAppt = await storage.getWorkOrderById(appointment.woId);
-        if (woForAppt && (woForAppt.status === "ReadyToSchedule" || woForAppt.status === "Draft" || woForAppt.status === "AtVendor")) {
-          const serviceType = woForAppt.serviceTypeId
-            ? await storage.getServiceTypeById(woForAppt.serviceTypeId)
-            : null;
-          const allAppts = await storage.getAppointmentsByWoId(appointment.woId);
-          const activeAppts = allAppts.filter(a => a.status !== "Cancelled" && a.status !== "Rescheduled");
-
-          const needsMed = serviceType
-            ? (!woForAppt.isMinor && (serviceType.requiresMedicalTyping || serviceType.requiresMedicalScheduling))
-            : false;
-          const needsEid = serviceType
-            ? (serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years || serviceType.requiresIdBiometrics)
-            : false;
-
-          const hasMedAppt = activeAppts.some(a => a.type === "Medical");
-          const hasEidAppt = activeAppts.some(a => a.type === "EID");
-
-          const medSatisfied = !needsMed || hasMedAppt;
-          const eidSatisfied = !needsEid || hasEidAppt;
-          const anyApptBooked = hasMedAppt || hasEidAppt;
-
-          if (anyApptBooked && medSatisfied && eidSatisfied) {
-            await storage.updateWorkOrder(appointment.woId, { status: "Scheduled" });
-          }
-        }
-      }
+      const appointment = await storage.createAppointmentWithWoUpdate(
+        { ...validation.data, rescheduleToken },
+        followUpAppt ? followUpAppt.id : null,
+        newWoStatus
+      );
       
       res.status(201).json(appointment);
 

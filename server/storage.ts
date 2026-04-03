@@ -59,6 +59,9 @@ import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
+  // Transaction wrapper
+  transaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T>;
+
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUsers(): Promise<User[]>;
@@ -132,6 +135,11 @@ export interface IStorage {
   getAppointmentsByWoIds(woIds: string[]): Promise<Appointment[]>;
   getAppointmentByToken(token: string): Promise<Appointment | undefined>;
   createAppointment(data: InsertAppointment): Promise<Appointment>;
+  createAppointmentWithWoUpdate(
+    appointmentData: InsertAppointment,
+    followUpAppointmentId: string | null,
+    newWoStatus: string | null
+  ): Promise<Appointment>;
   getTodayAppointments(): Promise<Appointment[]>;
   getUpcomingAppointments(days: number): Promise<Appointment[]>;
   getAllAppointments(): Promise<Appointment[]>;
@@ -188,6 +196,22 @@ export interface IStorage {
   getWalletLedger(vendorId: string): Promise<VendorWalletLedger[]>;
   createWalletEntry(data: InsertVendorWalletLedger): Promise<VendorWalletLedger>;
   getMonthlyStats(vendorId: string): Promise<{ topups: number; spend: number }>;
+
+  // Transactional: update typing job status + insert wallet debit atomically
+  completeJobAndDebit(
+    jobId: string,
+    newJobStatus: string,
+    walletEntry: InsertVendorWalletLedger
+  ): Promise<{ job: TypingJob; ledgerEntry: VendorWalletLedger }>;
+
+  // Transactional: update approval + update job status + insert wallet debit atomically
+  approveJobAndDebit(
+    approvalId: string,
+    approvalUpdate: Partial<VendorApproval>,
+    jobId: string,
+    jobUpdate: Partial<InsertTypingJob>,
+    walletEntry: InsertVendorWalletLedger | null
+  ): Promise<{ approval: VendorApproval; job: TypingJob; ledgerEntry: VendorWalletLedger | null }>;
   
   // App Settings
   getAppSettings(): Promise<AppSettings | undefined>;
@@ -314,6 +338,13 @@ export interface IStorage {
   updateCycle(id: string, data: Partial<AppointmentCycle>): Promise<AppointmentCycle | undefined>;
   logMedicalEvent(data: InsertMedicalEvent): Promise<MedicalEvent>;
   getEventsByCycle(cycleId: string): Promise<MedicalEvent[]>;
+  // Transactional: create new reschedule cycle + log both events atomically
+  createRescheduleCycle(
+    sourceCycleId: string,
+    newCycleData: InsertAppointmentCycle,
+    actorId: string,
+    actorRole: string
+  ): Promise<AppointmentCycle>;
   getCyclesDueForAwaitingMeeting(): Promise<AppointmentCycle[]>;
   getCyclesDueForNoShow(): Promise<AppointmentCycle[]>;
   getCyclesDueForResultDelayed(): Promise<AppointmentCycle[]>;
@@ -402,6 +433,11 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // Transaction wrapper
+  async transaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {
+    return db.transaction(fn);
+  }
+
   // Users
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -795,6 +831,27 @@ export class DatabaseStorage implements IStorage {
     return apt;
   }
 
+  async createAppointmentWithWoUpdate(
+    appointmentData: InsertAppointment,
+    followUpAppointmentId: string | null,
+    newWoStatus: string | null
+  ): Promise<Appointment> {
+    return db.transaction(async (tx) => {
+      if (followUpAppointmentId) {
+        await tx.update(appointments)
+          .set({ status: "FollowUpScheduled" })
+          .where(eq(appointments.id, followUpAppointmentId));
+      }
+      const [apt] = await tx.insert(appointments).values(appointmentData).returning();
+      if (newWoStatus && apt.woId) {
+        await tx.update(workOrders)
+          .set({ status: newWoStatus as typeof workOrders.status.enumValues[number] })
+          .where(eq(workOrders.id, apt.woId));
+      }
+      return apt;
+    });
+  }
+
   async getTodayAppointments(): Promise<Appointment[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -840,7 +897,13 @@ export class DatabaseStorage implements IStorage {
       and(
         eq(appointments.woId, woId),
         eq(appointments.type, type as typeof appointments.type.enumValues[number]),
-        inArray(appointments.status, ["Scheduled", "Completed", "FollowUpScheduled"] as typeof appointments.status.enumValues[number][])
+        inArray(appointments.status, [
+          "Scheduled",
+          "Completed",
+          "FollowUpRequired",
+          "FollowUpScheduled",
+          "FollowUpCompleted",
+        ] as typeof appointments.status.enumValues[number][])
       )
     );
     return apt || undefined;
@@ -1094,6 +1157,68 @@ export class DatabaseStorage implements IStorage {
     }
     
     return { topups, spend };
+  }
+
+  async completeJobAndDebit(
+    jobId: string,
+    newJobStatus: string,
+    walletEntry: InsertVendorWalletLedger
+  ): Promise<{ job: TypingJob; ledgerEntry: VendorWalletLedger }> {
+    return db.transaction(async (tx) => {
+      const [job] = await tx.update(typingJobs)
+        .set({ status: newJobStatus as typeof typingJobs.status.enumValues[number] })
+        .where(eq(typingJobs.id, jobId))
+        .returning();
+      if (!job) throw new Error(`Typing job ${jobId} not found during completion`);
+
+      // Re-check balance inside the transaction to close the TOCTOU window
+      const entries = await tx.select().from(vendorWalletLedger).where(eq(vendorWalletLedger.vendorId, walletEntry.vendorId));
+      const currentBalance = entries.reduce((sum, e) => sum + e.amount, 0);
+      const debitNeeded = Math.abs(walletEntry.amount);
+      if (currentBalance < debitNeeded) {
+        throw new Error(`Insufficient wallet balance: current balance is AED ${currentBalance}, required AED ${debitNeeded}`);
+      }
+
+      const [ledgerEntry] = await tx.insert(vendorWalletLedger).values(walletEntry).returning();
+      return { job, ledgerEntry };
+    });
+  }
+
+  async approveJobAndDebit(
+    approvalId: string,
+    approvalUpdate: Partial<VendorApproval>,
+    jobId: string,
+    jobUpdate: Partial<InsertTypingJob>,
+    walletEntry: InsertVendorWalletLedger | null
+  ): Promise<{ approval: VendorApproval; job: TypingJob; ledgerEntry: VendorWalletLedger | null }> {
+    return db.transaction(async (tx) => {
+      const [approval] = await tx.update(vendorApprovals)
+        .set(approvalUpdate)
+        .where(eq(vendorApprovals.id, approvalId))
+        .returning();
+      if (!approval) throw new Error(`Vendor approval ${approvalId} not found`);
+
+      const [job] = await tx.update(typingJobs)
+        .set(jobUpdate)
+        .where(eq(typingJobs.id, jobId))
+        .returning();
+      if (!job) throw new Error(`Typing job ${jobId} not found`);
+
+      let ledgerEntry: VendorWalletLedger | null = null;
+      if (walletEntry) {
+        // Re-check balance inside the transaction to close the TOCTOU window
+        const entries = await tx.select().from(vendorWalletLedger).where(eq(vendorWalletLedger.vendorId, walletEntry.vendorId));
+        const currentBalance = entries.reduce((sum, e) => sum + e.amount, 0);
+        const debitNeeded = Math.abs(walletEntry.amount);
+        if (currentBalance < debitNeeded) {
+          throw new Error(`Insufficient wallet balance: current balance is AED ${currentBalance}, required AED ${debitNeeded}`);
+        }
+        const [entry] = await tx.insert(vendorWalletLedger).values(walletEntry).returning();
+        ledgerEntry = entry;
+      }
+
+      return { approval, job, ledgerEntry };
+    });
   }
 
   // App Settings
@@ -2123,6 +2248,43 @@ export class DatabaseStorage implements IStorage {
   async logMedicalEvent(data: InsertMedicalEvent): Promise<MedicalEvent> {
     const [row] = await db.insert(medicalAppointmentEvents).values(data).returning();
     return row;
+  }
+
+  async createRescheduleCycle(
+    sourceCycleId: string,
+    newCycleData: InsertAppointmentCycle,
+    actorId: string,
+    actorRole: string
+  ): Promise<AppointmentCycle> {
+    return db.transaction(async (tx) => {
+      const [newCycle] = await tx.insert(appointmentCycles).values(newCycleData).returning();
+
+      await tx.insert(medicalAppointmentEvents).values({
+        cycleId: newCycle.id,
+        eventType: "CYCLE_CREATED",
+        actorId,
+        actorRole,
+        details: {
+          cycleType: "Reschedule",
+          rescheduledFromCycleId: sourceCycleId,
+          appointmentTime: newCycleData.appointmentTime?.toISOString(),
+        },
+      });
+
+      await tx.insert(medicalAppointmentEvents).values({
+        cycleId: sourceCycleId,
+        eventType: "STATUS_CHANGED",
+        actorId,
+        actorRole,
+        details: {
+          from: "NO_SHOW",
+          action: "superseded_by_new_cycle",
+          newCycleId: newCycle.id,
+        },
+      });
+
+      return newCycle;
+    });
   }
 
   async getEventsByCycle(cycleId: string): Promise<MedicalEvent[]> {
