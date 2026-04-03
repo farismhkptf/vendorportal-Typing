@@ -200,17 +200,12 @@ export function registerIntegrationRoutes(app: Express): void {
 
   app.get("/api/admin/integration/status", requireRole("Admin"), async (req, res) => {
     try {
-      const [recentEvents, failedCount, lastSuccess] = await Promise.all([
+      const [recentEvents, failedCount, lastSuccess, lastInbound] = await Promise.all([
         storage.getRecentCrossPortalEvents(50),
         storage.getFailedCrossPortalEventsCount(),
         storage.getLastSuccessfulCrossPortalEvent(),
+        storage.getLastInboundWorkOrder(),
       ]);
-
-      const allWos = await storage.getWorkOrders();
-      const inboundWos = allWos.filter(wo => (wo as { externalWoId?: string | null }).externalWoId);
-      const lastInbound = inboundWos.sort((a, b) =>
-        new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
-      )[0] || null;
 
       return res.json({
         lastInboundWo: lastInbound

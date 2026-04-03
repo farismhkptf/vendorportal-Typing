@@ -129,6 +129,7 @@ export interface IStorage {
   getWorkOrdersByIds(ids: string[]): Promise<WorkOrder[]>;
   getWorkOrderByWoNumber(woNumber: string): Promise<WorkOrder | undefined>;
   getWorkOrderByExternalId(externalId: string): Promise<WorkOrder | undefined>;
+  getLastInboundWorkOrder(): Promise<WorkOrder | undefined>;
   createWorkOrder(data: InsertWorkOrder): Promise<WorkOrder>;
   updateWorkOrder(id: string, data: Partial<InsertWorkOrder>): Promise<WorkOrder | undefined>;
   deleteWorkOrder(id: string): Promise<boolean>;
@@ -784,6 +785,14 @@ export class DatabaseStorage implements IStorage {
 
   async getWorkOrderByExternalId(externalId: string): Promise<WorkOrder | undefined> {
     const [wo] = await db.select().from(workOrders).where(eq(workOrders.externalWoId, externalId));
+    return wo || undefined;
+  }
+
+  async getLastInboundWorkOrder(): Promise<WorkOrder | undefined> {
+    const [wo] = await db.select().from(workOrders)
+      .where(isNotNull(workOrders.externalWoId))
+      .orderBy(desc(workOrders.createdAt))
+      .limit(1);
     return wo || undefined;
   }
 

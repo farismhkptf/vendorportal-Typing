@@ -10,6 +10,12 @@ import type { RouteDeps } from "./types";
 import { pushStatusToClientPortal } from "../services/client-portal-push";
 
 const PUSH_TYPING_STATUSES = new Set(["ReadyForScheduling", "Returned", "Aborted", "DeliveredToClient"]);
+const TYPING_STATUS_EVENT_TYPE: Record<string, string> = {
+  ReadyForScheduling: "typing_job.ready_for_scheduling",
+  Returned:          "typing_job.returned",
+  Aborted:           "typing_job.aborted",
+  DeliveredToClient: "typing_job.delivered_to_client",
+};
 
 
 export function registerTypingJobRoutes(app: Express, deps: RouteDeps): void {
@@ -288,7 +294,7 @@ app.put("/api/typing-jobs/:id", requireAuth, async (req, res) => {
           const wo = await storage.getWorkOrderById(job.woId);
           if (wo) {
             pushStatusToClientPortal({
-              eventType: `typing_job.${req.body.status.toLowerCase()}`,
+              eventType: TYPING_STATUS_EVENT_TYPE[req.body.status] || `typing_job.${req.body.status.toLowerCase()}`,
               workOrderId: job.woId,
               woNumber: wo.woNumber,
               applicantName: wo.applicantName,
