@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import jwt from "jsonwebtoken";
 import { storage } from "../storage";
 import type { User } from "@shared/schema";
 
@@ -46,11 +47,38 @@ export function clearFailedLogins(ip: string) {
   loginRateMap.delete(ip);
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.session?.userId) {
-    return res.status(401).json({ message: "Not authenticated" });
+// Verify a Bearer JWT from SHARED_JWT_SECRET and return the matching local user.
+// Returns null if the secret is not configured, the token is invalid, or no user matches.
+async function resolveJwtUser(req: Request): Promise<User | null> {
+  const sharedSecret = process.env.SHARED_JWT_SECRET;
+  if (!sharedSecret) return null;
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, sharedSecret) as { email?: string; sub?: string };
+    const email = payload.email || payload.sub;
+    if (!email || !email.includes("@")) return null;
+    const user = await storage.getUserByEmail(email);
+    if (!user || !user.active || user.role === "Vendor") return null;
+    return user;
+  } catch {
+    return null;
   }
-  next();
+}
+
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (req.session?.userId) return next();
+  // Fall back to Bearer JWT when no session (e.g. machine-to-machine from Client Portal)
+  const jwtUser = await resolveJwtUser(req);
+  if (jwtUser) {
+    req.session.userId = jwtUser.id;
+    req.session.userRole = jwtUser.role;
+    req.session.userName = jwtUser.name;
+    req.session.staffId = jwtUser.staffId || null;
+    return next();
+  }
+  return res.status(401).json({ message: "Not authenticated" });
 }
 
 export function requireVendorAuth(req: Request, res: Response, next: NextFunction) {
@@ -63,9 +91,18 @@ export function requireVendorAuth(req: Request, res: Response, next: NextFunctio
 export function requireRole(...roles: string[]) {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!req.session?.userId) {
-      return res.status(401).json({ message: "Not authenticated" });
+      // Fall back to Bearer JWT
+      const jwtUser = await resolveJwtUser(req);
+      if (jwtUser) {
+        req.session.userId = jwtUser.id;
+        req.session.userRole = jwtUser.role;
+        req.session.userName = jwtUser.name;
+        req.session.staffId = jwtUser.staffId || null;
+      } else {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
     }
-    const user = await storage.getUser(req.session.userId);
+    const user = await storage.getUser(req.session.userId!);
     if (!user || !roles.includes(user.role)) {
       return res.status(403).json({ message: "Access denied" });
     }

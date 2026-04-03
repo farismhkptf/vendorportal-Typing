@@ -3,12 +3,25 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import UAParser from "ua-parser-js";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
 import { storage } from "../storage";
 import { loginSchema, ROLE_CATEGORIES } from "@shared/schema";
 import { requireAuth, requireRole, requireOpsRole, loginRateLimit, recordFailedLogin, clearFailedLogins } from "../middleware/auth";
 import { validateBody } from "../middleware/validation";
 import { hashApiKey } from "../external-routes";
 import { sendEmail } from "../email-service";
+
+// Issue a JWT signed with SHARED_JWT_SECRET for the given user.
+// Returns null if the shared secret is not configured.
+function issueSharedJwt(user: { id: string; email: string | null; role: string; name: string }): string | null {
+  const secret = process.env.SHARED_JWT_SECRET;
+  if (!secret) return null;
+  return jwt.sign(
+    { sub: user.email || user.id, email: user.email, role: user.role, name: user.name },
+    secret,
+    { expiresIn: "8h" }
+  );
+}
 
 export function registerAuthRoutes(app: Express): void {
   app.get("/api/auth/accounts", async (_req, res) => {
@@ -186,12 +199,14 @@ export function registerAuthRoutes(app: Express): void {
       req.session.userName = user.name;
       req.session.staffId = user.staffId || null;
 
+      const token = issueSharedJwt(user);
       res.json({ 
         id: user.id, 
         name: user.name, 
         email: user.email, 
         role: user.role,
         staffId: user.staffId,
+        ...(token ? { token } : {}),
       });
     } catch (error) {
       console.error("Login error:", error);

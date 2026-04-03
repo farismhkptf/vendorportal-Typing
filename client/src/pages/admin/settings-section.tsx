@@ -14,6 +14,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { AppSettings } from "@shared/schema";
 
+type SettingsWithSso = AppSettings & { sharedJwtSecretConfigured?: boolean };
+
 const senderEmailSchema = z.object({
   fromEmail: z.string().email("Must be a valid email address"),
 });
@@ -53,7 +55,7 @@ export function AdminSettingsSection() {
   const logoFileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const { data: settings } = useQuery<AppSettings>({ queryKey: ["/api/settings"] });
+  const { data: settings } = useQuery<SettingsWithSso>({ queryKey: ["/api/settings"] });
 
   const senderEmailForm = useForm({ resolver: zodResolver(senderEmailSchema), defaultValues: { fromEmail: "" } });
   const ccForm = useForm({ resolver: zodResolver(ccRecipientsSchema), defaultValues: { alwaysCc: "" } });
@@ -297,11 +299,11 @@ export function AdminSettingsSection() {
             </div>
             <div className="p-4 rounded-xl bg-muted/30 border border-border/30" data-testid="row-shared-jwt-secret">
               <div className="flex items-center gap-3">
-                <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${(settings as any)?.sharedJwtSecretConfigured ? "bg-emerald-500" : "bg-slate-400"}`} />
+                <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${settings?.sharedJwtSecretConfigured ? "bg-emerald-500" : "bg-slate-400"}`} />
                 <div>
                   <p className="font-medium text-foreground">Shared JWT Secret</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {(settings as any)?.sharedJwtSecretConfigured ? "Configured — SSO redirect login is active" : "Not configured — set the SHARED_JWT_SECRET environment variable to enable SSO"}
+                    {settings?.sharedJwtSecretConfigured ? "Configured — SSO redirect login is active" : "Not configured — set the SHARED_JWT_SECRET environment variable to enable SSO"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Both apps must share the same secret for cross-portal silent login to work</p>
                 </div>

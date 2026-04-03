@@ -1,7 +1,8 @@
 import type { Express, Request, Response, NextFunction } from "express";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
 import { storage } from "../storage";
 import { requireRole } from "../middleware/auth";
 import { toProperCase } from "../proper-case";
@@ -277,11 +278,25 @@ export function registerIntegrationRoutes(app: Express): void {
     }
 
     try {
-      const user = await storage.getUserByEmail(email);
-      if (!user || !user.active) {
-        return res.redirect("/?sso_error=user_not_found");
-      }
-      if (user.role === "Vendor") {
+      const VALID_STAFF_ROLES = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary", "Client Coordinator", "Client Manager"] as const;
+      type ValidStaffRole = typeof VALID_STAFF_ROLES[number];
+
+      let user = await storage.getUserByEmail(email);
+
+      if (!user) {
+        // Auto-provision a local staff account for this SSO identity
+        const rawRole = typeof payload.role === "string" ? payload.role : "";
+        const role: ValidStaffRole = VALID_STAFF_ROLES.includes(rawRole as ValidStaffRole) ? rawRole as ValidStaffRole : "PRO";
+        const name = typeof (payload as { name?: string }).name === "string" && (payload as { name?: string }).name
+          ? (payload as { name: string }).name
+          : email.split("@")[0];
+        // Random unusable password — account can only be accessed via SSO or admin password reset
+        const passwordHash = await bcrypt.hash(randomBytes(24).toString("hex"), 10);
+        user = await storage.createUser({ name, email, passwordHash, role, active: true });
+        console.log(`[integration/auth] Auto-provisioned staff account for ${email} (role: ${role})`);
+      } else if (!user.active) {
+        return res.redirect("/?sso_error=account_inactive");
+      } else if (user.role === "Vendor") {
         return res.redirect("/?sso_error=vendor_not_allowed");
       }
 
