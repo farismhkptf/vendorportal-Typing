@@ -22,6 +22,7 @@ import {
   PackageCheck,
   ChevronDown,
   MessageSquare,
+  CalendarCheck,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,7 @@ function getDashboardHref(role?: string): string {
 
 const allNavigation = [
   { name: "Dashboard", href: "__dashboard__", icon: LayoutDashboard, roles: null, group: null },
+  { name: "Today's Appts", href: "/pro/today", icon: CalendarCheck, roles: ["PRO", "PRO - Temporary"] as string[], group: null },
   { name: "Work Orders", href: "/work-orders", icon: FileText, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Operations" },
   { name: "Appointments", href: "/appointments", icon: Stethoscope, roles: null, group: "Operations" },
   { name: "Typing Jobs", href: "/typing-jobs", icon: ClipboardList, roles: ["Admin", "Client Relationship Manager"] as string[], group: "Operations" },

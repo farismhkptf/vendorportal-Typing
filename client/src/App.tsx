@@ -117,6 +117,7 @@ import AttestationVendorLogin from "@/pages/vendor-attestation/login";
 import AttestationVendorJobsPage from "@/pages/vendor-attestation/jobs";
 import AuthMagic from "@/pages/auth-magic";
 import ProfileComplete from "@/pages/profile-complete";
+import ProTodayPage from "@/pages/pro-today";
 
 function BrandedSplash({ variant = "team" }: { variant?: "team" | "vendor" }) {
   return (
@@ -411,6 +412,7 @@ function AppRoutes() {
       <Route path="/custody/:id" component={CustodyDetailPage} />
       <Route path="/auth/magic" component={AuthMagic} />
       <Route path="/profile/complete" component={ProfileComplete} />
+      <Route path="/pro/today" component={ProTodayPage} />
       <Route component={NotFound} />
     </Switch>
   );

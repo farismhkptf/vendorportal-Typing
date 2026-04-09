@@ -8,7 +8,8 @@ import {
   Building2,
   Wallet,
   Settings,
-  X
+  X,
+  CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -24,6 +25,7 @@ function getTabsForRole(role: string | undefined, dashboardHref: string) {
   const home = { name: "Home", href: dashboardHref, icon: LayoutDashboard };
   const wos = { name: "WOs", href: "/work-orders", icon: FileText };
   const appts = { name: "Appts", href: "/appointments", icon: Stethoscope };
+  const today = { name: "Today", href: "/pro/today", icon: CalendarCheck };
   const jobs = { name: "Jobs", href: "/typing-jobs", icon: ClipboardList };
   const companies = { name: "Companies", href: "/companies", icon: Building2 };
   const wallet = { name: "Wallet", href: "/vendor-wallet", icon: Wallet };
@@ -39,6 +41,12 @@ function getTabsForRole(role: string | undefined, dashboardHref: string) {
     return {
       main: [home, wos, companies, wallet, appts],
       more: [jobs],
+    };
+  }
+  if (role === "PRO" || role === "PRO - Temporary") {
+    return {
+      main: [home, today, appts],
+      more: [],
     };
   }
   return {

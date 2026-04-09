@@ -372,6 +372,7 @@ export interface IStorage {
   getCyclesDueForAwaitingMeeting(): Promise<AppointmentCycle[]>;
   getCyclesDueForNoShow(): Promise<AppointmentCycle[]>;
   getCyclesDueForResultDelayed(): Promise<AppointmentCycle[]>;
+  getCyclesTodayByPro(proId: string): Promise<AppointmentCycle[]>;
 
   // EID Biometrics Scheduling
   getBiometricsCaseByWoId(woId: string): Promise<BiometricsCase | undefined>;
@@ -2379,6 +2380,20 @@ export class DatabaseStorage implements IStorage {
         lte(appointmentCycles.completedAt, thirtyHoursAgo)
       )
     );
+  }
+
+  async getCyclesTodayByPro(proId: string): Promise<AppointmentCycle[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return db.select().from(appointmentCycles).where(
+      and(
+        eq(appointmentCycles.assignedProId, proId),
+        gte(appointmentCycles.appointmentTime, today),
+        lt(appointmentCycles.appointmentTime, tomorrow)
+      )
+    ).orderBy(appointmentCycles.appointmentTime);
   }
 
   // EID Biometrics Scheduling

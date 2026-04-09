@@ -1373,4 +1373,140 @@ app.post("/api/admin/restore-db", async (req, res) => {
   }
 });
 
+// GET /api/pro/today-cycles — PRO's today's appointment cycles
+app.get("/api/pro/today-cycles", requireAuth, async (req, res) => {
+  try {
+    const user = await storage.getUser(req.session!.userId);
+    if (!user) return res.status(401).json({ message: "Not authenticated" });
+    if (!PRO_ACTION_ROLES.includes(user.role)) {
+      return res.status(403).json({ message: "Access denied: PRO or Admin required" });
+    }
+
+    // For Admins, allow proId query param override; PROs see their own
+    const proId = user.role === "Admin" && req.query.proId
+      ? String(req.query.proId)
+      : user.id;
+
+    const cycles = await storage.getCyclesTodayByPro(proId);
+
+    // Enrich each cycle with workOrder, company, center info
+    const enriched = await Promise.all(cycles.map(async (cycle) => {
+      const medCase = await storage.getMedicalCaseById(cycle.caseId);
+      if (!medCase) return { ...cycle, workOrder: null, company: null, center: null };
+      const wo = await storage.getWorkOrderById(medCase.woId);
+      const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+      const center = cycle.centerId ? await storage.getCenterById(cycle.centerId) : null;
+      return {
+        ...cycle,
+        workOrder: wo ? { id: wo.id, woNumber: wo.woNumber, applicantName: wo.applicantName, companyId: wo.companyId } : null,
+        company: company ? { id: company.id, name: company.name } : null,
+        center: center ? { id: center.id, name: center.name } : null,
+      };
+    }));
+
+    res.json(enriched);
+  } catch (error) {
+    console.error("PRO today cycles error:", error);
+    res.status(500).json({ message: "Failed to fetch today's cycles" });
+  }
+});
+
+// POST /api/confirm-by-card-token — resolve QR card token to active cycle and confirm
+app.post("/api/confirm-by-card-token", requireAuth, async (req, res) => {
+  try {
+    const user = await storage.getUser(req.session!.userId);
+    if (!user) return res.status(401).json({ message: "Not authenticated" });
+    if (!PRO_ACTION_ROLES.includes(user.role)) {
+      return res.status(403).json({ message: "Access denied: PRO or Admin required" });
+    }
+
+    const bodySchema = z.object({
+      cardToken: z.string().min(1),
+      expectedCycleId: z.string().optional(),
+    });
+    const parsed = bodySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "cardToken is required" });
+
+    const { cardToken, expectedCycleId } = parsed.data;
+
+    // Resolve token → appointment
+    const appointment = await storage.getAppointmentByToken(cardToken);
+    if (!appointment) {
+      return res.status(404).json({ message: "QR code not recognised — card not found" });
+    }
+
+    // Appointment → workOrder → medicalCase
+    const medCase = await storage.getMedicalCaseByWoId(appointment.woId);
+    if (!medCase) {
+      return res.status(404).json({ message: "No medical scheduling case found for this applicant" });
+    }
+
+    // Find the active cycle
+    const cycles = await storage.getCyclesByCase(medCase.id);
+    const activeCycle = cycles.find(c => !FINAL_STATUSES.includes(c.status));
+    if (!activeCycle) {
+      return res.status(400).json({ message: "No active appointment cycle found for this applicant" });
+    }
+
+    // If PRO scanned from a specific row, verify it resolves to the expected cycle
+    if (expectedCycleId && activeCycle.id !== expectedCycleId) {
+      return res.status(409).json({
+        message: "This QR code belongs to a different appointment — please check you are scanning the correct applicant's card",
+        cycleMismatch: true,
+      });
+    }
+
+    // Check cycle belongs to this PRO (Admins bypass this check)
+    if (user.role !== "Admin" && activeCycle.assignedProId !== user.id) {
+      return res.status(403).json({ message: "This appointment is assigned to a different PRO" });
+    }
+
+    // Check if already confirmed (IN_PROCESS or any status that follows it)
+    const POST_CONFIRMATION_STATUSES = ["IN_PROCESS", "COMPLETED", "RESULT_DELAYED", "RESULT_ISSUED", "MEDICAL_FAILED", "RETEST_REQUIRED"];
+    if (POST_CONFIRMATION_STATUSES.includes(activeCycle.status)) {
+      const confirmedAt = activeCycle.confirmedAt
+        ? new Date(activeCycle.confirmedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        : null;
+      return res.status(409).json({
+        message: confirmedAt ? `Already confirmed at ${confirmedAt}` : "Already confirmed",
+        alreadyConfirmed: true,
+        cycle: activeCycle,
+      });
+    }
+
+    // Check if transition is possible
+    if (!canTransition(activeCycle.status, "IN_PROCESS")) {
+      return res.status(400).json({ message: `Cannot confirm — cycle is currently in ${activeCycle.status} status. Confirmation requires AWAITING_MEETING status.` });
+    }
+
+    const updated = await storage.updateCycle(activeCycle.id, {
+      status: "IN_PROCESS",
+      confirmedAt: new Date(),
+      confirmedBy: user.id,
+      confirmMethod: "qr",
+    });
+
+    await storage.logMedicalEvent({
+      cycleId: activeCycle.id,
+      eventType: "QR_CONFIRMED",
+      actorId: user.id,
+      actorRole: user.role,
+      details: { method: "qr", resolvedFromCardToken: true },
+    });
+
+    await storage.logMedicalEvent({
+      cycleId: activeCycle.id,
+      eventType: "STATUS_CHANGED",
+      actorId: user.id,
+      actorRole: user.role,
+      details: { from: activeCycle.status, to: "IN_PROCESS" },
+    });
+
+    res.json({ cycle: updated, message: "Test in progress — meeting confirmed" });
+  } catch (error) {
+    console.error("Confirm by card token error:", error);
+    res.status(500).json({ message: "Failed to confirm via QR code" });
+  }
+});
+
 }
