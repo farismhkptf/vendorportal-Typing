@@ -4,7 +4,8 @@ import { storage } from "../storage";
 import { requireAuth } from "../middleware/auth";
 import { checkAndAutoCompleteWorkOrder } from "../services/transition-service";
 import { RESTORE_SNAPSHOT_SQL } from "../restore-snapshot-data";
-import { pool } from "../db";
+import { pool, db } from "../db";
+import { sql } from "drizzle-orm";
 import type { RouteDeps } from "./types";
 import { pushStatusToClientPortal } from "../services/client-portal-push";
 
@@ -1347,7 +1348,7 @@ app.post("/api/admin/restore-db", async (req, res) => {
     }
     
     // Verify counts
-    const counts = await pool.query(`
+    const countsResult = await db.execute(sql`
       SELECT 
         (SELECT COUNT(*) FROM companies) as companies,
         (SELECT COUNT(*) FROM service_types) as service_types,
@@ -1365,7 +1366,7 @@ app.post("/api/admin/restore-db", async (req, res) => {
       success: true,
       executed,
       errors: errors.length > 0 ? errors : undefined,
-      counts: counts.rows[0],
+      counts: countsResult.rows[0],
     });
   } catch (err: unknown) {
     console.error("[restore-db] Error:", err);
