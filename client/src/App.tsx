@@ -205,10 +205,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
 
-  if (isLoading) {
-    return <BrandedSplash variant="team" />;
-  }
-
   const isPublicPath =
     location === "/login" ||
     location === "/privacy-policy" ||
@@ -226,15 +222,21 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     location.startsWith("/vendor-attestation/") ||
     location.startsWith("/auth/");
 
-  if (!user && !isPublicPath) {
+  if (isPublicPath) {
+    return <>{children}</>;
+  }
+
+  if (isLoading) {
+    return <BrandedSplash variant="team" />;
+  }
+
+  if (!user) {
     return <Redirect to="/login" />;
   }
 
-  if (user) {
-    const allowedRoles = getRouteRoles(location);
-    if (allowedRoles && !allowedRoles.includes(user.role)) {
-      return <AccessDenied />;
-    }
+  const allowedRoles = getRouteRoles(location);
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <AccessDenied />;
   }
 
   return <>{children}</>;
