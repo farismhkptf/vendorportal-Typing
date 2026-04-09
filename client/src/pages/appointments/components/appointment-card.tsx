@@ -293,6 +293,14 @@ export function AppointmentCard({
                   </Button>
                 </Link>
               )}
+              {apt.rescheduleToken && (
+                <a href={`/card/${apt.rescheduleToken}`} target="_blank" rel="noopener noreferrer">
+                  <Button variant="ghost" size="sm" className="gap-1.5" data-testid={`button-view-card-${apt.id}`}>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    View Card
+                  </Button>
+                </a>
+              )}
               <Link href={`/work-orders/${apt.woId}`}>
                 <Button variant="ghost" size="sm" data-testid={`button-view-wo-${apt.id}`}>
                   View WO
@@ -342,6 +350,15 @@ export function AppointmentCard({
           <ExternalLink className="h-4 w-4 mr-2" />
           Open
         </ContextMenuItem>
+        {apt.rescheduleToken && (
+          <ContextMenuItem
+            onClick={() => window.open(`/card/${apt.rescheduleToken}`, "_blank", "noopener,noreferrer")}
+            data-testid={`ctx-apt-view-card-${apt.id}`}
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            View Card
+          </ContextMenuItem>
+        )}
         <ContextMenuItem
           onClick={() => onCopyDetails(apt)}
           data-testid={`ctx-apt-copy-${apt.id}`}

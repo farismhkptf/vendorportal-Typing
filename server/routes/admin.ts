@@ -907,6 +907,10 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
       const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
 
+      if (passphrase && passphrase.length <= 2) {
+        console.warn(`[apple-wallet] APPLE_PASS_PASSPHRASE is only ${passphrase.length} character(s) — verify this is correct (expected a real passphrase or leave empty if cert has no passphrase)`);
+      }
+
       const { PKPass } = await import("passkit-generator");
 
       const dt = new Date(appointment.datetime);
@@ -1102,8 +1106,17 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       });
       res.send(buf);
     } catch (error) {
-      console.error("Wallet pass error:", error);
-      res.status(500).json({ message: "Failed to generate wallet pass" });
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : undefined;
+      console.error("[apple-wallet] Pass generation FAILED:");
+      console.error("[apple-wallet]   reason:", errMsg);
+      if (errStack) console.error("[apple-wallet]   stack:", errStack);
+      console.error("[apple-wallet]   cert length (b64):", process.env.APPLE_PASS_CERT?.length ?? 0, "chars");
+      console.error("[apple-wallet]   key length (b64):", process.env.APPLE_PASS_KEY?.length ?? 0, "chars");
+      console.error("[apple-wallet]   wwdr length (b64):", process.env.APPLE_PASS_WWDR?.length ?? 0, "chars");
+      console.error("[apple-wallet]   passphrase length:", process.env.APPLE_PASS_PASSPHRASE?.length ?? 0, "chars");
+      console.error("[apple-wallet]   teamId:", process.env.APPLE_TEAM_ID ?? "(not set)");
+      res.status(500).json({ message: "Failed to generate wallet pass", detail: errMsg });
     }
   });
 
