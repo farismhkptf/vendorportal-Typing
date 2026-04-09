@@ -554,13 +554,13 @@ app.post("/api/appointment-cycles/:cycleId/reschedule", requireAuth, async (req,
   }
 });
 
-// POST /api/appointment-cycles/:cycleId/result-issued — Admin or automation-caller endpoint
+// POST /api/appointment-cycles/:cycleId/result-issued — Admin or CRM endpoint
 app.post("/api/appointment-cycles/:cycleId/result-issued", requireAuth, async (req, res) => {
   try {
     const user = await storage.getUser(req.session!.userId);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
-    if (user.role !== "Admin") {
-      return res.status(403).json({ message: "Access denied: Admin only" });
+    if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
+      return res.status(403).json({ message: "Access denied: Admin or CRM required" });
     }
 
     const cycle = await storage.getCycleById(req.params.cycleId);
@@ -610,13 +610,13 @@ app.post("/api/appointment-cycles/:cycleId/result-issued", requireAuth, async (r
   }
 });
 
-// POST /api/appointment-cycles/:cycleId/medical-failed — Admin or automation-caller endpoint
+// POST /api/appointment-cycles/:cycleId/medical-failed — Admin or CRM endpoint
 app.post("/api/appointment-cycles/:cycleId/medical-failed", requireAuth, async (req, res) => {
   try {
     const user = await storage.getUser(req.session!.userId);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
-    if (user.role !== "Admin") {
-      return res.status(403).json({ message: "Access denied: Admin only" });
+    if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
+      return res.status(403).json({ message: "Access denied: Admin or CRM required" });
     }
 
     const cycle = await storage.getCycleById(req.params.cycleId);

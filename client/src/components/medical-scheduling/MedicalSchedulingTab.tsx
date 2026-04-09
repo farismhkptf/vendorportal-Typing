@@ -427,8 +427,8 @@ function CycleCard({
                 </Button>
               )}
 
-              {/* Admin: mark result issued / failed for COMPLETED/RESULT_DELAYED */}
-              {isAdmin && isActive && (cycle.status === "COMPLETED" || cycle.status === "RESULT_DELAYED") && (
+              {/* CRM/Admin: mark result issued / failed for COMPLETED/RESULT_DELAYED */}
+              {isCRM && isActive && (cycle.status === "COMPLETED" || cycle.status === "RESULT_DELAYED") && (
                 <>
                   <Button
                     size="sm"
