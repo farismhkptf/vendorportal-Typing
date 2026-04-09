@@ -851,24 +851,65 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
+  // Preflight helper: decode base64 cert and do a basic sanity check.
+  // Returns { buf, isPem } or throws with a descriptive error.
+  function decodeCertPreflight(label: string, b64: string): { buf: Buffer; isPem: boolean } {
+    let buf: Buffer;
+    try {
+      buf = Buffer.from(b64.trim(), "base64");
+    } catch (e) {
+      throw new Error(`${label}: base64 decode failed — ${e instanceof Error ? e.message : String(e)}`);
+    }
+    if (buf.length === 0) {
+      throw new Error(`${label}: decoded buffer is empty — value may not be valid base64`);
+    }
+    // PEM starts with "-----BEGIN" (0x2D 0x2D 0x2D 0x2D 0x2D)
+    const isPem = buf[0] === 0x2D && buf[1] === 0x2D;
+    // DER typically starts with 0x30 (ASN.1 SEQUENCE)
+    const isDer = buf[0] === 0x30;
+    if (!isPem && !isDer) {
+      console.warn(`[apple-wallet] ${label}: decoded buffer does not start with PEM header or DER 0x30 — first byte: 0x${buf[0].toString(16)}. Cert may be incorrectly encoded.`);
+    }
+    return { buf, isPem };
+  }
+
   app.head("/api/card/:token/wallet", async (_req, res) => {
     const certBase64 = process.env.APPLE_PASS_CERT;
     const keyBase64 = process.env.APPLE_PASS_KEY;
     const wwdrBase64 = process.env.APPLE_PASS_WWDR;
-    const passphrase = process.env.APPLE_PASS_PASSPHRASE;
+    // APPLE_PASS_PASSPHRASE is optional — only required if private key is encrypted
     const teamId = process.env.APPLE_TEAM_ID;
+    // APPLE_PASS_TYPE_IDENTIFIER overrides the default; must be set to the registered Pass Type ID
+    const passTypeIdentifier = process.env.APPLE_PASS_TYPE_IDENTIFIER || "pass.ae.procompany.appointment";
 
-    if (!certBase64 || !keyBase64 || !wwdrBase64 || !passphrase || !teamId) {
+    if (!certBase64 || !keyBase64 || !wwdrBase64 || !teamId) {
       const missing = [
         !certBase64 && "APPLE_PASS_CERT",
         !keyBase64 && "APPLE_PASS_KEY",
         !wwdrBase64 && "APPLE_PASS_WWDR",
-        !passphrase && "APPLE_PASS_PASSPHRASE",
         !teamId && "APPLE_TEAM_ID",
       ].filter(Boolean).join(", ");
       console.log(`[apple-wallet] Wallet pass not available — missing env vars: ${missing}`);
       return res.status(503).end();
     }
+
+    // Preflight: validate certs decode correctly
+    try {
+      decodeCertPreflight("APPLE_PASS_CERT", certBase64);
+      decodeCertPreflight("APPLE_PASS_KEY", keyBase64);
+      decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[apple-wallet] Certificate preflight failed: ${msg}`);
+      return res.status(503).end();
+    }
+
+    const passphrase = process.env.APPLE_PASS_PASSPHRASE;
+    if (passphrase && passphrase.trim().length <= 2) {
+      console.warn(`[apple-wallet] APPLE_PASS_PASSPHRASE is only ${passphrase.trim().length} character(s) — if the private key has no passphrase, leave APPLE_PASS_PASSPHRASE unset or empty`);
+    }
+
+    console.log(`[apple-wallet] Wallet available — passTypeIdentifier: ${passTypeIdentifier}, teamId: ${teamId}, passphrase: ${passphrase ? "set" : "not set (unencrypted key)"}`);
     return res.status(200).end();
   });
 
@@ -876,20 +917,37 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     const certBase64 = process.env.APPLE_PASS_CERT;
     const keyBase64 = process.env.APPLE_PASS_KEY;
     const wwdrBase64 = process.env.APPLE_PASS_WWDR;
-    const passphrase = process.env.APPLE_PASS_PASSPHRASE;
-
+    // APPLE_PASS_PASSPHRASE is optional — only required if private key is encrypted
+    const passphrase = process.env.APPLE_PASS_PASSPHRASE || undefined;
     const teamId = process.env.APPLE_TEAM_ID;
+    // APPLE_PASS_TYPE_IDENTIFIER overrides the default; must match the registered Pass Type ID exactly
+    const passTypeIdentifier = process.env.APPLE_PASS_TYPE_IDENTIFIER || "pass.ae.procompany.appointment";
 
-    if (!certBase64 || !keyBase64 || !wwdrBase64 || !passphrase || !teamId) {
+    if (!certBase64 || !keyBase64 || !wwdrBase64 || !teamId) {
       const missing = [
         !certBase64 && "APPLE_PASS_CERT",
         !keyBase64 && "APPLE_PASS_KEY",
         !wwdrBase64 && "APPLE_PASS_WWDR",
-        !passphrase && "APPLE_PASS_PASSPHRASE",
         !teamId && "APPLE_TEAM_ID",
       ].filter(Boolean).join(", ");
       console.log(`[apple-wallet] Wallet pass generation skipped — missing env vars: ${missing}`);
       return res.status(503).json({ message: "Apple Wallet not configured" });
+    }
+
+    // Preflight: validate cert chain decodes
+    let certBuf: Buffer, keyBuf: Buffer, wwdrBuf: Buffer;
+    try {
+      certBuf = decodeCertPreflight("APPLE_PASS_CERT", certBase64).buf;
+      keyBuf = decodeCertPreflight("APPLE_PASS_KEY", keyBase64).buf;
+      wwdrBuf = decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64).buf;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[apple-wallet] Certificate preflight failed: ${msg}`);
+      return res.status(503).json({ message: "Apple Wallet certificate error", detail: msg });
+    }
+
+    if (passphrase && passphrase.trim().length <= 2) {
+      console.warn(`[apple-wallet] APPLE_PASS_PASSPHRASE is only ${passphrase.trim().length} character(s) — if the private key has no passphrase, leave the secret unset or empty`);
     }
 
     try {
@@ -906,10 +964,6 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       ]);
 
       const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
-
-      if (passphrase && passphrase.length <= 2) {
-        console.warn(`[apple-wallet] APPLE_PASS_PASSPHRASE is only ${passphrase.length} character(s) — verify this is correct (expected a real passphrase or leave empty if cert has no passphrase)`);
-      }
 
       const { PKPass } = await import("passkit-generator");
 
@@ -929,16 +983,25 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
       const navyRgb = "rgb(26, 58, 107)";
 
-      const pass = new PKPass({}, {
-        signerCert: Buffer.from(certBase64, "base64"),
-        signerKey: Buffer.from(keyBase64, "base64"),
-        wwdr: Buffer.from(wwdrBase64, "base64"),
-        signerKeyPassphrase: passphrase,
-      }, {
+      const signerOptions: {
+        signerCert: Buffer;
+        signerKey: Buffer;
+        wwdr: Buffer;
+        signerKeyPassphrase?: string;
+      } = {
+        signerCert: certBuf,
+        signerKey: keyBuf,
+        wwdr: wwdrBuf,
+      };
+      if (passphrase && passphrase.trim().length > 0) {
+        signerOptions.signerKeyPassphrase = passphrase;
+      }
+
+      const pass = new PKPass({}, signerOptions, {
         serialNumber: appointment.id,
         description: passDescription,
         organizationName: "The P.R.O. Company™",
-        passTypeIdentifier: "pass.ae.procompany.appointment",
+        passTypeIdentifier: passTypeIdentifier,
         teamIdentifier: teamId,
         foregroundColor: navyRgb,
         backgroundColor: "rgb(255, 255, 255)",
