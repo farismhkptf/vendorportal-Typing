@@ -943,7 +943,11 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[apple-wallet] Certificate preflight failed: ${msg}`);
-      return res.status(503).json({ message: "Apple Wallet certificate error", detail: msg });
+      const isDev = process.env.NODE_ENV !== "production";
+      return res.status(503).json({
+        message: "Apple Wallet certificate error",
+        ...(isDev ? { detail: msg } : {}),
+      });
     }
 
     if (passphrase && passphrase.trim().length <= 2) {
@@ -1171,6 +1175,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       const errStack = error instanceof Error ? error.stack : undefined;
+      const isDev = process.env.NODE_ENV !== "production";
       console.error("[apple-wallet] Pass generation FAILED:");
       console.error("[apple-wallet]   reason:", errMsg);
       if (errStack) console.error("[apple-wallet]   stack:", errStack);
@@ -1179,7 +1184,10 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       console.error("[apple-wallet]   wwdr length (b64):", process.env.APPLE_PASS_WWDR?.length ?? 0, "chars");
       console.error("[apple-wallet]   passphrase length:", process.env.APPLE_PASS_PASSPHRASE?.length ?? 0, "chars");
       console.error("[apple-wallet]   teamId:", process.env.APPLE_TEAM_ID ?? "(not set)");
-      res.status(500).json({ message: "Failed to generate wallet pass", detail: errMsg });
+      res.status(500).json({
+        message: "Failed to generate wallet pass",
+        ...(isDev ? { detail: errMsg } : {}),
+      });
     }
   });
 
