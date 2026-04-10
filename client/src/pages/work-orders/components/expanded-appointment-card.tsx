@@ -102,7 +102,8 @@ export function ExpandedAppointmentCard({
 
   const handleCopyCardLink = async () => {
     if (!apt.rescheduleToken) return;
-    const url = `${window.location.origin}/card/${apt.rescheduleToken}`;
+    const appBaseUrl = import.meta.env.VITE_APP_BASE_URL ?? window.location.origin;
+    const url = `${appBaseUrl}/card/${apt.rescheduleToken}`;
     try {
       await navigator.clipboard.writeText(url);
       setCardLinkCopied(true);
@@ -187,7 +188,7 @@ export function ExpandedAppointmentCard({
                 )}
                 {apt.rescheduleToken && (
                   <>
-                    <a href={`/card/${apt.rescheduleToken}`} target="_blank" rel="noopener noreferrer">
+                    <a href={`${import.meta.env.VITE_APP_BASE_URL ?? window.location.origin}/card/${apt.rescheduleToken}`} target="_blank" rel="noopener noreferrer">
                       <Button variant="outline" size="sm" className="gap-1.5" data-testid={`button-view-card-${apt.id}`}>
                         <ExternalLink className="h-3.5 w-3.5" />
                         View Card

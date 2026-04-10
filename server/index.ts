@@ -133,7 +133,7 @@ app.use((req, res, next) => {
 
 (async () => {
   if (!process.env.APP_BASE_URL) {
-    console.warn("[config] WARNING: APP_BASE_URL is not set. Email card links will use the request host, which may resolve to an internal hostname in production. Set APP_BASE_URL to the public-facing URL (e.g. https://yourapp.replit.app).");
+    console.warn("[config] WARNING: APP_BASE_URL is not set. Email card links and QR codes will use the request host, which may resolve to an internal Replit hostname in production. Set APP_BASE_URL to the public-facing domain (e.g. https://appoints.procompany.ae) so all card links in emails point to the correct URL.");
   }
 
   await registerRoutes(httpServer, app);

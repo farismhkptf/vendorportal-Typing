@@ -172,6 +172,23 @@ function getRouteRoles(location: string): string[] | null {
   return null;
 }
 
+function isPublicRoute(location: string): boolean {
+  return (
+    location === "/login" ||
+    location === "/privacy-policy" ||
+    location === "/terms-of-service" ||
+    location === "/vendor" ||
+    location.startsWith("/vendor/") ||
+    location === "/vendor-v2" ||
+    location.startsWith("/vendor-v2/") ||
+    location === "/vendor-attestation" ||
+    location.startsWith("/vendor-attestation/") ||
+    location.startsWith("/reschedule/") ||
+    location.startsWith("/card/") ||
+    location.startsWith("/auth/")
+  );
+}
+
 function ProfileCompletionBanner() {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
@@ -206,24 +223,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const [location] = useLocation();
 
-  const isPublicPath =
-    location === "/login" ||
-    location === "/privacy-policy" ||
-    location === "/terms-of-service" ||
-    location === "/vendor" ||
-    location.startsWith("/vendor/") ||
-    location === "/vendor-v2" ||
-    location.startsWith("/vendor-v2/") ||
-    location === "/vendor-attestation" ||
-    location.startsWith("/vendor-attestation/") ||
-    location.startsWith("/reschedule/") ||
-    location.startsWith("/card/") ||
-    location === "/vendor-attestation/login" ||
-    location === "/vendor-attestation/jobs" ||
-    location.startsWith("/vendor-attestation/") ||
-    location.startsWith("/auth/");
-
-  if (isPublicPath) {
+  if (isPublicRoute(location)) {
     return <>{children}</>;
   }
 
@@ -433,7 +433,8 @@ function Router() {
 
 function SplashOverlay() {
   const { splashActive, setSplashActive } = useSplash();
-  if (!splashActive) return null;
+  const [location] = useLocation();
+  if (!splashActive || isPublicRoute(location)) return null;
   return <SplashScreen onComplete={() => setSplashActive(false)} />;
 }
 
