@@ -11,6 +11,10 @@ import { getTemplateRegistry, getTemplatesWithPreviews, buildTemplatePreview, EM
 import type { Staff, WoDocument } from "@shared/schema";
 import type { RouteDeps } from "./types";
 
+function sanitizeLog(value: string): string {
+  return value.replace(/[\r\n]/g, " ");
+}
+
 function addJsonSheet(workbook: ExcelJS.Workbook, data: Record<string, unknown>[], name: string) {
   const ws = workbook.addWorksheet(name);
   if (data.length === 0) return;
@@ -394,9 +398,9 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
               workdriveLink: result.permalink,
             });
 
-            console.log(`WorkDrive sync complete for document ${document.id}: ${result.permalink}`);
+            console.log(`WorkDrive sync complete for document ${sanitizeLog(document.id)}: ${sanitizeLog(result.permalink)}`);
           } catch (err) {
-            console.error(`WorkDrive sync failed for document ${document.id}:`, err);
+            console.error(`WorkDrive sync failed for document ${sanitizeLog(document.id)}:`, err);
           }
         })();
       }
@@ -868,7 +872,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     // DER typically starts with 0x30 (ASN.1 SEQUENCE)
     const isDer = buf[0] === 0x30;
     if (!isPem && !isDer) {
-      console.warn(`[apple-wallet] ${label}: decoded buffer does not start with PEM header or DER 0x30 — first byte: 0x${buf[0].toString(16)}. Cert may be incorrectly encoded.`);
+      console.warn(`[apple-wallet] ${sanitizeLog(label)}: decoded buffer does not start with PEM header or DER 0x30 — first byte: 0x${buf[0].toString(16)}. Cert may be incorrectly encoded.`);
     }
     return { buf, isPem };
   }
@@ -889,7 +893,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         !wwdrBase64 && "APPLE_PASS_WWDR",
         !teamId && "APPLE_TEAM_ID",
       ].filter(Boolean).join(", ");
-      console.log(`[apple-wallet] Wallet pass not available — missing env vars: ${missing}`);
+      console.log(`[apple-wallet] Wallet pass not available — missing env vars: ${sanitizeLog(missing)}`);
       return res.status(503).end();
     }
 
@@ -900,7 +904,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[apple-wallet] Certificate preflight failed: ${msg}`);
+      console.error(`[apple-wallet] Certificate preflight failed: ${sanitizeLog(msg)}`);
       return res.status(503).end();
     }
 
@@ -909,7 +913,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       console.warn(`[apple-wallet] APPLE_PASS_PASSPHRASE is only ${passphrase.trim().length} character(s) — if the private key has no passphrase, leave APPLE_PASS_PASSPHRASE unset or empty`);
     }
 
-    console.log(`[apple-wallet] Wallet available — passTypeIdentifier: ${passTypeIdentifier}, teamId: ${teamId}, passphrase: ${passphrase ? "set" : "not set (unencrypted key)"}`);
+    console.log(`[apple-wallet] Wallet available — passTypeIdentifier: ${sanitizeLog(passTypeIdentifier)}, teamId: ${sanitizeLog(teamId)}, passphrase: ${passphrase ? "set" : "not set (unencrypted key)"}`);
     return res.status(200).end();
   });
 
@@ -930,7 +934,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         !wwdrBase64 && "APPLE_PASS_WWDR",
         !teamId && "APPLE_TEAM_ID",
       ].filter(Boolean).join(", ");
-      console.log(`[apple-wallet] Wallet pass generation skipped — missing env vars: ${missing}`);
+      console.log(`[apple-wallet] Wallet pass generation skipped — missing env vars: ${sanitizeLog(missing)}`);
       return res.status(503).json({ message: "Apple Wallet not configured" });
     }
 
@@ -942,7 +946,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       wwdrBuf = decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64).buf;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error(`[apple-wallet] Certificate preflight failed: ${msg}`);
+      console.error(`[apple-wallet] Certificate preflight failed: ${sanitizeLog(msg)}`);
       const isDev = process.env.NODE_ENV !== "production";
       return res.status(503).json({
         message: "Apple Wallet certificate error",

@@ -83,7 +83,7 @@ export async function pushStatusToClientPortal(payload: StatusPushPayload): Prom
       attemptCount: 1,
       lastAttemptAt: new Date(),
     });
-    console.error(`[client-portal-push] Push failed for event ${event.id}:`, errorMsg);
+    console.error("[client-portal-push] Push failed for event", event.id, ":", errorMsg.replace(/[\r\n]/g, " "));
   }
 }
 

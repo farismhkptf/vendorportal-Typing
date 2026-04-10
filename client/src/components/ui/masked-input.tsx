@@ -42,34 +42,46 @@ const formatWoNumber = (value: string): string => {
   return letter + digits
 }
 
-const formatters: Record<MaskType, (value: string) => string> = {
-  phone: formatPhone,
-  emiratesId: formatEmiratesId,
-  passport: formatPassport,
-  woNumber: formatWoNumber,
+function applyMask(mask: MaskType | undefined, value: string): string {
+  switch (mask) {
+    case "phone":
+      return formatPhone(value)
+    case "emiratesId":
+      return formatEmiratesId(value)
+    case "passport":
+      return formatPassport(value)
+    case "woNumber":
+      return formatWoNumber(value)
+    default:
+      return value
+  }
 }
 
-const inputModes: Record<MaskType, React.HTMLAttributes<HTMLInputElement>["inputMode"]> = {
-  phone: "tel",
-  emiratesId: "numeric",
-  passport: "text",
-  woNumber: "text",
+function getInputMode(mask: MaskType | undefined): React.HTMLAttributes<HTMLInputElement>["inputMode"] {
+  switch (mask) {
+    case "phone":
+      return "tel"
+    case "emiratesId":
+      return "numeric"
+    case "passport":
+    case "woNumber":
+      return "text"
+    default:
+      return undefined
+  }
 }
 
 const MaskedInput = React.forwardRef<HTMLInputElement, MaskedInputProps>(
   ({ className, mask, onChange, value, ...props }, ref) => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      let newValue = e.target.value
-      if (mask && formatters[mask]) {
-        newValue = formatters[mask](newValue)
-      }
+      const newValue = applyMask(mask, e.target.value)
       onChange?.(newValue)
     }
 
     return (
       <input
         type="text"
-        inputMode={mask ? inputModes[mask] : undefined}
+        inputMode={getInputMode(mask)}
         className={cn(
           "flex h-9 w-full rounded-md border border-input bg-white dark:bg-muted/50 px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
           className

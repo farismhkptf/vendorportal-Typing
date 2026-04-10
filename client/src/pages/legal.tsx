@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { ArrowLeft } from "lucide-react";
@@ -57,7 +58,7 @@ export default function LegalPage({ type }: LegalPageProps) {
             ) : content ? (
               <div
                 className="prose prose-sm dark:prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: content }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(content) }}
                 data-testid="text-legal-content"
               />
             ) : (

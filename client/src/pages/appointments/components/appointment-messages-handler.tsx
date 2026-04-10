@@ -198,11 +198,13 @@ Thank you,
 
       if (type === "email") {
         if (apt.emailDraft) {
-          container.innerHTML = apt.emailDraft;
+          const DOMPurify = (await import("dompurify")).default;
+          container.innerHTML = DOMPurify.sanitize(apt.emailDraft, { FORCE_BODY: true });
         } else {
           try {
             const res = await fetch(`/api/email-preview/appointment/${apt.id}`);
-            container.innerHTML = await res.text();
+            const DOMPurify = (await import("dompurify")).default;
+            container.innerHTML = DOMPurify.sanitize(await res.text(), { FORCE_BODY: true });
           } catch {
             container.innerHTML = "<p>Email preview unavailable</p>";
           }

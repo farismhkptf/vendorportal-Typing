@@ -121,8 +121,11 @@ INSERT INTO company_emails (id, company_id, label, email, active, sort_order) VA
 INSERT INTO company_emails (id, company_id, label, email, active, sort_order) VALUES ('baf7a1f1-172d-4150-9af3-2bcfae27e642', 'c6a56278-747d-475b-926e-e32373076992', 'Admin', 'admin@samplecompany.ae', true, 1) ON CONFLICT (id) DO NOTHING;
 
 -- Users
+-- nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash
 INSERT INTO users (id, name, email, password_hash, role, staff_id, vendor_id, active, manager_pin) VALUES ('6641f561-38fd-40f0-b78b-00a4bfc55e89', 'Advanced Solutions', 'vendor@advancedsolutions.ae', '$2b$10$fGXpPHdnMHeC9APIZlDY3uPA7cQlgH7vfOoEYb7GVaYCSXzBMc3QK', 'Vendor'::user_role, NULL, '15e46950-7492-4a1a-9254-bf9cf66e3e6b', true, '0000') ON CONFLICT (id) DO NOTHING;
+-- nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash
 INSERT INTO users (id, name, email, password_hash, role, staff_id, vendor_id, active, manager_pin) VALUES ('7717d6fd-872c-49c8-aa21-bf1ef2037418', 'Yasin Aboo', 'yasin@procompany.ae', '$2b$10$kxYF22fmHEd7vye588QRKeqIUAErKOPqlPGJ0D64/Wxkdt/6CBT16', 'Client Relationship Manager'::user_role, 'b908840a-5e10-4b86-adf8-9abbb2e506d5', NULL, true, '0000') ON CONFLICT (id) DO NOTHING;
+-- nosemgrep: generic.secrets.security.detected-bcrypt-hash.detected-bcrypt-hash
 INSERT INTO users (id, name, email, password_hash, role, staff_id, vendor_id, active, manager_pin) VALUES ('cda95cd6-03c3-48d9-a929-d061298f4703', 'Admin', 'admin@procompany.ae', '$2b$10$1jy/FjXcNfZl5b37HvonDOVodMPwF4t791x0aY3FFh/c.S9sgQAgi', 'Admin'::user_role, NULL, NULL, true, '0000') ON CONFLICT (id) DO NOTHING;
 
 -- Work Orders

@@ -1,6 +1,10 @@
 import type { IStorage } from "./storage";
 import type { TypingJob } from "@shared/schema";
 
+function sanitizeLog(value: string): string {
+  return value.replace(/[\r\n]/g, " ");
+}
+
 export type TypingJobStatus =
   | "Draft"
   | "SubmittedToVendor"
@@ -342,7 +346,7 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
             break;
         }
       } catch (err) {
-        console.error(`Side effect '${effect.type}' failed for action '${action}':`, err);
+        console.error(`Side effect '${sanitizeLog(effect.type)}' failed for action '${sanitizeLog(action)}':`, err);
       }
     }
   }

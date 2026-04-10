@@ -137,7 +137,7 @@ export function WoTypingTab({ workOrder, id, vendors, jobTypes, openNewJobForm, 
         results.success++;
       } catch (error) {
         results.failed++;
-        console.error(`Failed to create ${job.name} typing job:`, error);
+        console.error(`Failed to create ${job.name.replace(/[\r\n]/g, " ")} typing job:`, error);
       }
     }
 

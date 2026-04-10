@@ -4,6 +4,14 @@ import type { AppointmentEmailData } from "./appointment-confirmation";
 import { buildCustodyCollectionEmail, buildCustodyReturnEmail } from "./custody-notifications";
 import type { CustodyEmailData } from "./custody-notifications";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export interface EmailTemplateInfo {
   id: string;
   name: string;
@@ -253,7 +261,7 @@ function buildPlaceholderEmail(title: string, description: string, category: str
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title}</title>
+  <title>${escapeHtml(title)}</title>
   <style>
     body { margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#1d1d1f; }
     .shell { max-width:620px;margin:30px auto;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.06); }
@@ -286,9 +294,9 @@ function buildPlaceholderEmail(title: string, description: string, category: str
         <div class="tagline">Everything. In Order.</div>
       </div>
       <div class="body">
-        <div class="badge">${category.replace(/_/g, " ")}</div>
-        <div class="title">${title}</div>
-        <div class="desc">${description}</div>
+        <div class="badge">${escapeHtml(category.replace(/_/g, " "))}</div>
+        <div class="title">${escapeHtml(title)}</div>
+        <div class="desc">${escapeHtml(description)}</div>
         <div class="placeholder-card">
           <div class="placeholder-icon">&#9993;</div>
           <div class="placeholder-text">This is a preview template.<br>Dynamic content will be populated when the email is triggered.</div>

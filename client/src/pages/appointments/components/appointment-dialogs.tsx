@@ -1,3 +1,4 @@
+import DOMPurify from "dompurify";
 import {
   Calendar, Stethoscope, CreditCard,
   Building2, User,
@@ -266,7 +267,7 @@ export function EmailDraftDialog({
           {viewEmailDraftApt?.emailDraft ? (
             <div
               className="rounded-lg border border-border/50 p-4 bg-white dark:bg-gray-950"
-              dangerouslySetInnerHTML={{ __html: viewEmailDraftApt.emailDraft }}
+              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(viewEmailDraftApt.emailDraft, { FORCE_BODY: true }) }}
               data-testid="email-draft-content"
             />
           ) : (

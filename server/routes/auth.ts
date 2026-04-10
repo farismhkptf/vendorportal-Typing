@@ -11,6 +11,14 @@ import { validateBody } from "../middleware/validation";
 import { hashApiKey } from "../external-routes";
 import { sendEmail } from "../email-service";
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 // Issue a JWT signed with SHARED_JWT_SECRET for the given user.
 // Returns null if the shared secret is not configured.
 function issueSharedJwt(user: { id: string; email: string | null; role: string; name: string }): string | null {
@@ -941,8 +949,8 @@ export function registerAuthRoutes(app: Express): void {
           <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
             <h2 style="color: #1a1a2e;">Sign in to The P.R.O. Company Portal</h2>
             <p>Click the button below to sign in. This link expires in 15 minutes and can only be used once.</p>
-            <a href="${magicUrl}" style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 16px 0;">Sign In</a>
-            <p style="color: #666; font-size: 13px;">Or copy this link: ${magicUrl}</p>
+            <a href="${escapeHtml(magicUrl)}" style="display: inline-block; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin: 16px 0;">Sign In</a>
+            <p style="color: #666; font-size: 13px;">Or copy this link: ${escapeHtml(magicUrl)}</p>
             <p style="color: #666; font-size: 12px;">If you did not request this, you can safely ignore this email.</p>
           </div>
         `,

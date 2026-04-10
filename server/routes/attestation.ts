@@ -9,6 +9,10 @@ import { ObjectStorageService } from "../replit_integrations/object_storage/obje
 import type { RouteDeps } from "./types";
 import type { AttestationSr, InsertAttestationSr, InsertAttestationSrStep, InsertDocumentCustodyHandoff } from "@shared/schema";
 
+function sanitizeLog(value: string): string {
+  return value.replace(/[\r\n]/g, " ");
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -519,7 +523,7 @@ app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async 
           createdBy: req.session?.userId ?? undefined,
         });
       } catch (eventErr) {
-        console.error(`Failed to publish cross_portal_event for attestation_sr.${status.toLowerCase()}:`, eventErr);
+        console.error(`Failed to publish cross_portal_event for attestation_sr.${sanitizeLog(status.toLowerCase())}:`, eventErr);
       }
     }
     res.json(updated);
