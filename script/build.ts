@@ -44,13 +44,13 @@ async function runPreDeployMigrations() {
       WHERE table_schema = 'public' AND table_name = 'staff' AND column_name = 'leave_end_date'
     `);
     const colType = rows[0]?.data_type;
-    if (colType === 'date') {
-      await client.query(`ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING leave_end_date::TIMESTAMP`);
-      console.log("[pre-deploy] Converted staff.leave_end_date from date to timestamp");
-    } else if (colType === 'text') {
+    if (colType === 'text') {
       await client.query(`UPDATE staff SET leave_end_date = NULL WHERE leave_end_date IS NOT NULL AND leave_end_date != '' AND leave_end_date !~ '^\\d{4}-\\d{2}-\\d{2}'`);
-      await client.query(`ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING CASE WHEN leave_end_date IS NOT NULL AND leave_end_date != '' THEN leave_end_date::TIMESTAMP ELSE NULL END`);
-      console.log("[pre-deploy] Converted staff.leave_end_date from text to timestamp");
+      await client.query(`ALTER TABLE staff ALTER COLUMN leave_end_date TYPE DATE USING CASE WHEN leave_end_date IS NOT NULL AND leave_end_date != '' THEN leave_end_date::DATE ELSE NULL END`);
+      console.log("[pre-deploy] Converted staff.leave_end_date from text to date");
+    } else if (colType === 'timestamp without time zone' || colType === 'timestamp') {
+      await client.query(`ALTER TABLE staff ALTER COLUMN leave_end_date TYPE DATE USING leave_end_date::DATE`);
+      console.log("[pre-deploy] Converted staff.leave_end_date from timestamp to date");
     }
 
     await client.query(`
