@@ -75,7 +75,8 @@ async function runIndexMigration(): Promise<void> {
         SELECT data_type FROM information_schema.columns
         WHERE table_name = 'staff' AND column_name = 'leave_end_date'
       `);
-      if (colCheck.rows.length > 0 && colCheck.rows[0].data_type === 'text') {
+      const colType = colCheck.rows.length > 0 ? colCheck.rows[0].data_type : null;
+      if (colType === 'text') {
         await client.query(`
           UPDATE staff SET leave_end_date = NULL
           WHERE leave_end_date IS NOT NULL
@@ -87,6 +88,11 @@ async function runIndexMigration(): Promise<void> {
             CASE WHEN leave_end_date IS NOT NULL AND leave_end_date != '' THEN leave_end_date::TIMESTAMP ELSE NULL END
         `);
         console.log("[migration] Converted staff.leave_end_date from text to timestamp");
+      } else if (colType === 'date') {
+        await client.query(`
+          ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING leave_end_date::TIMESTAMP
+        `);
+        console.log("[migration] Converted staff.leave_end_date from date to timestamp");
       }
     } catch (leaveErr: unknown) {
       const msg = leaveErr instanceof Error ? leaveErr.message : String(leaveErr);
@@ -326,6 +332,22 @@ async function runVendorSchemaMigration(): Promise<void> {
           resolved_at TIMESTAMP
         )
       `);
+
+      // ── Staff Notifications table ────────────────────────────────────────────
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS vendor.staff_notifications (
+          id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+          user_id VARCHAR NOT NULL,
+          type TEXT NOT NULL,
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          related_entity_type TEXT,
+          related_entity_id VARCHAR,
+          is_read BOOLEAN NOT NULL DEFAULT false,
+          created_at TIMESTAMP NOT NULL DEFAULT now()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_vendor_staff_notifications_user_id ON vendor.staff_notifications (user_id)`);
 
       // ── Attestation Inquiry tables (moved to vendor schema) ─────────────────
       await client.query(`
