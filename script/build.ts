@@ -67,6 +67,50 @@ async function runPreDeployMigrations() {
       )
     `);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_vendor_staff_notifications_user_id ON vendor.staff_notifications (user_id)`);
+
+    const enumDefs: [string, string[]][] = [
+      ["center_type", ["Medical", "EID", "Both"]],
+      ["center_authority", ["DHA", "EHS", "ICP"]],
+      ["center_tier", ["Normal", "VIP"]],
+      ["wo_status", ["Draft", "AtVendor", "ReadyToSchedule", "Scheduled", "Completed", "Cancelled"]],
+      ["appointment_type", ["Medical", "EID"]],
+      ["appointment_status", ["Scheduled", "Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"]],
+      ["reschedule_status", ["New", "Accepted", "Closed"]],
+      ["document_status", ["Pending", "Uploaded", "Verified"]],
+      ["message_channel", ["Email", "WhatsApp"]],
+      ["message_status", ["Draft", "MarkedSent", "Failed"]],
+      ["wallet_entry_type", ["Topup", "Debit", "Reversal", "Adjustment"]],
+      ["staff_status", ["Active", "OnLeave", "Cancelled", "TempActive", "TempInactive"]],
+      ["staff_type", ["Permanent", "Temporary"]],
+      ["approval_status", ["Pending", "Approved", "Rejected"]],
+      ["password_reset_status", ["pending", "approved", "rejected"]],
+      ["vendor_type", ["Typing", "Attestation"]],
+      ["document_class", ["Personal", "Business", "Both"]],
+      ["sr_status", ["Draft", "SentToVendor", "AcceptedByVendor", "InProgress", "Completed", "Cancelled"]],
+      ["physical_custody_status", ["WithClient", "WithUs", "WithVendor", "ReturnedToClient"]],
+      ["sr_step_status", ["Pending", "InProgress", "Done"]],
+      ["medical_appt_status", ["SCHEDULED", "AWAITING_MEETING", "IN_PROCESS", "COMPLETED", "RESULT_DELAYED", "RESULT_ISSUED", "MEDICAL_FAILED", "NO_SHOW", "RETEST_REQUIRED", "CLOSED_ADMIN_OVERRIDE"]],
+      ["cycle_type", ["Initial", "Reschedule", "Retest"]],
+      ["cycle_outcome", ["Passed", "Failed", "Pending"]],
+      ["medical_event_type", ["CYCLE_CREATED", "STATUS_CHANGED", "QR_CONFIRMED", "MANUAL_CONFIRMED", "CRM_HOLD_SET", "CRM_HOLD_REMOVED", "COMPLETED_MARKED", "RETEST_REQUIRED_SET", "ADMIN_OVERRIDE", "RESULT_ISSUED", "MEDICAL_FAILED", "TIMER_AWAITING_MEETING", "TIMER_NO_SHOW", "TIMER_RESULT_DELAYED"]],
+      ["biometrics_appt_status", ["SCHEDULED", "AWAITING_MEETING", "IN_PROCESS", "COMPLETED", "NO_SHOW", "RESCHEDULE_REQUIRED", "CLOSED_ADMIN_OVERRIDE"]],
+      ["biometrics_cycle_type", ["Initial", "Reschedule"]],
+      ["biometrics_cycle_outcome", ["Completed", "NoShow", "Pending"]],
+      ["biometrics_event_type", ["CYCLE_CREATED", "STATUS_CHANGED", "QR_CONFIRMED", "MANUAL_CONFIRMED", "CRM_HOLD_SET", "CRM_HOLD_REMOVED", "COMPLETED_MARKED", "PROOF_UPLOADED", "RESCHEDULE_REQUIRED_SET", "ADMIN_OVERRIDE", "TIMER_AWAITING_MEETING", "TIMER_NO_SHOW"]],
+      ["handover_direction", ["ClientToUs", "UsToVendor", "VendorToUs", "UsToClient"]],
+      ["api_key_type", ["client", "crm"]],
+      ["custody_doc_category", ["MofaPersonal", "MofaBusiness", "LawyerAttestation", "EmbassyAttestation"]],
+      ["custody_doc_subtype", ["BirthCertificate", "MarriageCertificate", "EmbassyAffidavit", "AcademicCertificate", "PersonalPOA", "TradeLicense", "MOA", "BusinessPOA", "InternalCompanyDocuments", "PassportCopy", "ResidencyCopy", "UtilityBill", "Other"]],
+      ["custody_doc_stage", ["WithClient", "WithUs", "WithVendor", "ReturnedToClient"]],
+      ["attestation_inquiry_status", ["Open", "QuoteReceived", "Accepted", "Rejected", "Converted"]],
+      ["attestation_document_class", ["Personal", "Business"]],
+    ];
+
+    for (const [name, values] of enumDefs) {
+      const valuesStr = values.map(v => `'${v}'`).join(", ");
+      await client.query(`DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = '${name}') THEN CREATE TYPE ${name} AS ENUM (${valuesStr}); END IF; END $$`);
+    }
+    console.log("[pre-deploy] All enums ensured");
   } catch (err) {
     console.warn("[pre-deploy] Pre-migration warning:", err instanceof Error ? err.message : err);
   } finally {
