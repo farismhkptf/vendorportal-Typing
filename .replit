@@ -60,9 +60,6 @@ integrations = ["javascript_database:1.0.0", "javascript_object_storage:2.0.0"]
 [userenv]
 
 [userenv.shared]
-ZOHO_CLIENT_ID = "1000.LA4JUPGE302NF9LYG0KI3WMGZRXW1W"
-ZOHO_ACCOUNT_DOMAIN = "https://accounts.zoho.com"
-ZOHO_API_DOMAIN = "https://www.zohoapis.com"
 ZOHO_WORKDRIVE_PARENT_FOLDER_ID = "6w86nb32221cc39204b94bfed5893c750049b"
 ZOHO_SMTP_USER = "appointments@procompany.ae"
 APP_BASE_URL = "https://vendor.procompany.ae"

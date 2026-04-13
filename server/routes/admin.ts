@@ -909,11 +909,12 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     }
 
     const passphrase = process.env.APPLE_PASS_PASSPHRASE;
-    if (passphrase && passphrase.trim().length <= 2) {
-      console.warn(`[apple-wallet] APPLE_PASS_PASSPHRASE is only ${passphrase.trim().length} character(s) — if the private key has no passphrase, leave APPLE_PASS_PASSPHRASE unset or empty`);
+    const passphraseIsConfigured = passphrase != null && passphrase.length > 0;
+    if (passphraseIsConfigured && passphrase!.trim().length <= 2) {
+      console.warn("[apple-wallet] APPLE_PASS_PASSPHRASE appears too short — if the private key has no passphrase, leave APPLE_PASS_PASSPHRASE unset or empty");
     }
 
-    console.log(`[apple-wallet] Wallet available — passTypeIdentifier: ${sanitizeLog(passTypeIdentifier)}, teamId: ${sanitizeLog(teamId)}, passphrase: ${passphrase ? "set" : "not set (unencrypted key)"}`);
+    console.log(`[apple-wallet] Wallet available — passTypeIdentifier: ${sanitizeLog(passTypeIdentifier)}, teamId: ${sanitizeLog(teamId)}, passphrase: ${passphraseIsConfigured ? "set" : "not set (unencrypted key)"}`);
     return res.status(200).end();
   });
 
@@ -954,8 +955,9 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       });
     }
 
-    if (passphrase && passphrase.trim().length <= 2) {
-      console.warn(`[apple-wallet] APPLE_PASS_PASSPHRASE is only ${passphrase.trim().length} character(s) — if the private key has no passphrase, leave the secret unset or empty`);
+    const passphraseIsShort = passphrase != null && passphrase.trim().length <= 2;
+    if (passphraseIsShort) {
+      console.warn("[apple-wallet] APPLE_PASS_PASSPHRASE appears too short — if the private key has no passphrase, leave the secret unset or empty");
     }
 
     try {
