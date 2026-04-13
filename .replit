@@ -61,8 +61,6 @@ integrations = ["javascript_database:1.0.0", "javascript_object_storage:2.0.0"]
 
 [userenv.shared]
 ZOHO_CLIENT_ID = "1000.LA4JUPGE302NF9LYG0KI3WMGZRXW1W"
-ZOHO_REFRESH_TOKEN = "1000.4bfdf0a3289d7bd8ec8d774d6e44fcfc.a5ac7b6c42e244f6c41e00397175baee"
-ZOHO_CLIENT_SECRET = "02890cfbbb621dd37a5c9cdcba232feaf63806e612"
 ZOHO_ACCOUNT_DOMAIN = "https://accounts.zoho.com"
 ZOHO_API_DOMAIN = "https://www.zohoapis.com"
 ZOHO_WORKDRIVE_PARENT_FOLDER_ID = "6w86nb32221cc39204b94bfed5893c750049b"
