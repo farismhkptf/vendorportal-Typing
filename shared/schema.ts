@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, pgSchema, text, varchar, integer, boolean, timestamp, date, json, jsonb, pgEnum, index, numeric, uuid } from "drizzle-orm/pg-core";
+import { pgTable, pgSchema, text, varchar, integer, boolean, timestamp, json, jsonb, pgEnum, index, numeric, uuid } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -364,7 +364,7 @@ export const staff = pgTable("staff", {
   email: text("email"),
   status: staffStatusEnum("status").notNull().default("Active"),
   replacementId: varchar("replacement_id"), // Staff member covering when on leave
-  leaveEndDate: date("leave_end_date", { mode: "date" }),
+  leaveEndDate: timestamp("leave_end_date"),
   active: boolean("active").notNull().default(true),
 });
 

@@ -84,15 +84,15 @@ async function runIndexMigration(): Promise<void> {
             AND leave_end_date !~ '^\\d{4}-\\d{2}-\\d{2}'
         `);
         await client.query(`
-          ALTER TABLE staff ALTER COLUMN leave_end_date TYPE DATE USING
-            CASE WHEN leave_end_date IS NOT NULL AND leave_end_date != '' THEN leave_end_date::DATE ELSE NULL END
+          ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING
+            CASE WHEN leave_end_date IS NOT NULL AND leave_end_date != '' THEN leave_end_date::TIMESTAMP ELSE NULL END
         `);
-        console.log("[migration] Converted staff.leave_end_date from text to date");
-      } else if (colType === 'timestamp without time zone' || colType === 'timestamp') {
+        console.log("[migration] Converted staff.leave_end_date from text to timestamp");
+      } else if (colType === 'date') {
         await client.query(`
-          ALTER TABLE staff ALTER COLUMN leave_end_date TYPE DATE USING leave_end_date::DATE
+          ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING leave_end_date::TIMESTAMP
         `);
-        console.log("[migration] Converted staff.leave_end_date from timestamp to date");
+        console.log("[migration] Converted staff.leave_end_date from date to timestamp");
       }
     } catch (leaveErr: unknown) {
       const msg = leaveErr instanceof Error ? leaveErr.message : String(leaveErr);
