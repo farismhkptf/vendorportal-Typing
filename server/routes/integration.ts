@@ -288,7 +288,7 @@ export function registerIntegrationRoutes(app: Express): void {
         // Random unusable password — account can only be accessed via SSO or admin password reset
         const passwordHash = await bcrypt.hash(randomBytes(24).toString("hex"), 10);
         user = await storage.createUser({ name, email, passwordHash, role, active: true });
-        console.log(`[integration/auth] Auto-provisioned staff account for ${email} (role: ${role})`);
+        console.log(`[integration/auth] Auto-provisioned staff account (role: ${role})`);
       } else if (!user.active) {
         return res.redirect("/?sso_error=account_inactive");
       } else if (user.role === "Vendor") {
@@ -309,7 +309,7 @@ export function registerIntegrationRoutes(app: Express): void {
         portal: "team",
       });
 
-      console.log(`[integration/auth] SSO silent login for ${email}`);
+      console.log(`[integration/auth] SSO silent login successful`);
       return res.redirect("/");
     } catch (err) {
       console.error("[integration/auth] redirect error:", err);
