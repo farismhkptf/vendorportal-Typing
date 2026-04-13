@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth } from "../middleware/auth";
-import { checkAndAutoCompleteWorkOrder } from "../services/transition-service";
+import { checkAndAutoCompleteWorkOrder, checkAndRevertWoIfNoAppointments } from "../services/transition-service";
 import { RESTORE_SNAPSHOT_SQL } from "../restore-snapshot-data";
 import { pool, db } from "../db";
 import { sql } from "drizzle-orm";
@@ -52,6 +52,13 @@ app.get("/api/medical-cases/:woId", requireAuth, async (req, res) => {
 app.post("/api/medical-cases/:woId", requireAuth, async (req, res) => {
   try {
     const { woId } = req.params;
+    const wo = await storage.getWorkOrderById(woId);
+    if (!wo) {
+      return res.status(404).json({ message: "Work order not found" });
+    }
+    if (wo.isMinor) {
+      return res.status(400).json({ message: "Medical scheduling is not required for minor applicants" });
+    }
     let medCase = await storage.getMedicalCaseByWoId(woId);
     if (!medCase) {
       const typingJobs = await storage.getTypingJobsByWoId(woId);
@@ -732,7 +739,7 @@ async function runMedicalTimerJobs() {
         actorRole: "system",
         details: { from: "AWAITING_MEETING", to: "NO_SHOW" },
       });
-      // Notify CRM of no-show
+      // Notify CRM of no-show and revert WO if no active appointments remain
       try {
         const medCase = await storage.getMedicalCaseById(cycle.caseId);
         if (medCase?.woId) {
@@ -755,6 +762,7 @@ async function runMedicalTimerJobs() {
           } else {
             await notifyStaffByRoles(["Admin"], notification);
           }
+          await checkAndRevertWoIfNoAppointments(medCase.woId);
         }
       } catch (notifyErr) {
         console.error("[medical-timer] Failed to notify CRM of no-show:", notifyErr);
@@ -794,7 +802,7 @@ async function runMedicalTimerJobs() {
 }
 
 let medicalTimerStarted = false;
-if (!medicalTimerStarted) {
+if (!medicalTimerStarted && process.env.NODE_TEST !== "1") {
   medicalTimerStarted = true;
   setInterval(() => {
     runMedicalTimerJobs().catch(err => console.error("[medical-timer] Interval error:", err));
@@ -838,6 +846,13 @@ app.get("/api/biometrics-cases/:woId", requireAuth, async (req, res) => {
 app.post("/api/biometrics-cases/:woId", requireAuth, async (req, res) => {
   try {
     const { woId } = req.params;
+    const wo = await storage.getWorkOrderById(woId);
+    if (!wo) {
+      return res.status(404).json({ message: "Work order not found" });
+    }
+    if (wo.isMinor) {
+      console.warn(`[biometrics-case] Override: creating biometrics case for minor applicant WO ${wo.woNumber} (${wo.applicantName})`);
+    }
     let bioCase = await storage.getBiometricsCaseByWoId(woId);
     if (!bioCase) {
       bioCase = await storage.createBiometricsCase({ woId, isOpen: true });
@@ -1295,6 +1310,14 @@ async function runBiometricsTimerJobs() {
         actorRole: "system",
         details: { from: "AWAITING_MEETING", to: "NO_SHOW" },
       });
+      try {
+        const bioCase = await storage.getBiometricsCaseById(cycle.caseId);
+        if (bioCase?.woId) {
+          await checkAndRevertWoIfNoAppointments(bioCase.woId);
+        }
+      } catch (revertErr) {
+        console.error("[biometrics-timer] Failed to revert WO on no-show:", revertErr);
+      }
     }
 
     const total = awaitingDue.length + noShowDue.length;
@@ -1307,7 +1330,7 @@ async function runBiometricsTimerJobs() {
 }
 
 let biometricsTimerStarted = false;
-if (!biometricsTimerStarted) {
+if (!biometricsTimerStarted && process.env.NODE_TEST !== "1") {
   biometricsTimerStarted = true;
   setInterval(() => {
     runBiometricsTimerJobs().catch(err => console.error("[biometrics-timer] Interval error:", err));

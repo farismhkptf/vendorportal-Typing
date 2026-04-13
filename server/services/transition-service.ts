@@ -1,18 +1,45 @@
-import { storage } from "../storage";
+import { storage as _realStorage, IStorage } from "../storage";
 import { notifyStaffByRoles } from "./notification-service";
 import { pushStatusToClientPortal } from "./client-portal-push";
+import { db } from "../db";
+import { workOrders, medicalCases, biometricsCases } from "@shared/schema";
+import { eq } from "drizzle-orm";
+
+// Allows tests to inject storage/db stubs without touching production singletons
+let _storage: IStorage = _realStorage;
+export function _setStorageForTesting(s: IStorage): void { _storage = s; }
+export function _resetStorage(): void { _storage = _realStorage; }
+
+type CompletionTransaction = (woId: string, storage: IStorage) => Promise<void>;
+let _runCompletionTransaction: CompletionTransaction = async (woId, storage) => {
+  await db.transaction(async (tx) => {
+    await tx.update(workOrders).set({ status: "Completed" }).where(eq(workOrders.id, woId));
+    await tx.update(medicalCases).set({ isOpen: false }).where(eq(medicalCases.woId, woId));
+    await tx.update(biometricsCases).set({ isOpen: false }).where(eq(biometricsCases.woId, woId));
+  });
+};
+export function _setCompletionTransactionForTesting(fn: CompletionTransaction): void { _runCompletionTransaction = fn; }
+export function _resetCompletionTransaction(): void {
+  _runCompletionTransaction = async (woId, storage) => {
+    await db.transaction(async (tx) => {
+      await tx.update(workOrders).set({ status: "Completed" }).where(eq(workOrders.id, woId));
+      await tx.update(medicalCases).set({ isOpen: false }).where(eq(medicalCases.woId, woId));
+      await tx.update(biometricsCases).set({ isOpen: false }).where(eq(biometricsCases.woId, woId));
+    });
+  };
+}
 
 export async function checkAndAutoTransitionWorkOrder(woId: string): Promise<void> {
   try {
-    const wo = await storage.getWorkOrderById(woId);
+    const wo = await _storage.getWorkOrderById(woId);
     if (!wo || wo.status === "Completed" || wo.status === "Cancelled") return;
     if (!wo.serviceTypeId) return;
 
-    const serviceType = await storage.getServiceTypeById(wo.serviceTypeId);
+    const serviceType = await _storage.getServiceTypeById(wo.serviceTypeId);
     if (!serviceType) return;
 
-    const jobs = await storage.getTypingJobsByWoId(woId);
-    const appts = await storage.getAppointmentsByWoId(woId);
+    const jobs = await _storage.getTypingJobsByWoId(woId);
+    const appts = await _storage.getAppointmentsByWoId(woId);
 
     const activeJobs = jobs.filter(j => j.status !== "Aborted");
     const vendorStatuses = ["SubmittedToVendor", "InProcess"];
@@ -29,17 +56,30 @@ export async function checkAndAutoTransitionWorkOrder(woId: string): Promise<voi
 
     let newStatus: "AtVendor" | "ReadyToSchedule" | null = null;
 
+    const needsMedicalTyping = needsMedical && serviceType.requiresMedicalTyping;
+    const needsEidTyping = serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years;
+    const noTypingRequired = !needsMedicalTyping && !needsEidTyping;
+
+    // Any active (non-Aborted) job that is not yet terminal means typing is still in progress
+    const activeNonTerminalJobs = activeJobs.filter(j => !terminalJobStatuses.includes(j.status));
     const hasVendorJobs = activeJobs.some(j => vendorStatuses.includes(j.status));
-    if (hasVendorJobs && wo.status === "Draft") {
-      newStatus = "AtVendor";
+
+    // Draft WO: advance to AtVendor when typing is required and jobs exist (even if Draft),
+    // or when jobs are already at a vendor (SubmittedToVendor/InProcess).
+    if (wo.status === "Draft") {
+      if (!noTypingRequired && activeNonTerminalJobs.length > 0) {
+        newStatus = "AtVendor";
+      }
+    } else if (hasVendorJobs && wo.status !== "Draft") {
+      // Non-Draft: keep at AtVendor if still has vendor jobs (handled implicitly, no action needed)
     }
 
-    const medTypingDone = !serviceType.requiresMedicalTyping || !needsMedical
+    const medTypingDone = !needsMedicalTyping
       || (medJobs.length > 0 && medJobs.every(j => terminalJobStatuses.includes(j.status)));
-    const eidTypingDone = !(serviceType.requiresIdTyping2Years || serviceType.requiresIdTyping1Year || serviceType.requiresIdTyping10Years)
+    const eidTypingDone = !needsEidTyping
       || (eidJobs.length > 0 && eidJobs.every(j => terminalJobStatuses.includes(j.status)));
-    const hasAnyJobs = medJobs.length > 0 || eidJobs.length > 0;
-    const allRequiredTypingDone = hasAnyJobs && medTypingDone && eidTypingDone;
+
+    const allRequiredTypingDone = noTypingRequired || (medTypingDone && eidTypingDone);
 
     if (allRequiredTypingDone && medAppts.length === 0 && eidAppts.length === 0
         && (wo.status === "AtVendor" || wo.status === "Draft")) {
@@ -47,8 +87,8 @@ export async function checkAndAutoTransitionWorkOrder(woId: string): Promise<voi
     }
 
     if (newStatus && newStatus !== wo.status) {
-      await storage.updateWorkOrder(woId, { status: newStatus });
-      await storage.createAuditLog({
+      await _storage.updateWorkOrder(woId, { status: newStatus });
+      await _storage.createAuditLog({
         action: "auto_status_transition",
         entityType: "work_order",
         entityId: woId,
@@ -76,15 +116,15 @@ export async function checkAndAutoTransitionWorkOrder(woId: string): Promise<voi
 
 export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boolean> {
   try {
-    const wo = await storage.getWorkOrderById(woId);
+    const wo = await _storage.getWorkOrderById(woId);
     if (!wo || wo.status === "Completed" || wo.status === "Cancelled") return false;
     if (!wo.serviceTypeId) return false;
 
-    const serviceType = await storage.getServiceTypeById(wo.serviceTypeId);
+    const serviceType = await _storage.getServiceTypeById(wo.serviceTypeId);
     if (!serviceType) return false;
 
-    const jobs = await storage.getTypingJobsByWoId(woId);
-    const appts = await storage.getAppointmentsByWoId(woId);
+    const jobs = await _storage.getTypingJobsByWoId(woId);
+    const appts = await _storage.getAppointmentsByWoId(woId);
 
     const terminalJobStatuses = ["ReadyForScheduling", "Returned"];
     const terminalApptStatuses = ["Completed", "FollowUpCompleted"];
@@ -99,7 +139,7 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
     const needsAttestation = serviceType.requiresAttestation;
 
     if (needsAttestation) {
-      const allSrs = await storage.getAttestationSrs();
+      const allSrs = await _storage.getAttestationSrs();
       const attestationSrs = allSrs.filter(sr => sr.externalWoNumber === wo.woNumber);
       if (attestationSrs.length === 0) return false;
       const allAttestationDone = attestationSrs.every(sr => sr.status === "Completed");
@@ -124,9 +164,9 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
           hasCompletedMedical = medicalAppts.some(a => terminalApptStatuses.includes(a.status));
         }
         if (!hasCompletedMedical) {
-          const medicalCase = await storage.getMedicalCaseByWoId(woId);
+          const medicalCase = await _storage.getMedicalCaseByWoId(woId);
           if (medicalCase) {
-            const cycles = await storage.getCyclesByCase(medicalCase.id);
+            const cycles = await _storage.getCyclesByCase(medicalCase.id);
             const terminalCycleStatuses = ["RESULT_ISSUED", "CLOSED_ADMIN_OVERRIDE"];
             hasCompletedMedical = cycles.some(c => terminalCycleStatuses.includes(c.status));
           }
@@ -154,9 +194,9 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
           hasCompletedBiometrics = eidAppts.some(a => terminalApptStatuses.includes(a.status));
         }
         if (!hasCompletedBiometrics) {
-          const biometricsCase = await storage.getBiometricsCaseByWoId(woId);
+          const biometricsCase = await _storage.getBiometricsCaseByWoId(woId);
           if (biometricsCase) {
-            const cycles = await storage.getBiometricsCyclesByCase(biometricsCase.id);
+            const cycles = await _storage.getBiometricsCyclesByCase(biometricsCase.id);
             const terminalBioCycleStatuses = ["COMPLETED", "CLOSED_ADMIN_OVERRIDE"];
             hasCompletedBiometrics = cycles.some(c => terminalBioCycleStatuses.includes(c.status));
           }
@@ -165,8 +205,10 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
       }
     }
 
-    await storage.updateWorkOrder(woId, { status: "Completed" });
-    await storage.createAuditLog({
+    // Complete the WO and close all associated cases in a single transaction
+    await _runCompletionTransaction(woId, _storage);
+
+    await _storage.createAuditLog({
       action: "auto_completed",
       entityType: "work_order",
       entityId: woId,
@@ -188,7 +230,7 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
     }).catch((err: unknown) => { console.error("[auto-complete] push error:", err); });
 
     try {
-      const company = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
+      const company = wo.companyId ? await _storage.getCompanyById(wo.companyId) : null;
       const notification = {
         type: "wo_completed",
         title: "Work Order Completed",
@@ -197,9 +239,9 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
         relatedEntityId: woId,
       };
       if (company?.rmStaffId) {
-        const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[transition-service] failed to fetch RM staff:", err); return null; });
+        const rmStaff = await _storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[transition-service] failed to fetch RM staff:", err); return null; });
         if (rmStaff?.userId) {
-          await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+          await _storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
         } else {
           await notifyStaffByRoles(["Admin"], notification);
         }
@@ -217,16 +259,41 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
   }
 }
 
+export async function checkAndRevertWoIfNoAppointments(woId: string): Promise<void> {
+  try {
+    const wo = await _storage.getWorkOrderById(woId);
+    if (!wo || wo.status !== "Scheduled") return;
+
+    const appts = await _storage.getAppointmentsByWoId(woId);
+    const activeAppts = appts.filter(
+      a => a.status !== "Cancelled" && a.status !== "Rescheduled"
+    );
+    if (activeAppts.length > 0) return;
+
+    await _storage.updateWorkOrder(woId, { status: "ReadyToSchedule" });
+    await _storage.createAuditLog({
+      action: "auto_status_transition",
+      entityType: "work_order",
+      entityId: woId,
+      userId: null,
+      details: { from: "Scheduled", to: "ReadyToSchedule", reason: "All appointments cancelled", applicantName: wo.applicantName, woNumber: wo.woNumber },
+    });
+    console.log(`[revert-wo] Work order ${wo.woNumber} reverted Scheduled → ReadyToSchedule (no active appointments)`);
+  } catch (err) {
+    console.error("[revert-wo] Error:", err);
+  }
+}
+
 export async function revertDelayedWorkOrder(woId: string): Promise<void> {
   try {
-    const wo = await storage.getWorkOrderById(woId);
+    const wo = await _storage.getWorkOrderById(woId);
     if (!wo || !wo.isDelayed) return;
 
-    const settings = await storage.getAppSettings();
+    const settings = await _storage.getAppSettings();
     const thresholdMs = (settings?.vendorDelayThresholdHours ?? 48) * 3600000;
     const now = Date.now();
 
-    const jobs = await storage.getTypingJobsByWoId(woId);
+    const jobs = await _storage.getTypingJobsByWoId(woId);
     const stillOverdue = jobs.some(j =>
       (j.status === "SubmittedToVendor" || j.status === "InProcess") &&
       j.sentAt &&
@@ -235,8 +302,8 @@ export async function revertDelayedWorkOrder(woId: string): Promise<void> {
 
     if (stillOverdue) return;
 
-    await storage.updateWorkOrder(woId, { isDelayed: false });
-    await storage.createAuditLog({
+    await _storage.updateWorkOrder(woId, { isDelayed: false });
+    await _storage.createAuditLog({
       action: "delay_resolved",
       entityType: "work_order",
       entityId: woId,

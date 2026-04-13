@@ -4,7 +4,7 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { requireAuth, requireOpsRole, requireRole } from "../middleware/auth";
 import { validateBody, validateEmailField } from "../middleware/validation";
-import { checkAndAutoCompleteWorkOrder, revertDelayedWorkOrder } from "../services/transition-service";
+import { checkAndAutoCompleteWorkOrder, checkAndAutoTransitionWorkOrder, checkAndRevertWoIfNoAppointments, revertDelayedWorkOrder } from "../services/transition-service";
 import { checkAndMarkDelayedWorkOrders } from "../services/background-jobs";
 import { notifyStaffByRoles, notifyVendorUsers } from "../services/notification-service";
 import { toProperCase } from "../proper-case";
@@ -460,7 +460,25 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       }
       
       const existingWo = await storage.getWorkOrderById(id);
-      const previousWoStatus = existingWo?.status;
+      if (!existingWo) {
+        return res.status(404).json({ message: "Work order not found" });
+      }
+      const previousWoStatus = existingWo.status;
+      const previousServiceTypeId = existingWo.serviceTypeId;
+      const newServiceTypeId = validation.data.serviceTypeId;
+      const serviceTypeChanged = newServiceTypeId && newServiceTypeId !== previousServiceTypeId;
+
+      if (serviceTypeChanged) {
+        const existingJobs = await storage.getTypingJobsByWoId(id);
+        const inFlightJobs = existingJobs.filter(j => j.status === "InProcess");
+        if (inFlightJobs.length > 0) {
+          return res.status(409).json({
+            message: "Cannot change service type: there are typing jobs currently in progress at a vendor. Please manually handle or abort the in-flight jobs before switching service types.",
+            inFlightJobIds: inFlightJobs.map(j => j.id),
+          });
+        }
+      }
+
       const updateData = {
         ...validation.data,
         ...(validation.data.applicantName && { applicantName: toProperCase(validation.data.applicantName) }),
@@ -469,6 +487,60 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       if (!wo) {
         return res.status(404).json({ message: "Work order not found" });
       }
+
+      if (serviceTypeChanged) {
+        const existingJobs = await storage.getTypingJobsByWoId(id);
+        const jobsToCancelViaAbort = existingJobs.filter(j => j.status === "Draft" || j.status === "SubmittedToVendor" || j.status === "OnHold" || j.status === "Rejected");
+        for (const job of jobsToCancelViaAbort) {
+          await storage.updateTypingJob(job.id, {
+            status: "Aborted",
+            notes: (job.notes ? job.notes + "\n" : "") + "CancelledOnServiceTypeChange",
+          });
+        }
+
+        const newServiceType = await storage.getServiceTypeById(newServiceTypeId);
+        if (newServiceType) {
+          const jobTypes = await storage.getJobTypes();
+          const medicalJobType = jobTypes.find(jt => jt.category === "Medical");
+          const eidJobType = jobTypes.find(jt => jt.category === "EID");
+          const needsMedical = newServiceType.requiresMedicalTyping;
+          const needsEid = newServiceType.requiresIdTyping2Years || newServiceType.requiresIdTyping1Year || newServiceType.requiresIdTyping10Years;
+
+          if (needsMedical && medicalJobType) {
+            const jobCode = await storage.generateNextJobCode("Medical");
+            await storage.createTypingJob({
+              woId: id,
+              jobCode,
+              jobTypeId: medicalJobType.id,
+              status: "Draft",
+            });
+          }
+          if (needsEid && eidJobType) {
+            const jobCode = await storage.generateNextJobCode("EID");
+            await storage.createTypingJob({
+              woId: id,
+              jobCode,
+              jobTypeId: eidJobType.id,
+              status: "Draft",
+            });
+          }
+        }
+
+        await storage.createAuditLog({
+          action: "service_type_changed",
+          entityType: "work_order",
+          entityId: id,
+          userId: req.session?.userId || null,
+          details: {
+            from: previousServiceTypeId,
+            to: newServiceTypeId,
+            cancelledJobCount: jobsToCancelViaAbort.length,
+            applicantName: wo.applicantName,
+            woNumber: wo.woNumber,
+          },
+        });
+      }
+
       await storage.createAuditLog({
         action: 'updated',
         entityType: 'work_order',
@@ -568,7 +640,9 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         userId: req.session?.userId || null,
         details: { isMinor: validation.data.isMinor, applicantName: wo.applicantName, woNumber: wo.woNumber },
       });
-      res.json(updated);
+      await checkAndAutoTransitionWorkOrder(id);
+      const transitioned = await storage.getWorkOrderById(id);
+      res.json(transitioned || updated);
     } catch (error) {
       console.error("Activate work order error:", error);
       res.status(500).json({ message: "Failed to activate work order" });
@@ -1116,6 +1190,10 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       if (status === "Completed" || status === "FollowUpCompleted") {
         await revertDelayedWorkOrder(updated.woId);
         await checkAndAutoCompleteWorkOrder(updated.woId);
+      }
+
+      if (status === "Cancelled" || status === "Rescheduled") {
+        await checkAndRevertWoIfNoAppointments(updated.woId);
       }
 
       res.json(updated);

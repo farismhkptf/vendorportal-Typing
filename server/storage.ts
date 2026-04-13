@@ -849,7 +849,7 @@ export class DatabaseStorage implements IStorage {
   async activateWorkOrder(id: string, isMinor: boolean): Promise<WorkOrder | undefined> {
     const [wo] = await db
       .update(workOrders)
-      .set({ status: "Draft", isMinor })
+      .set({ isMinor })
       .where(eq(workOrders.id, id))
       .returning();
     return wo || undefined;

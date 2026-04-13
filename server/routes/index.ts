@@ -1,7 +1,7 @@
 export { requireAuth, requireVendorAuth, requireRole, requireOpsRole, requireTypingVendor, requireAttestationVendor, requireDocCustodyRole, loginRateLimit, recordFailedLogin, clearFailedLogins } from "../middleware/auth";
 export { validateBody, validateEmailField } from "../middleware/validation";
 export { notifyStaffByRoles, notifySingleUser, notifyVendorUsers } from "../services/notification-service";
-export { checkAndAutoTransitionWorkOrder, checkAndAutoCompleteWorkOrder, revertDelayedWorkOrder } from "../services/transition-service";
+export { checkAndAutoTransitionWorkOrder, checkAndAutoCompleteWorkOrder, checkAndRevertWoIfNoAppointments, revertDelayedWorkOrder } from "../services/transition-service";
 export { startBackgroundJobs, checkAndMarkDelayedWorkOrders } from "../services/background-jobs";
 export { registerAuthRoutes } from "./auth";
 export { registerVendorPortalRoutes } from "./vendor-portal";
