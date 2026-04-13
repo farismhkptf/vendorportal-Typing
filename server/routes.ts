@@ -76,23 +76,12 @@ async function runIndexMigration(): Promise<void> {
         WHERE table_name = 'staff' AND column_name = 'leave_end_date'
       `);
       const colType = colCheck.rows.length > 0 ? colCheck.rows[0].data_type : null;
-      if (colType === 'text') {
-        await client.query(`
-          UPDATE staff SET leave_end_date = NULL
-          WHERE leave_end_date IS NOT NULL
-            AND leave_end_date != ''
-            AND leave_end_date !~ '^\\d{4}-\\d{2}-\\d{2}'
-        `);
-        await client.query(`
-          ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING
-            CASE WHEN leave_end_date IS NOT NULL AND leave_end_date != '' THEN leave_end_date::TIMESTAMP ELSE NULL END
-        `);
-        console.log("[migration] Converted staff.leave_end_date from text to timestamp");
+      if (colType === 'timestamp without time zone' || colType === 'timestamp') {
+        await client.query(`ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TEXT USING leave_end_date::TEXT`);
+        console.log("[migration] Converted staff.leave_end_date from timestamp to text");
       } else if (colType === 'date') {
-        await client.query(`
-          ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING leave_end_date::TIMESTAMP
-        `);
-        console.log("[migration] Converted staff.leave_end_date from date to timestamp");
+        await client.query(`ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TEXT USING leave_end_date::TEXT`);
+        console.log("[migration] Converted staff.leave_end_date from date to text");
       }
     } catch (leaveErr: unknown) {
       const msg = leaveErr instanceof Error ? leaveErr.message : String(leaveErr);

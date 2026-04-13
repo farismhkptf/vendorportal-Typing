@@ -107,16 +107,10 @@ async function runPreDeployMigrations() {
       WHERE table_schema = 'public' AND table_name = 'staff' AND column_name = 'leave_end_date'
     `);
     const colType = rows[0]?.data_type;
-    if (colType === 'text') {
-      await run("leave_end_date text→timestamp", `
-        UPDATE staff SET leave_end_date = NULL WHERE leave_end_date IS NOT NULL AND leave_end_date != '' AND leave_end_date !~ '^\\d{4}-\\d{2}-\\d{2}'
-      `);
-      await run("leave_end_date text→timestamp alter", `
-        ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING
-          CASE WHEN leave_end_date IS NOT NULL AND leave_end_date != '' THEN leave_end_date::TIMESTAMP ELSE NULL END
-      `);
+    if (colType === 'timestamp without time zone' || colType === 'timestamp') {
+      await run("leave_end_date timestamp→text", `ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TEXT USING leave_end_date::TEXT`);
     } else if (colType === 'date') {
-      await run("leave_end_date date→timestamp", `ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TIMESTAMP USING leave_end_date::TIMESTAMP`);
+      await run("leave_end_date date→text", `ALTER TABLE staff ALTER COLUMN leave_end_date TYPE TEXT USING leave_end_date::TEXT`);
     }
   } catch (err) {
     console.warn("[pre-deploy] ⚠ leave_end_date check failed:", err instanceof Error ? err.message : err);

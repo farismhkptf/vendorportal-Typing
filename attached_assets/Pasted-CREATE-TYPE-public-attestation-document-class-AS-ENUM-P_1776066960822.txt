@@ -1,0 +1,391 @@
+CREATE TYPE "public"."attestation_document_class" AS ENUM('Personal', 'Business');
+CREATE TYPE "public"."attestation_inquiry_status" AS ENUM('Open', 'QuoteReceived', 'Accepted', 'Rejected', 'Converted');
+CREATE TYPE "public"."attestation_sr_status" AS ENUM('Draft', 'SentToVendor', 'AcceptedByVendor', 'InProgress', 'Completed', 'Cancelled');
+CREATE TYPE "public"."biometrics_appt_status" AS ENUM('SCHEDULED', 'AWAITING_MEETING', 'IN_PROCESS', 'COMPLETED', 'NO_SHOW', 'RESCHEDULE_REQUIRED', 'CLOSED_ADMIN_OVERRIDE');
+CREATE TYPE "public"."biometrics_cycle_outcome" AS ENUM('Completed', 'NoShow', 'Pending');
+CREATE TYPE "public"."biometrics_cycle_type" AS ENUM('Initial', 'Reschedule');
+CREATE TYPE "public"."biometrics_event_type" AS ENUM('CYCLE_CREATED', 'STATUS_CHANGED', 'QR_CONFIRMED', 'MANUAL_CONFIRMED', 'CRM_HOLD_SET', 'CRM_HOLD_REMOVED', 'COMPLETED_MARKED', 'PROOF_UPLOADED', 'RESCHEDULE_REQUIRED_SET', 'ADMIN_OVERRIDE', 'TIMER_AWAITING_MEETING', 'TIMER_NO_SHOW');
+CREATE TYPE "public"."custody_doc_category" AS ENUM('MofaPersonal', 'MofaBusiness', 'LawyerAttestation', 'EmbassyAttestation');
+CREATE TYPE "public"."custody_doc_stage" AS ENUM('WithClient', 'WithUs', 'WithVendor', 'ReturnedToClient');
+CREATE TYPE "public"."custody_doc_subtype" AS ENUM('BirthCertificate', 'MarriageCertificate', 'EmbassyAffidavit', 'AcademicCertificate', 'PersonalPOA', 'TradeLicense', 'MOA', 'BusinessPOA', 'InternalCompanyDocuments', 'PassportCopy', 'ResidencyCopy', 'UtilityBill', 'Other');
+CREATE TYPE "public"."cycle_outcome" AS ENUM('Passed', 'Failed', 'Pending');
+CREATE TYPE "public"."cycle_type" AS ENUM('Initial', 'Reschedule', 'Retest');
+CREATE TYPE "public"."deletion_request_status" AS ENUM('pending', 'approved', 'denied');
+CREATE TYPE "public"."document_class" AS ENUM('Personal', 'Business', 'Both');
+CREATE TYPE "public"."handover_direction" AS ENUM('ClientToUs', 'UsToVendor', 'VendorToUs', 'UsToClient');
+CREATE TYPE "public"."medical_appt_status" AS ENUM('SCHEDULED', 'AWAITING_MEETING', 'IN_PROCESS', 'COMPLETED', 'RESULT_DELAYED', 'RESULT_ISSUED', 'MEDICAL_FAILED', 'NO_SHOW', 'RETEST_REQUIRED', 'CLOSED_ADMIN_OVERRIDE');
+CREATE TYPE "public"."medical_event_type" AS ENUM('CYCLE_CREATED', 'STATUS_CHANGED', 'QR_CONFIRMED', 'MANUAL_CONFIRMED', 'CRM_HOLD_SET', 'CRM_HOLD_REMOVED', 'COMPLETED_MARKED', 'RETEST_REQUIRED_SET', 'ADMIN_OVERRIDE', 'RESULT_ISSUED', 'MEDICAL_FAILED', 'TIMER_AWAITING_MEETING', 'TIMER_NO_SHOW', 'TIMER_RESULT_DELAYED');
+CREATE TYPE "public"."physical_custody_status" AS ENUM('WithClient', 'WithUs', 'WithVendor', 'ReturnedToClient');
+CREATE TYPE "public"."sr_status" AS ENUM('Draft', 'SentToVendor', 'AcceptedByVendor', 'InProgress', 'Completed', 'Cancelled');
+CREATE TYPE "public"."sr_step_status" AS ENUM('Pending', 'InProgress', 'Done');
+CREATE TYPE "public"."vendor_type" AS ENUM('Typing', 'Attestation');
+CREATE TYPE "public"."vp_user_role" AS ENUM('Admin', 'Client Relationship Manager', 'PRO', 'PRO - Temporary', 'Vendor', 'Client Coordinator', 'Client Manager');
+CREATE TABLE "magic_link_tokens" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"email" text NOT NULL,
+	"token_hash" text NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"used_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "magic_link_tokens_token_hash_key" UNIQUE("token_hash")
+);
+CREATE TABLE "attestation_service_step_definitions" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"service_id" varchar NOT NULL,
+	"step_order" integer NOT NULL,
+	"step_name" text NOT NULL,
+	"step_type" text NOT NULL,
+	"description" text
+);
+CREATE TABLE "document_custody_records" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"reference_number" varchar(20) NOT NULL,
+	"company_id" varchar NOT NULL,
+	"wo_id" varchar,
+	"sr_id" varchar,
+	"doc_category" "custody_doc_category" NOT NULL,
+	"doc_subtype" "custody_doc_subtype" NOT NULL,
+	"doc_custom_name" text,
+	"custody_stage" "custody_doc_stage" DEFAULT 'WithClient' NOT NULL,
+	"notify_email" text,
+	"notes" text,
+	"created_by" varchar,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "document_custody_records_reference_number_key" UNIQUE("reference_number")
+);
+CREATE TABLE "biometrics_cases" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"wo_id" varchar NOT NULL,
+	"is_open" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "biometrics_cases_wo_id_key" UNIQUE("wo_id")
+);
+CREATE TABLE "document_custody_handoffs" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"record_id" varchar NOT NULL,
+	"from_stage" "custody_doc_stage" NOT NULL,
+	"to_stage" "custody_doc_stage" NOT NULL,
+	"counterparty_name" text NOT NULL,
+	"counterparty_contact" text NOT NULL,
+	"counterparty_id_photo_url" text,
+	"notes" text,
+	"performed_by" varchar NOT NULL,
+	"performed_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "attestation_sr_steps" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"sr_id" varchar NOT NULL,
+	"step_order" integer NOT NULL,
+	"step_name" text NOT NULL,
+	"step_type" text NOT NULL,
+	"status" "sr_step_status" DEFAULT 'Pending' NOT NULL,
+	"started_at" timestamp,
+	"completed_at" timestamp,
+	"notes" text
+);
+CREATE TABLE "medical_appointment_events" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"cycle_id" varchar NOT NULL,
+	"event_type" "medical_event_type" NOT NULL,
+	"actor_id" varchar,
+	"actor_role" text,
+	"details" json,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "attestation_inquiries" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"company_id" varchar NOT NULL,
+	"applicant_name" text,
+	"vendor_id" varchar NOT NULL,
+	"document_type" text NOT NULL,
+	"document_name_description" text NOT NULL,
+	"document_class" "attestation_document_class" NOT NULL,
+	"home_country" text,
+	"description_of_need" text NOT NULL,
+	"external_wo_number" text,
+	"status" "attestation_inquiry_status" DEFAULT 'Open' NOT NULL,
+	"rejection_reason" text,
+	"converted_to_sr_id" varchar,
+	"created_by" varchar,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "attestation_categories" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"active" boolean DEFAULT true NOT NULL,
+	CONSTRAINT "attestation_categories_name_key" UNIQUE("name")
+);
+CREATE TABLE "appointment_cycles" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"case_id" varchar NOT NULL,
+	"cycle_number" integer DEFAULT 1 NOT NULL,
+	"cycle_type" "cycle_type" DEFAULT 'Initial' NOT NULL,
+	"status" "medical_appt_status" DEFAULT 'SCHEDULED' NOT NULL,
+	"appointment_time" timestamp NOT NULL,
+	"center_id" varchar,
+	"assigned_pro_id" varchar,
+	"outcome" "cycle_outcome",
+	"awaiting_meeting_at" timestamp,
+	"no_show_at" timestamp,
+	"completed_at" timestamp,
+	"result_delayed_at" timestamp,
+	"result_issued_at" timestamp,
+	"crm_hold_active" boolean DEFAULT false NOT NULL,
+	"crm_hold_set_by" varchar,
+	"crm_hold_set_at" timestamp,
+	"confirmed_at" timestamp,
+	"confirmed_by" varchar,
+	"confirm_method" text,
+	"override_reason" text,
+	"override_by" varchar,
+	"override_at" timestamp,
+	"created_by" varchar,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "attestation_sr_activity_log" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"sr_id" varchar NOT NULL,
+	"action" text NOT NULL,
+	"detail" text,
+	"performed_by" varchar,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "staff_notifications" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" varchar NOT NULL,
+	"type" text NOT NULL,
+	"title" text NOT NULL,
+	"message" text NOT NULL,
+	"related_entity_type" text,
+	"related_entity_id" varchar,
+	"is_read" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "attestation_inquiry_quotes" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"inquiry_id" varchar NOT NULL,
+	"vendor_id" varchar NOT NULL,
+	"submitted_by_vendor_user_id" varchar,
+	"quote_version" integer DEFAULT 1 NOT NULL,
+	"amount_aed" integer NOT NULL,
+	"timeline_days" integer NOT NULL,
+	"notes" text,
+	"submitted_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "attestation_service_requests" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"external_wo_number" text NOT NULL,
+	"inquiry_id" varchar,
+	"company_id" varchar NOT NULL,
+	"applicant_name" text,
+	"vendor_id" varchar NOT NULL,
+	"attestation_service_id" varchar,
+	"service_variant_id" varchar,
+	"document_type" text NOT NULL,
+	"document_name_description" text NOT NULL,
+	"document_class" "document_class" NOT NULL,
+	"home_country" text,
+	"original_document_involved" boolean DEFAULT false NOT NULL,
+	"status" "sr_status" DEFAULT 'Draft' NOT NULL,
+	"physical_custody_status" "physical_custody_status" DEFAULT 'WithClient' NOT NULL,
+	"current_custodian" text,
+	"current_responsible_staff_id" varchar,
+	"service_fee_aed" numeric(10, 2),
+	"fee_source" text,
+	"service_name" text,
+	"service_notes" text,
+	"internal_notes" text,
+	"created_by" varchar,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"sr_number" varchar(20),
+	"document_name" text,
+	"assigned_pro_id" varchar,
+	"notes" text,
+	CONSTRAINT "attestation_service_requests_sr_number_key" UNIQUE("sr_number")
+);
+CREATE TABLE "deletion_requests" (
+	"id" text PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"entity_type" text NOT NULL,
+	"entity_id" text NOT NULL,
+	"entity_label" text NOT NULL,
+	"requested_by" text NOT NULL,
+	"requested_by_name" text NOT NULL,
+	"reason" text NOT NULL,
+	"status" "deletion_request_status" DEFAULT 'pending' NOT NULL,
+	"reviewed_by" text,
+	"reviewed_at" timestamp,
+	"review_note" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "biometrics_appointment_events" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"cycle_id" varchar NOT NULL,
+	"event_type" "biometrics_event_type" NOT NULL,
+	"actor_id" varchar,
+	"actor_role" text,
+	"details" json,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "medical_cases" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"wo_id" varchar NOT NULL,
+	"is_open" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "medical_cases_wo_id_key" UNIQUE("wo_id")
+);
+CREATE TABLE "biometrics_appointment_cycles" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"case_id" varchar NOT NULL,
+	"cycle_number" integer DEFAULT 1 NOT NULL,
+	"cycle_type" "biometrics_cycle_type" DEFAULT 'Initial' NOT NULL,
+	"status" "biometrics_appt_status" DEFAULT 'SCHEDULED' NOT NULL,
+	"appointment_time" timestamp NOT NULL,
+	"center_id" varchar,
+	"assigned_pro_id" varchar,
+	"outcome" "biometrics_cycle_outcome",
+	"awaiting_meeting_at" timestamp,
+	"no_show_at" timestamp,
+	"completed_at" timestamp,
+	"crm_hold_active" boolean DEFAULT false NOT NULL,
+	"crm_hold_set_by" varchar,
+	"crm_hold_set_at" timestamp,
+	"confirmed_at" timestamp,
+	"confirmed_by" varchar,
+	"confirm_method" text,
+	"proof_image_url" text,
+	"proof_uploaded_at" timestamp,
+	"override_reason" text,
+	"override_by" varchar,
+	"override_at" timestamp,
+	"created_by" varchar,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+CREATE TABLE "attestation_service_variants" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"service_id" varchar NOT NULL,
+	"variant_label" text NOT NULL,
+	"price_aed" numeric(10, 2) DEFAULT '0' NOT NULL,
+	"timeline_days" integer,
+	"active" boolean DEFAULT true NOT NULL
+);
+CREATE TABLE "attestation_services" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" text NOT NULL,
+	"category" text NOT NULL,
+	"document_class_applicability" "document_class" DEFAULT 'Both' NOT NULL,
+	"base_price_aed" numeric(10, 2) DEFAULT '0' NOT NULL,
+	"timeline_days" integer,
+	"description" text,
+	"active" boolean DEFAULT true NOT NULL
+);
+CREATE TABLE "document_custody_log" (
+	"id" varchar PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"sr_id" varchar NOT NULL,
+	"handover_direction" "handover_direction" NOT NULL,
+	"counterparty_name" text NOT NULL,
+	"counterparty_contact" text NOT NULL,
+	"counterparty_id_photo_url" text,
+	"counterparty_signature_url" text NOT NULL,
+	"approver_name" text,
+	"approver_contact" text,
+	"approver_designation" text,
+	"receiving_staff_name" text,
+	"receiving_staff_signature_url" text,
+	"recorded_by" varchar NOT NULL,
+	"notes" text,
+	"acknowledged_at" timestamp DEFAULT now() NOT NULL
+);
+ALTER TABLE "users" ALTER COLUMN "role" DROP DEFAULT;
+ALTER TABLE "users" ALTER COLUMN "role" SET DATA TYPE "public"."vp_user_role" USING "role"::text::"public"."vp_user_role";
+ALTER TABLE "users" ALTER COLUMN "role" SET DEFAULT 'PRO';
+ALTER TABLE "staff" ALTER COLUMN "leave_end_date" SET DATA TYPE timestamp;
+ALTER TABLE "users" ADD COLUMN "phone" text;
+ALTER TABLE "users" ADD COLUMN "whatsapp" text;
+ALTER TABLE "users" ADD COLUMN "personal_email" text;
+ALTER TABLE "users" ADD COLUMN "eid_number" text;
+ALTER TABLE "users" ADD COLUMN "profile_photo_url" text;
+ALTER TABLE "users" ADD COLUMN "profile_completed_at" timestamp;
+ALTER TABLE "vendors" ADD COLUMN "vendor_type" "vendor_type" DEFAULT 'Typing' NOT NULL;
+ALTER TABLE "files" ADD COLUMN "expires_at" timestamp with time zone;
+ALTER TABLE "appointments" ADD COLUMN "email_draft" text;
+ALTER TABLE "app_settings" ADD COLUMN "logo_url" text;
+ALTER TABLE "app_settings" ADD COLUMN "test_email_redirect" text;
+ALTER TABLE "typing_jobs" ADD COLUMN "assigned_to_user_id" varchar;
+ALTER TABLE "wo_documents" ADD COLUMN "expires_at" timestamp with time zone;
+ALTER TABLE "service_types" ADD COLUMN "requires_attestation" boolean DEFAULT false NOT NULL;
+ALTER TABLE "work_orders" ADD COLUMN "is_delayed" boolean DEFAULT false NOT NULL;
+ALTER TABLE "work_orders" ADD COLUMN "external_wo_id" text;
+ALTER TABLE "attestation_service_step_definitions" ADD CONSTRAINT "attestation_service_step_definitions_service_id_fkey" FOREIGN KEY ("service_id") REFERENCES "public"."attestation_services"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "attestation_sr_steps" ADD CONSTRAINT "attestation_sr_steps_sr_id_fkey" FOREIGN KEY ("sr_id") REFERENCES "public"."attestation_service_requests"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "attestation_sr_activity_log" ADD CONSTRAINT "attestation_sr_activity_log_performed_by_fkey" FOREIGN KEY ("performed_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "attestation_sr_activity_log" ADD CONSTRAINT "attestation_sr_activity_log_sr_id_fkey" FOREIGN KEY ("sr_id") REFERENCES "public"."attestation_service_requests"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "attestation_service_requests" ADD CONSTRAINT "attestation_service_requests_attestation_service_id_fkey" FOREIGN KEY ("attestation_service_id") REFERENCES "public"."attestation_services"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "attestation_service_requests" ADD CONSTRAINT "attestation_service_requests_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "public"."companies"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "attestation_service_requests" ADD CONSTRAINT "attestation_service_requests_created_by_fkey" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "attestation_service_requests" ADD CONSTRAINT "attestation_service_requests_current_responsible_staff_id_fkey" FOREIGN KEY ("current_responsible_staff_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "attestation_service_requests" ADD CONSTRAINT "attestation_service_requests_service_variant_id_fkey" FOREIGN KEY ("service_variant_id") REFERENCES "public"."attestation_service_variants"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "attestation_service_requests" ADD CONSTRAINT "attestation_service_requests_vendor_id_fkey" FOREIGN KEY ("vendor_id") REFERENCES "public"."vendors"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "attestation_service_variants" ADD CONSTRAINT "attestation_service_variants_service_id_fkey" FOREIGN KEY ("service_id") REFERENCES "public"."attestation_services"("id") ON DELETE cascade ON UPDATE no action;
+CREATE INDEX "idx_magic_link_tokens_email" ON "magic_link_tokens" USING btree ("email");
+CREATE INDEX "idx_magic_link_tokens_token_hash" ON "magic_link_tokens" USING btree ("token_hash");
+CREATE INDEX "idx_attest_step_defs_service_id" ON "attestation_service_step_definitions" USING btree ("service_id");
+CREATE INDEX "idx_doc_custody_records_company_id" ON "document_custody_records" USING btree ("company_id");
+CREATE INDEX "idx_doc_custody_records_sr_id" ON "document_custody_records" USING btree ("sr_id");
+CREATE INDEX "idx_doc_custody_records_wo_id" ON "document_custody_records" USING btree ("wo_id");
+CREATE INDEX "idx_document_custody_records_company_id" ON "document_custody_records" USING btree ("company_id");
+CREATE INDEX "idx_document_custody_records_wo_id" ON "document_custody_records" USING btree ("wo_id");
+CREATE INDEX "idx_biometrics_cases_wo_id" ON "biometrics_cases" USING btree ("wo_id");
+CREATE INDEX "idx_doc_custody_handoffs_record_id" ON "document_custody_handoffs" USING btree ("record_id");
+CREATE INDEX "idx_attest_sr_steps_sr_id" ON "attestation_sr_steps" USING btree ("sr_id");
+CREATE INDEX "idx_attestation_sr_steps_sr_id" ON "attestation_sr_steps" USING btree ("sr_id");
+CREATE INDEX "idx_medical_events_cycle_id" ON "medical_appointment_events" USING btree ("cycle_id");
+CREATE INDEX "idx_attestation_inquiries_company_id" ON "attestation_inquiries" USING btree ("company_id");
+CREATE INDEX "idx_attestation_inquiries_status" ON "attestation_inquiries" USING btree ("status");
+CREATE INDEX "idx_attestation_inquiries_vendor_id" ON "attestation_inquiries" USING btree ("vendor_id");
+CREATE INDEX "idx_appointment_cycles_case_id" ON "appointment_cycles" USING btree ("case_id");
+CREATE INDEX "idx_attest_sr_activity_sr_id" ON "attestation_sr_activity_log" USING btree ("sr_id");
+CREATE INDEX "idx_staff_notifications_is_read" ON "staff_notifications" USING btree ("user_id","is_read");
+CREATE INDEX "idx_staff_notifications_user_id" ON "staff_notifications" USING btree ("user_id");
+CREATE INDEX "idx_attestation_quotes_inquiry_id" ON "attestation_inquiry_quotes" USING btree ("inquiry_id");
+CREATE INDEX "idx_attest_sr_company_id" ON "attestation_service_requests" USING btree ("company_id");
+CREATE INDEX "idx_attest_sr_status" ON "attestation_service_requests" USING btree ("status");
+CREATE INDEX "idx_attest_sr_vendor_id" ON "attestation_service_requests" USING btree ("vendor_id");
+CREATE INDEX "idx_attestation_sr_assigned_pro_id" ON "attestation_service_requests" USING btree ("assigned_pro_id");
+CREATE INDEX "idx_attestation_srs_company_id" ON "attestation_service_requests" USING btree ("company_id");
+CREATE INDEX "idx_attestation_srs_status" ON "attestation_service_requests" USING btree ("status");
+CREATE INDEX "idx_attestation_srs_vendor_id" ON "attestation_service_requests" USING btree ("vendor_id");
+CREATE INDEX "idx_biometrics_events_cycle_id" ON "biometrics_appointment_events" USING btree ("cycle_id");
+CREATE INDEX "idx_medical_cases_wo_id" ON "medical_cases" USING btree ("wo_id");
+CREATE INDEX "idx_biometrics_cycles_case_id" ON "biometrics_appointment_cycles" USING btree ("case_id");
+CREATE INDEX "idx_attest_svc_variants_service_id" ON "attestation_service_variants" USING btree ("service_id");
+CREATE INDEX "idx_document_custody_log_sr_id" ON "document_custody_log" USING btree ("sr_id");
+ALTER TABLE "typing_jobs" ADD CONSTRAINT "typing_jobs_assigned_to_user_id_users_id_fk" FOREIGN KEY ("assigned_to_user_id") REFERENCES "public"."users"("id") ON DELETE set null ON UPDATE no action;
+CREATE INDEX "idx_vendor_statements_vendor_id" ON "vendor_statements" USING btree ("vendor_id");
+CREATE INDEX "idx_audit_log_entity" ON "audit_log" USING btree ("entity_type","entity_id");
+CREATE INDEX "idx_wallet_ledger_vendor_id" ON "vendor_wallet_ledger" USING btree ("vendor_id");
+CREATE INDEX "idx_vendor_invoices_vendor_id" ON "vendor_invoices" USING btree ("vendor_id");
+CREATE INDEX "idx_users_email" ON "users" USING btree ("email");
+CREATE INDEX "idx_users_role" ON "users" USING btree ("role");
+CREATE INDEX "idx_users_staff_id" ON "users" USING btree ("staff_id");
+CREATE INDEX "idx_users_vendor_id" ON "users" USING btree ("vendor_id");
+CREATE INDEX "idx_files_related" ON "files" USING btree ("related_type","related_id");
+CREATE INDEX "idx_companies_rm_staff_id" ON "companies" USING btree ("rm_staff_id");
+CREATE INDEX "idx_appointments_datetime" ON "appointments" USING btree ("datetime");
+CREATE INDEX "idx_appointments_status" ON "appointments" USING btree ("status");
+CREATE INDEX "idx_login_audit_log_created_at" ON "login_audit_log" USING btree ("created_at");
+CREATE INDEX "idx_login_audit_log_email" ON "login_audit_log" USING btree ("email");
+CREATE INDEX "idx_login_audit_log_user_id" ON "login_audit_log" USING btree ("user_id");
+CREATE INDEX "idx_typing_jobs_assigned_to_user_id" ON "typing_jobs" USING btree ("assigned_to_user_id");
+CREATE INDEX "idx_typing_jobs_status" ON "typing_jobs" USING btree ("status");
+CREATE INDEX "idx_change_notifications_entity_id" ON "change_notifications" USING btree ("entity_id");
+CREATE INDEX "idx_change_notifications_status" ON "change_notifications" USING btree ("status");
+CREATE INDEX "idx_work_orders_company_id" ON "work_orders" USING btree ("company_id");
+CREATE INDEX "idx_work_orders_created_by" ON "work_orders" USING btree ("created_by");
+CREATE INDEX "idx_work_orders_service_type_id" ON "work_orders" USING btree ("service_type_id");
+CREATE INDEX "idx_work_orders_status" ON "work_orders" USING btree ("status");
+ALTER TABLE "companies" DROP COLUMN "client_accountant";
+DROP TYPE "public"."user_role";
