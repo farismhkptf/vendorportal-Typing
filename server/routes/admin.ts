@@ -855,9 +855,16 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
-  // Preflight helper: decode base64 cert and do a basic sanity check.
-  // Returns { buf, isPem } or throws with a descriptive error.
-  function decodeCertPreflight(label: string, b64: string): { buf: Buffer; isPem: boolean } {
+  // Wrap a DER binary buffer in PEM armor.
+  function derToPem(buf: Buffer, pemType: string): Buffer {
+    const b64 = buf.toString("base64").match(/.{1,64}/g)!.join("\n");
+    return Buffer.from(`-----BEGIN ${pemType}-----\n${b64}\n-----END ${pemType}-----\n`, "utf8");
+  }
+
+  // Preflight helper: decode base64 cert/key and ensure PEM format.
+  // Handles both base64(PEM) and base64(DER) inputs — converts DER to PEM automatically.
+  // pemType is used for DER→PEM conversion (e.g. "CERTIFICATE" or "PRIVATE KEY").
+  function decodeCertPreflight(label: string, b64: string, pemType?: string): { buf: Buffer; isPem: boolean } {
     let buf: Buffer;
     try {
       buf = Buffer.from(b64.trim(), "base64");
@@ -867,14 +874,56 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     if (buf.length === 0) {
       throw new Error(`${label}: decoded buffer is empty — value may not be valid base64`);
     }
-    // PEM starts with "-----BEGIN" (0x2D 0x2D 0x2D 0x2D 0x2D)
+    // PEM starts with "-----BEGIN" (0x2D = '-')
     const isPem = buf[0] === 0x2D && buf[1] === 0x2D;
     // DER typically starts with 0x30 (ASN.1 SEQUENCE)
     const isDer = buf[0] === 0x30;
+
+    // Detect if the buffer is actually UTF-8 text (could be PEM stored without headers,
+    // or double-encoded, or some other text format)
+    const isLikelyText = buf.every(b => b >= 0x09 && b <= 0x7e);
+    const firstBytesHex = Array.from(buf.subarray(0, 12)).map(b => b.toString(16).padStart(2, "0")).join(" ");
+    const firstBytesAscii = Array.from(buf.subarray(0, 12)).map(b => b >= 0x20 && b <= 0x7e ? String.fromCharCode(b) : ".").join("");
+
     if (!isPem && !isDer) {
-      console.warn(`[apple-wallet] ${sanitizeLog(label)}: decoded buffer does not start with PEM header or DER 0x30 — first byte: 0x${buf[0].toString(16)}. Cert may be incorrectly encoded.`);
+      console.warn(
+        `[apple-wallet] ${sanitizeLog(label)}: unrecognised format (first byte 0x${buf[0].toString(16)}, ` +
+        `length ${buf.length}, isText=${isLikelyText}). ` +
+        `First 12 bytes hex: ${firstBytesHex} | ascii: "${firstBytesAscii}"`
+      );
     }
-    return { buf, isPem };
+
+    // If DER and we know the PEM type, auto-convert so passkit-generator always gets PEM
+    if (!isPem && isDer && pemType) {
+      console.log(`[apple-wallet] ${sanitizeLog(label)}: DER format detected — converting to PEM (${pemType})`);
+      buf = derToPem(buf, pemType);
+    }
+
+    // If the decoded buffer looks like text (ASCII), it might be a base64 string stored twice.
+    // Attempt a second decode pass.
+    if (!isPem && !isDer && isLikelyText) {
+      const innerText = buf.toString("utf8").trim();
+      if (innerText.startsWith("-----")) {
+        // It decoded to a PEM string — the secret was double-base64 encoded. Use the inner PEM.
+        console.log(`[apple-wallet] ${sanitizeLog(label)}: double-base64 detected — using inner PEM text`);
+        buf = Buffer.from(innerText, "utf8");
+        return { buf, isPem: true };
+      }
+      // Try decoding one more time as base64 to get DER or PEM
+      const innerBuf = Buffer.from(innerText, "base64");
+      if (innerBuf.length > 0 && innerBuf[0] === 0x30 && pemType) {
+        console.log(`[apple-wallet] ${sanitizeLog(label)}: double-base64 DER detected — converting to PEM (${pemType})`);
+        buf = derToPem(innerBuf, pemType);
+        return { buf, isPem: true };
+      }
+      if (innerBuf.length > 0 && innerBuf[0] === 0x2D) {
+        console.log(`[apple-wallet] ${sanitizeLog(label)}: double-base64 PEM detected`);
+        buf = innerBuf;
+        return { buf, isPem: true };
+      }
+    }
+
+    return { buf, isPem: isPem || (isDer && !!pemType) };
   }
 
   app.head("/api/card/:token/wallet", async (_req, res) => {
@@ -897,11 +946,11 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       return res.status(503).end();
     }
 
-    // Preflight: validate certs decode correctly
+    // Preflight: validate certs decode correctly (auto-converts DER → PEM if needed)
     try {
-      decodeCertPreflight("APPLE_PASS_CERT", certBase64);
-      decodeCertPreflight("APPLE_PASS_KEY", keyBase64);
-      decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64);
+      decodeCertPreflight("APPLE_PASS_CERT", certBase64, "CERTIFICATE");
+      decodeCertPreflight("APPLE_PASS_KEY", keyBase64, "PRIVATE KEY");
+      decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64, "CERTIFICATE");
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[apple-wallet] Certificate preflight failed: ${sanitizeLog(msg)}`);
@@ -939,12 +988,12 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       return res.status(503).json({ message: "Apple Wallet not configured" });
     }
 
-    // Preflight: validate cert chain decodes
+    // Preflight: validate cert chain decodes (auto-converts DER → PEM if needed)
     let certBuf: Buffer, keyBuf: Buffer, wwdrBuf: Buffer;
     try {
-      certBuf = decodeCertPreflight("APPLE_PASS_CERT", certBase64).buf;
-      keyBuf = decodeCertPreflight("APPLE_PASS_KEY", keyBase64).buf;
-      wwdrBuf = decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64).buf;
+      certBuf = decodeCertPreflight("APPLE_PASS_CERT", certBase64, "CERTIFICATE").buf;
+      keyBuf = decodeCertPreflight("APPLE_PASS_KEY", keyBase64, "PRIVATE KEY").buf;
+      wwdrBuf = decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64, "CERTIFICATE").buf;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error(`[apple-wallet] Certificate preflight failed: ${sanitizeLog(msg)}`);
