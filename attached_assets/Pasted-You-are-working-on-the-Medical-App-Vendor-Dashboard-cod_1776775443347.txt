@@ -1,0 +1,352 @@
+You are working on the **Medical App / Vendor Dashboard** codebase.
+
+Your job is **not** to do a broad rebuild.
+Your job is to perform a **stability-controlled remediation pass** that fixes all confirmed real gaps from the latest system audit **without introducing regressions**.
+
+## Mission
+
+Fix the confirmed broken or missing items from the audit, but do it in a way that is:
+
+* conservative
+* test-backed
+* idempotent
+* production-safe
+* easy to verify
+* isolated from unrelated feature work
+
+Do **not** do UI redesigns, refactors for style, or opportunistic feature additions.
+
+---
+
+## Critical instruction
+
+This is **not** a “just patch everything quickly” task.
+
+Before changing code, first:
+
+1. identify exactly where each issue currently lives
+2. identify what already works and must not break
+3. define the smallest safe fix
+4. add or update tests
+5. only then implement
+
+If you find that any audit item is already fixed in the codebase, do **not** re-fix it.
+Instead, mark it as already resolved and show the proof.
+
+---
+
+## Working areas already confirmed by audit — protect these
+
+These flows are already considered working and must remain intact:
+
+* server startup and migrations
+* all 22 state-machine tests passing
+* work order lifecycle CRUD and auto-transitions
+* typing job state machine
+* vendor notification on assignment / reassignment
+* staff notification on vendor return / vendor rejection
+* atomic wallet debit protection
+* wallet top-up and transaction visibility
+* medical / biometrics scheduling state machines
+* timer-based auto-transitions
+* RESULT_ISSUED triggering work-order auto-completion
+* RETEST_REQUIRED notifying CRM
+* typing vendor end-to-end flow
+* attestation vendor flow and custody chain
+* client portal inbound submission API
+* outbound webhook retry
+* SSO deep-linking
+* medical and EID appointment confirmation emails
+* custody emails
+* magic-link emails
+* admin / CRM / medical dashboard core panels already working
+
+Do not break any of the above.
+
+---
+
+## Confirmed broken or missing items to fix
+
+Fix these items only, unless a change is strictly required to support them:
+
+### 1. Background job crash
+
+Audit says a bad value like `seed-wo-001` is not a valid UUID and causes delay-check to crash every 15 minutes.
+
+Required outcome:
+
+* delay-check must never crash the whole run because of one invalid record
+* invalid records must be skipped safely with structured logging
+* root bad seed / invalid test data should be cleaned up if appropriate
+* UUID validation must happen before processing
+
+### 2. Admin dashboard idle draft jobs panel
+
+Audit says the panel likely calls a missing or broken detailed backend endpoint and may 404.
+
+Required outcome:
+
+* confirm intended API contract
+* either implement the missing backend endpoint or correct the frontend to the real route
+* frontend must gracefully handle:
+
+  * empty state
+  * loading
+  * 404
+  * permission / auth failure
+* panel must not silently fail
+
+### 3. Missing notification: vendor job completion
+
+When a vendor job becomes ready for scheduling, staff are not notified.
+
+Required outcome:
+
+* emit notification when job reaches the relevant ready-for-scheduling state
+* ensure it triggers once only
+* add test coverage
+
+### 4. Missing notification: admin approval queue
+
+Jobs pending admin review do not notify admin.
+
+Required outcome:
+
+* notify correct admin audience when a job enters pending-admin-review state
+* avoid duplicate alerts on repeated saves / re-entry
+
+### 5. Missing notification: WO auto-completion
+
+When a work order auto-completes, CRM is not notified.
+
+Required outcome:
+
+* CRM must receive notification when auto-complete occurs
+* must not send duplicate notifications if completion logic is retried
+
+### 6. Missing notification: new work order created
+
+Audit says only admins are notified, not CRM.
+
+Required outcome:
+
+* CRM must be notified on new WO creation according to ownership / assignment rules
+* verify whether admins should also continue receiving it
+* preserve existing behavior unless clearly wrong
+
+### 7. Missing notification: MEDICAL_FAILED
+
+CRM is not notified.
+
+Required outcome:
+
+* CRM must be notified when a medical case is marked failed
+* event must be traceable in logs
+
+### 8. Missing notification: NO_SHOW
+
+CRM is not notified.
+
+Required outcome:
+
+* CRM must be notified when no-show status is triggered
+* must work for timer-based transitions too, not just manual updates
+
+### 9. Dead email templates
+
+Audit says around 10 templates are registered but have no real backend trigger.
+
+Required outcome:
+
+* identify every registered template and classify each as:
+
+  * live and triggered
+  * dead but intended
+  * dead and should be removed or disabled
+* for intended templates tied to the above events, wire them properly
+* do not leave “registered but unreachable” template paths for critical operational templates
+* if removing anything, do so carefully and explain why
+
+### 10. Quick-login production security risk
+
+Audit says `/api/auth/quick-login` only depends on `NODE_ENV !== 'production'`, which is dangerous if env config is wrong.
+
+Required outcome:
+
+* production must not expose unsafe quick-login access
+* do not rely only on `NODE_ENV`
+* safest preferred approach:
+
+  * route not registered in production builds, or
+  * explicit secure feature flag that defaults OFF
+* all non-production access should be clearly logged
+* if possible, make misconfiguration fail closed, not fail open
+
+---
+
+## Required implementation approach
+
+### A. Use an event-driven cleanup for notification fixes
+
+Do **not** scatter notification calls randomly across services.
+
+Instead, first inspect whether there is already a domain-event / notification architecture in place.
+
+If there is one:
+
+* extend it properly
+
+If there is not:
+
+* create the smallest clean event-driven pattern needed for these fixes
+
+Goal:
+
+* each important workflow transition emits one canonical event
+* notification delivery subscribes to that event
+* retries do not create duplicates
+* logic stays testable
+
+This is especially important for:
+
+* vendor job ready for scheduling
+* pending admin approval
+* WO auto-completed
+* WO created
+* MEDICAL_FAILED
+* NO_SHOW
+
+### B. Add tests for every fix
+
+Each fix must include the right level of protection:
+
+* unit tests where logic is isolated
+* integration tests where route / service behavior matters
+* workflow tests where state transition + notification + side effect matter
+
+Minimum negative-path coverage to add where relevant:
+
+* invalid UUID input
+* repeated completion attempts
+* repeated event emission
+* missing recipient
+* timer-triggered no-show path
+* production-disabled quick-login access
+* idle-draft panel missing-data / empty-state behavior
+
+### C. Preserve idempotency
+
+For all event-based fixes, ensure repeated executions do not cause:
+
+* duplicate ledger entries
+* duplicate emails
+* duplicate notifications
+* duplicate state transitions
+
+### D. Add observability
+
+For each newly wired event / notification path, add structured logs that make diagnosis easy:
+
+* event name
+* entity type
+* entity ID
+* recipient role / count
+* sent / skipped / failed result
+* reason for skip if applicable
+
+---
+
+## Non-blocking hardening items to review while you are there
+
+Do not let these derail the main job, but inspect them and report with recommendation:
+
+1. master password risk
+2. CSRF protection posture
+3. biometrics completion flow getting stuck in `InProcess` if downstream API fails
+4. delay-check N+1 query pattern
+
+If any of these can be safely improved with a **small, low-risk patch** during this pass, do so.
+If not, report them separately with exact recommendation and no unnecessary code churn.
+
+---
+
+## Output format required from you
+
+Return your work in this exact structure:
+
+### 1. Restated understanding
+
+Briefly explain what you believe the task is.
+
+### 2. Audit item verification table
+
+For each of the 10 items above, show:
+
+* status before change
+* where found in code
+* whether audit was correct
+* action taken
+
+### 3. Protection plan
+
+List:
+
+* existing tests / flows protected
+* new tests added
+* regression risks watched
+
+### 4. Implementation summary
+
+For each fix, show:
+
+* files changed
+* what changed
+* why this is the smallest safe fix
+
+### 5. Event / notification map
+
+Show final canonical event-to-recipient mapping.
+
+### 6. Dead template review
+
+List all registered templates and their final status:
+
+* live
+* wired now
+* intentionally disabled
+* removed
+
+### 7. Security result
+
+Explain exactly how quick-login is now protected.
+
+### 8. Open issues / not changed
+
+Anything intentionally left unchanged must be stated clearly.
+
+### 9. Final verification checklist
+
+Confirm whether each required fix now works.
+
+---
+
+## Guardrails
+
+* No styling-only edits
+* No unrelated refactors
+* No renaming stable concepts unless strictly required
+* No breaking current working flows
+* No “future-proofing” rebuilds
+* No fake completion claims without code-level proof
+* If a fix is uncertain, say so clearly and stop short of risky assumptions
+
+---
+
+## Final standard
+
+I want a **stable launch-oriented remediation pass**, not a clever rewrite.
+
+Be conservative.
+Protect what already works.
+Fix only what is real.
+Make every fix verifiable.
