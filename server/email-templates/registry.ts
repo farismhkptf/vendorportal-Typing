@@ -4,6 +4,88 @@ import type { AppointmentEmailData } from "./appointment-confirmation";
 import { buildCustodyCollectionEmail, buildCustodyReturnEmail } from "./custody-notifications";
 import type { CustodyEmailData } from "./custody-notifications";
 
+export interface VendorJobAssignedEmailData {
+  vendorName: string;
+  jobCode: string;
+  jobTypeName: string;
+  applicantName: string;
+  woNumber: string;
+  appBaseUrl?: string;
+}
+
+export function buildVendorJobAssignedEmail(data: VendorJobAssignedEmailData): string {
+  const { vendorName, jobCode, jobTypeName, applicantName, woNumber, appBaseUrl } = data;
+  const portalUrl = appBaseUrl ? `${appBaseUrl}/vendor` : null;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Job Assigned — ${escapeHtml(jobCode)}</title>
+  <style>
+    body { margin:0;padding:0;background:#f5f5f7;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;color:#1d1d1f; }
+    .shell { max-width:600px;margin:30px auto;background:#ffffff;border-radius:0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08); }
+    .header { padding:24px 32px;border-bottom:1px solid #e8e8ed; }
+    .brand { font-size:13px;font-weight:600;color:#1d1d1f;letter-spacing:-0.01em; }
+    .tagline { font-size:11px;color:#8e8e98;margin-top:2px; }
+    .body { padding:32px 32px 24px; }
+    .label { font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#8e8e98;margin-bottom:4px; }
+    .value { font-size:15px;font-weight:500;color:#1d1d1f;margin-bottom:20px; }
+    .badge { display:inline-block;background:#f0fdf4;color:#15803d;font-size:11px;font-weight:600;letter-spacing:0.04em;padding:4px 12px;border-radius:20px;margin-bottom:24px;text-transform:uppercase; }
+    .title { font-size:22px;font-weight:600;color:#1d1d1f;letter-spacing:-0.02em;margin-bottom:8px; }
+    .subtitle { font-size:14px;color:#6e6e77;margin-bottom:28px; }
+    .details-card { background:#f8f8fc;border:1px solid #e8e8ed;border-radius:0;padding:20px 24px;margin-bottom:24px; }
+    .details-row { display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #e8e8ed; }
+    .details-row:last-child { border-bottom:none; }
+    .details-key { font-size:12px;color:#8e8e98; }
+    .details-val { font-size:12px;font-weight:500;color:#1d1d1f;text-align:right; }
+    .cta { display:inline-block;background:#1d1d1f;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;margin-top:8px; }
+    .footer { padding:16px 32px;border-top:1px solid #e8e8ed;font-size:11px;color:#8e8e98;text-align:center; }
+  </style>
+</head>
+<body>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+  <tr><td style="padding:24px 16px;">
+    <div class="shell">
+      <div class="header">
+        <div class="brand">The P.R.O. Company</div>
+        <div class="tagline">Everything. In Order.</div>
+      </div>
+      <div class="body">
+        <div class="badge">New Job Assignment</div>
+        <div class="title">Hi ${escapeHtml(vendorName)},</div>
+        <div class="subtitle">A new typing job has been assigned to you. Please log in to the vendor portal to begin processing.</div>
+        <div class="details-card">
+          <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+            <tr style="border-bottom:1px solid #e8e8ed;">
+              <td style="font-size:12px;color:#8e8e98;padding:8px 0;">Job Code</td>
+              <td style="font-size:12px;font-weight:600;color:#1d1d1f;text-align:right;padding:8px 0;">${escapeHtml(jobCode)}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #e8e8ed;">
+              <td style="font-size:12px;color:#8e8e98;padding:8px 0;">Job Type</td>
+              <td style="font-size:12px;font-weight:500;color:#1d1d1f;text-align:right;padding:8px 0;">${escapeHtml(jobTypeName)}</td>
+            </tr>
+            <tr style="border-bottom:1px solid #e8e8ed;">
+              <td style="font-size:12px;color:#8e8e98;padding:8px 0;">Applicant</td>
+              <td style="font-size:12px;font-weight:500;color:#1d1d1f;text-align:right;padding:8px 0;">${escapeHtml(applicantName)}</td>
+            </tr>
+            <tr>
+              <td style="font-size:12px;color:#8e8e98;padding:8px 0;">Work Order</td>
+              <td style="font-size:12px;font-weight:500;color:#1d1d1f;text-align:right;padding:8px 0;">${escapeHtml(woNumber)}</td>
+            </tr>
+          </table>
+        </div>
+        ${portalUrl ? `<a href="${escapeHtml(portalUrl)}" class="cta" style="display:inline-block;background:#1d1d1f;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 24px;">Open Vendor Portal &rarr;</a>` : ""}
+      </div>
+      <div class="footer">This is an automated notification from The P.R.O. Company. Please do not reply to this email.</div>
+    </div>
+  </td></tr>
+</table>
+</body>
+</html>`;
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, "&amp;")
@@ -18,6 +100,7 @@ export interface EmailTemplateInfo {
   description: string;
   category: "client" | "vendor" | "crm_staff" | "pro_staff" | "admin" | "system";
   recipientLabel: string;
+  status?: "live" | "wired" | "stub";
 }
 
 export interface EmailTemplateWithPreview extends EmailTemplateInfo {
@@ -40,6 +123,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Sent to clients when a medical examination appointment is scheduled. Includes date, time, location with maps link, assigned guide details, and calendar integration.",
     category: "client",
     recipientLabel: "Client Company",
+    status: "live",
   },
   {
     id: "eid-appointment",
@@ -47,6 +131,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Sent to clients when an Emirates ID biometrics appointment is booked. Includes application reference, center details, on-site guide, and digital appointment card link.",
     category: "client",
     recipientLabel: "Client Company",
+    status: "live",
   },
   {
     id: "document-collection",
@@ -54,6 +139,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Sent to clients when an original document is received into custody. Shows reference number, document type, service category, and safe-keeping notice.",
     category: "client",
     recipientLabel: "Client Company",
+    status: "live",
   },
   {
     id: "document-return",
@@ -61,13 +147,15 @@ const templates: EmailTemplateInfo[] = [
     description: "Sent to clients when a document has been processed and is ready for return. Includes reference number, completion date, and collection instructions.",
     category: "client",
     recipientLabel: "Client Company",
+    status: "live",
   },
   {
     id: "vendor-job-assigned",
     name: "Vendor Job Assignment",
-    description: "Notification sent to vendors when a new typing or service job is assigned to them. Contains work order details, applicant information, and deadline.",
+    description: "Notification sent to vendors when a new typing or service job is assigned to them. Contains work order details, applicant information, and a link to the vendor portal.",
     category: "vendor",
     recipientLabel: "Vendor",
+    status: "wired",
   },
   {
     id: "vendor-job-reminder",
@@ -75,6 +163,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Follow-up reminder sent to vendors for pending jobs approaching their deadline. Highlights urgency and provides quick-action links.",
     category: "vendor",
     recipientLabel: "Vendor",
+    status: "stub",
   },
   {
     id: "vendor-payment-confirmation",
@@ -82,6 +171,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Sent to vendors after a wallet top-up or payment is processed. Shows transaction amount, updated balance, and payment reference.",
     category: "vendor",
     recipientLabel: "Vendor",
+    status: "stub",
   },
   {
     id: "crm-new-client",
@@ -89,6 +179,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Sent to a CRM staff member when a new company is assigned to their portfolio. Includes company details and contact information.",
     category: "crm_staff",
     recipientLabel: "CRM Staff",
+    status: "stub",
   },
   {
     id: "crm-wo-status-update",
@@ -96,6 +187,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Notification to the relationship manager when a work order changes status. Shows previous and new status with relevant details.",
     category: "crm_staff",
     recipientLabel: "CRM Staff",
+    status: "stub",
   },
   {
     id: "pro-daily-schedule",
@@ -103,6 +195,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Morning summary email sent to PRO staff with their day's appointments, locations, and applicant details for efficient route planning.",
     category: "pro_staff",
     recipientLabel: "PRO Staff",
+    status: "stub",
   },
   {
     id: "pro-appointment-reminder",
@@ -110,6 +203,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Reminder sent to assigned PRO staff before an upcoming appointment. Includes applicant details, location, and any special instructions.",
     category: "pro_staff",
     recipientLabel: "PRO Staff",
+    status: "stub",
   },
   {
     id: "admin-low-balance-alert",
@@ -117,6 +211,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Alert sent to administrators when a vendor's wallet balance falls below the configured threshold. Includes current balance and vendor details.",
     category: "admin",
     recipientLabel: "Admin",
+    status: "stub",
   },
   {
     id: "admin-new-account",
@@ -124,13 +219,15 @@ const templates: EmailTemplateInfo[] = [
     description: "Notification to administrators when a new user account is created in the system. Shows account type, assigned role, and login credentials.",
     category: "admin",
     recipientLabel: "Admin",
+    status: "stub",
   },
   {
     id: "system-password-reset",
     name: "Password Reset",
-    description: "Transactional email with a secure password reset link. Includes expiration time and security notice about not sharing the link.",
+    description: "Transactional email with a secure password reset link. Note: the active magic-link email is handled inline in auth.ts — this template is not wired.",
     category: "system",
     recipientLabel: "Any User",
+    status: "stub",
   },
   {
     id: "system-login-alert",
@@ -138,6 +235,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Security notification sent when a login is detected from a new device or location. Includes IP address, browser info, and timestamp.",
     category: "system",
     recipientLabel: "Any User",
+    status: "stub",
   },
   {
     id: "system-test-email",
@@ -145,6 +243,7 @@ const templates: EmailTemplateInfo[] = [
     description: "Simple test email used to verify SMTP configuration and email delivery. Sent from the admin settings panel.",
     category: "system",
     recipientLabel: "Admin",
+    status: "stub",
   },
 ];
 
@@ -485,6 +584,17 @@ function buildDocumentReturnPreview(): string {
   return buildCustodyReturnEmail(data);
 }
 
+function buildVendorJobAssignedPreview(): string {
+  return buildVendorJobAssignedEmail({
+    vendorName: "Advanced Solutions",
+    jobCode: "TJ-26099",
+    jobTypeName: "Medical Typing",
+    applicantName: "Ahmad Al Rashidi",
+    woNumber: "WO-2026-0099",
+    appBaseUrl: "https://app.procompany.ae",
+  });
+}
+
 export function buildTemplatePreview(templateId: string): string {
   switch (templateId) {
     case "medical-appointment":
@@ -495,6 +605,8 @@ export function buildTemplatePreview(templateId: string): string {
       return buildDocumentCollectionPreview();
     case "document-return":
       return buildDocumentReturnPreview();
+    case "vendor-job-assigned":
+      return buildVendorJobAssignedPreview();
     default: {
       const template = templates.find(t => t.id === templateId);
       if (!template) return buildPlaceholderEmail("Unknown Template", "", "system");

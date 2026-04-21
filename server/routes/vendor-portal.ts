@@ -950,7 +950,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
           },
         });
 
-        notifyStaffByRoles(["Admin", "PRO", "PRO - Temporary"], {
+        notifyStaffByRoles(["Admin", "PRO", "PRO - Temporary", "Client Relationship Manager"], {
           type: "job_returned_from_vendor",
           title: "Typing Job Returned from Vendor",
           message: `Job ${job.jobCode || ""} completed by vendor${wo ? ` — ${wo.woNumber} (${wo.applicantName})` : ""}`,

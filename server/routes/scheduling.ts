@@ -9,6 +9,35 @@ import { sql } from "drizzle-orm";
 import type { RouteDeps } from "./types";
 import { pushStatusToClientPortal } from "../services/client-portal-push";
 
+export async function dispatchBiometricsNoShowNotification(
+  woId: string,
+  notifyStaffByRoles: (roles: string[], notification: Record<string, unknown>) => Promise<void>
+): Promise<void> {
+  const wo = await storage.getWorkOrderById(woId);
+  const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;
+  const notification = {
+    type: "no_show",
+    title: "Biometrics Appointment: No Show",
+    message: `${wo?.applicantName || "Applicant"} (${wo?.woNumber || ""}) did not attend their biometrics appointment. Please follow up and reschedule if needed.`,
+    relatedEntityType: "work_order" as const,
+    relatedEntityId: woId,
+  };
+  if (company?.rmStaffId) {
+    const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => {
+      console.error("[biometrics-timer] failed to fetch RM staff:", err);
+      return null;
+    });
+    const rmUserId = (rmStaff as (typeof rmStaff & { userId?: string | null }))?.userId ?? null;
+    if (rmUserId) {
+      await storage.createStaffNotification({ ...notification, userId: rmUserId });
+    } else {
+      await notifyStaffByRoles(["Admin"], notification);
+    }
+  } else {
+    await notifyStaffByRoles(["Admin"], notification);
+  }
+}
+
 export function registerSchedulingRoutes(app: Express, deps: RouteDeps): void {
   const { notifyStaffByRoles } = deps;
 
@@ -1313,10 +1342,11 @@ async function runBiometricsTimerJobs() {
       try {
         const bioCase = await storage.getBiometricsCaseById(cycle.caseId);
         if (bioCase?.woId) {
+          await dispatchBiometricsNoShowNotification(bioCase.woId, notifyStaffByRoles);
           await checkAndRevertWoIfNoAppointments(bioCase.woId);
         }
       } catch (revertErr) {
-        console.error("[biometrics-timer] Failed to revert WO on no-show:", revertErr);
+        console.error("[biometrics-timer] Failed to notify/revert WO on no-show:", revertErr);
       }
     }
 

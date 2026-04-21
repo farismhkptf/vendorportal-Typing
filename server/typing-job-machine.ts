@@ -28,7 +28,8 @@ export type SideEffect =
   | { type: "audit"; action: string }
   | { type: "notify_vendor"; notificationType: string; title: string; messageFn: (ctx: TransitionContext) => string }
   | { type: "notify_staff"; roles: string[]; notificationType: string; title: string; messageFn: (ctx: TransitionContext) => string; entityType: string; useAssignedUserIfAvailable?: boolean }
-  | { type: "comment"; messageFn: (ctx: TransitionContext) => string };
+  | { type: "comment"; messageFn: (ctx: TransitionContext) => string }
+  | { type: "send_email"; event: string };
 
 export interface TransitionContext {
   jobId: string;
@@ -59,6 +60,7 @@ const TRANSITIONS: Record<string, TransitionDef> = {
         title: "New Job Assigned",
         messageFn: (ctx) => `New typing job ${ctx.jobCode || ""} has been assigned to you.`,
       },
+      { type: "send_email", event: "vendor_job_assigned" },
     ],
   },
 
@@ -218,6 +220,7 @@ export interface ExecuteTransitionParams {
   notifyVendorUsers: (vendorId: string, notification: NotificationPayload) => Promise<void>;
   notifyStaffByRoles?: (roles: string[], notification: NotificationPayload) => Promise<void>;
   notifySingleUser?: (userId: string, notification: NotificationPayload) => Promise<void>;
+  onEmail?: (event: string, ctx: TransitionContext) => void;
   updateFields?: Record<string, unknown>;
   reason?: string;
 }
@@ -228,7 +231,7 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
   job?: TypingJob;
   context?: TransitionContext;
 }> {
-  const { action, jobId, actor, actorId, storage, notifyVendorUsers, notifyStaffByRoles, notifySingleUser, updateFields, reason } = params;
+  const { action, jobId, actor, actorId, storage, notifyVendorUsers, notifyStaffByRoles, notifySingleUser, onEmail, updateFields, reason } = params;
 
   const job = await storage.getTypingJobById(jobId);
   if (!job) {
@@ -343,6 +346,12 @@ export async function executeTransition(params: ExecuteTransitionParams): Promis
               authorType: "Internal",
               message: effect.messageFn(ctx),
             });
+            break;
+
+          case "send_email":
+            if (onEmail) {
+              onEmail(effect.event, ctx);
+            }
             break;
         }
       } catch (err) {

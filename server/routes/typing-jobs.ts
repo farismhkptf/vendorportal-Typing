@@ -8,6 +8,8 @@ import { executeTransition, validateTransition, type TypingJobStatus } from "../
 import { checkAndAutoTransitionWorkOrder } from "../services/transition-service";
 import type { RouteDeps } from "./types";
 import { pushStatusToClientPortal } from "../services/client-portal-push";
+import { sendEmail, isEmailConfigured } from "../email-service";
+import { buildVendorJobAssignedEmail } from "../email-templates/registry";
 
 const PUSH_TYPING_STATUSES = new Set(["ReadyForScheduling", "Returned", "Aborted", "DeliveredToClient"]);
 const TYPING_STATUS_EVENT_TYPE: Record<string, string> = {
@@ -17,6 +19,42 @@ const TYPING_STATUS_EVENT_TYPE: Record<string, string> = {
   DeliveredToClient: "typing_job.delivered_to_client",
 };
 
+
+async function sendVendorJobAssignedEmail(jobId: string, vendorId: string): Promise<void> {
+  try {
+    if (!isEmailConfigured()) return;
+    const [job, vendor] = await Promise.all([
+      storage.getTypingJobById(jobId),
+      storage.getVendorById(vendorId),
+    ]);
+    if (!job || !vendor) return;
+    const [wo, jobType, vendorUsers] = await Promise.all([
+      job.woId ? storage.getWorkOrderById(job.woId) : Promise.resolve(null),
+      job.jobTypeId ? storage.getJobTypeById(job.jobTypeId) : Promise.resolve(null),
+      storage.getVendorUsers(true),
+    ]);
+    const recipients = vendorUsers.filter(u => u.vendorId === vendorId && u.email);
+    if (recipients.length === 0) return;
+    const html = buildVendorJobAssignedEmail({
+      vendorName: vendor.name,
+      jobCode: job.jobCode || jobId.slice(0, 8),
+      jobTypeName: jobType?.name || "Typing Job",
+      applicantName: wo?.applicantName || "Applicant",
+      woNumber: wo?.woNumber || "",
+      appBaseUrl: process.env.APP_BASE_URL || undefined,
+    });
+    const subject = `New Job Assigned — ${job.jobCode || jobId.slice(0, 8)}`;
+    for (const user of recipients) {
+      sendEmail({
+        to: user.email,
+        subject,
+        html,
+      }).catch((err: unknown) => console.error("[vendor-job-email] Failed to send to", user.email, err));
+    }
+  } catch (err) {
+    console.error("[vendor-job-email] Error sending vendor-job-assigned email:", err);
+  }
+}
 
 export function registerTypingJobRoutes(app: Express, deps: RouteDeps): void {
   const { notifyVendorUsers, notifyStaffByRoles, notifySingleUser } = deps;
@@ -138,8 +176,13 @@ app.post("/api/typing-jobs/bulk-assign-vendor", requireOpsRole, async (req, res)
           actorId: req.session?.userId,
           storage,
           notifyVendorUsers,
-        notifyStaffByRoles,
-        notifySingleUser,
+          notifyStaffByRoles,
+          notifySingleUser,
+          onEmail: (event, ctx) => {
+            if (event === "vendor_job_assigned" && ctx.vendorId) {
+              sendVendorJobAssignedEmail(ctx.jobId, ctx.vendorId).catch(console.error);
+            }
+          },
           updateFields: { vendorId, costSnapshot: cost },
         });
 
@@ -148,7 +191,6 @@ app.post("/api/typing-jobs/bulk-assign-vendor", requireOpsRole, async (req, res)
           errors.push(`Job ${id}: ${result.error}`);
           continue;
         }
-
         updated++;
       } catch (err: unknown) {
         failed++;
@@ -422,8 +464,13 @@ app.post("/api/typing-jobs/:id/submit-to-vendor", requireOpsRole, async (req, re
       actorId: req.session?.userId,
       storage,
       notifyVendorUsers,
-        notifyStaffByRoles,
-        notifySingleUser,
+      notifyStaffByRoles,
+      notifySingleUser,
+      onEmail: (event, ctx) => {
+        if (event === "vendor_job_assigned" && ctx.vendorId) {
+          sendVendorJobAssignedEmail(ctx.jobId, ctx.vendorId).catch(console.error);
+        }
+      },
       updateFields: { vendorId, costSnapshot: cost },
       reason: undefined,
     });

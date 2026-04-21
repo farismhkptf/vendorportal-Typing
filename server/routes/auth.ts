@@ -32,11 +32,16 @@ function issueSharedJwt(user: { id: string; email: string | null; role: string; 
 }
 
 export function registerAuthRoutes(app: Express): void {
-  app.get("/api/auth/accounts", async (_req, res) => {
+  app.get("/api/auth/accounts", async (req, res) => {
+    const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown';
+    const isProduction = process.env.NODE_ENV === 'production';
+    const quickLoginEnabled = process.env.ENABLE_QUICK_LOGIN === 'true';
+    const allowed = !isProduction && quickLoginEnabled;
+    console.log(`[quick-login] accounts endpoint accessed — ts=${new Date().toISOString()} ip=${clientIp} NODE_ENV=${process.env.NODE_ENV || 'unset'} ENABLE_QUICK_LOGIN=${process.env.ENABLE_QUICK_LOGIN || 'unset'} outcome=${allowed ? 'allowed' : 'denied'}`);
+    if (!allowed) {
+      return res.status(403).json({ message: "This endpoint is disabled" });
+    }
     try {
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(403).json({ message: "This endpoint is disabled in production" });
-      }
       const allUsers = await storage.getUsers();
       const accounts = allUsers
         .filter(u => u.active)
@@ -53,10 +58,15 @@ export function registerAuthRoutes(app: Express): void {
   });
 
   app.post("/api/auth/quick-login", async (req, res) => {
+    const clientIp = req.ip || req.headers['x-forwarded-for']?.toString() || 'unknown';
+    const isProduction = process.env.NODE_ENV === 'production';
+    const quickLoginEnabled = process.env.ENABLE_QUICK_LOGIN === 'true';
+    const allowed = !isProduction && quickLoginEnabled;
+    console.log(`[quick-login] quick-login endpoint accessed — ts=${new Date().toISOString()} ip=${clientIp} NODE_ENV=${process.env.NODE_ENV || 'unset'} ENABLE_QUICK_LOGIN=${process.env.ENABLE_QUICK_LOGIN || 'unset'} outcome=${allowed ? 'allowed' : 'denied'}`);
+    if (!allowed) {
+      return res.status(403).json({ message: "This endpoint is disabled" });
+    }
     try {
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(403).json({ message: "This endpoint is disabled in production" });
-      }
       const validation = validateBody(quickLoginSchema, req.body);
       if ('error' in validation) return res.status(400).json({ message: validation.error });
       const { userId } = validation.data;

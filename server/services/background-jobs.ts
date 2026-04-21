@@ -18,46 +18,57 @@ export async function checkAndMarkDelayedWorkOrders(): Promise<number> {
 
     let markedCount = 0;
 
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
     for (const wo of activeWos) {
-      const jobs = await storage.getTypingJobsByWoId(wo.id);
-      const vendorJobs = jobs.filter(j =>
-        (j.status === "SubmittedToVendor" || j.status === "InProcess") && j.sentAt
-      );
+      try {
+        if (!UUID_REGEX.test(wo.id)) {
+          console.log(`[delay-check] skipping invalid ID: ${wo.id}`);
+          continue;
+        }
 
-      const shouldBeDelayed = vendorJobs.some(j =>
-        (now - new Date(j.sentAt!).getTime()) > thresholdMs
-      );
+        const jobs = await storage.getTypingJobsByWoId(wo.id);
+        const vendorJobs = jobs.filter(j =>
+          (j.status === "SubmittedToVendor" || j.status === "InProcess") && j.sentAt
+        );
 
-      if (shouldBeDelayed && !wo.isDelayed) {
-        await storage.updateWorkOrder(wo.id, { isDelayed: true });
-        await storage.createAuditLog({
-          action: "auto_delayed",
-          entityType: "work_order",
-          entityId: wo.id,
-          userId: null,
-          details: { reason: `Vendor exceeded ${thresholdHours}h threshold`, applicantName: wo.applicantName, woNumber: wo.woNumber },
-        });
-        console.log(`[delay-check] Work order ${wo.woNumber} flagged as delayed`);
+        const shouldBeDelayed = vendorJobs.some(j =>
+          (now - new Date(j.sentAt!).getTime()) > thresholdMs
+        );
 
-        notifyStaffByRoles(["Admin", "Client Relationship Manager"], {
-          type: "wo_delayed",
-          title: "Work Order Delayed",
-          message: `Work order ${wo.woNumber} (${wo.applicantName}) flagged as delayed — vendor exceeded ${thresholdHours}h threshold`,
-          relatedEntityType: "work_order",
-          relatedEntityId: wo.id,
-        });
+        if (shouldBeDelayed && !wo.isDelayed) {
+          await storage.updateWorkOrder(wo.id, { isDelayed: true });
+          await storage.createAuditLog({
+            action: "auto_delayed",
+            entityType: "work_order",
+            entityId: wo.id,
+            userId: null,
+            details: { reason: `Vendor exceeded ${thresholdHours}h threshold`, applicantName: wo.applicantName, woNumber: wo.woNumber },
+          });
+          console.log(`[delay-check] Work order ${wo.woNumber} flagged as delayed`);
 
-        markedCount++;
-      } else if (!shouldBeDelayed && wo.isDelayed) {
-        await storage.updateWorkOrder(wo.id, { isDelayed: false });
-        await storage.createAuditLog({
-          action: "delay_resolved",
-          entityType: "work_order",
-          entityId: wo.id,
-          userId: null,
-          details: { reason: "All vendor jobs resolved", applicantName: wo.applicantName, woNumber: wo.woNumber },
-        });
-        console.log(`[delay-check] Work order ${wo.woNumber} delay flag cleared`);
+          notifyStaffByRoles(["Admin", "Client Relationship Manager"], {
+            type: "wo_delayed",
+            title: "Work Order Delayed",
+            message: `Work order ${wo.woNumber} (${wo.applicantName}) flagged as delayed — vendor exceeded ${thresholdHours}h threshold`,
+            relatedEntityType: "work_order",
+            relatedEntityId: wo.id,
+          });
+
+          markedCount++;
+        } else if (!shouldBeDelayed && wo.isDelayed) {
+          await storage.updateWorkOrder(wo.id, { isDelayed: false });
+          await storage.createAuditLog({
+            action: "delay_resolved",
+            entityType: "work_order",
+            entityId: wo.id,
+            userId: null,
+            details: { reason: "All vendor jobs resolved", applicantName: wo.applicantName, woNumber: wo.woNumber },
+          });
+          console.log(`[delay-check] Work order ${wo.woNumber} delay flag cleared`);
+        }
+      } catch (woErr) {
+        console.error(`[delay-check] Error processing work order ${wo.id}:`, woErr);
       }
     }
 
