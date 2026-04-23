@@ -1,0 +1,280 @@
+You need to audit the Attestation Vendor work that is currently being built inside the existing vendor portal, because we are considering turning it into a separate dedicated app.
+
+Do not redesign first.  
+Do not build first.  
+Do not give generic architecture advice first.  
+
+First, inspect the current codebase thoroughly and tell us exactly what is already being built right now for the Attestation Vendor flow.
+
+## Context
+
+We already have an existing vendor portal.  
+Inside that current vendor portal, Attestation Vendor work has already been started.
+
+We now want to understand:
+
+1. what exactly has already been built for Attestation Vendor,
+2. how much of it is shared with the current vendor portal,
+3. whether it is properly separated or tightly mixed into the existing vendor system,
+4. what would be involved in making it a separate app.
+
+The goal of this audit is to understand the real current build state before deciding the extraction plan.
+
+## Your task
+
+Please inspect the codebase and produce a deep audit of everything related to the Attestation Vendor implementation currently in progress.
+
+I want the answer in the exact section order below.
+
+# 1. Executive Verdict
+Tell me clearly:
+
+- whether Attestation Vendor is already meaningfully built or only lightly started
+- whether it is currently a clean module or mixed into the vendor portal in a messy way
+- whether it looks extractable into a separate app with:
+  - low effort
+  - medium effort
+  - high effort
+- whether the current direction looks strong, partial, or problematic
+
+# 2. Everything Found Related to Attestation Vendor
+List every relevant item you find, including:
+
+- routes
+- pages
+- components
+- backend routes
+- database tables
+- schemas
+- enums
+- types/interfaces
+- validation logic
+- services/helpers
+- middleware
+- vendor auth logic
+- file/document handling
+- status logic
+- notes/comments logic
+- inquiry/request logic
+- custody / handover logic
+- timeline / audit logic
+- wallet / costing / pricing logic
+- notifications / emails / messaging logic
+
+For each item, tell me:
+
+- exact file name/path
+- what it does
+- whether it is live, partial, placeholder, dead, or unclear
+
+# 3. Current Product Structure
+Explain exactly how Attestation Vendor is currently structured inside the existing vendor portal.
+
+I want to know:
+
+- whether it is using the same portal shell/layout as other vendors
+- whether it has its own dedicated routes or shares generic vendor routes
+- whether it has its own menu/navigation
+- whether it already behaves like a mini-product inside the portal
+- whether it is truly modular or just embedded directly into existing code
+
+Be specific about coupling.
+
+# 4. Attestation Data Model
+Audit all current data models related to Attestation Vendor.
+
+Tell me:
+
+- what tables/models already exist
+- whether there is an attestation_services table
+- whether there is an attestation_inquiries table
+- whether there is an attestation_service_requests table
+- whether external WO number linking exists
+- whether vendor ownership/vendor assignment exists
+- whether service category structure exists (MOFA UAE / Embassy / Lawyer / etc.)
+- whether country / embassy / business/personal applicability exists
+- whether status fields exist
+- whether pricing / quote / timeline fields exist
+- whether file attachment fields exist
+- whether custody / signature / handover structure exists
+- whether audit/event history exists
+
+For each model, explain whether it is:
+- well-designed,
+- partial,
+- overly hardcoded,
+- unused,
+- or inconsistent.
+
+# 5. Current User Flows Already Built
+Map the real flows already implemented.
+
+Check whether the current code supports these flows:
+
+- internal staff creates attestation inquiry
+- vendor receives inquiry
+- vendor returns quote / timeline / notes
+- internal staff reviews inquiry response
+- inquiry gets accepted and converted into service request
+- internal staff creates direct service request without inquiry
+- external WO number is attached
+- vendor receives service request
+- vendor updates status
+- vendor uploads outputs/documents
+- internal staff reviews and marks progress
+- return / rejection / clarification loop
+- job completion
+- custody tracking / document handover
+- client return tracking
+- notes / instructions / communication trail
+
+For each flow, classify it as:
+- fully working
+- partially working
+- UI only
+- backend only
+- planned only
+- missing
+
+# 6. Auth, Permissions, and Isolation
+Audit access control specifically for Attestation Vendor.
+
+I want you to check:
+
+- how attestation vendor users log in
+- whether they are separated from typing vendors
+- whether dedicated middleware exists for attestation vendors
+- whether an attestation vendor can only see their own records
+- whether an attestation vendor could accidentally access other vendor data
+- whether internal staff can see all attestation records
+- whether any route protection is missing
+- whether access control is enforced in backend or only hidden in frontend
+- whether there are any dangerous shortcuts, fallback access, test routes, or weak filters
+
+Be blunt.
+
+# 7. UI / Dashboard Audit
+Tell me exactly what UI is already built for Attestation Vendor.
+
+Check for:
+
+- login pages
+- dashboard home
+- inquiry list
+- inquiry detail page
+- service request list
+- service request detail page
+- quote submission form
+- status update actions
+- document upload UI
+- notes/comments panels
+- custody transfer UI
+- filters/search
+- timeline/history display
+- empty states / placeholders
+- mobile responsiveness
+- polished vs rough sections
+
+I want a realistic assessment, not a kind one.
+
+# 8. Internal Staff Side
+Audit what internal staff can currently do for Attestation Vendor.
+
+Check whether staff can:
+
+- create inquiries
+- create direct service requests
+- assign vendor
+- see all requests
+- review vendor responses
+- accept/reject quotes
+- convert inquiry to request
+- track turnaround
+- review documents
+- log custody transfers
+- close requests
+- view reporting/performance
+- manage vendor profiles / services
+
+Also mention which internal roles are recognized in code, if any.
+
+# 9. Separation Readiness — Can This Become Its Own App?
+Now assess the extraction question directly.
+
+If we want Attestation Vendor to become a separate app, tell me:
+
+- what parts are already self-contained and reusable
+- what parts are tightly coupled to the current vendor portal
+- what shared dependencies it relies on
+- what auth dependencies it relies on
+- what schema/database dependencies it relies on
+- what frontend layout/navigation dependencies it relies on
+- what backend route dependencies it relies on
+- whether extraction would be:
+  - mostly move-and-wire
+  - moderate refactor
+  - major rewrite
+
+Also list:
+- what can stay as-is
+- what must be refactored before extraction
+- what should not be carried over
+
+# 10. Risks and Problems
+Identify the real issues, including things like:
+
+- mixed concerns with other vendor types
+- hardcoded logic
+- missing vendor isolation
+- duplicate patterns
+- weak route structure
+- staff/vendor logic mixed together
+- schema naming issues
+- brittle UI flow
+- missing lifecycle states
+- missing audit trail
+- incomplete conversion flow
+- incomplete custody logic
+- backend/frontend mismatch
+- dead code / abandoned direction
+
+This section should be strict and specific.
+
+# 11. What Is Good and Worth Preserving
+Only list the parts that are genuinely strong and worth keeping as the base for a dedicated Attestation Vendor app.
+
+# 12. File Map Appendix
+At the end, provide a grouped appendix of all discovered attestation-related files, grouped into:
+
+- frontend pages
+- frontend components
+- backend routes/controllers
+- schemas/models/types
+- auth/middleware
+- utilities/services
+- anything unclear but relevant
+
+# 13. Final Conclusion
+End with a practical conclusion:
+
+- what we actually have today
+- how mature the current Attestation Vendor build is
+- whether it should remain inside the vendor portal or become a separate app
+- whether the next step should be:
+  - continue audit only
+  - clean up current module first
+  - extract with moderate refactor
+  - redesign before extraction
+
+## Important rules
+
+- Base everything on the actual current codebase
+- Do not assume a feature exists unless you found it
+- If something is only planned, say planned only
+- If something is only in UI, say UI only
+- If something is only in backend, say backend only
+- If something is unclear, say unclear
+- Use actual file names, route names, schema names, and component names wherever possible
+- Be exhaustive
+- Be honest
+- Do not soften problems
