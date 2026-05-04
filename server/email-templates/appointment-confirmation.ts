@@ -219,7 +219,7 @@ function buildEidAppointmentEmail(data: AppointmentEmailData): string {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;background:#1d4ed8;">
           <tr><td style="padding:24px 28px;text-align:center;">
             <div style="font-size:13px;font-weight:500;color:#c7d9ff;letter-spacing:0.03em;text-transform:uppercase;padding-bottom:8px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Your Appointment Card</div>
-            <div style="font-size:15px;font-weight:400;color:#dce9ff;line-height:1.5;padding-bottom:20px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Open your digital appointment card on any device for quick access.</div>
+            <div style="font-size:15px;font-weight:400;color:#dce9ff;line-height:1.5;padding-bottom:20px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">Open your digital appointment card on any device — or add it to Apple Wallet for quick access.</div>
             <a href="${escapeHtml(cardUrl)}" style="display:inline-block;background:#2d5fd4;border:1px solid #4a7be8;color:#ffffff;font-size:15px;font-weight:600;letter-spacing:-0.01em;text-decoration:none;padding:12px 28px;font-family:Arial,Helvetica,'Helvetica Neue',sans-serif;">View Appointment Card &#8599;</a>
           </td></tr>
         </table>
@@ -584,7 +584,7 @@ function buildMedicalAppointmentEmail(data: AppointmentEmailData): string {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="mso-table-lspace:0pt;mso-table-rspace:0pt;border-collapse:collapse;background-color:#1d4ed8;">
           <tr><td style="padding:24px 28px;text-align:center;">
             <div style="font-size:13px;font-weight:500;color:#c7d9ff;letter-spacing:0.03em;text-transform:uppercase;padding-bottom:8px;font-family:Arial,Helvetica,sans-serif;">Your Appointment Card</div>
-            <div style="font-size:14px;font-weight:400;color:#dce9ff;line-height:1.6;mso-line-height-rule:exactly;padding-bottom:20px;font-family:Arial,Helvetica,sans-serif;">Open your digital appointment card on any device for quick access.</div>
+            <div style="font-size:14px;font-weight:400;color:#dce9ff;line-height:1.6;mso-line-height-rule:exactly;padding-bottom:20px;font-family:Arial,Helvetica,sans-serif;">Open your digital appointment card on any device &mdash; or add it to Apple Wallet for quick access.</div>
             <!--[if mso]>
             <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escapeHtml(cardUrl)}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="0%" strokecolor="#4a7be8" fillcolor="#2d5fd4">
               <w:anchorlock/>
