@@ -286,7 +286,8 @@ export function ScheduleConfirmationStep({
         </CardContent>
       </Card>
 
-      {scheduledApptId && rescheduleToken && (
+      {/* APPLE WALLET — hidden from client-facing view; re-enable when ready */}
+      {/* {scheduledApptId && rescheduleToken && (
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border/50 bg-muted/20">
           <div>
             <p className="text-sm font-medium">Add to Apple Wallet</p>
@@ -314,7 +315,7 @@ export function ScheduleConfirmationStep({
             </svg>
           </a>
         </div>
-      )}
+      )} */}
 
       <Tabs defaultValue="email" className="w-full">
         <TabsList className="grid w-full grid-cols-2">

@@ -428,12 +428,12 @@ export default function CardPage() {
             </a>
           )}
 
-          {/* APPLE WALLET */}
-          {token && (
+          {/* APPLE WALLET — hidden from client-facing view; re-enable when ready */}
+          {/* {token && (
             <div className="card-section-pad" style={{ padding: "0" }}>
               <AppleWalletButton token={token} />
             </div>
-          )}
+          )} */}
 
           {/* QR CODE + COPY LINK */}
           <div className="card-section-margin" style={{
