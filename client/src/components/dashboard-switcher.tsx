@@ -28,7 +28,7 @@ export function DashboardSwitcher({ active }: { active: ViewKey }) {
     setEntering(true);
     try {
       await apiRequest("POST", "/api/auth/enter-vendor-portal");
-      navigate("/vendor");
+      window.location.href = "/vendor-v2";
     } catch {
       toast({
         title: "No vendor accounts",

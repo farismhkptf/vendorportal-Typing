@@ -23,7 +23,6 @@ const loginSchema = z.object({
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function VendorLogin() {
-  const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
