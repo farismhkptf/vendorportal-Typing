@@ -110,7 +110,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/companies/:id", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const company = await storage.getCompanyById(id);
       if (!company) {
         return res.status(404).json({ message: "Company not found" });
@@ -150,7 +150,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.put("/api/companies/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const validation = validateBody(insertCompanySchema.partial(), req.body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
@@ -194,7 +194,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
   // ========== Company Emails ==========
   app.get("/api/companies/:companyId/emails", requireAuth, async (req, res) => {
     try {
-      const emails = await storage.getCompanyEmails(req.params.companyId);
+      const emails = await storage.getCompanyEmails((req.params.companyId as string));
       res.json(emails);
     } catch (error) {
       console.error("Get company emails error:", error);
@@ -212,7 +212,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
       const validation = validateBody(companyEmailSchema, req.body);
       if ('error' in validation) return res.status(400).json({ message: validation.error });
       const { label, email } = validation.data;
-      const created = await storage.createCompanyEmail({ companyId: req.params.companyId, label, email });
+      const created = await storage.createCompanyEmail({ companyId: (req.params.companyId as string), label, email });
       res.json(created);
     } catch (error: unknown) {
       if (error instanceof Error && error.message?.includes("Maximum")) return res.status(400).json({ message: error.message });
@@ -231,10 +231,10 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
       const validation = validateBody(updateCompanyEmailSchema, req.body);
       if ('error' in validation) return res.status(400).json({ message: validation.error });
       const { label, email } = validation.data;
-      const existing = await storage.getCompanyEmails(req.params.companyId);
-      const owns = existing.some(e => e.id === req.params.emailId);
+      const existing = await storage.getCompanyEmails((req.params.companyId as string));
+      const owns = existing.some(e => e.id === (req.params.emailId as string));
       if (!owns) return res.status(404).json({ message: "Email not found for this company" });
-      const updated = await storage.updateCompanyEmail(req.params.emailId, { label, email });
+      const updated = await storage.updateCompanyEmail((req.params.emailId as string), { label, email });
       if (!updated) return res.status(404).json({ message: "Email not found" });
       res.json(updated);
     } catch (error) {
@@ -245,10 +245,10 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/companies/:companyId/emails/:emailId", requireRole("Admin"), async (req, res) => {
     try {
-      const existing = await storage.getCompanyEmails(req.params.companyId);
-      const owns = existing.some(e => e.id === req.params.emailId);
+      const existing = await storage.getCompanyEmails((req.params.companyId as string));
+      const owns = existing.some(e => e.id === (req.params.emailId as string));
       if (!owns) return res.status(404).json({ message: "Email not found for this company" });
-      const deleted = await storage.deleteCompanyEmail(req.params.emailId);
+      const deleted = await storage.deleteCompanyEmail((req.params.emailId as string));
       if (!deleted) return res.status(404).json({ message: "Email not found" });
       res.json({ success: true });
     } catch (error) {
@@ -297,7 +297,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.put("/api/staff/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const validation = validateBody(insertStaffSchema.partial(), req.body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
@@ -328,7 +328,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/staff/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const success = await storage.deleteStaff(id);
       if (!success) {
         return res.status(404).json({ message: "Staff member not found" });
@@ -397,7 +397,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.put("/api/centers/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const validation = validateBody(insertCenterSchema.partial(), req.body);
       if ("error" in validation) return res.status(400).json({ message: validation.error });
       const updateData = {
@@ -417,7 +417,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/centers/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const success = await storage.deleteCenter(id);
       if (!success) {
         return res.status(404).json({ message: "Center not found" });
@@ -452,7 +452,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
   // ========== Scheduling Validation ==========
   app.post("/api/centers/:centerId/validate-appointment", requireAuth, async (req, res) => {
     try {
-      const { centerId } = req.params;
+      const { centerId } = req.params as { [key: string]: string };
       const { date, time } = req.body;
 
       if (!date || !time) {
@@ -487,7 +487,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/centers/:centerId/available-times", requireAuth, async (req, res) => {
     try {
-      const { centerId } = req.params;
+      const { centerId } = req.params as { [key: string]: string };
       const { date, interval } = req.query;
 
       if (!date) {
@@ -547,7 +547,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/vendors/:id", requireAuth, async (req, res) => {
     try {
-      const vendor = await storage.getVendorById(req.params.id);
+      const vendor = await storage.getVendorById((req.params.id as string));
       if (!vendor) {
         return res.status(404).json({ message: "Vendor not found" });
       }
@@ -613,14 +613,14 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
       if (active !== undefined) updateData.active = active;
       if (vendorType !== undefined) updateData.vendorType = vendorType;
       
-      const vendor = await storage.updateVendor(req.params.id, updateData);
+      const vendor = await storage.updateVendor((req.params.id as string), updateData);
       if (!vendor) {
         return res.status(404).json({ message: "Vendor not found" });
       }
       await storage.createAuditLog({
         action: 'updated',
         entityType: 'vendor',
-        entityId: req.params.id,
+        entityId: (req.params.id as string),
         userId: req.session?.userId || null,
       });
       res.json(vendor);
@@ -632,11 +632,11 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/vendors/:id", requireOpsRole, async (req, res) => {
     try {
-      await storage.deleteVendor(req.params.id);
+      await storage.deleteVendor((req.params.id as string));
       await storage.createAuditLog({
         action: 'deleted',
         entityType: 'vendor',
-        entityId: req.params.id,
+        entityId: (req.params.id as string),
         userId: req.session?.userId || null,
       });
       res.json({ success: true });
@@ -648,7 +648,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.post("/api/vendors/:id/logo", requireOpsRole, upload.single('logo'), async (req, res) => {
     try {
-      const vendorId = req.params.id;
+      const vendorId = (req.params.id as string);
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
@@ -715,7 +715,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.put("/api/service-types/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const validation = validateBody(insertServiceTypeSchema.partial(), req.body);
       if ("error" in validation) return res.status(400).json({ message: validation.error });
       const updateData = {
@@ -735,7 +735,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/service-types/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const success = await storage.deleteServiceType(id);
       if (!success) {
         return res.status(404).json({ message: "Service type not found" });
@@ -806,7 +806,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.put("/api/job-types/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const validation = validateBody(insertJobTypeSchema.partial(), req.body);
       if ("error" in validation) return res.status(400).json({ message: validation.error });
       const updateData = {
@@ -826,7 +826,7 @@ export function registerEntityRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/job-types/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const success = await storage.deleteJobType(id);
       if (!success) {
         return res.status(404).json({ message: "Job type not found" });

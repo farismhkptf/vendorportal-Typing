@@ -23,13 +23,12 @@ export async function dispatchBiometricsNoShowNotification(
     relatedEntityId: woId,
   };
   if (company?.rmStaffId) {
-    const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => {
-      console.error("[biometrics-timer] failed to fetch RM staff:", err);
+    const rmUser = await storage.getUserByStaffId(company.rmStaffId).catch((err) => {
+      console.error("[biometrics-timer] failed to fetch RM user:", err);
       return null;
     });
-    const rmUserId = (rmStaff as (typeof rmStaff & { userId?: string | null }))?.userId ?? null;
-    if (rmUserId) {
-      await storage.createStaffNotification({ ...notification, userId: rmUserId });
+    if (rmUser?.id) {
+      await storage.createStaffNotification({ ...notification, userId: rmUser.id });
     } else {
       await notifyStaffByRoles(["Admin"], notification);
     }
@@ -68,7 +67,7 @@ function canTransition(from: string, to: string): boolean {
 // GET /api/medical-cases/:woId — get or create medical case for WO
 app.get("/api/medical-cases/:woId", requireAuth, async (req, res) => {
   try {
-    const { woId } = req.params;
+    const { woId } = req.params as { [key: string]: string };
     let medCase = await storage.getMedicalCaseByWoId(woId);
     res.json(medCase || null);
   } catch (error) {
@@ -80,7 +79,7 @@ app.get("/api/medical-cases/:woId", requireAuth, async (req, res) => {
 // POST /api/medical-cases/:woId — create medical case if not exists
 app.post("/api/medical-cases/:woId", requireAuth, async (req, res) => {
   try {
-    const { woId } = req.params;
+    const { woId } = req.params as { [key: string]: string };
     const wo = await storage.getWorkOrderById(woId);
     if (!wo) {
       return res.status(404).json({ message: "Work order not found" });
@@ -111,7 +110,7 @@ app.post("/api/medical-cases/:woId", requireAuth, async (req, res) => {
 // GET /api/medical-cases/:caseId/cycles — get cycles for case
 app.get("/api/medical-cases/:caseId/cycles", requireAuth, async (req, res) => {
   try {
-    const { caseId } = req.params;
+    const { caseId } = req.params as { [key: string]: string };
     const cycles = await storage.getCyclesByCase(caseId);
     // Enrich with events
     const enriched = await Promise.all(cycles.map(async (cycle) => {
@@ -128,8 +127,8 @@ app.get("/api/medical-cases/:caseId/cycles", requireAuth, async (req, res) => {
 // POST /api/medical-cases/:caseId/cycles — create a new cycle
 app.post("/api/medical-cases/:caseId/cycles", requireAuth, async (req, res) => {
   try {
-    const { caseId } = req.params;
-    const user = await storage.getUser(req.session!.userId);
+    const { caseId } = req.params as { [key: string]: string };
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
 
     const medCase = await storage.getMedicalCaseById(caseId);
@@ -208,7 +207,7 @@ app.post("/api/medical-cases/:caseId/cycles", requireAuth, async (req, res) => {
 // GET /api/appointment-cycles/:cycleId — get a specific cycle with events
 app.get("/api/appointment-cycles/:cycleId", requireAuth, async (req, res) => {
   try {
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     const events = await storage.getEventsByCycle(cycle.id);
     res.json({ ...cycle, events });
@@ -224,13 +223,13 @@ const PRO_ACTION_ROLES = ["PRO", "PRO - Temporary", "Admin"];
 // POST /api/appointment-cycles/:cycleId/confirm-qr — QR confirmation (PRO field action)
 app.post("/api/appointment-cycles/:cycleId/confirm-qr", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!PRO_ACTION_ROLES.includes(user.role)) {
       return res.status(403).json({ message: "Access denied: PRO or Admin required" });
     }
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!canTransition(cycle.status, "IN_PROCESS")) {
       return res.status(400).json({ message: `Cannot transition from ${cycle.status} to IN_PROCESS` });
@@ -269,13 +268,13 @@ app.post("/api/appointment-cycles/:cycleId/confirm-qr", requireAuth, async (req,
 // POST /api/appointment-cycles/:cycleId/confirm-manual — manual confirmation fallback (PRO field action)
 app.post("/api/appointment-cycles/:cycleId/confirm-manual", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!PRO_ACTION_ROLES.includes(user.role)) {
       return res.status(403).json({ message: "Access denied: PRO or Admin required" });
     }
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!canTransition(cycle.status, "IN_PROCESS")) {
       return res.status(400).json({ message: `Cannot transition from ${cycle.status} to IN_PROCESS` });
@@ -314,13 +313,13 @@ app.post("/api/appointment-cycles/:cycleId/confirm-manual", requireAuth, async (
 // POST /api/appointment-cycles/:cycleId/complete — PRO marks COMPLETED
 app.post("/api/appointment-cycles/:cycleId/complete", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!PRO_ACTION_ROLES.includes(user.role)) {
       return res.status(403).json({ message: "Access denied: PRO or Admin required" });
     }
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!canTransition(cycle.status, "COMPLETED")) {
       return res.status(400).json({ message: `Cannot transition from ${cycle.status} to COMPLETED` });
@@ -377,13 +376,13 @@ app.post("/api/appointment-cycles/:cycleId/complete", requireAuth, async (req, r
 // POST /api/appointment-cycles/:cycleId/crm-hold — CRM/Admin set or remove hold
 app.post("/api/appointment-cycles/:cycleId/crm-hold", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!["SCHEDULED", "AWAITING_MEETING"].includes(cycle.status)) {
       return res.status(400).json({ message: "CRM hold can only be set on SCHEDULED or AWAITING_MEETING cycles" });
@@ -416,13 +415,13 @@ app.post("/api/appointment-cycles/:cycleId/crm-hold", requireAuth, async (req, r
 // POST /api/appointment-cycles/:cycleId/retest-required — CRM/Admin set RETEST_REQUIRED
 app.post("/api/appointment-cycles/:cycleId/retest-required", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!canTransition(cycle.status, "RETEST_REQUIRED")) {
       return res.status(400).json({ message: `Cannot transition from ${cycle.status} to RETEST_REQUIRED` });
@@ -460,9 +459,9 @@ app.post("/api/appointment-cycles/:cycleId/retest-required", requireAuth, async 
           relatedEntityId: medCase.woId,
         };
         if (company?.rmStaffId) {
-          const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM staff:", err); return null; });
-          if (rmStaff?.userId) {
-            await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+          const rmUser = await storage.getUserByStaffId(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM user:", err); return null; });
+          if (rmUser?.id) {
+            await storage.createStaffNotification({ ...notification, userId: rmUser.id });
           } else {
             await notifyStaffByRoles(["Admin"], notification);
           }
@@ -484,13 +483,13 @@ app.post("/api/appointment-cycles/:cycleId/retest-required", requireAuth, async 
 // POST /api/appointment-cycles/:cycleId/admin-override — Admin force-close
 app.post("/api/appointment-cycles/:cycleId/admin-override", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (user.role !== "Admin") {
       return res.status(403).json({ message: "Access denied: Admin only" });
     }
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (FINAL_STATUSES.includes(cycle.status)) {
       return res.status(400).json({ message: "Cycle is already in a final state" });
@@ -535,10 +534,10 @@ app.post("/api/appointment-cycles/:cycleId/admin-override", requireAuth, async (
 // POST /api/appointment-cycles/:cycleId/reschedule
 app.post("/api/appointment-cycles/:cycleId/reschedule", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
 
     if (!canTransition(cycle.status, RESCHEDULE_FROM_NO_SHOW)) {
@@ -594,13 +593,13 @@ app.post("/api/appointment-cycles/:cycleId/reschedule", requireAuth, async (req,
 // POST /api/appointment-cycles/:cycleId/result-issued — Admin or CRM endpoint
 app.post("/api/appointment-cycles/:cycleId/result-issued", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
       return res.status(403).json({ message: "Access denied: Admin or CRM required" });
     }
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (cycle.status === "RESULT_ISSUED") return res.json({ message: "Already issued", idempotent: true });
     if (!canTransition(cycle.status, "RESULT_ISSUED")) {
@@ -650,13 +649,13 @@ app.post("/api/appointment-cycles/:cycleId/result-issued", requireAuth, async (r
 // POST /api/appointment-cycles/:cycleId/medical-failed — Admin or CRM endpoint
 app.post("/api/appointment-cycles/:cycleId/medical-failed", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
       return res.status(403).json({ message: "Access denied: Admin or CRM required" });
     }
 
-    const cycle = await storage.getCycleById(req.params.cycleId);
+    const cycle = await storage.getCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (cycle.status === "MEDICAL_FAILED") return res.json({ message: "Already marked failed", idempotent: true });
     if (!canTransition(cycle.status, "MEDICAL_FAILED")) {
@@ -698,9 +697,9 @@ app.post("/api/appointment-cycles/:cycleId/medical-failed", requireAuth, async (
           relatedEntityId: medCase.woId,
         };
         if (company?.rmStaffId) {
-          const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM staff:", err); return null; });
-          if (rmStaff?.userId) {
-            await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+          const rmUser = await storage.getUserByStaffId(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM user:", err); return null; });
+          if (rmUser?.id) {
+            await storage.createStaffNotification({ ...notification, userId: rmUser.id });
           } else {
             await notifyStaffByRoles(["Admin"], notification);
           }
@@ -782,9 +781,9 @@ async function runMedicalTimerJobs() {
             relatedEntityId: medCase.woId,
           };
           if (company?.rmStaffId) {
-            const rmStaff = await storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM staff:", err); return null; });
-            if (rmStaff?.userId) {
-              await storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+            const rmUser = await storage.getUserByStaffId(company.rmStaffId).catch((err) => { console.error("[scheduling] failed to fetch RM user:", err); return null; });
+            if (rmUser?.id) {
+              await storage.createStaffNotification({ ...notification, userId: rmUser.id });
             } else {
               await notifyStaffByRoles(["Admin"], notification);
             }
@@ -862,7 +861,7 @@ function canBiometricsTransition(from: string, to: string): boolean {
 // GET /api/biometrics-cases/:woId — get biometrics case for WO
 app.get("/api/biometrics-cases/:woId", requireAuth, async (req, res) => {
   try {
-    const { woId } = req.params;
+    const { woId } = req.params as { [key: string]: string };
     const bioCase = await storage.getBiometricsCaseByWoId(woId);
     res.json(bioCase || null);
   } catch (error) {
@@ -874,7 +873,7 @@ app.get("/api/biometrics-cases/:woId", requireAuth, async (req, res) => {
 // POST /api/biometrics-cases/:woId — create biometrics case if not exists
 app.post("/api/biometrics-cases/:woId", requireAuth, async (req, res) => {
   try {
-    const { woId } = req.params;
+    const { woId } = req.params as { [key: string]: string };
     const wo = await storage.getWorkOrderById(woId);
     if (!wo) {
       return res.status(404).json({ message: "Work order not found" });
@@ -896,7 +895,7 @@ app.post("/api/biometrics-cases/:woId", requireAuth, async (req, res) => {
 // GET /api/biometrics-cases/:caseId/cycles — get cycles for biometrics case
 app.get("/api/biometrics-cases/:caseId/cycles", requireAuth, async (req, res) => {
   try {
-    const { caseId } = req.params;
+    const { caseId } = req.params as { [key: string]: string };
     const cycles = await storage.getBiometricsCyclesByCase(caseId);
     const enriched = await Promise.all(cycles.map(async (cycle) => {
       const events = await storage.getBiometricsEventsByCycle(cycle.id);
@@ -912,8 +911,8 @@ app.get("/api/biometrics-cases/:caseId/cycles", requireAuth, async (req, res) =>
 // POST /api/biometrics-cases/:caseId/cycles — create a new biometrics cycle
 app.post("/api/biometrics-cases/:caseId/cycles", requireAuth, async (req, res) => {
   try {
-    const { caseId } = req.params;
-    const user = await storage.getUser(req.session!.userId);
+    const { caseId } = req.params as { [key: string]: string };
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
 
     const bioCase = await storage.getBiometricsCaseById(caseId);
@@ -967,7 +966,7 @@ app.post("/api/biometrics-cases/:caseId/cycles", requireAuth, async (req, res) =
 // GET /api/biometrics-cycles/:cycleId — get a specific biometrics cycle with events
 app.get("/api/biometrics-cycles/:cycleId", requireAuth, async (req, res) => {
   try {
-    const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
+    const cycle = await storage.getBiometricsCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     const events = await storage.getBiometricsEventsByCycle(cycle.id);
     res.json({ ...cycle, events });
@@ -981,13 +980,13 @@ const BIO_PRO_ROLES = ["PRO", "PRO - Temporary", "Admin"];
 // POST /api/biometrics-cycles/:cycleId/confirm-qr — QR confirmation
 app.post("/api/biometrics-cycles/:cycleId/confirm-qr", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!BIO_PRO_ROLES.includes(user.role)) {
       return res.status(403).json({ message: "Access denied: PRO or Admin required" });
     }
 
-    const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
+    const cycle = await storage.getBiometricsCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!canBiometricsTransition(cycle.status, "IN_PROCESS")) {
       return res.status(400).json({ message: `Cannot transition from ${cycle.status} to IN_PROCESS` });
@@ -1026,13 +1025,13 @@ app.post("/api/biometrics-cycles/:cycleId/confirm-qr", requireAuth, async (req, 
 // POST /api/biometrics-cycles/:cycleId/confirm-manual — manual confirmation fallback
 app.post("/api/biometrics-cycles/:cycleId/confirm-manual", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!BIO_PRO_ROLES.includes(user.role)) {
       return res.status(403).json({ message: "Access denied: PRO or Admin required" });
     }
 
-    const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
+    const cycle = await storage.getBiometricsCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!canBiometricsTransition(cycle.status, "IN_PROCESS")) {
       return res.status(400).json({ message: `Cannot transition from ${cycle.status} to IN_PROCESS` });
@@ -1071,13 +1070,13 @@ app.post("/api/biometrics-cycles/:cycleId/confirm-manual", requireAuth, async (r
 // POST /api/biometrics-cycles/:cycleId/complete — PRO marks COMPLETED
 app.post("/api/biometrics-cycles/:cycleId/complete", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!BIO_PRO_ROLES.includes(user.role)) {
       return res.status(403).json({ message: "Access denied: PRO or Admin required" });
     }
 
-    const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
+    const cycle = await storage.getBiometricsCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!canBiometricsTransition(cycle.status, "COMPLETED")) {
       return res.status(400).json({ message: `Cannot transition from ${cycle.status} to COMPLETED` });
@@ -1149,13 +1148,13 @@ app.post("/api/biometrics-cycles/:cycleId/complete", requireAuth, async (req, re
 // POST /api/biometrics-cycles/:cycleId/crm-hold — CRM/Admin set or remove hold
 app.post("/api/biometrics-cycles/:cycleId/crm-hold", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
+    const cycle = await storage.getBiometricsCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (!["SCHEDULED", "AWAITING_MEETING"].includes(cycle.status)) {
       return res.status(400).json({ message: "CRM hold can only be set on SCHEDULED or AWAITING_MEETING cycles" });
@@ -1198,13 +1197,13 @@ app.post("/api/biometrics-cycles/:cycleId/crm-hold", requireAuth, async (req, re
 // POST /api/biometrics-cycles/:cycleId/reschedule-required — CRM/Admin set RESCHEDULE_REQUIRED
 app.post("/api/biometrics-cycles/:cycleId/reschedule-required", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!["Admin", "Client Relationship Manager"].includes(user.role)) {
       return res.status(403).json({ message: "Access denied" });
     }
 
-    const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
+    const cycle = await storage.getBiometricsCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (FINAL_BIOMETRICS_STATUSES.includes(cycle.status)) {
       return res.status(400).json({ message: "Cycle is already in a final state" });
@@ -1241,13 +1240,13 @@ app.post("/api/biometrics-cycles/:cycleId/reschedule-required", requireAuth, asy
 // POST /api/biometrics-cycles/:cycleId/admin-override — Admin force-close
 app.post("/api/biometrics-cycles/:cycleId/admin-override", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (user.role !== "Admin") {
       return res.status(403).json({ message: "Access denied: Admin only" });
     }
 
-    const cycle = await storage.getBiometricsCycleById(req.params.cycleId);
+    const cycle = await storage.getBiometricsCycleById((req.params.cycleId as string));
     if (!cycle) return res.status(404).json({ message: "Cycle not found" });
     if (FINAL_BIOMETRICS_STATUSES.includes(cycle.status)) {
       return res.status(400).json({ message: "Cycle is already in a final state" });
@@ -1342,7 +1341,7 @@ async function runBiometricsTimerJobs() {
       try {
         const bioCase = await storage.getBiometricsCaseById(cycle.caseId);
         if (bioCase?.woId) {
-          await dispatchBiometricsNoShowNotification(bioCase.woId, notifyStaffByRoles);
+          await dispatchBiometricsNoShowNotification(bioCase.woId, notifyStaffByRoles as (roles: string[], notification: Record<string, unknown>) => Promise<void>);
           await checkAndRevertWoIfNoAppointments(bioCase.woId);
         }
       } catch (revertErr) {
@@ -1430,7 +1429,7 @@ app.post("/api/admin/restore-db", async (req, res) => {
 // GET /api/pro/today-cycles — PRO's today's appointment cycles
 app.get("/api/pro/today-cycles", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!PRO_ACTION_ROLES.includes(user.role)) {
       return res.status(403).json({ message: "Access denied: PRO or Admin required" });
@@ -1468,7 +1467,7 @@ app.get("/api/pro/today-cycles", requireAuth, async (req, res) => {
 // POST /api/confirm-by-card-token — resolve QR card token to active cycle and confirm
 app.post("/api/confirm-by-card-token", requireAuth, async (req, res) => {
   try {
-    const user = await storage.getUser(req.session!.userId);
+    const user = await storage.getUser(req.session!.userId!);
     if (!user) return res.status(401).json({ message: "Not authenticated" });
     if (!PRO_ACTION_ROLES.includes(user.role)) {
       return res.status(403).json({ message: "Access denied: PRO or Admin required" });

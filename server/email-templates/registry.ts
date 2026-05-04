@@ -266,15 +266,17 @@ function makePreviewAppointment(overrides: Partial<Appointment> & Pick<Appointme
 }
 
 function makePreviewWorkOrder(overrides: Partial<WorkOrder> & Pick<WorkOrder, "id" | "woNumber" | "applicantName" | "companyId" | "status" | "isDelayed" | "isMinor" | "isVip" | "createdAt">): WorkOrder {
-  return {
+  const base = {
     applicantPhone: null,
     applicantEmail: null,
     serviceTypeId: null,
     previousStatus: null,
     notes: null,
     createdBy: null,
+    externalWoId: null as string | null,
     ...overrides,
   };
+  return { ...base, externalWoId: base.externalWoId ?? null } as WorkOrder;
 }
 
 function makePreviewCompany(overrides: Partial<Company> & Pick<Company, "id" | "name" | "active">): Company {

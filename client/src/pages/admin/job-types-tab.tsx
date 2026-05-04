@@ -35,7 +35,7 @@ export function AdminJobTypesTab() {
     queryKey: ["/api/job-types"],
   });
 
-  const jobTypeForm = useForm({ resolver: zodResolver(jobTypeSchema), defaultValues: { name: "", category: "Medical" as const, cost: 0 } });
+  const jobTypeForm = useForm<z.infer<typeof jobTypeSchema>>({ resolver: zodResolver(jobTypeSchema), defaultValues: { name: "", category: "Medical", cost: 0 } });
   const editJobTypeForm = useForm<z.infer<typeof jobTypeSchema>>({ resolver: zodResolver(jobTypeSchema), defaultValues: { name: "", category: "Medical", cost: 0 } });
 
   const createJobTypeMutation = useMutation({
@@ -68,7 +68,7 @@ export function AdminJobTypesTab() {
     setEditJobTypeDialogOpen(true);
   };
 
-  function JobTypeFormFields({ form }: { form: typeof jobTypeForm }) {
+  function JobTypeFormFields({ form }: { form: typeof editJobTypeForm }) {
     return (
       <>
         <FormField control={form.control} name="category" render={({ field }) => (

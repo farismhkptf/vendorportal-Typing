@@ -569,6 +569,7 @@ export const typingJobs = vendorSchema.table("typing_jobs", {
   createdBy: uuid("created_by"),
   previousStatus: typingJobStatusEnum("previous_status"),
   rejectedReason: text("rejected_reason"),
+  notes: text("notes"),
   urgent: boolean("urgent").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [

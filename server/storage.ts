@@ -57,18 +57,19 @@ import {
   type VendorUser, type InsertVendorUser,
   type CrossPortalEvent, type InsertCrossPortalEvent,
 } from "@shared/schema";
-import { db } from "./db";
+import { db, DrizzleTx } from "./db";
 import { eq, desc, and, gte, lte, lt, sql, or, ilike, inArray, isNull, isNotNull } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export interface IStorage {
   // Transaction wrapper
-  transaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T>;
+  transaction<T>(fn: (tx: DrizzleTx) => Promise<T>): Promise<T>;
 
   // Users
   getUser(id: string): Promise<User | undefined>;
   getUsers(): Promise<User[]>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByStaffId(staffId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
   
@@ -459,7 +460,7 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // Transaction wrapper
-  async transaction<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {
+  async transaction<T>(fn: (tx: DrizzleTx) => Promise<T>): Promise<T> {
     return db.transaction(fn);
   }
 
@@ -475,6 +476,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async getUserByStaffId(staffId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.staffId, staffId));
     return user || undefined;
   }
 
@@ -1878,7 +1884,7 @@ export class DatabaseStorage implements IStorage {
 
   async reviewChangeNotification(id: string, data: { status: string; reviewedBy: string }): Promise<ChangeNotification | undefined> {
     const [notification] = await db.update(changeNotifications)
-      .set({ status: data.status, reviewedBy: data.reviewedBy, reviewedAt: new Date() })
+      .set({ status: data.status as "pending" | "reviewed" | "dismissed", reviewedBy: data.reviewedBy, reviewedAt: new Date() })
       .where(eq(changeNotifications.id, id))
       .returning();
     return notification || undefined;
@@ -2095,7 +2101,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPasswordResetRequests(status?: string): Promise<PasswordResetRequest[]> {
-    const conditions = status ? [eq(passwordResetRequests.status, status)] : [];
+    const conditions = status ? [eq(passwordResetRequests.status, status as "pending" | "approved" | "rejected")] : [];
     const requests = conditions.length > 0
       ? await db.select().from(passwordResetRequests).where(and(...conditions)).orderBy(desc(passwordResetRequests.createdAt))
       : await db.select().from(passwordResetRequests).orderBy(desc(passwordResetRequests.createdAt));
@@ -2115,7 +2121,7 @@ export class DatabaseStorage implements IStorage {
 
   async resolvePasswordResetRequest(id: string, resolvedBy: string): Promise<PasswordResetRequest> {
     const [updated] = await db.update(passwordResetRequests)
-      .set({ status: "resolved", resolvedBy, resolvedAt: new Date() })
+      .set({ status: "approved", resolvedBy, resolvedAt: new Date() })
       .where(eq(passwordResetRequests.id, id))
       .returning();
     return updated;

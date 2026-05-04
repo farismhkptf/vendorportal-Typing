@@ -63,7 +63,7 @@ export function useWorkOrdersData() {
     workOrders.forEach((wo) => {
       if (wo.status === "Cancelled") return;
       if (wo.status !== "Completed") totalActive++;
-      if (wo.isVip && wo.status !== "Completed" && wo.status !== "Cancelled") vipCount++;
+      if (wo.isVip && wo.status !== "Completed") vipCount++;
       const med = getMedicalStatus(wo);
       const eid = getEidStatus(wo);
       if ((med.hasMedical && (!med.typing || med.typing === "Draft" || med.typing === "SubmittedToVendor" || med.typing === "InProcess")) ||

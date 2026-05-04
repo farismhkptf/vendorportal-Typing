@@ -231,7 +231,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.put("/api/vendor/notifications/:id/read", requireVendorAuth, async (req, res) => {
     try {
-      await storage.markNotificationRead(req.params.id);
+      await storage.markNotificationRead((req.params.id as string));
       res.json({ message: "Marked as read" });
     } catch (error) {
       console.error("Mark read error:", error);
@@ -565,7 +565,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.get("/api/vendor/jobs/:id", requireTypingVendor, async (req, res) => {
     try {
-      const jobId = req.params.id;
+      const jobId = (req.params.id as string);
       const job = await storage.getTypingJobById(jobId);
       
       if (!job) {
@@ -622,8 +622,8 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
         if (company) {
           companyContacts = {
-            coordinator: company.clientCoordinator || null,
-            manager: company.clientManager || null,
+            coordinator: (company.clientCoordinator as unknown) as string | null,
+            manager: (company.clientManager as unknown) as string | null,
             accountant: null,
           };
 
@@ -647,7 +647,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
             const allCenters = await storage.getCenters();
             eidCenters = allCenters
               .filter(c => (c.type === "EID" || c.type === "Both"))
-              .map(c => ({ id: c.id, name: c.name, area: c.area, tier: c.tier }));
+              .map(c => ({ id: c.id, name: c.name, area: c.area, type: c.type, tier: c.tier }));
           }
         }
       }
@@ -690,7 +690,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.post("/api/vendor/jobs/:id/files", requireTypingVendor, async (req, res) => {
     try {
-      const jobId = req.params.id;
+      const jobId = (req.params.id as string);
       const vendorId = req.session.vendorId;
       if (!vendorId) return res.status(403).json({ message: "Forbidden" });
 
@@ -735,7 +735,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
         return res.status(403).json({ message: "Forbidden" });
       }
 
-      const { jobId, fileId } = req.params;
+      const { jobId, fileId } = req.params as { [key: string]: string };
 
       const job = await storage.getTypingJobById(jobId);
       if (!job || job.vendorId !== vendorId) {
@@ -774,7 +774,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.post("/api/vendor/jobs/:id/comments", requireTypingVendor, async (req, res) => {
     try {
-      const jobId = req.params.id;
+      const jobId = (req.params.id as string);
       const vendorId = req.session.vendorId;
       if (!vendorId) return res.status(403).json({ message: "Forbidden" });
 
@@ -811,7 +811,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.post("/api/vendor/jobs/:id/start-work", requireTypingVendor, async (req, res) => {
     try {
-      const jobId = req.params.id;
+      const jobId = (req.params.id as string);
       const job = await storage.getTypingJobById(jobId);
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
@@ -836,7 +836,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.post("/api/vendor/jobs/:id/accept", requireTypingVendor, async (req, res) => {
     try {
-      const jobId = req.params.id;
+      const jobId = (req.params.id as string);
       const job = await storage.getTypingJobById(jobId);
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
@@ -861,7 +861,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.post("/api/vendor/jobs/:id/complete", requireTypingVendor, async (req, res) => {
     try {
-      const jobId = req.params.id;
+      const jobId = (req.params.id as string);
       const job = await storage.getTypingJobById(jobId);
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
@@ -970,7 +970,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.post("/api/vendor/jobs/:id/return", requireTypingVendor, async (req, res) => {
     try {
-      const jobId = req.params.id;
+      const jobId = (req.params.id as string);
       const job = await storage.getTypingJobById(jobId);
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });
@@ -1009,7 +1009,7 @@ export function registerVendorPortalRoutes(app: Express, deps: RouteDeps): void 
 
   app.put("/api/vendor/jobs/:id/biometrics", requireTypingVendor, async (req, res) => {
     try {
-      const jobId = req.params.id;
+      const jobId = (req.params.id as string);
       const job = await storage.getTypingJobById(jobId);
       if (!job || job.vendorId !== req.session.vendorId) {
         return res.status(404).json({ message: "Job not found" });

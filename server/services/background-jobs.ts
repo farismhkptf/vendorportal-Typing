@@ -23,7 +23,6 @@ export async function checkAndMarkDelayedWorkOrders(): Promise<number> {
     for (const wo of activeWos) {
       try {
         if (!UUID_REGEX.test(wo.id)) {
-          console.log(`[delay-check] skipping invalid ID: ${wo.id}`);
           continue;
         }
 

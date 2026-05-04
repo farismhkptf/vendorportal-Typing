@@ -207,7 +207,7 @@ app.post("/api/typing-jobs/bulk-assign-vendor", requireOpsRole, async (req, res)
 
 app.get("/api/typing-jobs/:id", requireAuth, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { [key: string]: string };
     const job = await storage.getTypingJobById(id);
     
     if (!job) {
@@ -249,7 +249,7 @@ app.post("/api/typing-jobs/:id/reassign", requireOpsRole, async (req, res) => {
     
     const result = await executeTransition({
       action: "reassign",
-      jobId: req.params.id,
+      jobId: (req.params.id as string),
       actor: "team",
       actorId: req.session?.userId,
       storage,
@@ -268,7 +268,7 @@ app.post("/api/typing-jobs/:id/reassign", requireOpsRole, async (req, res) => {
 
 app.patch("/api/typing-jobs/:id/assign-staff", requireOpsRole, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { [key: string]: string };
     const { assignedToUserId } = req.body;
     const job = await storage.getTypingJobById(id);
     if (!job) return res.status(404).json({ message: "Typing job not found" });
@@ -314,7 +314,7 @@ app.patch("/api/typing-jobs/:id/assign-staff", requireOpsRole, async (req, res) 
 
 app.put("/api/typing-jobs/:id", requireAuth, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { [key: string]: string };
     const existingJob = await storage.getTypingJobById(id);
     const previousStatus = existingJob?.status;
     
@@ -360,7 +360,7 @@ app.put("/api/typing-jobs/:id", requireAuth, async (req, res) => {
 // Typing Job Comments
 app.post("/api/typing-jobs/:id/comments", requireAuth, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { [key: string]: string };
     const validation = validateBody(insertTypingJobCommentSchema.omit({ typingJobId: true }), req.body);
     if ("error" in validation) return res.status(400).json({ message: validation.error });
     const comment = await storage.createTypingJobComment({
@@ -400,7 +400,7 @@ app.post("/api/typing-jobs/:id/comments", requireAuth, async (req, res) => {
 // Submit typing job to vendor
 app.post("/api/typing-jobs/:id/submit-to-vendor", requireOpsRole, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { [key: string]: string };
     const { vendorId } = req.body;
     
     if (!vendorId) {
@@ -494,7 +494,7 @@ app.post("/api/typing-jobs/:id/on-hold", requireAuth, async (req, res) => {
   try {
     const result = await executeTransition({
       action: "on_hold",
-      jobId: req.params.id,
+      jobId: (req.params.id as string),
       actor: "team",
       actorId: req.session?.userId,
       storage,
@@ -515,7 +515,7 @@ app.post("/api/typing-jobs/:id/resume", requireAuth, async (req, res) => {
   try {
     const result = await executeTransition({
       action: "resume",
-      jobId: req.params.id,
+      jobId: (req.params.id as string),
       actor: "team",
       actorId: req.session?.userId,
       storage,
@@ -535,7 +535,7 @@ app.post("/api/typing-jobs/:id/abort", requireAuth, async (req, res) => {
   try {
     const result = await executeTransition({
       action: "abort",
-      jobId: req.params.id,
+      jobId: (req.params.id as string),
       actor: "team",
       actorId: req.session?.userId,
       storage,
@@ -556,7 +556,7 @@ app.post("/api/typing-jobs/:id/deliver-to-client", requireAuth, async (req, res)
   try {
     const result = await executeTransition({
       action: "deliver_to_client",
-      jobId: req.params.id,
+      jobId: (req.params.id as string),
       actor: "team",
       actorId: req.session?.userId,
       storage,
@@ -575,7 +575,7 @@ app.post("/api/typing-jobs/:id/deliver-to-client", requireAuth, async (req, res)
 // Files API
 app.get("/api/files/:relatedType/:relatedId", requireAuth, async (req, res) => {
   try {
-    const { relatedType, relatedId } = req.params;
+    const { relatedType, relatedId } = req.params as { [key: string]: string };
     const filesList = await storage.getFilesByRelated(relatedType, relatedId);
     res.json(filesList);
   } catch (error) {
@@ -612,7 +612,7 @@ app.post("/api/files", requireAuth, async (req, res) => {
 
 app.delete("/api/files/:id", requireAuth, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { [key: string]: string };
     await storage.deleteFile(id);
     res.status(204).end();
   } catch (error) {

@@ -115,7 +115,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
   // ========== Settings ==========
   app.get("/api/settings", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session!.userId);
+      const user = await storage.getUser(req.session!.userId!);
       const isAdmin = user?.role === "Admin";
       const settings = await storage.getAppSettings();
       const base = settings || {
@@ -306,11 +306,11 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
   app.get("/api/admin/email-templates/:id/preview", requireRole("Admin"), async (req, res) => {
     try {
       const registry = getTemplateRegistry();
-      const exists = registry.some(t => t.id === req.params.id);
+      const exists = registry.some(t => t.id === (req.params.id as string));
       if (!exists) {
         return res.status(404).json({ message: "Template not found" });
       }
-      const html = buildTemplatePreview(req.params.id);
+      const html = buildTemplatePreview((req.params.id as string));
       res.setHeader("Content-Type", "text/html; charset=utf-8");
       return res.send(html);
     } catch (error) {
@@ -321,7 +321,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/admin/email-preview/appointment/:id", requireRole("Admin"), async (req, res) => {
     try {
-      const data = await loadAppointmentEmailDataById(req.params.id, req);
+      const data = await loadAppointmentEmailDataById((req.params.id as string), req);
       if (!data) {
         return res.status(404).json({ message: "Appointment not found" });
       }
@@ -337,7 +337,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
   // ========== Work Order Documents ==========
   app.get("/api/work-orders/:id/documents", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const documents = await storage.getWoDocuments(id);
       res.json(documents);
     } catch (error) {
@@ -348,7 +348,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
   app.post("/api/work-orders/:id/documents", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const { documentType, fileName, fileUrl, mimeType, fileSize, expiresAt } = req.body;
       
       if (!documentType || !fileName || !fileUrl) {
@@ -414,7 +414,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
   app.put("/api/documents/:id/status", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const { status } = req.body;
       
       if (!status || !["Pending", "Uploaded", "Verified"].includes(status)) {
@@ -442,7 +442,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
   app.put("/api/documents/:id/expiry", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const { expiresAt } = req.body;
 
       if (expiresAt !== null && expiresAt !== undefined) {
@@ -480,7 +480,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
       const expiringWoDocs = await storage.getExpiringWoDocuments(threshold);
 
-      const woIds = [...new Set(expiringWoDocs.map(d => d.woId))];
+      const woIds = Array.from(new Set(expiringWoDocs.map(d => d.woId)));
       const workOrders = woIds.length > 0 ? await storage.getWorkOrdersByIds(woIds) : [];
       const woMap = new Map(workOrders.map(wo => [wo.id, wo]));
 
@@ -526,7 +526,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/documents/:id", requireRole("Admin"), async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const document = await storage.getWoDocumentById(id);
       
       if (!document) {
@@ -725,7 +725,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         return res.status(400).json({ message: "WorkDrive not configured" });
       }
 
-      const document = await storage.getWoDocumentById(req.params.id);
+      const document = await storage.getWoDocumentById((req.params.id as string));
       if (!document) {
         return res.status(404).json({ message: "Document not found" });
       }
@@ -777,7 +777,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/document-requirements/:category", requireAuth, async (req, res) => {
     try {
-      const { category } = req.params;
+      const { category } = req.params as { [key: string]: string };
       const requirements = await storage.getDocumentRequirementsByCategory(category);
       res.json(requirements);
     } catch (error) {
@@ -809,7 +809,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
   // ========== Appointment Card (public) ==========
   app.get("/api/card/:token", async (req, res) => {
     try {
-      const appointment = await storage.getAppointmentByToken(req.params.token);
+      const appointment = await storage.getAppointmentByToken((req.params.token as string));
       if (!appointment) {
         return res.status(404).json({ message: "Invalid or expired card link" });
       }
@@ -1010,7 +1010,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     }
 
     try {
-      const token = req.params.token;
+      const token = (req.params.token as string);
       const appointment = await storage.getAppointmentByToken(token);
       if (!appointment) {
         return res.status(404).json({ message: "Invalid or expired card link" });
@@ -1249,7 +1249,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
   // ========== Reschedule ==========
   app.get("/api/reschedule/:token", async (req, res) => {
     try {
-      const appointment = await storage.getAppointmentByToken(req.params.token);
+      const appointment = await storage.getAppointmentByToken((req.params.token as string));
       
       if (!appointment) {
         return res.status(404).json({ message: "Invalid or expired reschedule link" });
@@ -1279,7 +1279,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         return res.status(400).json({ message: validation.error });
       }
       
-      const appointment = await storage.getAppointmentByToken(req.params.token);
+      const appointment = await storage.getAppointmentByToken((req.params.token as string));
       
       if (!appointment) {
         return res.status(404).json({ message: "Invalid or expired reschedule link" });

@@ -89,7 +89,7 @@ export default function ScheduleEid() {
   const handleSelectQueueItem = (item: SchedulingQueueItem) => {
     setSelectedQueueItem(item);
     setSelectedWoId(item.woId);
-    applyQueueItemToForm(item, SCHEDULER_TYPE, centers, form);
+    applyQueueItemToForm(item, SCHEDULER_TYPE, centers, form as { setValue: (name: string, value: unknown) => void });
   };
 
   const handleSelectWorkOrderManual = async (wo: WorkOrder) => {
@@ -109,7 +109,7 @@ export default function ScheduleEid() {
     } catch { /* ignore */ }
     setSelectedQueueItem(manualItem);
     setSelectedWoId(wo.id);
-    applyQueueItemToForm(manualItem, SCHEDULER_TYPE, centers, form);
+    applyQueueItemToForm(manualItem, SCHEDULER_TYPE, centers, form as { setValue: (name: string, value: unknown) => void });
     setSearchQuery(""); setShowManualSearch(false);
   };
 

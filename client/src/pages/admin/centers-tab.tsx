@@ -64,13 +64,13 @@ export function AdminCentersTab() {
     );
   }, [centers, centerSearch]);
 
-  const centerForm = useForm({
+  const centerForm = useForm<z.infer<typeof centerSchema>>({
     resolver: zodResolver(centerSchema),
     defaultValues: {
       name: "",
-      type: "Both" as const,
-      authority: null as "DHA" | "EHS" | null,
-      tier: null as "Normal" | "VIP" | null,
+      type: "Both",
+      authority: null,
+      tier: null,
       address: "",
       area: "",
       googleMapsUrl: "",
@@ -169,7 +169,7 @@ export function AdminCentersTab() {
     setEditCenterDialogOpen(true);
   };
 
-  function CenterFormFields({ form, isEdit }: { form: typeof centerForm; isEdit?: boolean }) {
+  function CenterFormFields({ form, isEdit }: { form: typeof editCenterForm; isEdit?: boolean }) {
     return (
       <>
         <FormField

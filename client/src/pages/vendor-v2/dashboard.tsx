@@ -166,7 +166,7 @@ export default function V2Dashboard() {
       type: n.type,
       title: n.title || "",
       description: n.message || "",
-      timestamp: n.createdAt as string,
+      timestamp: typeof n.createdAt === "string" ? n.createdAt : new Date(n.createdAt).toISOString(),
       category: n.type === "wallet_topup" || n.type === "wallet_deduction" ? "wallet" : "other",
     })),
   ]

@@ -57,7 +57,7 @@ export function ExpandedTypingJobCard({ job, woId, onRefresh }: { job: any; woId
           <TriangleAlert className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Returned by Vendor — Action Required</p>
           <Link href={`/typing-jobs/${job.id}`}>
-            <Button variant="link" size="sm" className="h-auto p-0 text-xs text-amber-700 dark:text-amber-300 underline ml-auto" data-testid={`button-view-returned-job-${job.id}`}>
+            <Button variant="ghost" size="sm" className="h-auto p-0 text-xs text-amber-700 dark:text-amber-300 underline ml-auto" data-testid={`button-view-returned-job-${job.id}`}>
               View Job
             </Button>
           </Link>

@@ -27,3 +27,5 @@ function buildConnectionConfig(): pg.PoolConfig {
 
 export const pool = new Pool(buildConnectionConfig());
 export const db = drizzle(pool, { schema });
+
+export type DrizzleTx = Parameters<(typeof db)["transaction"]>[0] extends (tx: infer TX) => unknown ? TX : never;

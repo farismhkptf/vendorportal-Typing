@@ -72,7 +72,7 @@ const updateCategorySchema = z.object({
 
 app.patch("/api/admin/attestation-categories/:id", requireRole("Admin"), async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { [key: string]: string };
     const validation = validateBody(updateCategorySchema, req.body);
     if ('error' in validation) return res.status(400).json({ message: validation.error });
     const { name, sortOrder, active } = validation.data;
@@ -99,7 +99,7 @@ app.patch("/api/admin/attestation-categories/:id", requireRole("Admin"), async (
 
 app.delete("/api/admin/attestation-categories/:id", requireRole("Admin"), async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params as { [key: string]: string };
     const category = await storage.getAttestationCategoryById(id);
     if (!category) return res.status(404).json({ message: "Category not found" });
     // Block deletion if any service uses this category
@@ -167,7 +167,7 @@ app.post("/api/attestation/services", requireRole("Admin"), async (req, res) => 
     if ('error' in validation) return res.status(400).json({ message: validation.error });
     const { name, category, documentClassApplicability, basePriceAed, timelineDays, description, active } = validation.data;
     const service = await storage.createAttestationService({
-      name, category, documentClassApplicability: documentClassApplicability ?? "Both",
+      name, category, documentClassApplicability: (documentClassApplicability ?? "Both") as "Both" | "Personal" | "Business",
       basePriceAed: basePriceAed ?? "0", timelineDays: timelineDays ?? null,
       description: description ?? null, active: active ?? true,
     });
@@ -192,7 +192,7 @@ app.patch("/api/attestation/services/:id", requireRole("Admin"), async (req, res
   try {
     const validation = validateBody(updateServiceSchema, req.body);
     if ('error' in validation) return res.status(400).json({ message: validation.error });
-    const updated = await storage.updateAttestationService(req.params.id, validation.data);
+    const updated = await storage.updateAttestationService((req.params.id as string), validation.data as Parameters<typeof storage.updateAttestationService>[1]);
     if (!updated) return res.status(404).json({ message: "Service not found" });
     res.json(updated);
   } catch (err) {
@@ -203,7 +203,7 @@ app.patch("/api/attestation/services/:id", requireRole("Admin"), async (req, res
 
 app.get("/api/attestation/services/:id/variants", requireAuth, async (req, res) => {
   try {
-    const variants = await storage.getAttestationServiceVariants(req.params.id);
+    const variants = await storage.getAttestationServiceVariants((req.params.id as string));
     res.json(variants);
   } catch (err) {
     console.error("[attestation] get variants error:", err);
@@ -224,7 +224,7 @@ app.post("/api/attestation/services/:id/variants", requireRole("Admin"), async (
     if ('error' in validation) return res.status(400).json({ message: validation.error });
     const { variantLabel, priceAed, timelineDays, active } = validation.data;
     const variant = await storage.createAttestationServiceVariant({
-      serviceId: req.params.id, variantLabel, priceAed: priceAed ?? "0",
+      serviceId: (req.params.id as string), variantLabel, priceAed: priceAed ?? "0",
       timelineDays: timelineDays ?? null, active: active ?? true,
     });
     res.status(201).json(variant);
@@ -245,7 +245,7 @@ app.patch("/api/attestation/services/variants/:variantId", requireRole("Admin"),
   try {
     const validation = validateBody(updateVariantSchema, req.body);
     if ('error' in validation) return res.status(400).json({ message: validation.error });
-    const updated = await storage.updateAttestationServiceVariant(req.params.variantId, validation.data);
+    const updated = await storage.updateAttestationServiceVariant((req.params.variantId as string), validation.data);
     if (!updated) return res.status(404).json({ message: "Variant not found" });
     res.json(updated);
   } catch (err) {
@@ -256,7 +256,7 @@ app.patch("/api/attestation/services/variants/:variantId", requireRole("Admin"),
 
 app.delete("/api/attestation/services/variants/:variantId", requireRole("Admin"), async (req, res) => {
   try {
-    const deleted = await storage.deleteAttestationServiceVariant(req.params.variantId);
+    const deleted = await storage.deleteAttestationServiceVariant((req.params.variantId as string));
     if (!deleted) return res.status(404).json({ message: "Variant not found" });
     res.json({ success: true });
   } catch (err) {
@@ -267,7 +267,7 @@ app.delete("/api/attestation/services/variants/:variantId", requireRole("Admin")
 
 app.get("/api/attestation/services/:id/step-definitions", requireAuth, async (req, res) => {
   try {
-    const steps = await storage.getAttestationServiceStepDefinitions(req.params.id);
+    const steps = await storage.getAttestationServiceStepDefinitions((req.params.id as string));
     res.json(steps);
   } catch (err) {
     console.error("[attestation] get step definitions error:", err);
@@ -286,7 +286,7 @@ app.put("/api/attestation/services/:id/step-definitions", requireRole("Admin"), 
     const validation = validateBody(stepDefinitionSchema, req.body);
     if ('error' in validation) return res.status(400).json({ message: validation.error });
     const steps = validation.data;
-    const result = await storage.replaceAttestationServiceStepDefinitions(req.params.id, steps);
+    const result = await storage.replaceAttestationServiceStepDefinitions((req.params.id as string), steps);
     res.json(result);
   } catch (err) {
     console.error("[attestation] replace step defs error:", err);
@@ -310,8 +310,8 @@ app.get("/api/attestation/service-requests", requireOpsRole, async (req, res) =>
     const srs = await storage.getAttestationSrs({ status, companyId, vendorId });
     const enriched = await Promise.all(srs.map(async (sr) => {
       const company = await storage.getCompanyById(sr.companyId);
-      const vendor = await storage.getVendorById(sr.vendorId);
-      const service = await storage.getAttestationServiceById(sr.attestationServiceId);
+      const vendor = await storage.getVendorById(sr.vendorId!);
+      const service = await storage.getAttestationServiceById(sr.attestationServiceId!);
       return {
         ...sr,
         companyName: company?.name ?? null,
@@ -377,13 +377,13 @@ app.post("/api/attestation/service-requests", requireOpsRole, async (req, res) =
 
     const sr = await storage.createAttestationSr({
       companyId, vendorId, attestationServiceId, externalWoNumber,
-      documentType, documentNameDescription, documentClass,
+      documentType, documentNameDescription, documentClass: documentClass as "Personal" | "Business",
       serviceVariantId: serviceVariantId ?? null,
       applicantName: applicantName ?? null,
       homeCountry: homeCountry ?? null,
       originalDocumentInvolved: originalDocumentInvolved ?? false,
       internalNotes: internalNotes ?? null,
-      serviceFeeAed: derivedFeeAed,
+      serviceFeeAed: derivedFeeAed != null ? String(derivedFeeAed) : null,
       status: "Draft",
       physicalCustodyStatus: "WithClient",
       currentCustodian: null,
@@ -415,13 +415,13 @@ app.post("/api/attestation/service-requests", requireOpsRole, async (req, res) =
 
 app.get("/api/attestation/service-requests/:id", requireOpsRole, async (req, res) => {
   try {
-    const sr = await storage.getAttestationSrById(req.params.id);
+    const sr = await storage.getAttestationSrById((req.params.id as string));
     if (!sr) return res.status(404).json({ message: "Service request not found" });
 
     const [company, vendor, service, steps] = await Promise.all([
       storage.getCompanyById(sr.companyId),
-      storage.getVendorById(sr.vendorId),
-      storage.getAttestationServiceById(sr.attestationServiceId),
+      storage.getVendorById(sr.vendorId!),
+      storage.getAttestationServiceById(sr.attestationServiceId!),
       storage.getAttestationSrSteps(sr.id),
     ]);
 
@@ -460,7 +460,7 @@ app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async 
     const validation = validateBody(updateSrStatusSchema, req.body);
     if ('error' in validation) return res.status(400).json({ message: validation.error });
     const { status } = validation.data;
-    const sr = await storage.getAttestationSrById(req.params.id);
+    const sr = await storage.getAttestationSrById((req.params.id as string));
     if (!sr) return res.status(404).json({ message: "Service request not found" });
     const allowedNext = SR_VALID_TRANSITIONS[sr.status] ?? [];
     if (!allowedNext.includes(status)) {
@@ -469,7 +469,7 @@ app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async 
     if (status === "Completed" && sr.physicalCustodyStatus === "WithVendor") {
       return res.status(400).json({ message: "Cannot complete SR while documents are still with vendor. Please ensure documents are returned first." });
     }
-    const updated = await storage.updateAttestationSr(req.params.id, { status });
+    const updated = await storage.updateAttestationSr((req.params.id as string), { status: status as "Cancelled" | "Draft" | "Completed" | "SentToVendor" | "AcceptedByVendor" | "InProgress" });
     const userId = req.session?.userId;
     await storage.createAttestationSrActivityLog({
       srId: sr.id, action: "status_change",
@@ -477,11 +477,11 @@ app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async 
       performedBy: userId || null,
     });
     if (status === "SentToVendor") {
-      await notifyVendorUsers(sr.vendorId, {
+      await notifyVendorUsers(sr.vendorId!, {
         type: "attestation_sr_assigned",
         title: "New Attestation SR Assigned",
         message: `Service request ${sr.externalWoNumber} has been sent to you.`,
-        relatedJobId: null,
+        relatedJobId: undefined,
       });
     }
     if (status === "Completed" || status === "Cancelled") {
@@ -490,7 +490,7 @@ app.patch("/api/attestation/service-requests/:id/status", requireOpsRole, async 
           type: "attestation_sr_closed",
           title: `Attestation SR ${status}`,
           message: `Service request ${sr.externalWoNumber} has been ${status.toLowerCase()}.`,
-          relatedJobId: null,
+          relatedJobId: undefined,
         });
       }
     }
@@ -545,7 +545,7 @@ app.patch("/api/attestation/service-requests/:id", requireOpsRole, async (req, r
     const validation = validateBody(updateSrFieldsSchema, req.body);
     if ('error' in validation) return res.status(400).json({ message: validation.error });
     const { internalNotes, serviceFeeAed, physicalCustodyStatus, currentCustodian } = validation.data;
-    const sr = await storage.getAttestationSrById(req.params.id);
+    const sr = await storage.getAttestationSrById((req.params.id as string));
     if (!sr) return res.status(404).json({ message: "Service request not found" });
     if (sr.status === "Cancelled" || sr.status === "Completed") {
       return res.status(400).json({ message: "Cannot edit a completed or cancelled service request" });
@@ -553,7 +553,7 @@ app.patch("/api/attestation/service-requests/:id", requireOpsRole, async (req, r
 
     // For attestation vendors, physicalCustodyStatus can only be changed via the /handoff endpoint
     if (physicalCustodyStatus !== undefined) {
-      const vendor = await storage.getVendorById(sr.vendorId);
+      const vendor = await storage.getVendorById(sr.vendorId!);
       if (vendor?.vendorType === "Attestation") {
         return res.status(400).json({
           message: "Physical custody status for attestation service requests must be updated via the /handoff endpoint",
@@ -590,7 +590,7 @@ app.patch("/api/attestation/service-requests/:id", requireOpsRole, async (req, r
         performedBy: userId || null,
       });
     }
-    const updated = await storage.updateAttestationSr(req.params.id, updateData as Partial<AttestationSr>);
+    const updated = await storage.updateAttestationSr((req.params.id as string), updateData as Partial<AttestationSr>);
     res.json(updated);
   } catch (err) {
     console.error("[attestation] patch SR error:", err);
@@ -622,7 +622,7 @@ app.post("/api/attestation/service-requests/bulk-status", requireOpsRole, async 
         results.push({ id, success: false, error: "Cannot complete SR while documents are still with vendor" });
         continue;
       }
-      await storage.updateAttestationSr(id, { status });
+      await storage.updateAttestationSr(id, { status: status as "Cancelled" | "Draft" | "Completed" | "SentToVendor" | "AcceptedByVendor" | "InProgress" });
       await storage.createAttestationSrActivityLog({
         srId: id, action: "status_change",
         detail: `Status changed from ${sr.status} to ${status} (bulk)`,
@@ -632,7 +632,7 @@ app.post("/api/attestation/service-requests/bulk-status", requireOpsRole, async 
         await notifyVendorUsers(sr.vendorId, {
           type: "attestation_sr_assigned", title: "New Attestation SR Assigned",
           message: `Service request ${sr.externalWoNumber} has been sent to you.`,
-          relatedJobId: null,
+          relatedJobId: undefined,
         });
       }
       if (status === "Completed" && sr.externalWoNumber) {
@@ -652,7 +652,7 @@ app.post("/api/attestation/service-requests/bulk-status", requireOpsRole, async 
 
 app.get("/api/attestation/service-requests/:id/steps", requireOpsRole, async (req, res) => {
   try {
-    const steps = await storage.getAttestationSrSteps(req.params.id);
+    const steps = await storage.getAttestationSrSteps((req.params.id as string));
     res.json(steps);
   } catch (err) {
     console.error("[attestation] get SR steps error:", err);
@@ -670,9 +670,9 @@ app.patch("/api/attestation/service-requests/:id/steps/:stepId", requireOpsRole,
     const validation = validateBody(updateSrStepSchema, req.body);
     if ('error' in validation) return res.status(400).json({ message: validation.error });
     const { status, notes } = validation.data;
-    const sr = await storage.getAttestationSrById(req.params.id);
+    const sr = await storage.getAttestationSrById((req.params.id as string));
     if (!sr) return res.status(404).json({ message: "Service request not found" });
-    const step = await storage.getAttestationSrSteps(sr.id).then(steps => steps.find(s => s.id === req.params.stepId));
+    const step = await storage.getAttestationSrSteps(sr.id).then(steps => steps.find(s => s.id === (req.params.stepId as string)));
     if (!step) return res.status(404).json({ message: "Step not found" });
     const updateData: Record<string, unknown> = {};
     if (status !== undefined) {
@@ -681,7 +681,7 @@ app.patch("/api/attestation/service-requests/:id/steps/:stepId", requireOpsRole,
       if (status === "Done" && !step.completedAt) updateData.completedAt = new Date();
     }
     if (notes !== undefined) updateData.notes = notes;
-    const updated = await storage.updateAttestationSrStep(req.params.stepId, updateData as Partial<InsertAttestationSrStep>);
+    const updated = await storage.updateAttestationSrStep((req.params.stepId as string), updateData as Partial<InsertAttestationSrStep>);
     if (!updated) return res.status(404).json({ message: "Step not found" });
     const userId = req.session?.userId;
     await storage.createAttestationSrActivityLog({
@@ -698,7 +698,7 @@ app.patch("/api/attestation/service-requests/:id/steps/:stepId", requireOpsRole,
 
 app.get("/api/attestation/service-requests/:id/activity-log", requireOpsRole, async (req, res) => {
   try {
-    const logs = await storage.getAttestationSrActivityLog(req.params.id);
+    const logs = await storage.getAttestationSrActivityLog((req.params.id as string));
     const enriched = await Promise.all(logs.map(async (log) => {
       let performedByName = null;
       if (log.performedBy) {
@@ -818,7 +818,7 @@ app.get("/api/attestation/inquiries", requireAuth, async (req, res) => {
 
 app.get("/api/attestation/inquiries/:id", requireAuth, async (req, res) => {
   try {
-    const inquiry = await storage.getAttestationInquiryById(req.params.id);
+    const inquiry = await storage.getAttestationInquiryById((req.params.id as string));
     if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
 
     const company = await storage.getCompanyById(inquiry.companyId);
@@ -853,7 +853,7 @@ const acceptInquirySchema = z.object({
 
 app.post("/api/attestation/inquiries/:id/accept", requireAuth, async (req, res) => {
   try {
-    const inquiry = await storage.getAttestationInquiryById(req.params.id);
+    const inquiry = await storage.getAttestationInquiryById((req.params.id as string));
     if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
     if (inquiry.status !== "Open" && inquiry.status !== "QuoteReceived") {
       return res.status(400).json({ message: "Inquiry cannot be accepted in current status" });
@@ -935,7 +935,7 @@ const rejectInquirySchema = z.object({
 
 app.post("/api/attestation/inquiries/:id/reject", requireAuth, async (req, res) => {
   try {
-    const inquiry = await storage.getAttestationInquiryById(req.params.id);
+    const inquiry = await storage.getAttestationInquiryById((req.params.id as string));
     if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
     if (inquiry.status === "Converted" || inquiry.status === "Rejected") {
       return res.status(400).json({ message: "Inquiry cannot be rejected in current status" });
@@ -975,7 +975,7 @@ const submitQuoteSchema = z.object({
 app.post("/api/attestation-vendor/inquiries/:id/quote", requireAttestationVendor, async (req, res) => {
   try {
     const vendorId = req.attestationVendorId;
-    const inquiry = await storage.getAttestationInquiryById(req.params.id);
+    const inquiry = await storage.getAttestationInquiryById((req.params.id as string));
     if (!inquiry) return res.status(404).json({ message: "Inquiry not found" });
     if (inquiry.vendorId !== vendorId) return res.status(403).json({ message: "Access denied" });
     if (inquiry.status !== "Open" && inquiry.status !== "QuoteReceived") {
@@ -1053,7 +1053,7 @@ app.get("/api/custody/records", requireDocCustodyRole, async (req: Request, res:
     const records = await storage.getDocumentCustodyRecords(filters);
 
     // Enrich with company names
-    const companyIds = [...new Set(records.map(r => r.companyId))];
+    const companyIds = Array.from(new Set(records.map(r => r.companyId)));
     const companiesData = companyIds.length > 0 ? await storage.getCompaniesByIds(companyIds) : [];
     const companyMap = new Map(companiesData.map(c => [c.id, c.name]));
 
@@ -1083,7 +1083,7 @@ app.get("/api/custody/records/summary", requireDocCustodyRole, async (req: Reque
 // GET /api/custody/records/:id — single record with handoffs
 app.get("/api/custody/records/:id", requireDocCustodyRole, async (req: Request, res: Response) => {
   try {
-    const record = await storage.getDocumentCustodyRecordById(req.params.id);
+    const record = await storage.getDocumentCustodyRecordById((req.params.id as string));
     if (!record) return res.status(404).json({ message: "Record not found" });
 
     const handoffs = await storage.getDocumentCustodyHandoffs(record.id);
@@ -1126,15 +1126,15 @@ app.post("/api/custody/records", requireDocCustodyRole, async (req: Request, res
     const record = await storage.createDocumentCustodyRecord({
       ...validation.data,
       referenceNumber,
-      createdBy: user.id,
+      createdBy: user!.id,
       custodyStage: "WithClient",
-    });
+    } as Parameters<typeof storage.createDocumentCustodyRecord>[0]);
 
     await storage.createAuditLog({
       action: "custody_record_created",
       entityType: "custody_record",
       entityId: record.id,
-      userId: user.id,
+      userId: user!.id,
       details: { referenceNumber, companyId: record.companyId, docSubtype: record.docSubtype },
     });
 
@@ -1148,7 +1148,7 @@ app.post("/api/custody/records", requireDocCustodyRole, async (req: Request, res
 // PATCH /api/custody/records/:id — update notes/email
 app.patch("/api/custody/records/:id", requireDocCustodyRole, async (req: Request, res: Response) => {
   try {
-    const record = await storage.updateDocumentCustodyRecord(req.params.id, req.body);
+    const record = await storage.updateDocumentCustodyRecord((req.params.id as string), req.body);
     if (!record) return res.status(404).json({ message: "Record not found" });
     res.json(record);
   } catch (error) {
@@ -1169,7 +1169,7 @@ app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.singl
     const validation = validateBody(handoffSchema, req.body);
     if ('error' in validation) return res.status(400).json({ message: validation.error });
     const user = req._custodyUser;
-    const record = await storage.getDocumentCustodyRecordById(req.params.id);
+    const record = await storage.getDocumentCustodyRecordById((req.params.id as string));
     if (!record) return res.status(404).json({ message: "Record not found" });
 
     const { toStage, counterpartyName, counterpartyContact, notes } = validation.data;
@@ -1191,7 +1191,7 @@ app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.singl
       const objectStorageService = new ObjectStorageService();
       const ext = req.file.mimetype?.split("/")[1] || "jpg";
       const objectPath = `custody/handoffs/${record.id}/${Date.now()}_id.${ext}`;
-      const uploadedUrl = await objectStorageService.uploadObject(objectPath, req.file.buffer, req.file.mimetype, "public-read");
+      const uploadedUrl = await objectStorageService.uploadObjectEntityFile(objectPath, req.file.buffer, req.file.mimetype);
       counterpartyIdPhotoUrl = uploadedUrl || undefined;
     }
 
@@ -1203,11 +1203,11 @@ app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.singl
       counterpartyContact,
       counterpartyIdPhotoUrl,
       notes: notes || null,
-      performedBy: user.id,
+      performedBy: user!.id,
     } as InsertDocumentCustodyHandoff);
 
     // Update the record's stage
-    await storage.updateDocumentCustodyRecord(record.id, { custodyStage: toStage });
+    await storage.updateDocumentCustodyRecord(record.id, { custodyStage: toStage as "WithClient" | "WithUs" | "WithVendor" | "ReturnedToClient" });
 
     // Trigger automated emails
     const { buildCustodyCollectionEmail, buildCustodyReturnEmail } = await import("../email-templates/custody-notifications");
@@ -1218,7 +1218,7 @@ app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.singl
     let emailRecipient = record.notifyEmail;
     if (!emailRecipient && record.companyId) {
       const companyEmails = await storage.getCompanyEmails(record.companyId);
-      const primaryEmail = companyEmails.find(e => e.isPrimary) || companyEmails[0];
+      const primaryEmail = companyEmails[0];
       emailRecipient = primaryEmail?.email || null;
     }
 
@@ -1244,7 +1244,7 @@ app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.singl
       action: "custody_stage_transition",
       entityType: "custody_record",
       entityId: record.id,
-      userId: user.id,
+      userId: user!.id,
       details: { referenceNumber: record.referenceNumber, fromStage: record.custodyStage, toStage },
     });
 
@@ -1258,7 +1258,7 @@ app.post("/api/custody/records/:id/handoff", requireDocCustodyRole, upload.singl
 // GET /api/custody/records/:id/handoffs — get all handoffs for a record
 app.get("/api/custody/records/:id/handoffs", requireDocCustodyRole, async (req: Request, res: Response) => {
   try {
-    const handoffs = await storage.getDocumentCustodyHandoffs(req.params.id);
+    const handoffs = await storage.getDocumentCustodyHandoffs((req.params.id as string));
     res.json(handoffs);
   } catch (error) {
     console.error("Get custody handoffs error:", error);
@@ -1269,8 +1269,8 @@ app.get("/api/custody/records/:id/handoffs", requireDocCustodyRole, async (req: 
 // GET /api/custody/wo/:woId — get custody records for a work order
 app.get("/api/custody/wo/:woId", requireDocCustodyRole, async (req: Request, res: Response) => {
   try {
-    const records = await storage.getDocumentCustodyRecordsByWoId(req.params.woId);
-    const companyIds = [...new Set(records.map(r => r.companyId))];
+    const records = await storage.getDocumentCustodyRecordsByWoId((req.params.woId as string));
+    const companyIds = Array.from(new Set(records.map(r => r.companyId)));
     const companiesData = companyIds.length > 0 ? await storage.getCompaniesByIds(companyIds) : [];
     const companyMap = new Map(companiesData.map(c => [c.id, c.name]));
     res.json(records.map(r => ({ ...r, companyName: companyMap.get(r.companyId) || null })));

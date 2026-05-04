@@ -252,7 +252,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/work-orders/:id", requireAuth, async (req, res) => {
     try {
-      const wo = await storage.getWorkOrderById(req.params.id);
+      const wo = await storage.getWorkOrderById((req.params.id as string));
       if (!wo) {
         return res.status(404).json({ message: "Work order not found" });
       }
@@ -372,10 +372,10 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       try {
         const woCompany = wo.companyId ? await storage.getCompanyById(wo.companyId) : null;
         if (woCompany?.rmStaffId) {
-          const woRmStaff = await storage.getStaffById(woCompany.rmStaffId).catch((err) => { console.error("[work-orders] failed to fetch RM staff:", err); return null; });
-          if (woRmStaff?.userId) {
+          const woRmUser = await storage.getUserByStaffId(woCompany.rmStaffId).catch((err) => { console.error("[work-orders] failed to fetch RM user:", err); return null; });
+          if (woRmUser?.id) {
             await storage.createStaffNotification({
-              userId: woRmStaff.userId,
+              userId: woRmUser.id,
               type: "wo_created",
               title: "New Work Order — Your Client",
               message: `Work order ${wo.woNumber} created for ${wo.applicantName} (${woCompany.name})`,
@@ -444,7 +444,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
   app.put("/api/work-orders/:id", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const validation = validateBody(insertWorkOrderSchema.partial(), req.body);
       if ('error' in validation) {
         return res.status(400).json({ message: validation.error });
@@ -497,6 +497,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
           await storage.updateTypingJob(job.id, {
             status: "Aborted",
             notes: (job.notes ? job.notes + "\n" : "") + "CancelledOnServiceTypeChange",
+            rejectedReason: (job.rejectedReason ? job.rejectedReason + "\n" : "") + "CancelledOnServiceTypeChange",
           });
         }
 
@@ -572,7 +573,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/work-orders/:id", requireRole("Admin"), async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const deleted = await storage.deleteWorkOrder(id);
       if (!deleted) {
         return res.status(404).json({ message: "Work order not found" });
@@ -586,7 +587,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/work-orders/:woId/document-completeness", requireAuth, async (req, res) => {
     try {
-      const { woId } = req.params;
+      const { woId } = req.params as { [key: string]: string };
       const wo = await storage.getWorkOrderById(woId);
       if (!wo) {
         return res.status(404).json({ message: "Work order not found" });
@@ -619,7 +620,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
   app.patch("/api/work-orders/:id/activate", requireOpsRole, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const activateSchema = z.object({
         isMinor: z.boolean().default(false),
       });
@@ -654,7 +655,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
   // ========== Auto-fill Helpers ==========
   app.get("/api/companies/:companyId/last-work-order", requireAuth, async (req, res) => {
     try {
-      const { companyId } = req.params;
+      const { companyId } = req.params as { [key: string]: string };
       const workOrder = await storage.getLastWorkOrderByCompany(companyId);
       res.json(workOrder || null);
     } catch (error) {
@@ -666,7 +667,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
   // ========== Work Order Notes ==========
   app.get("/api/wo-notes/:woId", requireAuth, async (req, res) => {
     try {
-      const notes = await storage.getWoNotes(req.params.woId);
+      const notes = await storage.getWoNotes((req.params.woId as string));
       res.json(notes);
     } catch (error) {
       console.error("WO notes error:", error);
@@ -690,7 +691,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
   app.delete("/api/wo-notes/:noteId", requireRole("Admin"), async (req, res) => {
     try {
-      const { noteId } = req.params;
+      const { noteId } = req.params as { [key: string]: string };
       const deleted = await storage.deleteWoNote(noteId);
       if (!deleted) {
         return res.status(404).json({ message: "Note not found" });
@@ -705,7 +706,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
   // ========== Audit Logs ==========
   app.get("/api/audit-logs/:entityType/:entityId", requireAuth, async (req, res) => {
     try {
-      const { entityType, entityId } = req.params;
+      const { entityType, entityId } = req.params as { [key: string]: string };
       const logs = await storage.getAuditLogsByEntity(entityType, entityId);
       const enriched = await Promise.all(logs.map(async (log) => {
         let userName: string | undefined;
@@ -803,7 +804,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
   app.get("/api/email-preview/appointment/:id", requireAuth, async (req, res) => {
     try {
-      const data = await loadAppointmentEmailDataById(req.params.id, req);
+      const data = await loadAppointmentEmailDataById((req.params.id as string), req);
       if (!data) {
         return res.status(404).json({ message: "Appointment not found" });
       }
@@ -828,7 +829,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
   // Send appointment confirmation email
   app.post("/api/appointments/:id/send-email", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const { overrideEmail, recipients, notes: overrideNotes } = req.body || {};
       const appointment = await storage.getAppointmentById(id);
       if (!appointment) return res.status(404).json({ message: "Appointment not found" });
@@ -920,7 +921,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         return res.status(500).json({ message: failed[0]?.error || "Failed to send email" });
       }
 
-      const user = req.user;
+      const user = (req as unknown as { user?: { name?: string; email?: string } }).user;
       await storage.updateAppointment(id, {
         messageSentAt: new Date(),
         messageSentBy: user?.name || user?.email || "Staff",
@@ -1165,7 +1166,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
 
   app.patch("/api/appointments/:id", requireAuth, async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       
       const appointmentStatusSchema = z.object({
         status: z.enum(["Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"], {

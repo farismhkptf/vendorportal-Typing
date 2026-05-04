@@ -209,7 +209,7 @@ export function registerExternalRoutes(app: Express) {
     try {
       const apiKey = req.apiKey!;
       const companyIds = await getCompanyIdsForKey(apiKey);
-      const wo = await storage.getWorkOrderById(req.params.id);
+      const wo = await storage.getWorkOrderById((req.params.id as string));
 
       if (!wo || !wo.companyId || !companyIds.includes(wo.companyId)) {
         return res.status(404).json({ error: "Work order not found." });
@@ -244,7 +244,7 @@ export function registerExternalRoutes(app: Express) {
         companyName: company?.name || null,
         appointments: woAppointments.map(appt => ({
           ...sanitizeAppointment(appt),
-          center: appt.centerId ? sanitizeCenter(centerMap.get(appt.centerId)) : null,
+          center: appt.centerId ? (centerMap.get(appt.centerId) ? sanitizeCenter(centerMap.get(appt.centerId)!) : null) : null,
         })),
         contacts: {
           assignedStaff,

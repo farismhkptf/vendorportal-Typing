@@ -174,7 +174,7 @@ export default function V2MedicalJobs() {
           {filtered.map(job => (
             <GlassCard
               key={job.id}
-              accent={job.urgent ? "red" : "teal"}
+              accent={job.urgent ? "red" : "blue"}
               className="p-4"
               onClick={() => setLocation(`/medical/${job.id}`)}
               data-testid={`job-card-${job.id}`}

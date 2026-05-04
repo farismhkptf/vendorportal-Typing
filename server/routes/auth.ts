@@ -436,7 +436,7 @@ export function registerAuthRoutes(app: Express): void {
 
   app.put("/api/admin/password-reset-requests/:id/resolve", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
-      const resolved = await storage.resolvePasswordResetRequest(req.params.id, req.session.userId!);
+      const resolved = await storage.resolvePasswordResetRequest((req.params.id as string), req.session.userId!);
       res.json(resolved);
     } catch (error) {
       console.error("Resolve reset request error:", error);
@@ -595,7 +595,7 @@ export function registerAuthRoutes(app: Express): void {
       if (!["keep", "revert"].includes(action)) {
         return res.status(400).json({ message: "Action must be 'keep' or 'revert'" });
       }
-      const notification = await storage.getChangeNotification(req.params.id);
+      const notification = await storage.getChangeNotification((req.params.id as string));
       if (!notification) return res.status(404).json({ message: "Not found" });
 
       if (action === "revert" && notification.oldData) {
@@ -616,8 +616,8 @@ export function registerAuthRoutes(app: Express): void {
         }
       }
 
-      await storage.reviewChangeNotification(req.params.id, {
-        status: action === "keep" ? "kept" : "reverted",
+      await storage.reviewChangeNotification((req.params.id as string), {
+        status: action === "keep" ? "reviewed" : "dismissed",
         reviewedBy: req.session.userId!,
       });
       res.json({ success: true });
@@ -668,9 +668,9 @@ export function registerAuthRoutes(app: Express): void {
       const userId = req.session.userId;
       if (!userId) return res.status(401).json({ message: "Not authenticated" });
       const notifications = await storage.getStaffNotifications(userId);
-      const owns = notifications.some(n => n.id === req.params.id);
+      const owns = notifications.some(n => n.id === (req.params.id as string));
       if (!owns) return res.status(404).json({ message: "Notification not found" });
-      await storage.markStaffNotificationRead(req.params.id);
+      await storage.markStaffNotificationRead((req.params.id as string));
       res.json({ message: "Marked as read" });
     } catch (error) {
       console.error("Mark staff read error:", error);
@@ -760,7 +760,7 @@ export function registerAuthRoutes(app: Express): void {
         name,
         email,
         passwordHash,
-        role,
+        role: role as "Admin" | "Client Relationship Manager" | "PRO" | "PRO - Temporary" | "Vendor" | "Client Coordinator" | "Client Manager",
         staffId: staffId || null,
         vendorId: vendorId || null,
         active: true,
@@ -782,7 +782,7 @@ export function registerAuthRoutes(app: Express): void {
 
   app.patch("/api/users/:id", requireRole("Admin"), async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const { name, email, password, role, staffId, vendorId, active } = req.body;
 
       const updateData: Record<string, unknown> = {};
@@ -879,7 +879,7 @@ export function registerAuthRoutes(app: Express): void {
 
   app.patch("/api/admin/api-keys/:id", requireRole("Admin"), async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const { name, active } = req.body;
       const updates: Record<string, unknown> = {};
       if (name !== undefined) updates.name = name;
@@ -905,7 +905,7 @@ export function registerAuthRoutes(app: Express): void {
 
   app.delete("/api/admin/api-keys/:id", requireRole("Admin"), async (req, res) => {
     try {
-      const { id } = req.params;
+      const { id } = req.params as { [key: string]: string };
       const existing = await storage.getApiKeyById(id);
       if (!existing) return res.status(404).json({ message: "API key not found" });
 

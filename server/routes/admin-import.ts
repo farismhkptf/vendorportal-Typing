@@ -391,7 +391,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
           try {
             await storage.createServiceType({
               name,
-              category: row["Category (NewVisaInside/NewVisaOutside/GoldenVisa/RenewVisa/NewbornDependent/LostReplaceEid)"]?.toString().trim() || undefined,
+              category: (row["Category (NewVisaInside/NewVisaOutside/GoldenVisa/RenewVisa/NewbornDependent/LostReplaceEid)"]?.toString().trim() || undefined) as "NewVisaInside" | "NewVisaOutside" | "GoldenVisa" | "RenewVisa" | "NewbornDependent" | "LostReplaceEid" | undefined,
               requiresMedicalTyping: yesNoToBool(row["Requires Medical Typing (Yes/No)"]),
               requiresMedicalScheduling: yesNoToBool(row["Requires Medical Scheduling (Yes/No)"]),
               requiresIdTyping2Years: yesNoToBool(row["Requires ID Typing 2 Years (Yes/No)"]),
@@ -422,7 +422,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
             const costVal = parseInt(row["Cost"]?.toString().trim() || "0", 10);
             await storage.createJobType({
               name,
-              category: row["Category (Medical/EID)"]?.toString().trim() || "Medical",
+              category: (row["Category (Medical/EID)"]?.toString().trim() || "Medical") as "Medical" | "EID",
               cost: isNaN(costVal) ? 0 : costVal,
             });
             sheetResult.imported++;
@@ -759,10 +759,10 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
 
   app.post("/api/admin/sheet-months/:id/close", requireOpsRole, async (req, res) => {
     try {
-      const month = await storage.getSheetMonth(req.params.id);
+      const month = await storage.getSheetMonth((req.params.id as string));
       if (!month) return res.status(404).json({ message: "Sheet month not found" });
       if (month.status === "closed") return res.status(400).json({ message: "Month is already closed" });
-      const updated = await storage.closeSheetMonth(req.params.id);
+      const updated = await storage.closeSheetMonth((req.params.id as string));
       res.json(updated);
     } catch (error: unknown) {
       res.status(500).json({ message: error instanceof Error ? error.message : "Failed to close sheet month" });
@@ -771,7 +771,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
 
   app.post("/api/admin/sheet-months/:id/refresh", requireOpsRole, async (req, res) => {
     try {
-      const month = await storage.getSheetMonth(req.params.id);
+      const month = await storage.getSheetMonth((req.params.id as string));
       if (!month) return res.status(404).json({ message: "Sheet month not found" });
       if (month.status === "closed") return res.status(400).json({ message: "This month is closed. No further parsing is allowed." });
       if (!month.sheetUrl) return res.status(400).json({ message: "No Google Sheet URL saved for this month." });
@@ -879,7 +879,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         previewRows.push({ rowNum: i + 1, woNumber, companyName, staffName, workValue, date, designation, serviceTypeMatch, companyMatch, canImport, skipReason });
       }
 
-      await storage.touchSheetMonthRefresh(req.params.id);
+      await storage.touchSheetMonthRefresh((req.params.id as string));
 
       res.json({
         totalRows: previewRows.length,
@@ -896,7 +896,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
 
   app.post("/api/admin/sheet-months/:id/import", requireOpsRole, async (req, res) => {
     try {
-      const month = await storage.getSheetMonth(req.params.id);
+      const month = await storage.getSheetMonth((req.params.id as string));
       if (!month) return res.status(404).json({ message: "Sheet month not found" });
       if (month.status === "closed") return res.status(400).json({ message: "This month is closed. Importing is not allowed." });
 
@@ -936,7 +936,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
           });
           await storage.createAuditLog({
             entityType: "work_order", entityId: newWo.id, action: "created",
-            details: { source: "gsheet_import", woNumber, sheetMonthId: req.params.id, monthYear: month.monthYear },
+            details: { source: "gsheet_import", woNumber, sheetMonthId: (req.params.id as string), monthYear: month.monthYear },
           });
           imported++;
         } catch (err: unknown) {
@@ -945,7 +945,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
       }
 
       if (imported > 0) {
-        await storage.incrementSheetMonthImportedCount(req.params.id, imported);
+        await storage.incrementSheetMonthImportedCount((req.params.id as string), imported);
       }
 
       res.json({ imported, failed, errors });
@@ -987,7 +987,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
 
   app.post("/api/admin/approvals/:id/approve", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
-      const approvalId = req.params.id;
+      const approvalId = (req.params.id as string);
       const approvalRecord = await storage.getVendorApprovalById(approvalId);
       if (!approvalRecord) {
         return res.status(404).json({ message: "Approval not found" });
@@ -1011,7 +1011,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
           {
             status: "Approved",
             adjustedAmount: adjustedAmount !== undefined ? adjustedAmount : null,
-            approvedBy: req.session.userId,
+            approvedBy: req.session.userId!,
             resolvedAt: new Date(),
           },
           approvalRecord.typingJobId,
@@ -1034,7 +1034,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
       
       await storage.createAuditLog({
         entityType: "vendor_approval", entityId: approvalId,
-        action: "approved", userId: req.session.userId,
+        action: "approved", userId: req.session.userId!,
         details: { finalAmount, typingJobId: approvalRecord.typingJobId },
       });
 
@@ -1058,7 +1058,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
 
   app.post("/api/admin/approvals/:id/reject", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
-      const approvalId = req.params.id;
+      const approvalId = (req.params.id as string);
       const approvalRecord = await storage.getVendorApprovalById(approvalId);
       if (!approvalRecord) {
         return res.status(404).json({ message: "Approval not found" });
@@ -1092,7 +1092,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
       
       await storage.createAuditLog({
         entityType: "vendor_approval", entityId: approvalId,
-        action: "rejected", userId: req.session.userId,
+        action: "rejected", userId: req.session.userId!,
         details: { reason, typingJobId: approvalRecord.typingJobId },
       });
 
@@ -1156,7 +1156,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // CRM submits a deletion request
   app.post("/api/deletion-requests", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session!.userId);
+      const user = await storage.getUser(req.session!.userId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
       const validation = validateBody(deletionRequestSchema, req.body);
@@ -1191,7 +1191,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // List deletion requests (Admin sees all, CRM sees their own)
   app.get("/api/deletion-requests", requireAuth, requireOpsRole, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session!.userId);
+      const user = await storage.getUser(req.session!.userId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
       const status = req.query.status as string | undefined;
@@ -1224,10 +1224,10 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // Admin approves a deletion request — marks approved AND performs the actual deletion
   app.patch("/api/deletion-requests/:id/approve", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
-      const user = await storage.getUser(req.session!.userId);
+      const user = await storage.getUser(req.session!.userId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
-      const request = await storage.getDeletionRequestById(req.params.id);
+      const request = await storage.getDeletionRequestById((req.params.id as string));
       if (!request) return res.status(404).json({ message: "Request not found" });
       if (request.status !== "pending") return res.status(400).json({ message: "Request already reviewed" });
 
@@ -1252,7 +1252,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         console.warn("Deletion request entity delete warning:", deleteError);
       }
 
-      const updated = await storage.updateDeletionRequest(req.params.id, {
+      const updated = await storage.updateDeletionRequest((req.params.id as string), {
         status: "approved",
         reviewedBy: user.id,
         reviewedAt: new Date(),
@@ -1284,7 +1284,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
       return res.status(401).json({ message: "Attestation vendor authentication required" });
     }
     try {
-      const user = await storage.getUser(req.session.attestationVendorUserId);
+      const user = await storage.getUser(req.session.attestationVendorUserId!);
       if (!user || !user.vendorId) {
         return res.status(401).json({ message: "Attestation vendor authentication required" });
       }
@@ -1310,7 +1310,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // GET /api/attestation/sr — list attestation SRs (Admin, CRM, PRO filtered)
   app.get("/api/attestation/sr", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.userId);
+      const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
       const allowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
@@ -1338,10 +1338,10 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // GET /api/attestation/sr/:id — get single SR
   app.get("/api/attestation/sr/:id", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.userId);
+      const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
-      const sr = await storage.getAttestationSrById(req.params.id);
+      const sr = await storage.getAttestationSrById((req.params.id as string));
       if (!sr) return res.status(404).json({ message: "SR not found" });
 
       const allowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
@@ -1369,7 +1369,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
       const sr = await storage.createAttestationSr({
         ...req.body,
         srNumber,
-        createdBy: req.session.userId,
+        createdBy: req.session.userId!,
       });
       res.status(201).json(sr);
     } catch (error) {
@@ -1381,7 +1381,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // PATCH /api/attestation/sr/:id — update SR (Admin, CRM)
   app.patch("/api/attestation/sr/:id", requireAuth, requireRole("Admin", "Client Relationship Manager"), async (req, res) => {
     try {
-      const sr = await storage.updateAttestationSr(req.params.id, req.body);
+      const sr = await storage.updateAttestationSr((req.params.id as string), req.body);
       if (!sr) return res.status(404).json({ message: "SR not found" });
       res.json(sr);
     } catch (error) {
@@ -1393,7 +1393,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // GET /api/attestation/sr/:id/custody — get custody chain for an SR
   app.get("/api/attestation/sr/:id/custody", requireAuth, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.userId);
+      const user = await storage.getUser(req.session.userId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
       const allowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
@@ -1401,7 +1401,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         return res.status(403).json({ message: "Access denied" });
       }
 
-      const sr = await storage.getAttestationSrById(req.params.id);
+      const sr = await storage.getAttestationSrById((req.params.id as string));
       if (!sr) return res.status(404).json({ message: "SR not found" });
 
       if ((user.role === "PRO" || user.role === "PRO - Temporary") && user.staffId) {
@@ -1410,7 +1410,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         }
       }
 
-      const logs = await storage.getCustodyLogs(req.params.id);
+      const logs = await storage.getCustodyLogs((req.params.id as string));
       res.json(logs);
     } catch (error) {
       console.error("Get custody logs error:", error);
@@ -1429,7 +1429,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
     requireAuth,
     async (req, res) => {
       try {
-        const user = await storage.getUser(req.session.userId);
+        const user = await storage.getUser(req.session.userId!);
         if (!user) return res.status(401).json({ message: "Not authenticated" });
 
         const allowedRoles = ["Admin", "Client Relationship Manager", "PRO", "PRO - Temporary"];
@@ -1437,7 +1437,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
           return res.status(403).json({ message: "Access denied" });
         }
 
-        const sr = await storage.getAttestationSrById(req.params.id);
+        const sr = await storage.getAttestationSrById((req.params.id as string));
         if (!sr) return res.status(404).json({ message: "SR not found" });
 
         const validation = validateBody(custodyLogUploadSchema, req.body);
@@ -1498,7 +1498,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         const custodyUpdate = custodyMap[data.handoverDirection];
 
         const logData: InsertDocumentCustodyLog = {
-          srId: req.params.id,
+          srId: (req.params.id as string),
           handoverDirection: data.handoverDirection,
           counterpartyName: data.counterpartyName,
           counterpartyContact: data.counterpartyContact,
@@ -1524,7 +1524,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         await storage.createAuditLog({
           action: "custody_handover_recorded",
           entityType: "attestation_sr",
-          entityId: req.params.id,
+          entityId: (req.params.id as string),
           userId: user.id,
           details: { direction: data.handoverDirection, counterpartyName: data.counterpartyName, srNumber: sr.srNumber },
         });
@@ -1543,7 +1543,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
       if (!req.session?.attestationVendorUserId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
-      const user = await storage.getUser(req.session.attestationVendorUserId);
+      const user = await storage.getUser(req.session.attestationVendorUserId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
       if (!user.vendorId) return res.status(401).json({ message: "Not authenticated" });
       const vendor = await storage.getVendorById(user.vendorId);
@@ -1595,7 +1595,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // Attestation vendor portal — GET /api/attestation-vendor/jobs (SRs assigned to vendor)
   app.get("/api/attestation-vendor/jobs", requireAttestationVendor, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.attestationVendorUserId);
+      const user = await storage.getUser(req.session.attestationVendorUserId!);
       if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
       const srs = await storage.getAttestationSrs({ vendorId: user.vendorId });
       res.json(srs);
@@ -1608,14 +1608,14 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // Attestation vendor portal — GET /api/attestation-vendor/jobs/:id/custody
   app.get("/api/attestation-vendor/jobs/:id/custody", requireAttestationVendor, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.attestationVendorUserId);
+      const user = await storage.getUser(req.session.attestationVendorUserId!);
       if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
 
-      const sr = await storage.getAttestationSrById(req.params.id);
+      const sr = await storage.getAttestationSrById((req.params.id as string));
       if (!sr) return res.status(404).json({ message: "SR not found" });
       if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
 
-      const logs = await storage.getCustodyLogs(req.params.id);
+      const logs = await storage.getCustodyLogs((req.params.id as string));
       res.json(logs);
     } catch (error) {
       console.error("Attestation vendor custody logs error:", error);
@@ -1626,15 +1626,15 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // Attestation vendor portal — POST /api/attestation-vendor/jobs/:id/accept
   app.post("/api/attestation-vendor/jobs/:id/accept", requireAttestationVendor, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.attestationVendorUserId);
+      const user = await storage.getUser(req.session.attestationVendorUserId!);
       if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
 
-      const sr = await storage.getAttestationSrById(req.params.id);
+      const sr = await storage.getAttestationSrById((req.params.id as string));
       if (!sr) return res.status(404).json({ message: "SR not found" });
       if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
       if (sr.status !== "SentToVendor") return res.status(400).json({ message: "SR is not in SentToVendor status" });
 
-      const updated = await storage.updateAttestationSr(req.params.id, { status: "AcceptedByVendor" });
+      const updated = await storage.updateAttestationSr((req.params.id as string), { status: "AcceptedByVendor" });
       res.json(updated);
     } catch (error) {
       console.error("Accept attestation SR error:", error);
@@ -1653,10 +1653,10 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
     requireAttestationVendor,
     async (req, res) => {
       try {
-        const user = await storage.getUser(req.session.attestationVendorUserId);
+        const user = await storage.getUser(req.session.attestationVendorUserId!);
         if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
 
-        const sr = await storage.getAttestationSrById(req.params.id);
+        const sr = await storage.getAttestationSrById((req.params.id as string));
         if (!sr) return res.status(404).json({ message: "SR not found" });
         if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
 
@@ -1691,7 +1691,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
         const custodyUpdate = custodyMap[data.handoverDirection];
 
         const logData: InsertDocumentCustodyLog = {
-          srId: req.params.id,
+          srId: (req.params.id as string),
           handoverDirection: data.handoverDirection,
           counterpartyName: data.counterpartyName,
           counterpartyContact: data.counterpartyContact,
@@ -1727,17 +1727,17 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // Attestation vendor portal — POST /api/attestation-vendor/jobs/:id/start
   app.post("/api/attestation-vendor/jobs/:id/start", requireAttestationVendor, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.attestationVendorUserId);
+      const user = await storage.getUser(req.session.attestationVendorUserId!);
       if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
 
-      const sr = await storage.getAttestationSrById(req.params.id);
+      const sr = await storage.getAttestationSrById((req.params.id as string));
       if (!sr) return res.status(404).json({ message: "SR not found" });
       if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
       if (sr.status !== "AcceptedByVendor") {
         return res.status(400).json({ message: "SR is not in AcceptedByVendor status" });
       }
 
-      const updated = await storage.updateAttestationSr(req.params.id, { status: "InProgress" });
+      const updated = await storage.updateAttestationSr((req.params.id as string), { status: "InProgress" });
       res.json(updated);
     } catch (error) {
       console.error("Start attestation SR error:", error);
@@ -1748,17 +1748,17 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // Attestation vendor portal — POST /api/attestation-vendor/jobs/:id/complete
   app.post("/api/attestation-vendor/jobs/:id/complete", requireAttestationVendor, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.attestationVendorUserId);
+      const user = await storage.getUser(req.session.attestationVendorUserId!);
       if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
 
-      const sr = await storage.getAttestationSrById(req.params.id);
+      const sr = await storage.getAttestationSrById((req.params.id as string));
       if (!sr) return res.status(404).json({ message: "SR not found" });
       if (sr.vendorId !== user.vendorId) return res.status(403).json({ message: "Access denied" });
       if (sr.status !== "InProgress" && sr.status !== "AcceptedByVendor") {
         return res.status(400).json({ message: "SR is not in a valid status to complete" });
       }
 
-      const updated = await storage.updateAttestationSr(req.params.id, { status: "Completed" });
+      const updated = await storage.updateAttestationSr((req.params.id as string), { status: "Completed" });
 
       if (sr.externalWoNumber) {
         const wo = await storage.getWorkOrderByWoNumber(sr.externalWoNumber);
@@ -1777,7 +1777,7 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // Attestation vendor portal — GET /api/attestation-vendor/dashboard
   app.get("/api/attestation-vendor/dashboard", requireAttestationVendor, async (req, res) => {
     try {
-      const user = await storage.getUser(req.session.attestationVendorUserId);
+      const user = await storage.getUser(req.session.attestationVendorUserId!);
       if (!user || !user.vendorId) return res.status(401).json({ message: "Not authenticated" });
 
       const [inquiries, srs] = await Promise.all([
@@ -1821,17 +1821,17 @@ export function registerAdminImportRoutes(app: Express, deps: RouteDeps): void {
   // Admin denies a deletion request
   app.patch("/api/deletion-requests/:id/deny", requireAuth, requireRole("Admin"), async (req, res) => {
     try {
-      const user = await storage.getUser(req.session!.userId);
+      const user = await storage.getUser(req.session!.userId!);
       if (!user) return res.status(401).json({ message: "Not authenticated" });
 
-      const request = await storage.getDeletionRequestById(req.params.id);
+      const request = await storage.getDeletionRequestById((req.params.id as string));
       if (!request) return res.status(404).json({ message: "Request not found" });
       if (request.status !== "pending") return res.status(400).json({ message: "Request already reviewed" });
 
       const validation = validateBody(deletionReviewSchema, req.body);
       const reviewNote = ('data' in validation) ? validation.data.reviewNote : undefined;
 
-      const updated = await storage.updateDeletionRequest(req.params.id, {
+      const updated = await storage.updateDeletionRequest((req.params.id as string), {
         status: "denied",
         reviewedBy: user.id,
         reviewedAt: new Date(),

@@ -222,6 +222,7 @@ async function runVendorSchemaMigration(): Promise<void> {
       await client.query(`ALTER TABLE vendor.app_settings ADD COLUMN IF NOT EXISTS vp_client_portal_webhook_url TEXT`);
       await client.query(`ALTER TABLE vendor.app_settings ADD COLUMN IF NOT EXISTS vp_client_portal_outbound_api_key TEXT`);
       await client.query(`ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS external_wo_id TEXT`);
+      await client.query(`ALTER TABLE vendor.typing_jobs ADD COLUMN IF NOT EXISTS notes TEXT`);
       console.log("[migration] client portal integration columns ensured");
 
       // ── Missing execution tables (added in 0008 update) ─────────────────────

@@ -70,7 +70,7 @@ export async function checkAndAutoTransitionWorkOrder(woId: string): Promise<voi
       if (!noTypingRequired && activeNonTerminalJobs.length > 0) {
         newStatus = "AtVendor";
       }
-    } else if (hasVendorJobs && wo.status !== "Draft") {
+    } else if (hasVendorJobs) {
       // Non-Draft: keep at AtVendor if still has vendor jobs (handled implicitly, no action needed)
     }
 
@@ -239,9 +239,9 @@ export async function checkAndAutoCompleteWorkOrder(woId: string): Promise<boole
         relatedEntityId: woId,
       };
       if (company?.rmStaffId) {
-        const rmStaff = await _storage.getStaffById(company.rmStaffId).catch((err) => { console.error("[transition-service] failed to fetch RM staff:", err); return null; });
-        if (rmStaff?.userId) {
-          await _storage.createStaffNotification({ ...notification, userId: rmStaff.userId });
+        const rmUser = await _storage.getUserByStaffId(company.rmStaffId).catch((err) => { console.error("[transition-service] failed to fetch RM user:", err); return null; });
+        if (rmUser?.id) {
+          await _storage.createStaffNotification({ ...notification, userId: rmUser.id });
         } else {
           await notifyStaffByRoles(["Admin"], notification);
         }
