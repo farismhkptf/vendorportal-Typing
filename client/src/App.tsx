@@ -83,6 +83,12 @@ import NewAttestationSR from "@/pages/attestation-sr/new";
 import AttestationSRDetail from "@/pages/attestation-sr/detail";
 import AdminPage from "@/pages/admin/index";
 import VendorLogin from "@/pages/vendor/login";
+import VendorDashboard from "@/pages/vendor/dashboard";
+import VendorJobs from "@/pages/vendor/jobs";
+import VendorEidJobs from "@/pages/vendor/eid-jobs";
+import VendorMedicalJobs from "@/pages/vendor/medical-jobs";
+import VendorJobDetail from "@/pages/vendor/job-detail";
+import VendorWalletPage from "@/pages/vendor/wallet";
 import V2Dashboard from "@/pages/vendor-v2/dashboard";
 import V2EidJobs from "@/pages/vendor-v2/eid-jobs";
 import V2MedicalJobs from "@/pages/vendor-v2/medical-jobs";
@@ -284,27 +290,29 @@ function TypingVendorGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function VendorV2Layout() {
+function VendorPortalLayout() {
   return (
     <VendorAuthProvider>
       <VendorAuthGuard>
         <TypingVendorGuard>
-        <V2Layout>
           <Switch>
-            <Route path="/" component={V2Dashboard} />
-            <Route path="/dashboard">{() => <Redirect to="/vendor-v2" />}</Route>
-            <Route path="/eid" component={V2EidJobs} />
-            <Route path="/eid/:id" component={V2JobDetail} />
-            <Route path="/medical" component={V2MedicalJobs} />
-            <Route path="/medical/:id" component={V2JobDetail} />
-            <Route path="/wallet" component={V2WalletPage} />
+            <Route path="/" component={VendorDashboard} />
+            <Route path="/dashboard">{() => <Redirect to="/vendor" />}</Route>
+            <Route path="/jobs" component={VendorJobs} />
+            <Route path="/jobs/:id" component={VendorJobDetail} />
+            <Route path="/eid-jobs" component={VendorEidJobs} />
+            <Route path="/medical-jobs" component={VendorMedicalJobs} />
+            <Route path="/wallet" component={VendorWalletPage} />
             <Route component={NotFound} />
           </Switch>
-        </V2Layout>
         </TypingVendorGuard>
       </VendorAuthGuard>
     </VendorAuthProvider>
   );
+}
+
+function VendorV2Layout() {
+  return <Redirect to="/vendor" />;
 }
 
 function AttestationVendorGuard({ children }: { children: React.ReactNode }) {
@@ -326,7 +334,7 @@ function AttestationVendorGuard({ children }: { children: React.ReactNode }) {
           <p className="text-foreground font-medium">Access restricted to attestation vendors</p>
           <button
             className="mt-4 text-sm text-primary underline"
-            onClick={() => window.location.href = "/vendor-v2"}
+            onClick={() => window.location.href = "/vendor"}
           >
             Go to your portal
           </button>
@@ -355,9 +363,6 @@ function VendorAttestationLayout() {
   );
 }
 
-function VendorRedirect() {
-  return <Redirect to="/vendor-v2" />;
-}
 
 function AppRoutes() {
   return (
@@ -389,7 +394,7 @@ function AppRoutes() {
       <Route path="/vendor/login" component={VendorLogin} />
       <Route path="/vendor-v2" nest component={VendorV2Layout} />
       <Route path="/vendor-attestation" nest component={VendorAttestationLayout} />
-      <Route path="/vendor" nest component={VendorRedirect} />
+      <Route path="/vendor" nest component={VendorPortalLayout} />
       <Route path="/attestation/inquiries/new" component={NewAttestationInquiry} />
       <Route path="/attestation/inquiries/:id" component={InquiryDetailPage} />
       <Route path="/attestation/inquiries" component={AttestationInquiriesPage} />
@@ -417,7 +422,7 @@ function AppRoutes() {
 
 function Router() {
   const [location] = useLocation();
-  const isV2Portal = location === "/vendor-v2" || location.startsWith("/vendor-v2/");
+  const isV2Portal = location === "/vendor" || location.startsWith("/vendor/") || location === "/vendor-v2" || location.startsWith("/vendor-v2/");
 
   return (
     <AuthGuard>
