@@ -114,14 +114,16 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       }
 
       const woIds = workOrdersList.map(wo => wo.id);
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const validWoIds = woIds.filter(id => UUID_RE.test(id));
       const companyIds = Array.from(new Set(workOrdersList.map(wo => wo.companyId).filter(Boolean)));
       const serviceTypeIds = Array.from(new Set(workOrdersList.map(wo => wo.serviceTypeId).filter((id): id is string => !!id)));
 
       const [allCompanies, allServiceTypes, allTypingJobs, allAppointments, allJobTypes] = await Promise.all([
         companyIds.length > 0 ? storage.getCompaniesByIds(companyIds) : Promise.resolve([]),
         serviceTypeIds.length > 0 ? storage.getServiceTypesByIds(serviceTypeIds) : Promise.resolve([]),
-        storage.getTypingJobsByWoIds(woIds),
-        storage.getAppointmentsByWoIds(woIds),
+        validWoIds.length > 0 ? storage.getTypingJobsByWoIds(validWoIds) : Promise.resolve([]),
+        validWoIds.length > 0 ? storage.getAppointmentsByWoIds(validWoIds) : Promise.resolve([]),
         storage.getJobTypes(),
       ]);
 
