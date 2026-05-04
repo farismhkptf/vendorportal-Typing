@@ -356,10 +356,7 @@ function VendorAttestationLayout() {
 }
 
 function VendorRedirect() {
-  const [location] = useLocation();
-  const subPath = location.replace(/^\//, "");
-  const target = subPath ? `/vendor-v2/${subPath}` : "/vendor-v2";
-  return <Redirect to={target} />;
+  return <Redirect to="/vendor-v2" />;
 }
 
 function AppRoutes() {

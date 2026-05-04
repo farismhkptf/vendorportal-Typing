@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -66,13 +65,18 @@ export default function VendorLogin() {
     mutationFn: async (data: LoginForm) => {
       return apiRequest("POST", "/api/vendor/auth/login", data);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/vendor/auth/me"] });
+    onSuccess: async (res) => {
+      const userData = await res.json().catch(() => null);
+      if (userData) {
+        queryClient.setQueryData(["/api/vendor/auth/me"], userData);
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["/api/vendor/auth/me"] });
+      }
       toast({
         title: "Welcome!",
         description: "You have successfully logged in.",
       });
-      setLocation("/vendor");
+      window.location.href = "/vendor-v2";
     },
     onError: (error: Error) => {
       toast({

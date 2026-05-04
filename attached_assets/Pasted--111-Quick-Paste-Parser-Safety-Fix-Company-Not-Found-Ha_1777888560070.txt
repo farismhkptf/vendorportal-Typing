@@ -1,0 +1,115 @@
+#111 — Quick Paste Parser Safety Fix (Company Not Found Handling)
+
+## What & Why
+
+The Quick Paste parser currently treats company matching too aggressively.
+
+Current failure:
+When a pasted company name does not exist in the system, the parser still selects the nearest fuzzy match and presents it as a valid company.
+
+This is unsafe.
+
+A Work Order must never attach to the wrong company because of a low-confidence guess.
+
+The parser must move from **guessing behavior** to **confidence-based decision behavior**.
+
+Before implementing:
+Please audit the current parser and challenge this plan if there is a smaller, safer, or better approach based on the actual codebase.
+
+## Core rule
+
+If the company does not exist in the system:
+
+* do not auto-match another company
+* do not auto-fill company field
+* do not silently substitute
+
+Unknown must remain unknown.
+
+## Done looks like
+
+### High confidence match
+
+If confidence is strong:
+
+* company is auto-detected
+* company is applied normally
+
+### Medium confidence match
+
+If confidence is uncertain:
+
+* system shows possible matches
+* user must explicitly choose one
+* nothing auto-applies
+
+### Low confidence / no match
+
+If confidence is weak:
+
+* no company is selected
+* original pasted company text remains visible
+* visible warning appears:
+  "Company not found in system"
+
+### Apply to Form protection
+
+If company is unresolved:
+
+* company field remains empty
+* Apply to Form must not inject a wrong company
+
+Other fields may still apply normally if valid.
+
+## Additional parser improvement
+
+Review applicant name detection:
+
+Current issue:
+Long names may be skipped and job titles may be detected as names.
+
+Please review and improve safely.
+
+Suggested direction:
+
+* allow up to 7-word names
+* improve exclusion list for job-title words
+* prefer positional parsing where safer (after company, before service/status)
+
+Challenge this if there is a better code-aware approach.
+
+## Out of scope
+
+* Auto-creating companies
+* Changing database schema
+* Service type parser redesign
+* Workflow changes outside Quick Paste
+* Changing Work Order creation flow
+
+## Required audit before implementation
+
+Please verify:
+
+1. Current fuzzy match scoring system
+2. Current threshold
+3. Current warning rendering behavior
+4. Current Apply to Form behavior when company is unresolved
+5. Whether a three-level confidence model is best here
+
+If you find a better/smaller implementation, propose it first.
+
+## Relevant area
+
+Quick Paste parser on New Work Order page.
+
+## Implementation report required
+
+After implementation report:
+
+* files changed
+* final confidence thresholds
+* exact no-match behavior
+* exact medium-confidence behavior
+* applicant parsing changes
+* test cases used
+* anything intentionally left unchanged
