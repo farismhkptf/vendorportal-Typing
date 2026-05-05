@@ -932,6 +932,44 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
     return { buf, isPem: isPem || (isDer && !!pemType) };
   }
 
+  app.get("/api/admin/health/wallet", requireAuth, requireRole("Admin"), (req, res) => {
+    const certBase64 = process.env.APPLE_PASS_CERT;
+    const keyBase64 = process.env.APPLE_PASS_KEY;
+    const wwdrBase64 = process.env.APPLE_PASS_WWDR;
+    const teamId = process.env.APPLE_TEAM_ID;
+    const passTypeIdentifier = process.env.APPLE_PASS_TYPE_IDENTIFIER || "pass.ae.procompany.appointment";
+    const passphrase = process.env.APPLE_PASS_PASSPHRASE;
+    const passphraseIsConfigured = passphrase != null && passphrase.length > 0;
+
+    const missing = [
+      !certBase64 && "APPLE_PASS_CERT",
+      !keyBase64 && "APPLE_PASS_KEY",
+      !wwdrBase64 && "APPLE_PASS_WWDR",
+      !teamId && "APPLE_TEAM_ID",
+    ].filter(Boolean) as string[];
+
+    if (missing.length > 0) {
+      return res.json({ active: false, missing });
+    }
+
+    // Preflight: validate certs decode correctly
+    try {
+      decodeCertPreflight("APPLE_PASS_CERT", certBase64!, "CERTIFICATE");
+      decodeCertPreflight("APPLE_PASS_KEY", keyBase64!, "PRIVATE KEY");
+      decodeCertPreflight("APPLE_PASS_WWDR", wwdrBase64!, "CERTIFICATE");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return res.json({ active: false, missing: [], certError: msg });
+    }
+
+    return res.json({
+      active: true,
+      passTypeIdentifier,
+      teamId,
+      passphraseConfigured: passphraseIsConfigured,
+    });
+  });
+
   app.head("/api/card/:token/wallet", async (_req, res) => {
     const certBase64 = process.env.APPLE_PASS_CERT;
     const keyBase64 = process.env.APPLE_PASS_KEY;

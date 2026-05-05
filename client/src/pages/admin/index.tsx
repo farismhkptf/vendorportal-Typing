@@ -13,6 +13,7 @@ import {
   Inbox,
   Mail,
   Link2,
+  HeartPulse,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,6 +38,7 @@ import { WorkDriveBackupSection } from "./workdrive-backup-section";
 import { DeletionRequestsBadge, DeletionRequestsTab } from "./deletion-requests-tab";
 import { EmailTemplatesTab } from "./email-templates-tab";
 import { IntegrationTab } from "./integration-tab";
+import { SystemHealthTab } from "./system-health-tab";
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -183,6 +185,9 @@ export default function AdminPage() {
                     <TabsTrigger value="integration" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-integration">
                       <Link2 className="h-4 w-4 mr-2" /> Integration
                     </TabsTrigger>
+                    <TabsTrigger value="system-health" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 whitespace-nowrap text-sm" data-testid="tab-system-health">
+                      <HeartPulse className="h-4 w-4 mr-2" /> System Health
+                    </TabsTrigger>
                   </>
                 )}
               </TabsList>
@@ -204,6 +209,7 @@ export default function AdminPage() {
               <TabsContent value="deletionrequests" className="p-4"><DeletionRequestsTab /></TabsContent>
               <TabsContent value="attestation-services" className="p-4"><AttestationServicesTab /></TabsContent>
               <TabsContent value="integration"><IntegrationTab /></TabsContent>
+              <TabsContent value="system-health" className="p-4"><SystemHealthTab /></TabsContent>
             </Tabs>
           </div>
         )}
