@@ -1,0 +1,87 @@
+Review this carefully before making any implementation plan.
+
+**1. Service Recognition Logic**
+
+The system should identify the request by the **selected service type / service code**, not by guessing from the service name.
+
+If a client creates the request, they choose the service from controlled form options.
+If staff creates the request, they also choose from controlled service options.
+
+So explain:
+
+* How does the app currently identify what service a work order is?
+* Is it using the actual service type/category field?
+* Or is it scanning the service name text for words like “renew” or “renewal”?
+
+If it is guessing from text, explain why this was designed that way when the service is already selected from predefined options.
+
+---
+
+**2. Missing Document Warning**
+
+This should be fixed.
+
+Audit the current renewal creation flow and show:
+
+* what documents are checked today,
+* what documents are required but not enforced,
+* where the warning should trigger,
+* whether this is frontend-only or also server-validated.
+
+Do not implement yet. Audit first.
+
+---
+
+**3. Auto-Completion Logic**
+
+You said:
+
+> After the medical test and Emirates ID renewal are done, the system auto-completes the work order.
+
+Clarify this immediately:
+
+**Which workflow does this apply to?**
+
+* New Employment Visa
+* Employment Visa Renewal
+* Both
+
+Because if New Employment Visa closes after Medical + Emirates ID only, that is structurally wrong.
+
+I want the exact current stage flow for both:
+
+### A. New Employment Visa
+
+List every stage from request creation to closure.
+
+### B. Employment Visa Renewal
+
+List every stage from request creation to closure.
+
+For each stage, include:
+
+* stage name
+* trigger to enter stage
+* trigger to complete stage
+* who handles it (client / internal / vendor / government)
+* what documents are created or required at that stage.
+
+Do not summarize. Full flow.
+
+---
+
+**4. Document Structure Audit (Renewal)**
+
+Before modifying document requirements, audit the current renewal document structure.
+
+Show me:
+
+* all document slots currently available,
+* which are mandatory,
+* which are optional,
+* which are conditional,
+* which nationality-based document rules already exist (if any).
+
+After I review the current structure, I will decide what to add, remove, or restructure.
+
+No implementation. Audit only.
