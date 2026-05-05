@@ -1,0 +1,57 @@
+The comparison audit is accepted.
+
+Please now prepare an implementation plan for Renew Employment Visa only.
+
+Important:
+- Do not redesign the Renewal form.
+- Do not convert it into the New Employment Visa stepper.
+- Renewal should stay simpler unless the code audit proves a hard reason otherwise.
+- Do not touch New Employment Visa unless required for shared component compatibility.
+- Do not change unrelated services.
+
+Goal:
+Fix the operational correctness gaps found in the audit.
+
+Priority 1 — Backend / workflow correctness:
+1. Fix Employment Visa Renewal module identification so the backend uses a stable code such as emp_visa_renewal instead of human-readable strings like “Renew Employment Visa Skilled”.
+2. Add proper server-side validation for serviceType: Employment Visa Renewal.
+3. Register emp_visa_renewal in the stage-based workflow system.
+4. Add/seed the 5-stage renewal workflow:
+   - Document Collection
+   - Medical Fitness Test
+   - Emirates ID Renewal
+   - Residency Renewal
+   - Finalisation
+5. Add the required system event gate for Residency Renewal Approved / GDRFA approval before Finalisation can proceed.
+6. Verify CRM sees structured stages and tasks.
+7. Verify the client journey tracker shows meaningful renewal stages.
+8. Verify ready-to-close logic works only after all required stages/events are complete.
+
+Priority 2 — Form correctness:
+1. Add Attested Degree upload when the user selects that they have an attested certificate.
+2. Add Syria nationality optional document handling:
+   - Syria National ID
+   - Shanas Nama
+3. Review the renewal quote panel and identify exactly what is missing:
+   - Medical Fitness
+   - ILOE
+   - company category fee
+   - VIP medical / biometrics if applicable
+   Do not implement pricing changes until you confirm whether those fees apply to renewal.
+
+Out of scope:
+- Redesigning the form
+- Converting Renewal to a 6-step NEV layout
+- Adding DOB/passport number/passport expiry unless required by the existing backend/business rules
+- Changing New Employment Visa
+- Changing cancellation flows
+- Large UI redesign
+- Database schema changes unless absolutely required, and explain first
+
+Before implementation:
+Please inspect the existing files and give me:
+1. Files likely to change
+2. Exact existing functions/constants involved
+3. Risk level
+4. Whether this can be done safely in one task or should be split
+5. Anything in this prompt that you disagree with or would handle differently
