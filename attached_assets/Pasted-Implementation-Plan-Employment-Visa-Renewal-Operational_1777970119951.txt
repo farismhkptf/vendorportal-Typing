@@ -1,0 +1,135 @@
+Implementation Plan — Employment Visa Renewal: Operational Correctness
+Based on current codebase inspection. All findings are from live code.
+
+Critical Scope Clarification Before Anything Else
+The "stage-based workflow system" referenced in Priority 1.3 and 1.4 does not exist in this codebase.
+
+The codebase has:
+
+A service_category enum on service_types (RenewVisa, NewVisaInside, etc.)
+Boolean flags on service types (requiresMedicalTyping, requiresMedicalScheduling, requiresIdTyping2Years, etc.)
+A transition-service.ts that auto-advances WO status based on those flags
+A pipeline bar showing Medical + EID tracks
+No stage table, no named stages, no stage definitions, no stage workflow engine
+Adding a 5-named-stage workflow (Document Collection → Medical Fitness → Emirates ID Renewal → Residency Renewal → Finalisation) requires new database tables, new storage methods, new routes, new frontend components, and significant integration with the transition service. This is a new feature, not a bug fix.
+
+I will present each Priority 1 item with what it actually touches in the current codebase and flag where scope inflation exists. The items I recommend splitting out are clearly marked.
+
+Priority 1 — Backend / Workflow Correctness
+1.1 — Module Identification: Stable Code for RenewVisa
+Current behavior:
+
+The RenewVisa category already exists as a first-class enum value throughout the system. The codebase uses it in:
+
+shared/schema.ts — service_category enum includes RenewVisa
+server/storage.ts:1649–1659 — getCategoryFromName() maps "RENEW" keyword → RenewVisa
+server/storage.ts:2162–2166 — Document requirements seeded for RenewVisa
+server/routes/admin-import.ts:394 — Import accepts RenewVisa as valid category
+The only fragile identification exists on the frontend:
+
+client/src/pages/typing-jobs/new.tsx:56–62:
+
+const RENEWAL_KEYWORDS = ["renewal", "renew"];
+function isRenewalService(serviceName: string | undefined): boolean {
+  const lowerName = serviceName.toLowerCase();
+  return RENEWAL_KEYWORDS.some(kw => lowerName.includes(kw));
+}
+
+This keyword-matches the service name string rather than using the already-available serviceType.category field.
+
+The emp_visa_renewal code concept does not exist. There is no code or serviceCode column on service_types. Adding one is a schema change. However, the RenewVisa category is already a stable enum — it is the stable identifier. The audit finding is valid but the fix is narrower than implied.
+
+What needs fixing:
+
+typing-jobs/new.tsx:218–219 — setIsRenewal(isRenewalService(serviceType?.name)) should instead be:
+
+const isRenewalType = serviceType?.category === "RenewVisa";
+setIsRenewal(isRenewalType);
+
+Files to change:
+
+client/src/pages/typing-jobs/new.tsx (lines 56–62, 218–219) — replace keyword match with category check
+Also check: client/src/pages/typing-jobs/components/job-details-step.tsx:29 has isRenewal: boolean prop — this is consumed from the parent, no change needed there.
+
+Risk: Very low. Category is already set correctly on all seeded service types.
+
+Schema migration needed: No. RenewVisa category already exists.
+
+My recommendation on emp_visa_renewal code field: Do not add a serviceCode column in this task. The RenewVisa category enum already provides stable identification. If a human-readable slug is needed for external integrations, add it as a follow-up with a proper migration plan.
+
+1.2 — Server-Side Validation for Employment Visa Renewal
+Current behavior:
+
+server/routes/work-orders.ts — Work order creation validates serviceTypeId is a valid UUID pointing to an existing service type. That is the full extent of service-type-specific validation. There is no renewal-specific field enforcement (e.g., no check that a current residency document is attached before WO can be submitted).
+
+The existing Zod schema in work-orders.ts (around line 64 based on serviceTypeId usage) does not branch on service category.
+
+What is actually missing:
+
+The system already has the document requirements table (server/storage.ts:2162–2166) seeded for RenewVisa. However, enforcement of those requirements at work order submission time does not exist for any service category — it's only shown as UI guidance.
+
+Realistic fix scope for this task:
+
+Add a server-side check in the work order creation route that, when serviceTypeId maps to a RenewVisa category service type, validates:
+
+The WO is not missing required documents (PassportCopy, Photo, CurrentResidency) at submission time — or at least returns a warning
+This can be a soft warning rather than a hard block, matching how the rest of the system works (no service type has hard document-block enforcement currently)
+Files to change:
+
+server/routes/work-orders.ts — WO create handler, after resolving serviceTypeId to a service type
+Risk: Low. Additive validation with a clear warning response.
+
+Schema migration needed: No.
+
+Out of scope in this task: Enforcing document upload before WO can be moved to AtVendor status. That would require document-presence checks in the transition service and is a larger change.
+
+1.3 — Register RenewVisa in the Stage-Based Workflow System
+Audit finding: Register emp_visa_renewal in the stage-based workflow system.
+
+Reality check from code inspection:
+
+There is no stage-based workflow system. The system that drives WO lifecycle is:
+
+server/services/transition-service.ts — checkAndAutoTransitionWorkOrder() and checkAndAutoCompleteWorkOrder()
+These use the boolean flags on service_types to determine what's required
+RenewVisa is already fully registered in this system by virtue of its service_types boolean flags:
+
+requires_medical_typing: true — Medical typing job required
+requires_medical_scheduling: true — Medical appointment required
+requires_id_typing_2_years: true — EID typing required
+The transition-service.ts already correctly handles a RenewVisa WO. No registration is missing.
+
+My recommendation: This item is already correct for the existing architecture. The gap is that the existing pipeline bar shows "Medical" and "Emirates ID" tracks rather than named renewal stages. That is a display concern, not a workflow correctness concern.
+
+If named stages are genuinely required (e.g., "Document Collection", "Medical Fitness Test", "Residency Renewal"), that requires:
+
+A new service_type_stages table (or a JSON config)
+A wo_stage_events table to track completion of each stage per WO
+New storage methods and routes
+New UI components in the WO detail page
+Updates to the CRM and client journey views
+This is a new feature build, estimated at 3–5 days of work. I recommend splitting it into a separate task and will not include it in this plan unless you confirm otherwise.
+
+1.4 — Add/Seed the 5-Stage Renewal Workflow
+Same finding as 1.3 — this depends on a stage system that does not exist.
+
+The 5 stages (Document Collection, Medical Fitness Test, Emirates ID Renewal, Residency Renewal, Finalisation) cannot be added without first building the stage infrastructure from 1.3.
+
+What CAN be done in this task without a stage system:
+
+The RENEW_EMPLOYMENT_VISA service type in restore-snapshot-data.ts:54 is seeded with correct flags for Medical + EID. What's missing is any way to track "Residency Renewal" and "Finalisation" as distinct trackable states — because those are not currently modelled as Medical or EID appointments.
+
+My recommendation: Split 1.4 into a separate task. In this task, verify the seeded flags are correct and add any missing ones. The seeded record shows requires_medical_typing: true, requires_medical_scheduling: true, requires_id_typing_2_years: true, requires_id_typing_10_years: false, requires_id_biometrics: false. Confirm with the business whether EID biometrics is required for renewal — if yes, requires_id_biometrics: true needs to be set.
+
+1.5 — GDRFA Approval Gate Before Finalisation
+Reality check:
+
+The concept of "GDRFA approval" and "Finalisation" as a gateable stage does not exist anywhere in the system — no table, no column, no enum value, no route. Adding it requires the stage system from 1.3.
+
+Without a stage system, the closest approximation would be:
+
+A new boolean column gdrfa_approved on work_orders
+A check in checkAndAutoCompleteWorkOrder() that blocks completion if !wo.gdrfa_approved when the service type is RenewVisa
+This simpler approach avoids the stage system but introduces a renewal
+
+
