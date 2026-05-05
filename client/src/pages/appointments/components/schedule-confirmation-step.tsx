@@ -290,11 +290,10 @@ export function ScheduleConfirmationStep({
         <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border/50 bg-muted/20">
           <div>
             <p className="text-sm font-medium">Add to Apple Wallet</p>
-            <p className="text-xs text-muted-foreground">Download the appointment pass to Apple Wallet</p>
+            <p className="text-xs text-muted-foreground">Tap to add the appointment pass to Apple Wallet</p>
           </div>
           <a
             href={`/api/card/${rescheduleToken}/wallet`}
-            download="appointment.pkpass"
             data-testid="link-add-to-wallet-confirmation"
           >
             <svg

@@ -10,6 +10,7 @@ import { loadAppointmentEmailDataById, renderAppointmentEmailHtml, getPhotoAsSig
 import { getTemplateRegistry, getTemplatesWithPreviews, buildTemplatePreview, EMAIL_TEMPLATE_CATEGORIES } from "../email-templates/registry";
 import type { Staff, WoDocument } from "@shared/schema";
 import type { RouteDeps } from "./types";
+import { buildWalletPassFields } from "../apple-pass";
 
 function sanitizeLog(value: string): string {
   return value.replace(/[\r\n]/g, " ");
@@ -1027,18 +1028,21 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       const { PKPass } = await import("passkit-generator");
 
       const dt = new Date(appointment.datetime);
-      const dateStr = dt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-      const timeStr = dt.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
-
-      const arrivalDt = new Date(dt.getTime() - 15 * 60 * 1000);
-      const arrivalTimeStr = arrivalDt.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true });
-      const recommendedArrival = `${arrivalTimeStr} (15 min before appointment)`;
-
-      const isEID = appointment.type === "EID";
-      const passDescription = isEID ? "Emirates ID Biometrics" : "Medical Fitness Appointment";
-
       const baseUrl = process.env.APP_BASE_URL || `${req.protocol}://${req.get("host")}`;
       const cardUrl = `${baseUrl}/card/${token}`;
+
+      const passFields = buildWalletPassFields({
+        appointmentType: appointment.type,
+        datetime: dt,
+        cardUrl,
+        applicantName: wo?.applicantName,
+        centerName: center?.name,
+        centerArea: center?.area,
+        companyName: company?.name,
+        woNumber: wo?.woNumber,
+        assignedStaffName: assignedStaff?.name,
+        assignedStaffPhone: assignedStaff?.phone,
+      });
 
       const navyRgb = "rgb(26, 58, 107)";
 
@@ -1058,7 +1062,7 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
 
       const pass = new PKPass({}, signerOptions, {
         serialNumber: appointment.id,
-        description: passDescription,
+        description: passFields.description,
         organizationName: "The P.R.O. Company™",
         passTypeIdentifier: passTypeIdentifier,
         teamIdentifier: teamId,
@@ -1070,156 +1074,16 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
       pass.type = "generic";
 
       pass.setBarcodes({
-        message: cardUrl,
+        message: passFields.qrMessage,
         format: "PKBarcodeFormatQR",
         messageEncoding: "iso-8859-1",
       });
 
-      const centerName = center?.name || "—";
-      const centerArea = center?.area;
-      const centerDisplay = centerArea ? `${centerName} — ${centerArea}` : centerName;
-
-      if (isEID) {
-        // EID layout: time primary, date secondary, center + applicant auxiliary
-        pass.primaryFields.push({
-          key: "time",
-          label: "Appointment Time",
-          value: timeStr,
-        });
-
-        pass.secondaryFields.push({
-          key: "date",
-          label: "Date",
-          value: dateStr,
-        });
-
-        pass.auxiliaryFields.push({
-          key: "center",
-          label: "Biometrics Center",
-          value: centerDisplay,
-        });
-
-        pass.auxiliaryFields.push({
-          key: "applicant",
-          label: "Applicant",
-          value: wo?.applicantName || "—",
-        });
-
-        if (company?.name) {
-          pass.auxiliaryFields.push({
-            key: "company",
-            label: "Company",
-            value: company.name,
-          });
-        }
-      } else {
-        // Medical layout: appointment type in header, applicant primary, date + time secondary, center auxiliary
-        pass.headerFields.push({
-          key: "type",
-          label: "Appointment",
-          value: "Medical Fitness",
-        });
-
-        pass.primaryFields.push({
-          key: "applicant",
-          label: "Applicant",
-          value: wo?.applicantName || "—",
-        });
-
-        pass.secondaryFields.push({
-          key: "date",
-          label: "Date",
-          value: dateStr,
-        });
-
-        pass.secondaryFields.push({
-          key: "time",
-          label: "Time",
-          value: timeStr,
-        });
-
-        pass.auxiliaryFields.push({
-          key: "center",
-          label: "Medical Center",
-          value: centerDisplay,
-        });
-
-        if (company?.name) {
-          pass.auxiliaryFields.push({
-            key: "company",
-            label: "Company",
-            value: company.name,
-          });
-        }
-      }
-
-      pass.backFields.push({
-        key: "ref",
-        label: "Reference",
-        value: wo?.woNumber || "—",
-      });
-
-      pass.backFields.push({
-        key: "arrival",
-        label: "Recommended Arrival",
-        value: recommendedArrival,
-      });
-
-      pass.backFields.push({
-        key: "duration",
-        label: "Estimated Duration",
-        value: "15 – 30 minutes",
-      });
-
-      if (isEID) {
-        pass.backFields.push({
-          key: "document",
-          label: "Required Documents",
-          value: "Original passport and original Emirates ID (no copies accepted)",
-        });
-
-        const assistContact = assignedStaff
-          ? (assignedStaff.phone ? `${assignedStaff.name} — ${assignedStaff.phone}` : assignedStaff.name)
-          : "Will be assigned before your appointment";
-        pass.backFields.push({
-          key: "guide",
-          label: "On-Site Guide",
-          value: assistContact,
-        });
-
-        pass.backFields.push({
-          key: "guide_note",
-          label: "Guide Assistance",
-          value: "Your guide will meet you on arrival and handle the queue and registration on your behalf.",
-        });
-      } else {
-        pass.backFields.push({
-          key: "document",
-          label: "Required Document",
-          value: "Original passport (must be valid)",
-        });
-
-        pass.backFields.push({
-          key: "attire",
-          label: "Attire",
-          value: "Smart casual. Shoulders and knees must be covered.",
-        });
-
-        pass.backFields.push({
-          key: "jewellery",
-          label: "Jewellery & Accessories",
-          value: "Please remove all metal jewellery and accessories before your appointment.",
-        });
-
-        const assistContact = assignedStaff
-          ? (assignedStaff.phone ? `${assignedStaff.name} — ${assignedStaff.phone}` : assignedStaff.name)
-          : "Will be assigned before your appointment";
-        pass.backFields.push({
-          key: "assist",
-          label: "On-Site Assist",
-          value: assistContact,
-        });
-      }
+      for (const f of passFields.header) pass.headerFields.push(f);
+      for (const f of passFields.primary) pass.primaryFields.push(f);
+      for (const f of passFields.secondary) pass.secondaryFields.push(f);
+      for (const f of passFields.auxiliary) pass.auxiliaryFields.push(f);
+      for (const f of passFields.back) pass.backFields.push(f);
 
       const buf = await pass.getAsBuffer();
       res.set({
