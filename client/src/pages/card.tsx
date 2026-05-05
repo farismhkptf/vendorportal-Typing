@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getInitials } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 import type { Appointment, WorkOrder, Company, Center, Staff } from "@shared/schema";
 
 interface CardData {
@@ -38,6 +39,9 @@ function formatDateParts(dt: Date): { weekday: string; date: string; time: strin
 }
 
 function AppleWalletButton({ token }: { token: string }) {
+  const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const { data, isLoading } = useQuery<{ configured: boolean }>({
     queryKey: ["/api/card", token, "wallet-check"],
     queryFn: async () => {
@@ -51,12 +55,46 @@ function AppleWalletButton({ token }: { token: string }) {
 
   if (isLoading || !data?.configured) return null;
 
+  const handleWalletClick = async () => {
+    setIsDownloading(true);
+    try {
+      const res = await fetch(`/api/card/${token}/wallet`);
+      if (!res.ok) {
+        toast({
+          title: "Pass could not be generated",
+          description: "Something went wrong generating your Apple Wallet pass. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "appointment.pkpass";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      toast({
+        title: "Pass could not be generated",
+        description: "Something went wrong generating your Apple Wallet pass. Please contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <div style={{ textAlign: "center", padding: "20px 32px 0" }}>
-      <a
-        href={`/api/card/${token}/wallet`}
+      <button
+        onClick={handleWalletClick}
+        disabled={isDownloading}
         data-testid="link-add-to-wallet"
-        style={{ display: "inline-block" }}
+        style={{ display: "inline-block", background: "none", border: "none", padding: 0, cursor: isDownloading ? "wait" : "pointer", opacity: isDownloading ? 0.7 : 1 }}
+        aria-label="Add to Apple Wallet"
       >
         {/* Apple's official Add to Apple Wallet badge layout */}
         <svg
@@ -80,7 +118,7 @@ function AppleWalletButton({ token }: { token: string }) {
             Apple Wallet
           </text>
         </svg>
-      </a>
+      </button>
     </div>
   );
 }

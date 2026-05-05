@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -46,6 +46,75 @@ interface ScheduleConfirmationStepProps {
   onRegeneratePreviews: () => void;
   companyEmailsList?: Array<{ id: string; label: string; email: string }>;
   onRecipientsChange?: (recipients: string[]) => void;
+}
+
+function WalletConfirmationButton({ rescheduleToken }: { rescheduleToken: string }) {
+  const { toast } = useToast();
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleClick = useCallback(async () => {
+    setIsDownloading(true);
+    try {
+      const res = await fetch(`/api/card/${rescheduleToken}/wallet`);
+      if (!res.ok) {
+        toast({
+          title: "Pass could not be generated",
+          description: "Something went wrong generating your Apple Wallet pass. Please contact support.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "appointment.pkpass";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      toast({
+        title: "Pass could not be generated",
+        description: "Something went wrong generating your Apple Wallet pass. Please contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [rescheduleToken, toast]);
+
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border/50 bg-muted/20">
+      <div>
+        <p className="text-sm font-medium">Add to Apple Wallet</p>
+        <p className="text-xs text-muted-foreground">Tap to add the appointment pass to Apple Wallet</p>
+      </div>
+      <button
+        onClick={handleClick}
+        disabled={isDownloading}
+        data-testid="link-add-to-wallet-confirmation"
+        style={{ background: "none", border: "none", padding: 0, cursor: isDownloading ? "wait" : "pointer", opacity: isDownloading ? 0.7 : 1 }}
+        aria-label="Add to Apple Wallet"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="148"
+          height="40"
+          viewBox="0 0 148 40"
+          role="img"
+          aria-label="Add to Apple Wallet"
+        >
+          <rect width="148" height="40" rx="8" fill="#000" />
+          <rect x="12" y="12" width="16" height="10" rx="2" fill="none" stroke="white" strokeWidth="1" />
+          <rect x="12" y="17" width="16" height="5" rx="0" fill="white" opacity="0.3" />
+          <rect x="15" y="20" width="3" height="2" rx="0.5" fill="white" />
+          <text x="36" y="17" fill="white" fontSize="7" fontFamily="-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif" fontWeight="300" letterSpacing="0.3">Add to</text>
+          <text x="36" y="28" fill="white" fontSize="11" fontFamily="-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif" fontWeight="600" letterSpacing="-0.2">Apple Wallet</text>
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 export function ScheduleConfirmationStep({
@@ -287,32 +356,7 @@ export function ScheduleConfirmationStep({
       </Card>
 
       {scheduledApptId && rescheduleToken && (
-        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-border/50 bg-muted/20">
-          <div>
-            <p className="text-sm font-medium">Add to Apple Wallet</p>
-            <p className="text-xs text-muted-foreground">Tap to add the appointment pass to Apple Wallet</p>
-          </div>
-          <a
-            href={`/api/card/${rescheduleToken}/wallet`}
-            data-testid="link-add-to-wallet-confirmation"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="148"
-              height="40"
-              viewBox="0 0 148 40"
-              role="img"
-              aria-label="Add to Apple Wallet"
-            >
-              <rect width="148" height="40" rx="8" fill="#000" />
-              <rect x="12" y="12" width="16" height="10" rx="2" fill="none" stroke="white" strokeWidth="1" />
-              <rect x="12" y="17" width="16" height="5" rx="0" fill="white" opacity="0.3" />
-              <rect x="15" y="20" width="3" height="2" rx="0.5" fill="white" />
-              <text x="36" y="17" fill="white" fontSize="7" fontFamily="-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif" fontWeight="300" letterSpacing="0.3">Add to</text>
-              <text x="36" y="28" fill="white" fontSize="11" fontFamily="-apple-system,'Helvetica Neue',Helvetica,Arial,sans-serif" fontWeight="600" letterSpacing="-0.2">Apple Wallet</text>
-            </svg>
-          </a>
-        </div>
+        <WalletConfirmationButton rescheduleToken={rescheduleToken} />
       )}
 
       <Tabs defaultValue="email" className="w-full">
