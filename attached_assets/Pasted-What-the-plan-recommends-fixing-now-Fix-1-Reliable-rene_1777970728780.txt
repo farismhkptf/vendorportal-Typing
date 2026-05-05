@@ -1,0 +1,24 @@
+What the plan recommends fixing now
+Fix 1 — Reliable renewal recognition.
+Instead of guessing from the service name, the app will check the service's built-in category code (RenewVisa), which is already set correctly on every renewal service. This makes the detection reliable regardless of how the service is named. Zero risk to users — same result, just more reliable.
+
+Fix 2 — Document warning on renewals.
+When a renewal work order is created without required documents, the system will now return a clear warning so staff know something is missing before the case moves forward. This doesn't block creation, just highlights the gap clearly.
+
+Fix 3 — Add Attested Degree and Syria document uploads.
+Staff will see two new optional document slots on the WO documents tab for renewal cases: "Attested Degree Certificate" and two Syria-specific documents labelled "(Syria nationals only)". No redesign — just new upload options in the existing document area.
+
+What the plan says is NOT ready to do yet
+Named stages (Document Collection → Medical Fitness → Emirates ID → Residency → Finalisation).
+The request described a stage-by-stage tracker for renewals. That system doesn't exist in the app at all — building it from scratch would take roughly a week of engineering. The plan recommends doing this as a separate, properly scoped piece of work rather than rushing it into this task.
+
+The GDRFA approval gate.
+This requires a decision: either add a simple checkbox to the work order ("GDRFA stamp received") that staff must tick before the case can be closed, or wait and build it properly as part of the stage system. Both approaches require adding something new to the database. The plan asks you to confirm which direction before any code is written.
+
+The quote/pricing panel.
+The audit mentioned fees — Medical Fitness fee, ILOE, company category fee, VIP medical. None of these are modelled anywhere in the system today. Building a pricing engine is a significant feature and the plan recommends confirming the business rules for each fee type before any development starts.
+
+The one question that needs your answer before implementation starts
+Should the GDRFA approval step be a simple manual tick-box on the work order (quick to build, ships with this task), or should it wait until a proper stage system is built (more complete, but takes longer)?
+
+Everything else in the safe scope can proceed without your input.

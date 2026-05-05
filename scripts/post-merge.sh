@@ -156,3 +156,33 @@ CREATE INDEX IF NOT EXISTS idx_doc_custody_records_wo_id ON document_custody_rec
 CREATE INDEX IF NOT EXISTS idx_doc_custody_records_sr_id ON document_custody_records(sr_id);
 CREATE INDEX IF NOT EXISTS idx_doc_custody_handoffs_record_id ON document_custody_handoffs(record_id);
 SQL
+
+# Vendor portal files table (vendor schema)
+psql "$DATABASE_URL" <<'SQL' 2>/dev/null || true
+CREATE SCHEMA IF NOT EXISTS vendor;
+
+DO $$ BEGIN
+  CREATE TYPE vendor.file_direction AS ENUM ('Input', 'Output');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE vendor.uploaded_by_type AS ENUM ('Internal', 'Vendor');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+CREATE TABLE IF NOT EXISTS vendor.files (
+  id VARCHAR PRIMARY KEY DEFAULT gen_random_uuid(),
+  related_type TEXT NOT NULL,
+  related_id VARCHAR NOT NULL,
+  direction vendor.file_direction NOT NULL,
+  workdrive_file_id TEXT,
+  workdrive_link TEXT,
+  file_name TEXT NOT NULL,
+  mime_type TEXT,
+  uploaded_by_type vendor.uploaded_by_type NOT NULL,
+  uploaded_by_user_id VARCHAR,
+  expires_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vendor_files_related_id ON vendor.files(related_id);
+SQL

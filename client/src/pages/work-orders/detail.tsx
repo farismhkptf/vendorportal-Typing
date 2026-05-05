@@ -67,6 +67,11 @@ export default function WorkOrderDetail() {
     enabled: !!id,
   });
 
+  const { data: docCompleteness } = useQuery<{ complete: boolean; missingDocumentTypes: string[] }>({
+    queryKey: queryKeys.workOrderDocumentCompleteness(id!),
+    enabled: !!id && !!workOrder && workOrder.status !== "Completed" && workOrder.status !== "Cancelled",
+  });
+
   const expiringOrExpiredDocs = Array.isArray(woDocuments) ? woDocuments.filter((d) => {
     if (!d.expiresAt) return false;
     const now = new Date();
@@ -123,6 +128,7 @@ export default function WorkOrderDetail() {
         <WoBanners
           workOrder={workOrder}
           expiringOrExpiredDocs={expiringOrExpiredDocs}
+          missingDocumentTypes={docCompleteness?.missingDocumentTypes ?? []}
           setActiveTab={setActiveTab}
           onCreateMissingJobs={() => setOpenTypingJobForm(true)}
         />
