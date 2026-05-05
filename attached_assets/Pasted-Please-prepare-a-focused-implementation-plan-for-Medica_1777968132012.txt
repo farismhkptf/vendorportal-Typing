@@ -1,0 +1,295 @@
+Please prepare a focused implementation plan for:
+
+# Medical App Production Hardening — Security, Data Integrity & Performance
+
+This task is based on the completed technical audit.
+
+Important: please review the current codebase first, confirm each finding still exists, and challenge this scope if any item has already been fixed or if there is a safer smaller approach.
+
+Do not overbuild.
+Do not redesign pages.
+Do not touch unrelated modules.
+Do not change product behavior beyond the items listed below.
+
+---
+
+# 1. Security / Access Fixes
+
+## 1.1 Master Password — Treat as Dev-Only, Verify Production Lock
+
+Audit finding:
+The app has a master password fallback that can allow login to any account if app_settings.masterPassword is set.
+
+Decision:
+For now, treat this as a development/emergency feature, not a production feature.
+
+Required action:
+- Do not remove it immediately unless required.
+- Verify whether this fallback can work in production.
+- If it can work in production, propose the safest lock so it is impossible in production unless explicitly allowed by a secure environment flag.
+- It should never silently exist in production.
+- Add clear guardrails/logging if it remains.
+
+Expected outcome:
+- Master password is confirmed dev-only or securely production-disabled.
+- If any production risk exists, explain and fix it safely.
+
+---
+
+## 1.2 Vendor Notification Ownership Check
+
+Audit finding:
+Vendor notification read endpoint does not verify that the notification belongs to the requesting vendor user.
+
+Decision:
+Fix.
+
+Required action:
+- Update the endpoint that marks a single vendor notification as read.
+- Ensure a vendor can only mark their own notifications as read.
+- If the notification does not belong to the authenticated vendor user/vendor, return 404 or 403 based on the app’s existing pattern.
+- Do not expose whether another vendor’s notification exists.
+- Add/adjust tests if test structure exists.
+
+Expected outcome:
+- Vendor A cannot mark Vendor B’s notification as read.
+
+---
+
+## 1.3 Vendor Password Policy
+
+Audit finding:
+Vendor password minimum is currently 4 characters.
+
+Decision:
+Fix using standard password requirements.
+
+Required policy for all password creation/change flows:
+- Minimum 8 characters
+- At least 1 uppercase letter
+- At least 1 lowercase letter
+- At least 1 symbol
+
+Please check whether there are multiple password flows:
+- Vendor password change
+- Vendor user creation
+- Internal user creation
+- Password reset
+- Bootstrap/setup modal
+- Any admin-created user password flow
+
+Apply the same password policy consistently wherever passwords are created or changed, unless there is already a stronger policy.
+
+Expected outcome:
+- Password policy is consistent and not weaker in vendor portal than elsewhere.
+- Validation messages are clear and user-friendly.
+
+---
+
+## 1.4 Admin Vendor Portal Impersonation Selection
+
+Audit finding:
+Admin “enter vendor portal” currently picks the first active vendor user automatically.
+
+Decision:
+Fix.
+
+Required action:
+- Admin should choose which vendor/vendor user to enter before switching into vendor portal.
+- Do not auto-select the first active vendor user.
+- If there is only one valid vendor, it may preselect but should still be deterministic.
+- If multiple vendor users exist, selection must be explicit.
+- Preserve the ability to exit back to admin.
+- Maintain audit logging for impersonation.
+
+Expected outcome:
+- Admin knows exactly which vendor portal they are entering.
+- No accidental entry into the wrong vendor account.
+
+---
+
+# 2. Data Integrity Fixes
+
+Please fix all data integrity risks identified in the audit.
+
+## 2.1 Bulk Work Order Status Downgrade Guard
+
+Audit finding:
+Bulk WO status update allows moving a Completed work order back to Draft or another earlier status without a transition guard.
+
+Required action:
+- Add status transition validation for bulk status updates.
+- Prevent unsafe downgrade from Completed to Draft or other earlier statuses unless there is an explicit admin override flow.
+- If an admin override is needed, require a clear reason and audit log.
+- Do not silently allow destructive workflow history changes.
+
+Expected outcome:
+- Completed work orders cannot be accidentally reset through bulk action.
+
+---
+
+## 2.2 Attestation Quote Amount Type Mismatch
+
+Audit finding:
+attestation_inquiry_quotes.amount_aed is INTEGER while attestation_services.base_price_aed is NUMERIC(10,2).
+
+Required action:
+- Review current usage and stored data.
+- Confirm whether amount_aed represents whole AED or fils.
+- Recommend the safest canonical format.
+- If changing type is necessary, propose migration carefully before implementation.
+- Avoid financial ambiguity.
+
+Expected outcome:
+- Attestation quote amounts and service prices use a consistent money representation.
+
+---
+
+## 2.3 Missing Link Integrity for Converted Attestation Inquiry
+
+Audit finding:
+attestation_inquiries.converted_to_sr_id has no FK to the service request table.
+
+Required action:
+- Add or enforce referential integrity safely.
+- If FK is not safe due to existing data, first detect orphaned references.
+- Decide correct delete behavior: restrict, set null, or cascade — recommend safest option.
+- Do not risk deleting historical inquiry records.
+
+Expected outcome:
+- Converted inquiries cannot point to invalid/missing service requests.
+
+---
+
+## 2.4 Typing Job Comment Authorship Integrity
+
+Audit finding:
+typing_job_comments.author_user_id has no FK, so authorship can become untraceable if a user is deleted.
+
+Required action:
+- Review whether author_user_id can point to both staff and vendor users.
+- If cross-schema FK is not practical, add a stable author snapshot such as author_name / author_role / author_type at time of comment.
+- Do not break existing comments.
+- Preserve historical accountability.
+
+Expected outcome:
+- Comment authorship remains understandable even if a user record changes later.
+
+---
+
+## 2.5 Schema Version Tracking
+
+Audit finding:
+No schema version tracking table exists; startup migrations are idempotent but not versioned.
+
+Required action:
+- Propose a lightweight schema_migrations or migration_history table.
+- Start tracking future migrations.
+- Do not rewrite the whole migration system in this task unless absolutely necessary.
+- Keep this as a controlled first step toward migration discipline.
+
+Expected outcome:
+- The app can know which schema patches have been applied.
+
+---
+
+# 3. Performance / Scaling Fixes
+
+Please fix all performance and scaling risks identified in the audit.
+
+## 3.1 Reports Endpoint Loads All Records Into Memory
+
+Audit finding:
+Reports endpoint loads all work orders, typing jobs, companies, and vendors into memory on every request.
+
+Required action:
+- Add safer query strategy.
+- Prefer date filtering and database-side aggregation where possible.
+- Avoid loading all records when only summary data is needed.
+- Preserve current report output unless changes are clearly explained.
+
+Expected outcome:
+- Reports page remains fast as data grows.
+
+---
+
+## 3.2 Scheduling Queue N+1 Queries
+
+Audit finding:
+Scheduling queue calls getWorkOrderById() and getCompanyById() inside a loop over ready typing jobs.
+
+Required action:
+- Batch-fetch work orders and companies.
+- Reuse the optimized pattern already used in the work-orders list endpoint if applicable.
+- Preserve existing queue logic for Medical and EID.
+
+Expected outcome:
+- Scheduling queue performs efficiently with many ready jobs.
+
+---
+
+## 3.3 Vendor Notifications N+1 Queries
+
+Audit finding:
+Vendor notifications endpoint fetches typing job and job type per notification.
+
+Required action:
+- Batch-fetch related typing jobs and job types.
+- Preserve notification grouping and display data.
+- Do not change notification behavior beyond performance and ownership safety.
+
+Expected outcome:
+- Vendor notifications scale better with more notifications.
+
+---
+
+## 3.4 Wallet Ledger N+1 Queries
+
+Audit finding:
+Wallet ledger enriches each ledger entry by fetching typing job and work order one by one.
+
+Required action:
+- Batch-fetch typing jobs and work orders for ledger entries.
+- Preserve displayed wallet ledger information.
+- Do not change wallet calculation logic unless a confirmed bug is found.
+
+Expected outcome:
+- Wallet ledger remains fast as ledger history grows.
+
+---
+
+# 4. Required Output Before Implementation
+
+Please return an implementation plan first.
+
+For each item, include:
+
+- Confirmed / Already fixed / Not applicable
+- Current behavior
+- Root cause
+- Files/functions involved
+- Safest fix
+- Whether schema migration is needed
+- Risk level
+- Verification steps
+- What is out of scope
+
+---
+
+# 5. Boundaries
+
+Do not implement until the plan is reviewed.
+
+Do not redesign UI unless the admin vendor selection flow requires a small necessary UI addition.
+
+Do not change unrelated auth logic.
+
+Do not remove master password immediately unless you confirm it is unsafe in production and explain the safest replacement.
+
+Do not change business workflow rules beyond the listed data-integrity guards.
+
+Do not optimize unrelated endpoints.
+
+Do not create a large migration framework; start with lightweight version tracking unless you strongly recommend otherwise.
+
+Do not overbuild.

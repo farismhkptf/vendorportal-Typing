@@ -1,0 +1,142 @@
+Please now perform a second-pass audit focused only on product purpose, human logic, module usefulness, and operational clarity.
+
+Use the technical findings from the first audit as context, but do not repeat the same technical risk register unless it directly affects human use.
+
+Important: this is still analysis only. Do not implement anything.
+
+# Second-Pass Audit — Product Purpose, Human Logic & Module Value
+
+For every major module/page/flow, please answer:
+
+1. Why does this module exist?
+2. Who is it mainly for?
+3. What job is the user supposed to complete here?
+4. Is the module currently serving that purpose?
+5. What would a human user find confusing, incomplete, illogical, or risky?
+6. What is missing for the module to become genuinely useful?
+7. What is unnecessary, duplicated, or premature?
+8. What should be improved now?
+9. What should be held for later?
+10. What needs product clarification before implementation?
+
+Please cover at least:
+
+- Internal dashboard
+- Work orders
+- New work order creation
+- Quick paste parser
+- Typing jobs
+- Medical scheduling
+- EID / biometrics scheduling
+- Vendor portal
+- Vendor V2 portal
+- Attestation vendor portal
+- Admin console
+- Reports
+- Document custody
+- Attestation inquiries and quotes
+- Settings / system health
+- Notifications
+- Login / role experience
+- Mobile experience where inferable
+
+For each module, use this structure:
+
+## Module Name
+
+### Purpose
+Why this module exists.
+
+### Intended Users
+Who uses it.
+
+### Core Jobs
+What the user should accomplish.
+
+### Current Product Quality
+Rate as:
+- Strong
+- Good but incomplete
+- Functional but confusing
+- Weak
+- Needs clarification
+
+### Is It Serving Its Purpose?
+Answer:
+- Yes
+- Partially
+- No
+- Unclear
+
+### Human Logic Issues
+List what a real user may notice as confusing, illogical, incomplete, or risky.
+
+### Missing Capabilities
+List what is missing for the module to properly serve its purpose.
+
+### Unnecessary / Overbuilt / Duplicated Areas
+List anything that may be premature, duplicated, or unclear.
+
+### Recommended Improvements
+Separate into:
+- Must Fix
+- Should Improve
+- Nice to Have
+- Future Version
+- Do Not Build Yet
+
+### Product Clarification Needed
+List questions before implementation.
+
+### Priority
+Critical / High / Medium / Low
+
+# Output Required
+
+Please return the audit in this structure:
+
+# Product Purpose, Human Logic & Module Value Audit
+
+## 1. Executive Assessment
+Briefly explain whether the app feels purposeful, scattered, incomplete, or structurally strong from a human/product perspective.
+
+## 2. Module Map Reviewed
+List all pages/modules/flows reviewed.
+
+## 3. Module-by-Module Product Audit
+Use the module structure above for each module.
+
+## 4. Cross-Module Confusion
+List duplicated, unclear, or disconnected modules.
+
+## 5. Human-Noticeable Logic Problems
+List issues a human user would notice even if the code works.
+
+## 6. Missing Product Capabilities
+List missing features or missing logic that reduce usefulness.
+
+## 7. Enhancement Roadmap
+Group into:
+- Phase 1: Product-critical fixes
+- Phase 2: Workflow clarity and safeguards
+- Phase 3: Module usefulness upgrades
+- Phase 4: Navigation and system coherence
+- Phase 5: Reporting and operational intelligence
+- Phase 6: Future/premium enhancements
+
+## 8. What Not To Build Yet
+List ideas that are premature or likely to overcomplicate the app.
+
+## 9. Product Clarification Needed
+List owner decisions required before implementation.
+
+## 10. Final Recommendation
+Give the safest next product direction.
+
+Boundaries:
+- Do not implement anything.
+- Do not edit files.
+- Do not repeat the full technical audit.
+- Do not overbuild.
+- Do not assume unclear business logic.
+- Clearly label anything inferred from code only.
