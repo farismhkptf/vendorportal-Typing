@@ -184,6 +184,22 @@ export function AppointmentCard({
                       </span>
                     </div>
                   )}
+                  {apt.status === "Cancelled" && apt.cancelReason && (
+                    <div className="flex items-start gap-1.5" data-testid={`cancel-reason-${apt.id}`}>
+                      <XCircle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                      <span className="text-xs text-muted-foreground italic">
+                        Reason: {apt.cancelReason}
+                      </span>
+                    </div>
+                  )}
+                  {apt.status === "Rescheduled" && apt.rescheduleReason && (
+                    <div className="flex items-start gap-1.5" data-testid={`reschedule-reason-${apt.id}`}>
+                      <RefreshCw className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                      <span className="text-xs text-muted-foreground italic">
+                        Reason: {apt.rescheduleReason}
+                      </span>
+                    </div>
+                  )}
                   {(() => {
                     if (typingNotStarted) {
                       return (
