@@ -436,6 +436,33 @@ async function runVendorSchemaMigration(): Promise<void> {
       await client.query(`ALTER TABLE vendor.app_settings ADD COLUMN IF NOT EXISTS vp_privacy_policy_html TEXT`);
       await client.query(`ALTER TABLE vendor.app_settings ADD COLUMN IF NOT EXISTS vp_terms_of_service_html TEXT`);
 
+      // ── appointments: Task #116 action overhaul columns ─────────────────────
+      await client.query(`ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS cancel_reason TEXT`);
+      await client.query(`ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS reschedule_reason TEXT`);
+      await client.query(`ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS email_send_log JSONB NOT NULL DEFAULT '[]'::jsonb`);
+      await client.query(`ALTER TABLE public.appointments ADD COLUMN IF NOT EXISTS card_viewed_at TIMESTAMP`);
+
+      // ── vendor.deletion_requests table ──────────────────────────────────────
+      await client.query(`SET search_path TO vendor, public`);
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS vendor.deletion_requests (
+          id TEXT PRIMARY KEY DEFAULT gen_random_uuid(),
+          entity_type TEXT NOT NULL,
+          entity_id TEXT NOT NULL,
+          entity_label TEXT NOT NULL,
+          requested_by TEXT NOT NULL,
+          requested_by_name TEXT NOT NULL,
+          reason TEXT NOT NULL,
+          status deletion_request_status NOT NULL DEFAULT 'pending',
+          reviewed_by TEXT,
+          reviewed_at TIMESTAMP,
+          review_note TEXT,
+          created_at TIMESTAMP NOT NULL DEFAULT now()
+        )
+      `);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_deletion_requests_status ON vendor.deletion_requests (status)`);
+      await client.query(`CREATE INDEX IF NOT EXISTS idx_deletion_requests_entity ON vendor.deletion_requests (entity_type, entity_id)`);
+
       // ── Cross-schema FK constraints ─────────────────────────────────────────
       // These are guarded with IF NOT EXISTS checks so they are idempotent.
       const fkPatches: Array<{ name: string; sql: string }> = [
