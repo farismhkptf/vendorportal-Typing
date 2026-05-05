@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -60,6 +60,7 @@ export default function NewWorkOrder() {
   const [showPasteArea, setShowPasteArea] = useState(false);
   const [pasteValue, setPasteValue] = useState("");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
+  const [companySearchQuery, setCompanySearchQuery] = useState("");
 
   const { data: companies } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
@@ -427,10 +428,19 @@ export default function NewWorkOrder() {
     return { success, parsed, warnings };
   }, [findCompanyMatches, findBestServiceTypeMatch]);
 
+  // Filtered companies for inline low-confidence company search
+  const filteredCompaniesForSearch = useMemo(() => {
+    if (!companies) return [];
+    const q = companySearchQuery.trim().toLowerCase();
+    if (!q) return companies.slice(0, 10);
+    return companies.filter(c => c.name.toLowerCase().includes(q)).slice(0, 10);
+  }, [companies, companySearchQuery]);
+
   // Handle parse button click
   const handleParse = useCallback(() => {
     const result = parsePastedData(pasteValue);
     setParseResult(result);
+    setCompanySearchQuery("");
   }, [pasteValue, parsePastedData]);
 
   // Handle Enter key in textarea
@@ -604,13 +614,75 @@ export default function NewWorkOrder() {
                     </div>
                   )}
 
-                  {/* Low confidence — always visible regardless of other detected fields */}
-                  {parseResult.parsed.companyConfidence === 'low' && parseResult.parsed.companyName && (
-                    <div className="flex items-center gap-1.5 text-xs text-destructive" data-testid="company-not-found">
-                      <AlertCircle className="h-3 w-3" />
-                      <span>
-                        Company not found in system: &ldquo;{parseResult.parsed.companyName.substring(0, 40)}{parseResult.parsed.companyName.length > 40 ? '…' : ''}&rdquo;
-                      </span>
+                  {/* Low confidence — inline company search/select */}
+                  {parseResult.parsed.companyConfidence === 'low' && (
+                    <div className="space-y-2" data-testid="company-not-found">
+                      <p className="text-xs text-destructive flex items-center gap-1.5">
+                        <AlertCircle className="h-3 w-3" />
+                        {parseResult.parsed.companyName
+                          ? <>Company not found: &ldquo;{parseResult.parsed.companyName.substring(0, 40)}{parseResult.parsed.companyName.length > 40 ? '…' : ''}&rdquo; — pick one below:</>
+                          : <>No company detected — pick one below:</>}
+                      </p>
+                      {parseResult.parsed.matchedCompanyId ? (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="default" className="gap-1.5" data-testid="badge-company-manual">
+                            <Building2 className="h-3 w-3" />
+                            {companies?.find(c => c.id === parseResult.parsed.matchedCompanyId)?.name.substring(0, 30)}
+                          </Badge>
+                          <button
+                            type="button"
+                            className="text-xs text-muted-foreground underline hover:text-foreground"
+                            onClick={() => setParseResult(prev => {
+                              if (!prev) return null;
+                              const newParsed = { ...prev.parsed, matchedCompanyId: null };
+                              const newSuccess =
+                                newParsed.applicantName !== null ||
+                                newParsed.companyConfidence === 'medium' ||
+                                newParsed.woNumber !== null ||
+                                newParsed.matchedServiceTypeId !== null;
+                              return { ...prev, success: newSuccess, parsed: newParsed };
+                            })}
+                            data-testid="button-change-company"
+                          >
+                            Change
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5">
+                          <Input
+                            placeholder="Search companies..."
+                            value={companySearchQuery}
+                            onChange={(e) => setCompanySearchQuery(e.target.value)}
+                            className="h-8 text-sm"
+                            data-testid="input-company-search"
+                          />
+                          <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
+                            {filteredCompaniesForSearch.map(company => (
+                              <button
+                                key={company.id}
+                                type="button"
+                                onClick={() => {
+                                  setParseResult(prev => prev ? {
+                                    ...prev,
+                                    success: true,
+                                    parsed: { ...prev.parsed, matchedCompanyId: company.id }
+                                  } : null);
+                                  setCompanySearchQuery("");
+                                }}
+                                data-testid={`search-company-${company.id}`}
+                              >
+                                <Badge variant="outline" className="gap-1 cursor-pointer hover:bg-secondary/80 transition-colors text-xs">
+                                  <Building2 className="h-3 w-3" />
+                                  {company.name.substring(0, 30)}
+                                </Badge>
+                              </button>
+                            ))}
+                            {filteredCompaniesForSearch.length === 0 && (
+                              <p className="text-xs text-muted-foreground">No companies match your search.</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
