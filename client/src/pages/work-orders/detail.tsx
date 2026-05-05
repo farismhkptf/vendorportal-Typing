@@ -153,7 +153,7 @@ export default function WorkOrderDetail() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           <WoApplicantInfo workOrder={workOrder} serviceTypes={serviceTypes} />
-          <WoSummaryPanel workOrder={workOrder} />
+          <WoSummaryPanel workOrder={workOrder} companies={companies} />
         </div>
 
         <WoTabsContainer
