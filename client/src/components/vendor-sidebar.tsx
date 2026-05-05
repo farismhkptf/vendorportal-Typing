@@ -182,6 +182,63 @@ export function VendorSidebar() {
   );
 }
 
+export function VendorBottomNav() {
+  const [location, navigate] = useLocation();
+
+  const { data: jobs } = useQuery<Array<{ status: string; jobType?: { category?: string } }>>({
+    queryKey: ["/api/vendor/jobs"],
+  });
+
+  const activeStatuses = ["SubmittedToVendor", "InProcess"];
+  const eidActionCount = jobs?.filter(j => activeStatuses.includes(j.status) && j.jobType?.category === "EID").length || 0;
+  const medActionCount = jobs?.filter(j => activeStatuses.includes(j.status) && j.jobType?.category === "Medical").length || 0;
+
+  const tabs = [
+    { href: "/", label: "Dashboard", icon: LayoutDashboard, badge: 0 },
+    { href: "/eid", label: "EID", icon: Shield, badge: eidActionCount },
+    { href: "/medical", label: "Medical", icon: Stethoscope, badge: medActionCount },
+    { href: "/wallet", label: "Wallet", icon: CreditCard, badge: 0 },
+  ];
+
+  const isActive = (href: string) =>
+    href === "/" ? location === "/" || location === "" : location.startsWith(href);
+
+  return (
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-[98] md:hidden bg-card/95 backdrop-blur-xl border-t border-border/40 safe-area-bottom"
+      data-testid="vendor-bottom-nav"
+    >
+      <div className="flex items-center justify-around h-[64px] px-2">
+        {tabs.map((tab) => {
+          const active = isActive(tab.href);
+          return (
+            <button
+              key={tab.href}
+              onClick={() => navigate(tab.href)}
+              aria-label={tab.label}
+              aria-current={active ? "page" : undefined}
+              className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-colors min-w-[56px] relative ${
+                active ? "text-primary" : "text-muted-foreground"
+              }`}
+              data-testid={`vendor-nav-tab-${tab.label.toLowerCase()}`}
+            >
+              <div className="relative">
+                <tab.icon className={`h-5 w-5 ${active ? "text-primary" : ""}`} />
+                {tab.badge > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 h-4 min-w-[16px] rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center px-1">
+                    {tab.badge > 9 ? "9+" : tab.badge}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-medium ${active ? "text-primary" : ""}`}>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 export function VendorTopBar() {
   const { isOnline, showReconnected } = useOnlineStatus();
   const [scrolled, setScrolled] = useState(false);
@@ -247,7 +304,7 @@ export function VendorTopBar() {
       )}
       <header className={`sticky top-0 z-30 flex h-14 items-center justify-between gap-2 border-b border-border/50 bg-background/80 backdrop-blur-xl px-4 transition-shadow duration-300 ${scrolled ? "header-scrolled" : ""}`}>
         <div className="flex items-center gap-3">
-          <SidebarTrigger data-testid="button-vendor-sidebar-toggle" />
+          <SidebarTrigger className="hidden md:flex" data-testid="button-vendor-sidebar-toggle" />
           <div className="flex items-center gap-1.5 opacity-50" data-testid="section-topbar-branding">
             <img src={proLogo} alt="The P.R.O. Company" className="h-4 w-4 object-contain" data-testid="img-topbar-pro-logo" />
             <span className="text-[11px] text-muted-foreground font-medium hidden sm:inline" data-testid="text-topbar-company-name"><CompanyName /></span>

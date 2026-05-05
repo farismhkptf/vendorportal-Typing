@@ -20,7 +20,7 @@ import { CompanyName } from "@/components/ui/company-name";
 import { useSplash } from "@/contexts/splash-context";
 import SplashScreen from "@/components/splash-screen";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { VendorSidebar, VendorTopBar } from "@/components/vendor-sidebar";
+import { VendorSidebar, VendorTopBar, VendorBottomNav } from "@/components/vendor-sidebar";
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -299,10 +299,12 @@ function VendorPortalLayout() {
         <TypingVendorGuard>
           <SidebarProvider>
             <div className="flex h-screen w-full overflow-hidden">
-              <VendorSidebar />
+              <div className="hidden md:block">
+                <VendorSidebar />
+              </div>
               <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
                 <VendorTopBar />
-                <main className="flex-1 overflow-y-auto">
+                <main className="flex-1 overflow-y-auto pb-[64px] md:pb-0">
                   <Switch>
                     <Route path="/" component={VendorDashboard} />
                     <Route path="/dashboard">{() => <Redirect to="/vendor" />}</Route>
@@ -318,6 +320,7 @@ function VendorPortalLayout() {
                 </main>
               </div>
             </div>
+            <VendorBottomNav />
           </SidebarProvider>
         </TypingVendorGuard>
       </VendorAuthGuard>
