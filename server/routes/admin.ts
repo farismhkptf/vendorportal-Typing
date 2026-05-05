@@ -815,6 +815,11 @@ export function registerAdminRoutes(app: Express, deps: RouteDeps): void {
         return res.status(404).json({ message: "Invalid or expired card link" });
       }
 
+      // Track first view
+      if (!appointment.cardViewedAt) {
+        await storage.updateAppointment(appointment.id, { cardViewedAt: new Date() }).catch(() => {});
+      }
+
       const wo = await storage.getWorkOrderById(appointment.woId);
       const center = appointment.centerId ? await storage.getCenterById(appointment.centerId) : null;
       const company = wo?.companyId ? await storage.getCompanyById(wo.companyId) : null;

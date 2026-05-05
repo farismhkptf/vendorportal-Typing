@@ -490,6 +490,13 @@ export const workOrders = pgTable("work_orders", {
   index("idx_work_orders_created_at").on(table.createdAt),
 ]);
 
+// Email send log entry type
+export type EmailSendLogEntry = {
+  sentAt: string;
+  sentTo: string[];
+  sentBy: string;
+};
+
 // Appointments table
 export const appointments = pgTable("appointments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -506,6 +513,10 @@ export const appointments = pgTable("appointments", {
   emailDraft: text("email_draft"),
   messageSentAt: timestamp("message_sent_at"),
   messageSentBy: varchar("message_sent_by"),
+  cancelReason: text("cancel_reason"),
+  rescheduleReason: text("reschedule_reason"),
+  emailSendLog: jsonb("email_send_log").$type<EmailSendLogEntry[]>().default(sql`'[]'::jsonb`),
+  cardViewedAt: timestamp("card_viewed_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_appointments_wo_id").on(table.woId),
@@ -1021,7 +1032,15 @@ export const insertServiceTypeSchema = createInsertSchema(serviceTypes).omit({ i
 export const insertWoDocumentSchema = createInsertSchema(woDocuments).omit({ id: true, uploadedAt: true });
 export const insertDocumentRequirementSchema = createInsertSchema(documentRequirements).omit({ id: true });
 export const insertWorkOrderSchema = createInsertSchema(workOrders).omit({ id: true, createdAt: true });
-export const insertAppointmentSchema = createInsertSchema(appointments).omit({ id: true, createdAt: true });
+export const insertAppointmentSchema = createInsertSchema(appointments)
+  .omit({ id: true, createdAt: true })
+  .extend({
+    emailSendLog: z.array(z.object({
+      sentAt: z.string(),
+      sentTo: z.array(z.string()),
+      sentBy: z.string(),
+    })).optional(),
+  });
 export const insertRescheduleRequestSchema = createInsertSchema(rescheduleRequests).omit({ id: true, createdAt: true });
 export const insertJobTypeSchema = createInsertSchema(jobTypes).omit({ id: true });
 export const insertVendorSchema = createInsertSchema(vendors).omit({ id: true });

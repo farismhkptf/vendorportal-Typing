@@ -7,13 +7,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { AppLayout } from "@/components/layout/app-layout";
 import { QueryErrorState } from "@/components/ui/query-error-state";
-import {
-  AppointmentConfirmationDialog,
-  MessagesDialog,
-  EmailDraftDialog,
-  FullscreenPreviewDialog,
-} from "./components/appointment-dialogs";
+import { AppointmentConfirmationDialog } from "./components/appointment-dialogs";
 import { ResendEmailDialog } from "./components/resend-email-dialog";
+import { CommunicationsDialog } from "./components/communications-dialog";
 import { AppointmentStatsRow } from "./components/appointment-stats";
 import { AppointmentCalendar } from "./components/appointment-calendar";
 import { AppointmentToolbar } from "./components/appointment-toolbar";
@@ -131,11 +127,8 @@ export default function AppointmentsIndex() {
             staffList={data.staffList}
             woTypingStatusMap={data.woTypingStatusMap}
             photoMap={data.photoMap}
-            downloadingDraft={messages.downloadingDraft}
             onConfirmDialog={actions.openConfirmDialog}
-            onViewEmailDraft={messages.setViewEmailDraftApt}
-            onViewMessages={messages.setViewMessagesApt}
-            onDownloadAsJpg={messages.handleDownloadAsJpg}
+            onViewCommunications={messages.setViewCommunicationsApt}
             onCopyDetails={actions.handleCopyAptDetails}
             onResendEmail={setResendEmailApt}
           />
@@ -144,32 +137,18 @@ export default function AppointmentsIndex() {
 
       <AppointmentConfirmationDialog
         confirmDialog={actions.confirmDialog}
-        onClose={() => actions.setConfirmDialog({ open: false, type: "complete", appointment: null })}
+        onClose={() => actions.setConfirmDialog({ open: false, type: "complete", appointment: null, reason: "" })}
         onConfirm={actions.handleConfirmAction}
+        onReasonChange={(reason) => actions.setConfirmDialog(prev => ({ ...prev, reason }))}
         isPending={actions.updateStatusMutation.isPending}
       />
-      <MessagesDialog
-        viewMessagesApt={messages.viewMessagesApt}
-        onClose={() => { messages.setViewMessagesApt(null); messages.setEmailFullscreen(false); }}
-        viewMessagesData={messages.viewMessagesData}
-        viewEmailPreviewHtml={messages.viewEmailPreviewHtml}
-        messageCopied={messages.messageCopied}
-        onCopyMessage={messages.handleCopyViewMessage}
-        onFullscreen={() => messages.setEmailFullscreen(true)}
+
+      <CommunicationsDialog
+        apt={messages.viewCommunicationsApt}
+        onClose={() => messages.setViewCommunicationsApt(null)}
+        whatsappBody={messages.viewCommunicationsData?.whatsappBody || ""}
       />
-      <EmailDraftDialog
-        viewEmailDraftApt={messages.viewEmailDraftApt}
-        onClose={() => messages.setViewEmailDraftApt(null)}
-        staffList={data.staffList}
-      />
-      <FullscreenPreviewDialog
-        open={messages.emailFullscreen}
-        onOpenChange={messages.setEmailFullscreen}
-        viewMessagesApt={messages.viewMessagesApt}
-        viewEmailPreviewHtml={messages.viewEmailPreviewHtml}
-        messageCopied={messages.messageCopied}
-        onCopyMessage={messages.handleCopyViewMessage}
-      />
+
       <ResendEmailDialog
         appointment={resendEmailApt}
         onClose={() => setResendEmailApt(null)}

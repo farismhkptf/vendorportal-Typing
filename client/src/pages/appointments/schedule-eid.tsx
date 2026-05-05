@@ -115,11 +115,24 @@ export default function ScheduleEid() {
 
   useEffect(() => {
     if (urlWoProcessed || !schedulingQueue) return;
-    const woId = new URLSearchParams(searchParams).get("wo");
+    const params = new URLSearchParams(searchParams);
+    const woId = params.get("wo");
     if (woId) {
       const queueItem = eidQueue.find(item => item.woId === woId);
       if (queueItem) handleSelectQueueItem(queueItem);
       else if (workOrders) { const wo = workOrders.find(w => w.id === woId); if (wo) handleSelectWorkOrderManual(wo); }
+
+      // Apply previous appointment context params (from reschedule flow)
+      const prevDate = params.get("prevDate");
+      const prevTime = params.get("prevTime");
+      const prevCenter = params.get("prevCenter");
+      const prevAppNum = params.get("prevAppNum");
+      const prevRecipients = params.get("prevRecipients");
+      if (prevDate) form.setValue("appointmentDate", prevDate);
+      if (prevTime) form.setValue("appointmentTime", prevTime);
+      if (prevCenter) form.setValue("centerId", prevCenter);
+      if (prevAppNum) form.setValue("applicationNumber", prevAppNum);
+      if (prevRecipients) { setSelectedRecipients(prevRecipients.split(",").filter(Boolean)); }
     }
     setUrlWoProcessed(true);
   }, [schedulingQueue, workOrders, searchParams, urlWoProcessed]);

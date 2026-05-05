@@ -39,11 +39,8 @@ function RenderCard({ apt, showDate, showActions, cardProps }: {
       staffList={cardProps.staffList}
       woTypingStatusMap={cardProps.woTypingStatusMap}
       photoMap={cardProps.photoMap}
-      downloadingDraft={cardProps.downloadingDraft}
       onConfirmDialog={cardProps.onConfirmDialog}
-      onViewEmailDraft={cardProps.onViewEmailDraft}
-      onViewMessages={cardProps.onViewMessages}
-      onDownloadAsJpg={cardProps.onDownloadAsJpg}
+      onViewCommunications={cardProps.onViewCommunications}
       onCopyDetails={cardProps.onCopyDetails}
       onResendEmail={cardProps.onResendEmail}
     />

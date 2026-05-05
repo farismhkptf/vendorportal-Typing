@@ -261,6 +261,10 @@ function makePreviewAppointment(overrides: Partial<Appointment> & Pick<Appointme
     emailDraft: null,
     messageSentAt: null,
     messageSentBy: null,
+    cancelReason: null,
+    rescheduleReason: null,
+    emailSendLog: null,
+    cardViewedAt: null,
     ...overrides,
   };
 }

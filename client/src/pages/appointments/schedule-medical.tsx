@@ -133,11 +133,24 @@ export default function ScheduleMedical() {
 
   useEffect(() => {
     if (urlWoProcessed || !schedulingQueue || !workOrders || !companies) return;
-    const woId = new URLSearchParams(searchParams).get("wo");
+    const params = new URLSearchParams(searchParams);
+    const woId = params.get("wo");
     if (woId) {
       const qi = medicalQueue.find(item => item.woId === woId);
       if (qi) handleSelectQueueItem(qi);
       else { const wo = workOrders.find(w => w.id === woId); if (wo) handleSelectManualWo(wo); }
+
+      // Apply previous appointment context params (from reschedule flow)
+      const prevDate = params.get("prevDate");
+      const prevTime = params.get("prevTime");
+      const prevCenter = params.get("prevCenter");
+      const prevAppNum = params.get("prevAppNum");
+      const prevRecipients = params.get("prevRecipients");
+      if (prevDate) form.setValue("appointmentDate", prevDate);
+      if (prevTime) form.setValue("appointmentTime", prevTime);
+      if (prevCenter) form.setValue("centerId", prevCenter);
+      if (prevAppNum) { form.setValue("applicationNumber", prevAppNum); setAppNumberAutoFilled(true); }
+      if (prevRecipients) { setSelectedRecipients(prevRecipients.split(",").filter(Boolean)); }
     }
     setUrlWoProcessed(true);
   }, [schedulingQueue, workOrders, companies, searchParams, urlWoProcessed]);

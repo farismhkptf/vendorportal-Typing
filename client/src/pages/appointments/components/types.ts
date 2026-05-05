@@ -37,11 +37,8 @@ export interface AppointmentCardRenderProps {
   staffList?: import("@shared/schema").Staff[];
   woTypingStatusMap: Map<string, WoTypingStatus>;
   photoMap?: Record<string, string>;
-  downloadingDraft: boolean;
-  onConfirmDialog: (type: "complete" | "cancel" | "reschedule" | "follow_up", appointment: AppointmentWithRelations) => void;
-  onViewEmailDraft: (apt: AppointmentWithRelations) => void;
-  onViewMessages: (apt: AppointmentWithRelations) => void;
-  onDownloadAsJpg: (apt: AppointmentWithRelations, type: "email" | "whatsapp") => void;
+  onConfirmDialog: (type: "complete" | "cancel" | "reschedule" | "follow_up", appointment: AppointmentWithRelations, typingNotStarted?: boolean) => void;
+  onViewCommunications: (apt: AppointmentWithRelations) => void;
   onCopyDetails: (apt: AppointmentWithRelations) => void;
   onResendEmail: (apt: AppointmentWithRelations) => void;
 }

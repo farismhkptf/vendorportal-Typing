@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   Mail, User, Building2, Check, X, Plus, Maximize2, Send,
-  Stethoscope, CreditCard,
+  Stethoscope, CreditCard, Clock, History,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { toProperCase } from "@/lib/proper-case";
 import { formatDateWithWeekday, formatTime } from "@/lib/format-date";
 import type { AppointmentWithRelations } from "./types";
-import type { Company } from "@shared/schema";
+import type { Company, EmailSendLogEntry } from "@shared/schema";
 
 interface ResendEmailDialogProps {
   appointment: AppointmentWithRelations | null;
@@ -84,6 +84,21 @@ export function ResendEmailDialog({
     enabled: !!companyId,
   });
 
+  const { data: sendLog = [] } = useQuery<EmailSendLogEntry[]>({
+    queryKey: ["/api/appointments", apt?.id, "send-log"],
+    queryFn: async () => {
+      if (!apt) return [];
+      const res = await fetch(`/api/appointments/${apt.id}/send-log`);
+      return res.ok ? res.json() : [];
+    },
+    enabled: !!apt,
+  });
+
+  const { data: appSettings } = useQuery<Record<string, string>>({
+    queryKey: ["/api/settings"],
+    staleTime: 300000,
+  });
+
   const [selectedEmails, setSelectedEmails] = useState<Set<string>>(new Set());
   const [customEmailInput, setCustomEmailInput] = useState("");
   const [customEmails, setCustomEmails] = useState<string[]>([]);
@@ -92,6 +107,7 @@ export function ResendEmailDialog({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [emailFullscreen, setEmailFullscreen] = useState(false);
   const [sendStatus, setSendStatus] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  const [showSendHistory, setShowSendHistory] = useState(false);
 
   const recipientOptions = buildRecipientOptions();
 
@@ -119,13 +135,19 @@ export function ResendEmailDialog({
     const initialNotes = apt.notes || "";
     setNotes(initialNotes);
     const defaultSet = new Set<string>();
-    const coordEmail = company?.clientCoordinator?.email;
-    const managerEmail = company?.clientManager?.email;
-    if (coordEmail) defaultSet.add(coordEmail);
-    else if (managerEmail) defaultSet.add(managerEmail);
+    // Default to last send log recipients if available, else fall back to coordinator/manager
+    const lastSend = sendLog[sendLog.length - 1];
+    if (lastSend?.sentTo?.length > 0) {
+      lastSend.sentTo.forEach(e => defaultSet.add(e));
+    } else {
+      const coordEmail = company?.clientCoordinator?.email;
+      const managerEmail = company?.clientManager?.email;
+      if (coordEmail) defaultSet.add(coordEmail);
+      else if (managerEmail) defaultSet.add(managerEmail);
+    }
     setSelectedEmails(defaultSet);
     fetchPreview(initialNotes);
-  }, [apt?.id]);
+  }, [apt?.id, sendLog.length]);
 
   const handleNotesChange = (val: string) => {
     setNotes(val);
@@ -213,7 +235,7 @@ export function ResendEmailDialog({
               ) : (
                 <CreditCard className="h-5 w-5 text-blue-600" />
               )}
-              Resend Email
+              Send Email
             </DialogTitle>
           </DialogHeader>
 
@@ -231,6 +253,35 @@ export function ResendEmailDialog({
                 <span>{formatTime(apt.datetime)}</span>
                 {apt.center?.name && <><span>·</span><span>{apt.center.name}</span></>}
               </div>
+              {sendLog.length > 0 && (() => {
+                const last = sendLog[sendLog.length - 1];
+                return (
+                  <div className="flex items-start gap-1.5 text-muted-foreground pt-0.5 border-t border-border/30 mt-1">
+                    <Clock className="h-3 w-3 shrink-0 mt-0.5" />
+                    <span className="leading-snug">
+                      Last sent:{" "}
+                      <span className="font-medium text-foreground">
+                        {new Date(last.sentAt).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      {last.sentTo?.length > 0 && (
+                        <> to <span className="font-medium text-foreground">{last.sentTo.join(", ")}</span></>
+                      )}
+                    </span>
+                  </div>
+                );
+              })()}
+              {(appSettings?.fromEmail || appSettings?.from_email) && (
+                <div className="flex items-center gap-1.5 text-muted-foreground pt-0.5 border-t border-border/30 mt-1">
+                  <Send className="h-3 w-3 shrink-0" />
+                  <span>
+                    Sending from: <span className="font-medium text-foreground">
+                      {appSettings.fromName || appSettings.from_name
+                        ? `${appSettings.fromName || appSettings.from_name} <${appSettings.fromEmail || appSettings.from_email}>`
+                        : (appSettings.fromEmail || appSettings.from_email)}
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -338,6 +389,50 @@ export function ResendEmailDialog({
                 </div>
               )}
             </div>
+
+            {sendLog.length > 0 && (
+              <div className="space-y-1">
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wide hover:text-foreground transition-colors"
+                  onClick={() => setShowSendHistory(h => !h)}
+                  data-testid="button-toggle-send-history"
+                >
+                  <History className="h-3.5 w-3.5" />
+                  Send History ({sendLog.length})
+                  <span className="text-[10px] normal-case font-normal ml-0.5">{showSendHistory ? "▲ hide" : "▼ show"}</span>
+                </button>
+                {showSendHistory && (
+                  <div className="rounded-lg border border-border/40 divide-y divide-border/30 overflow-hidden">
+                    {sendLog.map((entry, i) => (
+                      <div key={i} className="flex items-start gap-3 px-3 py-2 text-xs bg-muted/10" data-testid={`send-log-entry-${i}`}>
+                        <Clock className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1 space-y-0.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-muted-foreground">
+                              {new Date(entry.sentAt).toLocaleString("en-GB", {
+                                day: "numeric", month: "short", year: "numeric",
+                                hour: "2-digit", minute: "2-digit",
+                              })}
+                            </span>
+                            {entry.sentBy && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                {entry.sentBy}
+                              </Badge>
+                            )}
+                          </div>
+                          {entry.sentTo?.length > 0 && (
+                            <div className="text-muted-foreground truncate">
+                              To: {entry.sentTo.join(", ")}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Notes (optional)</label>

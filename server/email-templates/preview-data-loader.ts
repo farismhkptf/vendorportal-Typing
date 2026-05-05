@@ -96,6 +96,10 @@ export async function loadAppointmentEmailData(params: PreviewDataParams): Promi
     emailDraft: null,
     messageSentAt: null,
     messageSentBy: null,
+    cancelReason: null,
+    rescheduleReason: null,
+    emailSendLog: null,
+    cardViewedAt: null,
     createdAt: new Date(),
   };
 

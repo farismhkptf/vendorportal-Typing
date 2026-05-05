@@ -882,7 +882,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAppointment(data: InsertAppointment): Promise<Appointment> {
-    const [apt] = await db.insert(appointments).values(data).returning();
+    const [apt] = await db.insert(appointments).values(data as typeof appointments.$inferInsert).returning();
     return apt;
   }
 
@@ -897,7 +897,7 @@ export class DatabaseStorage implements IStorage {
           .set({ status: "FollowUpScheduled" })
           .where(eq(appointments.id, followUpAppointmentId));
       }
-      const [apt] = await tx.insert(appointments).values(appointmentData).returning();
+      const [apt] = await tx.insert(appointments).values(appointmentData as typeof appointments.$inferInsert).returning();
       if (newWoStatus && apt.woId) {
         await tx.update(workOrders)
           .set({ status: newWoStatus as typeof workOrders.status.enumValues[number] })
@@ -943,7 +943,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAppointment(id: string, data: Partial<InsertAppointment>): Promise<Appointment | undefined> {
-    const [apt] = await db.update(appointments).set(data).where(eq(appointments.id, id)).returning();
+    const [apt] = await db.update(appointments).set(data as Partial<typeof appointments.$inferInsert>).where(eq(appointments.id, id)).returning();
     return apt || undefined;
   }
 

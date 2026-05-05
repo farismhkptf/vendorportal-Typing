@@ -767,7 +767,19 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
       } else {
         rawAppointments = await storage.getAllAppointments();
       }
-      
+
+      // Backfill missing rescheduleTokens (appointments created before this feature)
+      const missingTokens = rawAppointments.filter(a => !a.rescheduleToken);
+      if (missingTokens.length > 0) {
+        await Promise.all(missingTokens.map(a => storage.updateAppointment(a.id, { rescheduleToken: randomUUID() })));
+        // Re-fetch to pick up the newly generated tokens
+        if (woId && typeof woId === "string") {
+          rawAppointments = await storage.getAppointmentsByWoId(woId);
+        } else {
+          rawAppointments = await storage.getAllAppointments();
+        }
+      }
+
       const allCompanies = await storage.getCompanies();
       const enriched = await Promise.all(rawAppointments.map(async (apt) => {
         const workOrder = apt.woId ? await storage.getWorkOrderById(apt.woId) : undefined;
@@ -779,7 +791,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
           center: center || undefined,
         };
       }));
-      
+
       res.json(enriched);
     } catch (error) {
       console.error("Appointments error:", error);
@@ -921,11 +933,17 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         return res.status(500).json({ message: failed[0]?.error || "Failed to send email" });
       }
 
-      const user = (req as unknown as { user?: { name?: string; email?: string } }).user;
+      const authedUser = req.session?.userId ? await storage.getUser(req.session.userId).catch(() => undefined) : undefined;
+      const sentByName = authedUser?.name || authedUser?.email || "Staff";
+      const now = new Date();
+      const existingApt = await storage.getAppointmentById(id);
+      const existingLog = (existingApt?.emailSendLog as Array<{ sentAt: string; sentTo: string[]; sentBy: string }>) || [];
+      const newLogEntry = { sentAt: now.toISOString(), sentTo: testRedirect ? [testRedirect] : recipientList, sentBy: sentByName };
       await storage.updateAppointment(id, {
-        messageSentAt: new Date(),
-        messageSentBy: user?.name || user?.email || "Staff",
+        messageSentAt: now,
+        messageSentBy: sentByName,
         emailDraft: html,
+        emailSendLog: [...existingLog, newLogEntry] as Parameters<typeof storage.updateAppointment>[1]["emailSendLog"],
       });
 
       const sentTo = testRedirect ? testRedirect : recipientList.join(", ");
@@ -1142,8 +1160,13 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
                   from: settings?.fromEmail || undefined,
                 });
                 if (emailResult.success) {
-                  updateData.messageSentAt = new Date();
+                  const now = new Date();
+                  updateData.messageSentAt = now;
                   updateData.messageSentBy = "auto";
+                  const resolvedRecipients = testRedirectAuto ? [testRedirectAuto] : primaryRecipients;
+                  const existingLog = (appointment.emailSendLog as Array<{ sentAt: string; sentTo: string[]; sentBy: string }>) || [];
+                  const logEntry = { sentAt: now.toISOString(), sentTo: resolvedRecipients, sentBy: "auto" };
+                  updateData.emailSendLog = [...existingLog, logEntry] as Parameters<typeof storage.updateAppointment>[1]["emailSendLog"];
                 } else {
                   console.error("[work-orders] auto-send email failed for appointment", appointment.id, ":", emailResult.error);
                 }
@@ -1172,12 +1195,18 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         status: z.enum(["Completed", "Cancelled", "Rescheduled", "FollowUpRequired", "FollowUpScheduled", "FollowUpCompleted"], {
           errorMap: () => ({ message: "Invalid status" }),
         }),
+        cancelReason: z.string().optional(),
+        rescheduleReason: z.string().optional(),
       });
       const statusValidation = validateBody(appointmentStatusSchema, req.body);
       if ('error' in statusValidation) return res.status(400).json({ message: statusValidation.error });
-      const { status } = statusValidation.data;
+      const { status, cancelReason, rescheduleReason } = statusValidation.data;
+
+      const updateData: Record<string, unknown> = { status };
+      if (status === "Cancelled" && cancelReason) updateData.cancelReason = cancelReason;
+      if (status === "Rescheduled" && rescheduleReason) updateData.rescheduleReason = rescheduleReason;
       
-      const updated = await storage.updateAppointment(id, { status });
+      const updated = await storage.updateAppointment(id, updateData as Parameters<typeof storage.updateAppointment>[1]);
       if (!updated) {
         return res.status(404).json({ message: "Appointment not found" });
       }
@@ -1187,7 +1216,7 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
         entityType: 'appointment',
         entityId: id,
         userId: req.session?.userId || null,
-        details: { newStatus: status },
+        details: { newStatus: status, cancelReason, rescheduleReason },
       });
       
       if (status === "Completed" || status === "FollowUpCompleted") {
@@ -1206,4 +1235,38 @@ export function registerWorkOrderRoutes(app: Express, deps: RouteDeps): void {
     }
   });
 
+  // GET /api/appointments/:id/send-log — return email send history
+  app.get("/api/appointments/:id/send-log", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params as { [key: string]: string };
+      const appointment = await storage.getAppointmentById(id);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+      res.json(appointment.emailSendLog || []);
+    } catch (error) {
+      console.error("Get send log error:", error);
+      res.status(500).json({ message: "Failed to get send log" });
+    }
+  });
+
+  // POST /api/appointments/:id/generate-card-token — generate a reschedule/card token if missing
+  app.post("/api/appointments/:id/generate-card-token", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params as { [key: string]: string };
+      const appointment = await storage.getAppointmentById(id);
+      if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+      if (appointment.rescheduleToken) {
+        return res.json({ token: appointment.rescheduleToken });
+      }
+      const { randomUUID } = await import("crypto");
+      const token = randomUUID();
+      const updated = await storage.updateAppointment(id, { rescheduleToken: token });
+      if (!updated) return res.status(500).json({ message: "Failed to generate token" });
+      res.json({ token });
+    } catch (error) {
+      console.error("Generate card token error:", error);
+      res.status(500).json({ message: "Failed to generate card token" });
+    }
+  });
+
 }
+
