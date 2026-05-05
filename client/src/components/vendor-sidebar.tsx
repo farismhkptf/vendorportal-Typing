@@ -278,7 +278,7 @@ export function VendorTopBar() {
               <div className="max-h-80 overflow-y-auto">
                 {notifications && notifications.length > 0 ? (
                   notifications.slice(0, 20).map((n) => (
-                    <Link key={n.id} href={n.relatedJobId ? ((n as any).jobCategory === "Medical" ? `/medical/${n.relatedJobId}` : `/eid/${n.relatedJobId}`) : "#"}>
+                    <Link key={n.id} href={n.relatedJobId ? ((n as any).jobCategory === "Medical" ? `/medical` : `/eid`) : "#"}>
                       <div
                         className={`p-3 border-b border-border/50 hover-elevate cursor-pointer ${!n.readAt ? "bg-primary/5" : ""}`}
                         onClick={() => { if (!n.readAt) markReadMutation.mutate(n.id); }}

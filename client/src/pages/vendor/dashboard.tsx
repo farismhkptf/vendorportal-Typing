@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
+import { JobWizardDialog } from "./job-detail";
 import {
   Shield, Stethoscope, AlertTriangle, ArrowRight,
   CreditCard, Clock, CheckCircle2, Inbox, Loader2,
@@ -130,13 +132,15 @@ export default function VendorDashboard() {
     },
   });
 
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
   const acceptMutation = useMutation({
     mutationFn: async (jobId: string) => apiRequest("POST", `/api/vendor/jobs/${jobId}/accept`),
     onSuccess: () => {
       toast({ title: "Job accepted" });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/dashboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/vendor/jobs"] });
-      navigate("/vendor/jobs");
+      navigate("/jobs");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -470,14 +474,13 @@ export default function VendorDashboard() {
                         <div className="space-y-2">
                           {wo.jobs.map((job) => {
                             const isEid = job.category === "EID";
-                            const detailUrl = isEid ? `/eid/${job.id}` : `/medical/${job.id}`;
                             const isAccepting = acceptMutation.isPending && acceptMutation.variables === job.id;
                             const age = formatJobAge(job.sentAt);
                             const sla = (job.status === "SubmittedToVendor" || job.status === "InProcess")
                               ? getSlaLabel(job.sentAt)
                               : undefined;
                             return (
-                              <Link key={job.id} href={detailUrl}>
+                              <div key={job.id} onClick={() => setSelectedJobId(job.id)}>
                                 <div
                                   className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
                                   data-testid={`action-job-${job.id}`}
@@ -514,7 +517,7 @@ export default function VendorDashboard() {
                                     <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                                   </div>
                                 </div>
-                              </Link>
+                              </div>
                             );
                           })}
                         </div>
@@ -543,9 +546,8 @@ export default function VendorDashboard() {
                 <div className="divide-y divide-border/30">
                   {activityFeed.map((item) => {
                     const isEid = item.category === "EID";
-                    const detailUrl = isEid ? `/eid/${item.id}` : `/medical/${item.id}`;
                     return (
-                      <Link key={item.id} href={detailUrl}>
+                      <div key={item.id} onClick={() => setSelectedJobId(item.id)}>
                         <div className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 transition-colors cursor-pointer" data-testid={`activity-${item.id}`}>
                           <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 ${isEid ? "bg-amber-100 dark:bg-amber-900/40" : "bg-blue-100 dark:bg-blue-900/40"}`}>
                             {isEid
@@ -564,7 +566,7 @@ export default function VendorDashboard() {
                           </span>
                           <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
                         </div>
-                      </Link>
+                      </div>
                     );
                   })}
                 </div>
@@ -710,6 +712,11 @@ export default function VendorDashboard() {
           </section>
         </div>
       </div>
+      <JobWizardDialog
+        jobId={selectedJobId}
+        open={!!selectedJobId}
+        onClose={() => setSelectedJobId(null)}
+      />
     </div>
   );
 }
@@ -733,7 +740,7 @@ function NotificationGroup({
       <div className="divide-y divide-border/30">
         {items.map((n) => {
           const jobUrl = n.relatedJobId
-            ? ((n as any).jobCategory === "Medical" ? `/medical/${n.relatedJobId}` : `/eid/${n.relatedJobId}`)
+            ? ((n as any).jobCategory === "Medical" ? `/medical` : `/eid`)
             : null;
 
           const iconConfig: Record<string, { icon: typeof Bell; bg: string; color: string }> = {

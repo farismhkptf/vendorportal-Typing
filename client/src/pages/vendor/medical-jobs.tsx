@@ -63,7 +63,7 @@ export default function MedicalJobs() {
     onSuccess: () => {
       toast({ title: "Job accepted", description: "Job has been moved to In Progress" });
       invalidateJobs();
-      setLocation("/vendor/jobs");
+      setLocation("/medical");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
     onSettled: () => setPendingAction(null),
@@ -77,7 +77,7 @@ export default function MedicalJobs() {
     onSuccess: () => {
       toast({ title: "Job completed" });
       invalidateJobs();
-      setLocation("/vendor/jobs");
+      setLocation("/medical");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
     onSettled: () => setPendingAction(null),
