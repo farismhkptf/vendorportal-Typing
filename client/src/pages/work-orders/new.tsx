@@ -41,6 +41,8 @@ interface ParsedWorkOrder {
   woNumber: string | null;
   companyName: string | null;
   matchedCompanyId: string | null;
+  companyConfidence: 'high' | 'medium' | 'low' | null;
+  companyCandidates: Array<{ id: string; name: string; score: number }> | null;
   applicantName: string | null;
   serviceTypeName: string | null;
   matchedServiceTypeId: string | null;
@@ -195,46 +197,52 @@ export default function NewWorkOrder() {
       .trim();
   };
 
-  // Find best company match using fuzzy matching
-  const findBestCompanyMatch = useCallback((searchText: string): { id: string; name: string; score: number } | null => {
-    if (!companies || companies.length === 0) return null;
-
+  // Score a single company against a search string.
+  // Score is always in the range 0–100.
+  // Scoring is conservative: length asymmetry penalises the score proportionally,
+  // so a short company name matching inside a much longer string stays low-confidence.
+  const scoreCompany = useCallback((searchText: string, companyName: string): number => {
     const normalizedSearch = normalizeText(searchText);
-    let bestMatch: { id: string; name: string; score: number } | null = null;
+    const normalizedCompany = normalizeText(companyName);
+
+    // Exact match = 100
+    if (normalizedCompany === normalizedSearch) return 100;
+
+    // Substring containment: score = (shorter / longer) * 80
+    // Using min/max here (not max alone) ensures length asymmetry is penalised.
+    // e.g. "ABC" inside "ABC Trading LLC" → (3/15)*80 ≈ 16 (low)
+    // e.g. "ABC Trading" inside "ABC Trading LLC" → (11/15)*80 ≈ 59 (medium)
+    if (normalizedCompany.includes(normalizedSearch) || normalizedSearch.includes(normalizedCompany)) {
+      const shorter = Math.min(normalizedSearch.length, normalizedCompany.length);
+      const longer = Math.max(normalizedSearch.length, normalizedCompany.length);
+      return (shorter / longer) * 80;
+    }
+
+    // Word-overlap fallback: (matching words / total distinct words) * 60
+    // Cap at 60 so word-overlap alone can never reach high-confidence threshold (65).
+    const searchWords = normalizedSearch.split(" ");
+    const companyWords = normalizedCompany.split(" ");
+    const matchingWords = searchWords.filter(w =>
+      companyWords.some(cw => cw.includes(w) || w.includes(cw))
+    );
+    return (matchingWords.length / Math.max(searchWords.length, companyWords.length)) * 60;
+  }, []);
+
+  // Return all company matches above a minimum score, sorted by score desc
+  const findCompanyMatches = useCallback((searchText: string, minScore = 30): Array<{ id: string; name: string; score: number }> => {
+    if (!companies || companies.length === 0) return [];
+
+    const results: Array<{ id: string; name: string; score: number }> = [];
 
     for (const company of companies) {
-      const normalizedCompany = normalizeText(company.name);
-
-      // Exact match = 100 points
-      if (normalizedCompany === normalizedSearch) {
-        return { id: company.id, name: company.name, score: 100 };
-      }
-
-      // Substring match = up to 80 points
-      let score = 0;
-      if (normalizedCompany.includes(normalizedSearch) || normalizedSearch.includes(normalizedCompany)) {
-        score = Math.max(
-          (normalizedSearch.length / normalizedCompany.length) * 80,
-          (normalizedCompany.length / normalizedSearch.length) * 80
-        );
-      } else {
-        // Word overlap match = up to 70 points
-        const searchWords = normalizedSearch.split(" ");
-        const companyWords = normalizedCompany.split(" ");
-        const matchingWords = searchWords.filter(w =>
-          companyWords.some(cw => cw.includes(w) || w.includes(cw))
-        );
-        score = (matchingWords.length / Math.max(searchWords.length, companyWords.length)) * 70;
-      }
-
-      if (score > (bestMatch?.score || 0)) {
-        bestMatch = { id: company.id, name: company.name, score };
+      const score = scoreCompany(searchText, company.name);
+      if (score >= minScore) {
+        results.push({ id: company.id, name: company.name, score });
       }
     }
 
-    // Minimum threshold: 40 points required
-    return bestMatch && bestMatch.score >= 40 ? bestMatch : null;
-  }, [companies]);
+    return results.sort((a, b) => b.score - a.score);
+  }, [companies, scoreCompany]);
 
   // Find best service type match
   const findBestServiceTypeMatch = useCallback((searchText: string): { id: string; name: string; score: number } | null => {
@@ -279,6 +287,8 @@ export default function NewWorkOrder() {
       woNumber: null,
       companyName: null,
       matchedCompanyId: null,
+      companyConfidence: null,
+      companyCandidates: null,
       applicantName: null,
       serviceTypeName: null,
       matchedServiceTypeId: null,
@@ -315,11 +325,21 @@ export default function NewWorkOrder() {
         (upperPart === part && part.length > 10)
       ) {
         parsed.companyName = part;
-        const match = findBestCompanyMatch(part);
-        if (match) {
-          parsed.matchedCompanyId = match.id;
+        const candidates = findCompanyMatches(part, 30);
+        const best = candidates[0] ?? null;
+
+        if (best && best.score >= 65) {
+          // High confidence — auto-resolve
+          parsed.matchedCompanyId = best.id;
+          parsed.companyConfidence = 'high';
+        } else if (best && best.score >= 40) {
+          // Medium confidence — show candidates, require explicit selection
+          parsed.companyConfidence = 'medium';
+          parsed.companyCandidates = candidates.filter(c => c.score >= 40).slice(0, 5);
         } else {
-          warnings.push(`Company "${part.substring(0, 30)}${part.length > 30 ? '...' : ''}" not found in system`);
+          // Low confidence — unknown company
+          parsed.companyConfidence = 'low';
+          warnings.push(`Company not found in system`);
         }
         break;
       }
@@ -345,40 +365,67 @@ export default function NewWorkOrder() {
       }
     }
 
-    // Step 4: Find Person Name (exclusion-based detection)
-    for (const part of parts) {
-      // Skip already-identified fields
-      if (part === parsed.woNumber || part === parsed.companyName || part === parsed.serviceTypeName) continue;
+    // Step 4: Find Person Name (positional, exclusion-based detection)
+    // Prefer parts that appear after the company name and before the service type
+    const companyIndex = parsed.companyName ? parts.indexOf(parsed.companyName) : -1;
+    const serviceIndex = parsed.serviceTypeName ? parts.indexOf(parsed.serviceTypeName) : parts.length;
 
-      // Skip dates (like "5-Jan-26")
-      if (/^\d{1,2}[-/]\w+[-/]\d{2,4}$/.test(part)) continue;
+    const notName = [
+      "SALES", "OFFICER", "MANAGER", "ACCOUNTANT",
+      "DRIVER", "CLEANER", "CEO", "ADMIN",
+      "INSIDE", "OUTSIDE", "COMPLETED", "INVOICED",
+      "SOFTWARE", "DEVELOPER", "ENGINEER", "ANALYST",
+      "TECHNICIAN", "COORDINATOR", "SPECIALIST", "CONSULTANT",
+      "ASSISTANT", "SUPERVISOR", "EXECUTIVE", "DIRECTOR",
+      "CONTROLLER", "SECRETARY", "REPRESENTATIVE", "ASSOCIATE", "INTERN"
+    ];
+
+    const isNameCandidate = (part: string): boolean => {
+      if (part === parsed.woNumber || part === parsed.companyName || part === parsed.serviceTypeName) return false;
+      if (/^\d{1,2}[-/]\w+[-/]\d{2,4}$/.test(part)) return false;
 
       const words = part.split(/\s+/);
+      if (words.length < 2 || words.length > 7) return false;
 
-      // Check: 2-5 words, at least 2 starting with uppercase
-      const hasUpperWords = words.filter(w =>
-        w[0] === w[0]?.toUpperCase() && w.length > 1
-      ).length;
+      const hasUpperWords = words.filter(w => w[0] === w[0]?.toUpperCase() && w.length > 1).length;
+      if (hasUpperWords < 2) return false;
 
-      if (words.length >= 2 && words.length <= 5 && hasUpperWords >= 2) {
-        // Exclude job titles and status words
-        const notName = [
-          "SALES", "OFFICER", "MANAGER", "ACCOUNTANT",
-          "DRIVER", "CLEANER", "CEO", "ADMIN",
-          "INSIDE", "OUTSIDE", "COMPLETED", "INVOICED"
-        ];
+      return !notName.some(n => part.toUpperCase().includes(n));
+    };
 
-        if (!notName.some(n => part.toUpperCase().includes(n))) {
+    // Try positional window first (between company and service type)
+    const positionalParts = companyIndex >= 0
+      ? parts.slice(companyIndex + 1, serviceIndex > 0 ? serviceIndex : undefined)
+      : [];
+
+    let foundName = false;
+    for (const part of positionalParts) {
+      if (isNameCandidate(part)) {
+        parsed.applicantName = part;
+        foundName = true;
+        break;
+      }
+    }
+
+    // Fall back to full scan if positional search yielded nothing
+    if (!foundName) {
+      for (const part of parts) {
+        if (isNameCandidate(part)) {
           parsed.applicantName = part;
           break;
         }
       }
     }
 
-    const success = parsed.matchedCompanyId !== null || parsed.applicantName !== null;
+    const success =
+      parsed.matchedCompanyId !== null ||
+      parsed.applicantName !== null ||
+      parsed.companyConfidence === 'medium' ||
+      parsed.woNumber !== null ||
+      parsed.matchedServiceTypeId !== null;
 
     return { success, parsed, warnings };
-  }, [findBestCompanyMatch, findBestServiceTypeMatch]);
+  }, [findCompanyMatches, findBestServiceTypeMatch]);
 
   // Handle parse button click
   const handleParse = useCallback(() => {
@@ -518,45 +565,94 @@ export default function NewWorkOrder() {
               {/* Parse Results */}
               {parseResult && (
                 <div className="space-y-3" data-testid="parse-results">
+
+                  {/* Company confidence — always rendered when a company part was detected */}
+                  {parseResult.parsed.companyConfidence === 'high' && parseResult.parsed.matchedCompanyId && (
+                    <Badge variant="secondary" className="gap-1.5" data-testid="badge-company-high">
+                      <Building2 className="h-3 w-3" />
+                      {companies?.find(c => c.id === parseResult.parsed.matchedCompanyId)?.name.substring(0, 30)}
+                    </Badge>
+                  )}
+
+                  {parseResult.parsed.companyConfidence === 'medium' && parseResult.parsed.companyCandidates && (
+                    <div className="space-y-1.5" data-testid="company-candidates">
+                      <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                        <AlertCircle className="h-3 w-3" />
+                        Possible match — select the correct company:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {parseResult.parsed.companyCandidates.map(candidate => (
+                          <button
+                            key={candidate.id}
+                            type="button"
+                            onClick={() => setParseResult(prev => prev ? {
+                              ...prev,
+                              parsed: { ...prev.parsed, matchedCompanyId: candidate.id }
+                            } : null)}
+                            data-testid={`candidate-company-${candidate.id}`}
+                          >
+                            <Badge
+                              variant={parseResult.parsed.matchedCompanyId === candidate.id ? "default" : "outline"}
+                              className="gap-1.5 cursor-pointer hover:bg-secondary/80 transition-colors"
+                            >
+                              <Building2 className="h-3 w-3" />
+                              {candidate.name.substring(0, 30)}
+                            </Badge>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Low confidence — always visible regardless of other detected fields */}
+                  {parseResult.parsed.companyConfidence === 'low' && parseResult.parsed.companyName && (
+                    <div className="flex items-center gap-1.5 text-xs text-destructive" data-testid="company-not-found">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>
+                        Company not found in system: &ldquo;{parseResult.parsed.companyName.substring(0, 40)}{parseResult.parsed.companyName.length > 40 ? '…' : ''}&rdquo;
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Other detected fields */}
                   {parseResult.success ? (
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-foreground">Detected Fields:</p>
+                      {(parseResult.parsed.applicantName || parseResult.parsed.matchedServiceTypeId || parseResult.parsed.woNumber) && (
+                        <p className="text-sm font-medium text-foreground">Detected Fields:</p>
+                      )}
                       <div className="flex flex-wrap gap-2">
-                        {parseResult.parsed.matchedCompanyId && (
-                          <Badge variant="secondary" className="gap-1.5">
-                            <Building2 className="h-3 w-3" />
-                            {companies?.find(c => c.id === parseResult.parsed.matchedCompanyId)?.name.substring(0, 30)}
-                          </Badge>
-                        )}
                         {parseResult.parsed.applicantName && (
-                          <Badge variant="secondary" className="gap-1.5">
+                          <Badge variant="secondary" className="gap-1.5" data-testid="badge-applicant">
                             <User className="h-3 w-3" />
                             {parseResult.parsed.applicantName}
                           </Badge>
                         )}
                         {parseResult.parsed.matchedServiceTypeId && (
-                          <Badge variant="secondary" className="gap-1.5">
+                          <Badge variant="secondary" className="gap-1.5" data-testid="badge-service-type">
                             <FileText className="h-3 w-3" />
                             {serviceTypes?.find(s => s.id === parseResult.parsed.matchedServiceTypeId)?.name}
                           </Badge>
                         )}
                       </div>
                     </div>
-                  ) : (
+                  ) : !parseResult.parsed.companyName ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <AlertCircle className="h-4 w-4" />
                       No usable data detected
                     </div>
-                  )}
+                  ) : null}
 
-                  {parseResult.warnings.length > 0 && (
+                  {/* Non-company warnings only (company-not-found is shown inline above) */}
+                  {parseResult.warnings.filter(w => !w.startsWith('Company not found')).length > 0 && (
                     <div className="space-y-1">
-                      {parseResult.warnings.map((warning, i) => (
-                        <p key={i} className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                          <AlertCircle className="h-3 w-3" />
-                          {warning}
-                        </p>
-                      ))}
+                      {parseResult.warnings
+                        .filter(w => !w.startsWith('Company not found'))
+                        .map((warning, i) => (
+                          <p key={i} className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                            <AlertCircle className="h-3 w-3" />
+                            {warning}
+                          </p>
+                        ))}
                     </div>
                   )}
                 </div>
