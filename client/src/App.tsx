@@ -19,6 +19,8 @@ import proLogo from "@assets/Our_Logo_transparent.png";
 import { CompanyName } from "@/components/ui/company-name";
 import { useSplash } from "@/contexts/splash-context";
 import SplashScreen from "@/components/splash-screen";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { VendorSidebar, VendorTopBar } from "@/components/vendor-sidebar";
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -295,16 +297,28 @@ function VendorPortalLayout() {
     <VendorAuthProvider>
       <VendorAuthGuard>
         <TypingVendorGuard>
-          <Switch>
-            <Route path="/" component={VendorDashboard} />
-            <Route path="/dashboard">{() => <Redirect to="/vendor" />}</Route>
-            <Route path="/jobs" component={VendorJobs} />
-            <Route path="/jobs/:id" component={VendorJobDetail} />
-            <Route path="/eid-jobs" component={VendorEidJobs} />
-            <Route path="/medical-jobs" component={VendorMedicalJobs} />
-            <Route path="/wallet" component={VendorWalletPage} />
-            <Route component={NotFound} />
-          </Switch>
+          <SidebarProvider>
+            <div className="flex h-screen w-full overflow-hidden">
+              <VendorSidebar />
+              <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+                <VendorTopBar />
+                <main className="flex-1 overflow-y-auto">
+                  <Switch>
+                    <Route path="/" component={VendorDashboard} />
+                    <Route path="/dashboard">{() => <Redirect to="/vendor" />}</Route>
+                    <Route path="/jobs" component={VendorJobs} />
+                    <Route path="/jobs/:id" component={VendorJobDetail} />
+                    <Route path="/eid" component={VendorEidJobs} />
+                    <Route path="/eid-jobs">{() => <Redirect to="/vendor/eid" />}</Route>
+                    <Route path="/medical" component={VendorMedicalJobs} />
+                    <Route path="/medical-jobs">{() => <Redirect to="/vendor/medical" />}</Route>
+                    <Route path="/wallet" component={VendorWalletPage} />
+                    <Route component={NotFound} />
+                  </Switch>
+                </main>
+              </div>
+            </div>
+          </SidebarProvider>
         </TypingVendorGuard>
       </VendorAuthGuard>
     </VendorAuthProvider>
