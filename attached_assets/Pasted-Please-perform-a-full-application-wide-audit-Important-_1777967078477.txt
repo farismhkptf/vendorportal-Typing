@@ -1,0 +1,119 @@
+Please perform a full application-wide audit.
+
+Important: this is not only a code audit.
+
+I want you to review the app like:
+- a senior product architect
+- a real human user
+- an operations manager
+- a QA lead
+- a UX specialist
+- and a conservative app owner who wants clarity, correctness, and long-term system quality.
+
+Do not implement anything yet.
+
+Review the entire application from beginning to end, including all pages, modules, flows, forms, dashboards, roles, statuses, reports, settings, and system utilities.
+
+For every module, ask:
+
+1. Why does this module exist?
+2. What user or business problem is it supposed to solve?
+3. Who is the intended user?
+4. What should the user be able to accomplish here?
+5. Is the module actually serving that purpose?
+6. Is the module complete enough to be useful?
+7. Is anything missing, duplicated, unclear, risky, or unnecessary?
+8. Are there illogical flows or states a human would notice?
+9. Are there actions that appear too early, too late, or in the wrong condition?
+10. Are there forms that allow incomplete, impossible, duplicated, or contradictory data?
+11. Are statuses realistic and aligned with the actual process?
+12. Are reports and dashboards showing trustworthy information?
+13. Are permissions and visibility rules logical?
+14. Does the app feel like one coherent system?
+
+Please classify findings into:
+
+- Critical
+- High
+- Medium
+- Low
+
+Also classify recommendations into:
+
+- Must Fix
+- Should Improve
+- Nice to Have
+- Future Version
+- Do Not Build Yet
+
+Required output:
+
+# Application-Wide Product, Logic & QA Audit
+
+## 1. Executive Assessment
+Briefly assess whether the app feels structurally strong, scattered, incomplete, risky, or mostly sound.
+
+## 2. Application Map
+List all pages, modules, routes, and major flows reviewed.
+
+## 3. Module Purpose Review
+For each module:
+- Module name
+- Why it exists
+- Intended user
+- Core jobs it should perform
+- Current condition
+- Is it serving its purpose?
+- What is missing
+- What is unnecessary or overbuilt
+- Recommended improvements
+- Risk if left as-is
+- Priority
+
+## 4. Human Logic & Operational QA
+List issues where the app technically works but behaves in a way a human would find confusing, illogical, incomplete, or risky.
+
+## 5. Data Integrity & Trust Issues
+List anything that can create wrong data, misleading records, failed saves, duplicate records, incorrect relationships, or false reports.
+
+## 6. Forms, Statuses & Workflow Issues
+Review whether forms, statuses, validations, transitions, and process steps make real-world sense.
+
+## 7. Role, Permission & Visibility Issues
+Review whether users can see or do the right things based on their role.
+
+## 8. Navigation, Duplication & System Coherence
+List duplicated modules, unclear navigation, overlapping tools, confusing names, and disconnected flows.
+
+## 9. Reports, Dashboards & Summary Issues
+Review whether dashboards and reports show useful, accurate, and properly explained information.
+
+## 10. Missing Safeguards
+List missing confirmations, warnings, locks, audit logs, recovery paths, duplicate checks, and risky action protections.
+
+## 11. Enhancement Roadmap
+Group recommendations into:
+- Phase 1: Trust and data integrity
+- Phase 2: Human logic and workflow safety
+- Phase 3: Module purpose and usefulness
+- Phase 4: Navigation and system coherence
+- Phase 5: Reporting and dashboard clarity
+- Phase 6: UX polish and future enhancements
+
+## 12. What Not To Build Yet
+List anything that may sound useful but is premature, complex, unclear, or likely to overbuild the app.
+
+## 13. Product Clarification Needed
+List questions that must be answered before implementation.
+
+## 14. Final Recommendation
+Give the safest next step.
+
+Boundaries:
+- Do not implement anything.
+- Do not redesign the app.
+- Do not change database schema unless clearly necessary.
+- Do not assume business logic if unclear.
+- Do not treat code success as product success.
+- Do not overbuild.
+- Challenge the plan if a smaller or safer audit approach is better.
