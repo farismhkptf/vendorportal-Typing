@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -61,6 +61,7 @@ export default function NewWorkOrder() {
   const [pasteValue, setPasteValue] = useState("");
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [companySearchQuery, setCompanySearchQuery] = useState("");
+  const companySelectionCacheRef = useRef<Record<string, string>>({});
 
   const { data: companies } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
@@ -326,6 +327,15 @@ export default function NewWorkOrder() {
         (upperPart === part && part.length > 10)
       ) {
         parsed.companyName = part;
+
+        // Check session cache first — if user already resolved this name, reuse that choice
+        const cachedCompanyId = companySelectionCacheRef.current[normalizeText(part)];
+        if (cachedCompanyId) {
+          parsed.matchedCompanyId = cachedCompanyId;
+          parsed.companyConfidence = 'medium';
+          break;
+        }
+
         const candidates = findCompanyMatches(part, 30);
         const best = candidates[0] ?? null;
 
@@ -584,33 +594,67 @@ export default function NewWorkOrder() {
                     </Badge>
                   )}
 
-                  {parseResult.parsed.companyConfidence === 'medium' && parseResult.parsed.companyCandidates && (
+                  {parseResult.parsed.companyConfidence === 'medium' && (
                     <div className="space-y-1.5" data-testid="company-candidates">
-                      <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
-                        <AlertCircle className="h-3 w-3" />
-                        Possible match — select the correct company:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {parseResult.parsed.companyCandidates.map(candidate => (
-                          <button
-                            key={candidate.id}
-                            type="button"
-                            onClick={() => setParseResult(prev => prev ? {
-                              ...prev,
-                              parsed: { ...prev.parsed, matchedCompanyId: candidate.id }
-                            } : null)}
-                            data-testid={`candidate-company-${candidate.id}`}
-                          >
-                            <Badge
-                              variant={parseResult.parsed.matchedCompanyId === candidate.id ? "default" : "outline"}
-                              className="gap-1.5 cursor-pointer hover:bg-secondary/80 transition-colors"
-                            >
+                      {/* Cache pre-selected: show badge + Change option */}
+                      {parseResult.parsed.matchedCompanyId && !parseResult.parsed.companyCandidates ? (
+                        <>
+                          <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Auto-selected from previous choice:
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="default" className="gap-1.5" data-testid="badge-company-cached">
                               <Building2 className="h-3 w-3" />
-                              {candidate.name.substring(0, 30)}
+                              {companies?.find(c => c.id === parseResult.parsed.matchedCompanyId)?.name.substring(0, 30)}
                             </Badge>
-                          </button>
-                        ))}
-                      </div>
+                            <button
+                              type="button"
+                              className="text-xs text-muted-foreground underline hover:text-foreground"
+                              onClick={() => setParseResult(prev => {
+                                if (!prev) return null;
+                                const newParsed = { ...prev.parsed, matchedCompanyId: null, companyConfidence: 'low' as const };
+                                const newSuccess =
+                                  newParsed.applicantName !== null ||
+                                  newParsed.woNumber !== null ||
+                                  newParsed.matchedServiceTypeId !== null;
+                                return { ...prev, success: newSuccess, parsed: newParsed };
+                              })}
+                              data-testid="button-change-cached-company"
+                            >
+                              Change
+                            </button>
+                          </div>
+                        </>
+                      ) : parseResult.parsed.companyCandidates ? (
+                        <>
+                          <p className="text-xs text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" />
+                            Possible match — select the correct company:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {parseResult.parsed.companyCandidates.map(candidate => (
+                              <button
+                                key={candidate.id}
+                                type="button"
+                                onClick={() => setParseResult(prev => prev ? {
+                                  ...prev,
+                                  parsed: { ...prev.parsed, matchedCompanyId: candidate.id }
+                                } : null)}
+                                data-testid={`candidate-company-${candidate.id}`}
+                              >
+                                <Badge
+                                  variant={parseResult.parsed.matchedCompanyId === candidate.id ? "default" : "outline"}
+                                  className="gap-1.5 cursor-pointer hover:bg-secondary/80 transition-colors"
+                                >
+                                  <Building2 className="h-3 w-3" />
+                                  {candidate.name.substring(0, 30)}
+                                </Badge>
+                              </button>
+                            ))}
+                          </div>
+                        </>
+                      ) : null}
                     </div>
                   )}
 
@@ -662,11 +706,18 @@ export default function NewWorkOrder() {
                                 key={company.id}
                                 type="button"
                                 onClick={() => {
-                                  setParseResult(prev => prev ? {
-                                    ...prev,
-                                    success: true,
-                                    parsed: { ...prev.parsed, matchedCompanyId: company.id }
-                                  } : null);
+                                  setParseResult(prev => {
+                                    if (!prev) return null;
+                                    const detectedName = prev.parsed.companyName;
+                                    if (detectedName) {
+                                      companySelectionCacheRef.current[normalizeText(detectedName)] = company.id;
+                                    }
+                                    return {
+                                      ...prev,
+                                      success: true,
+                                      parsed: { ...prev.parsed, matchedCompanyId: company.id }
+                                    };
+                                  });
                                   setCompanySearchQuery("");
                                 }}
                                 data-testid={`search-company-${company.id}`}
