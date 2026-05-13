@@ -34,7 +34,7 @@ function getRedirectForRole(role: string): string {
     case "PRO - Temporary":
       return "/medical";
     case "Vendor":
-      return "/vendor/login";
+      return "/vendor";
     default:
       return "/";
   }
@@ -109,9 +109,7 @@ export default function Login() {
     queryKey: ["/api/public/settings"],
   });
 
-  const staffAccounts = accounts.filter(
-    a => !["Vendor"].includes(a.role)
-  );
+  const staffAccounts = accounts;
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -240,7 +238,7 @@ export default function Login() {
                         <p className="text-sm font-medium text-white truncate">{account.name}</p>
                         <p className="text-xs text-white/50 truncate">{account.email}</p>
                       </div>
-                      <span className="text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 bg-white/10 text-white/70">
+                      <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${account.role === "Vendor" ? "bg-amber-500/30 text-amber-300" : "bg-white/10 text-white/70"}`}>
                         {getRoleLabel(account.role)}
                       </span>
                       <ChevronRight className="h-4 w-4 text-white/40 shrink-0" />

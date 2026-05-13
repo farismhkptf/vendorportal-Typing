@@ -74,9 +74,6 @@ export function registerAuthRoutes(app: Express): void {
       if (!user || !user.active) {
         return res.status(401).json({ message: "Account not found or inactive" });
       }
-      if (user.role === "Vendor") {
-        return res.status(403).json({ message: "Please use the vendor portal" });
-      }
       req.session.userId = user.id;
       req.session.userRole = user.role;
       req.session.userName = user.name;
